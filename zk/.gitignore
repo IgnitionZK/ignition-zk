@@ -1,0 +1,9 @@
+# Output from circom compilation (.r1cs, .wasm, .zkey, .vkey.json)
+zk/circuits/**/build/         
+
+# JavaScript witness generator files
+zk/circuits/**/build/*_js/  
+
+# Trusted setup files 
+zk/trusted-setup/* 
+    
