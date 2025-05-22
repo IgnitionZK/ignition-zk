@@ -7,22 +7,6 @@ zk/circuits/**/build/*_js/
 # Trusted setup files 
 zk/trusted-setup/* 
 
-# Dependencies
-node_modules/
 
-# IDE files
-.vscode/
-.idea/
-
-# OS files
-.DS_Store
-Thumbs.db
-
-# Environment files
-.env
-.env.local
-
-# Logs
-*.log
 
     
