@@ -45,6 +45,17 @@ function generateMnemonicSeed(bits = 256) {
 
 const { secretSeed, mnemonic } = generateMnemonicSeed();
 
+/**
+ * @title Convert Tag to Field Element
+ * @notice Converts a string tag into a field element for use in Poseidon hashing
+ * @dev Uses SHA-256 to hash the tag and reduces it modulo the field prime
+ * @param {string} tag - The string tag to convert (e.g., "zk-trapdoor", "zk-nullifier")
+ * @return {bigint} The tag converted to a field element in BN254's finite field
+ * @example
+ * // Convert a tag to a field element
+ * const trapdoorTag = tagToField("zk-trapdoor");
+ * const nullifierTag = tagToField("zk-nullifier");
+ */
 function tagToField(tag) {
   const hash = crypto.createHash("sha256").update(tag).digest("hex");
   return BigInt("0x" + hash) % FIELD_PRIME;
