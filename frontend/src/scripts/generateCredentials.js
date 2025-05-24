@@ -12,7 +12,7 @@ import crypto from "crypto";
  * @notice A class for generating and managing zero-knowledge identity credentials
  * @dev Uses BIP39 for mnemonic generation, HKDF for key derivation, and Poseidon for hashing
  */
-export class ZkIdentity {
+export class ZkCredential {
   // Class-level state
   static #poseidonInstance;
   static #FIELD_PRIME =
@@ -112,9 +112,9 @@ export class ZkIdentity {
 }
 
 // Example usage
-const { secretSeed, mnemonic } = ZkIdentity.generateMnemonicSeed();
+const { secretSeed, mnemonic } = ZkCredential.generateMnemonicSeed();
 (async () => {
-  const { identity, commitment } = await ZkIdentity.generateCredentials(
+  const { identity, commitment } = await ZkCredential.generateCredentials(
     secretSeed
   );
   console.log({ identity, commitment, mnemonic });
