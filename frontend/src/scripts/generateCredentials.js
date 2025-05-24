@@ -2,6 +2,12 @@
 import * as bip39 from "bip39";
 import * as circomlibjs from "circomlibjs";
 import hkdf from "futoin-hkdf";
+import crypto from "crypto";
+
+// state variables
+let poseidonInstance;
+const FIELD_PRIME =
+  21888242871839275222246405745257275088548364400416034343698204186575808495617n;
 
 /**
  * @title Generate Seed
@@ -15,7 +21,7 @@ import hkdf from "futoin-hkdf";
  * // Generate a seed from a 24-word mnemonic (256 bits)
  * const seed = generateSeed(256);
  */
-export function generateMnemonicSeed(bits = 256) {
+function generateMnemonicSeed(bits = 256) {
   if (bits < 256) {
     throw new Error(
       "At least 256 bits of entropy are recommended for zk-identity use."
@@ -31,8 +37,7 @@ export function generateMnemonicSeed(bits = 256) {
   const rawBigInt = BigInt("0x" + Buffer.from(derivedKey).toString("hex"));
 
   // Reduce the input into the BN254's finite field
-  const FIELD_PRIME =
-    21888242871839275222246405745257275088548364400416034343698204186575808495617n;
+
   const secretSeed = ((rawBigInt % FIELD_PRIME) + FIELD_PRIME) % FIELD_PRIME;
 
   return { secretSeed, mnemonic };
@@ -40,7 +45,10 @@ export function generateMnemonicSeed(bits = 256) {
 
 const { secretSeed, mnemonic } = generateMnemonicSeed();
 
-let poseidonInstance;
+function tagToField(tag) {
+  const hash = crypto.createHash("sha256").update(tag).digest("hex");
+  return BigInt("0x" + hash) % FIELD_PRIME;
+}
 
 /**
  * @title Get Poseidon Instance
@@ -66,7 +74,7 @@ async function getPoseidon() {
  *   - commitment: The final commitment hash of nullifier and trapdoor
  */
 
-export async function generateCredentials(secretSeed) {
+async function generateCredentials(secretSeed) {
   if (typeof secretSeed !== "bigint") {
     throw new Error("Seed must be a bigint");
   }
@@ -74,8 +82,12 @@ export async function generateCredentials(secretSeed) {
   const poseidon = await getPoseidon();
   const F = poseidon.F;
 
-  const trapdoor = F.toObject(poseidon([1n, secretSeed]));
-  const nullifier = F.toObject(poseidon([2n, secretSeed]));
+  //using hashed tags (like "zk-trapdoor", "zk-nullifier") provides semantic separation that's harder to mix up or collide
+  const trapdoorTag = tagToField("zk-trapdoor");
+  const nullifierTag = tagToField("zk-nullifier");
+
+  const trapdoor = F.toObject(poseidon([trapdoorTag, secretSeed]));
+  const nullifier = F.toObject(poseidon([nullifierTag, secretSeed]));
   const commitment = F.toObject(poseidon([nullifier, trapdoor]));
 
   return {
