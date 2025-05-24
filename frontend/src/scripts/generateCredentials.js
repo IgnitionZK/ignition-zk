@@ -14,7 +14,7 @@ import * as circomlibjs from "circomlibjs";
  * // Generate a seed from a 24-word mnemonic (256 bits)
  * const seed = generateSeed(256);
  */
-function generateSeed(bits = 128) {
+export function generateSeed(bits = 128) {
   // create 12-word mnemonic and seed
   const mnemonic = bip39.generateMnemonic(bits);
   const seed = bip39.mnemonicToSeedSync(mnemonic);
@@ -43,7 +43,7 @@ const seed1 = generateSeed();
  *   - nullifier: The nullifier value generated from seed
  *   - commitment: The final commitment hash of nullifier and trapdoor
  */
-async function generateCredentials(seed) {
+export async function generateCredentials(seed) {
   const poseidon = await circomlibjs.buildPoseidon();
   const F = poseidon.F;
 
