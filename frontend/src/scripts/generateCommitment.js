@@ -3,16 +3,16 @@ import * as bip39 from "bip39";
 import * as circomlibjs from "circomlibjs";
 
 /**
- * @title Generate seed
- * @notice Generates a BIP39 mnemonic phrase with specified entropy
- * @dev Uses bip39 library to generate cryptographically secure mnemonic phrases
- * @param {number} bits - The number of bits of entropy (default: 128)
- * @return {string} The generated mnemonic phrase
+ * @title Generate Seed
+ * @notice Generates a cryptographically secure seed value from a BIP39 mnemonic
+ * @dev Uses bip39 library to generate mnemonic and seed, then reduces it to BN254's finite field
+ * @param {number} bits - The number of bits of entropy for mnemonic generation (default: 128)
+ * @return {bigint} The generated seed value reduced to BN254's finite field
  * @example
- * // Generate a 12-word mnemonic (128 bits)
- * generateMnemonic()
- * // Generate a 24-word mnemonic (256 bits)
- * generateMnemonic(256)
+ * // Generate a seed from a 12-word mnemonic (128 bits)
+ * const seed = generateSeed();
+ * // Generate a seed from a 24-word mnemonic (256 bits)
+ * const seed = generateSeed(256);
  */
 function generateSeed(bits = 128) {
   // create 12-word mnemonic and seed
@@ -33,6 +33,20 @@ function generateSeed(bits = 128) {
 
 const seed1 = generateSeed();
 
+/**
+ * @title Generate Identity
+ * @notice Generates a complete identity with trapdoor, nullifier, and commitment
+ * @dev Uses Poseidon hash function from circomlibjs to generate cryptographically secure identity components
+ * @param {bigint} seed - The secret seed to generate the identity from
+ * @return {Object} Object containing:
+ *   - trapdoor: The trapdoor value generated from seed
+ *   - nullifier: The nullifier value generated from seed
+ *   - commitment: The final commitment hash of nullifier and trapdoor
+ * @example
+ * // Generate a complete identity from a seed
+ * const identity = await generateIdentity(seed);
+ * console.log(identity.trapdoor, identity.nullifier, identity.commitment);
+ */
 async function generateIdentity(seed) {
   const poseidon = await circomlibjs.buildPoseidon();
   const F = poseidon.F;
