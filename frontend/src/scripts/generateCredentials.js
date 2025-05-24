@@ -33,6 +33,21 @@ export function generateMnemonicSeed(bits = 128) {
 
 const { secretSeed, mnemonic } = generateMnemonicSeed();
 
+let poseidonInstance;
+
+/**
+ * @title Get Poseidon Instance
+ * @notice Returns a singleton instance of the Poseidon hash function
+ * @dev Uses memoization to cache the Poseidon instance for better performance
+ * @return {Promise<Object>} The Poseidon hash function instance with its field operations
+ */
+async function getPoseidon() {
+  if (!poseidonInstance) {
+    poseidonInstance = await circomlibjs.buildPoseidon();
+  }
+  return poseidonInstance;
+}
+
 /**
  * @title Generate Credentials
  * @notice Generates complete credentials with trapdoor, nullifier, and commitment
@@ -43,8 +58,13 @@ const { secretSeed, mnemonic } = generateMnemonicSeed();
  *   - nullifier: The nullifier value generated from seed
  *   - commitment: The final commitment hash of nullifier and trapdoor
  */
+
 export async function generateCredentials(secretSeed) {
-  const poseidon = await circomlibjs.buildPoseidon();
+  if (typeof secretSeed !== "bigint") {
+    throw new Error("Seed must be a bigint");
+  }
+
+  const poseidon = await getPoseidon();
   const F = poseidon.F;
 
   const trapdoor = F.toObject(poseidon([1n, secretSeed]));
