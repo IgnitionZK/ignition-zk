@@ -1,5 +1,6 @@
-// bip39 provides functionality for creating mnemonics
+// imports
 import * as bip39 from "bip39";
+import * as circomlibjs from "circomlibjs";
 
 /**
  * @title Generate seed
@@ -14,15 +15,36 @@ import * as bip39 from "bip39";
  * generateMnemonic(256)
  */
 function generateSeed(bits = 128) {
+  // create 12-word mnemonic and seed
   const mnemonic = bip39.generateMnemonic(bits);
-  console.log("Mnemonic: ", mnemonic);
   const seed = bip39.mnemonicToSeedSync(mnemonic);
 
   // Securely slice and copy
-  const seedCopy = Uint8Array.prototype.slice.call(seed, 0, 32);
-  const secretSeed = BigInt("0x" + Buffer.from(seedCopy).toString("hex"));
-  console.log("Secret Seed: ", secretSeed);
+  const seedSlice = Uint8Array.prototype.slice.call(seed, 0, 32);
+  const rawBigInt = BigInt("0x" + Buffer.from(seedSlice).toString("hex"));
+
+  // Reduce the input into the BN254's finite field
+  const FIELD_PRIME =
+    21888242871839275222246405745257275088548364400416034343698204186575808495617n;
+  const secretSeed = ((rawBigInt % FIELD_PRIME) + FIELD_PRIME) % FIELD_PRIME;
+
   return secretSeed;
 }
 
-generateSeed();
+const seed1 = generateSeed();
+
+async function generateIdentity(seed) {
+  const poseidon = await circomlibjs.buildPoseidon();
+  const F = poseidon.F;
+
+  const trapdoor = F.toObject(poseidon([1n, seed]));
+  const nullifier = F.toObject(poseidon([2n, seed]));
+  const commitment = F.toObject(poseidon([nullifier, trapdoor]));
+
+  return { trapdoor, nullifier, commitment };
+}
+
+(async () => {
+  const commitment = await generateIdentity(seed1);
+  console.log(commitment);
+})();
