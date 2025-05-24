@@ -34,20 +34,16 @@ function generateSeed(bits = 128) {
 const seed1 = generateSeed();
 
 /**
- * @title Generate Identity
- * @notice Generates a complete identity with trapdoor, nullifier, and commitment
+ * @title Generate Credentials
+ * @notice Generates complete credentials with trapdoor, nullifier, and commitment
  * @dev Uses Poseidon hash function from circomlibjs to generate cryptographically secure identity components
  * @param {bigint} seed - The secret seed to generate the identity from
  * @return {Object} Object containing:
  *   - trapdoor: The trapdoor value generated from seed
  *   - nullifier: The nullifier value generated from seed
  *   - commitment: The final commitment hash of nullifier and trapdoor
- * @example
- * // Generate a complete identity from a seed
- * const identity = await generateIdentity(seed);
- * console.log(identity.trapdoor, identity.nullifier, identity.commitment);
  */
-async function generateIdentity(seed) {
+async function generateCredentials(seed) {
   const poseidon = await circomlibjs.buildPoseidon();
   const F = poseidon.F;
 
@@ -55,10 +51,16 @@ async function generateIdentity(seed) {
   const nullifier = F.toObject(poseidon([2n, seed]));
   const commitment = F.toObject(poseidon([nullifier, trapdoor]));
 
-  return { trapdoor, nullifier, commitment };
+  return {
+    identity: {
+      trapdoor,
+      nullifier,
+    },
+    commitment,
+  };
 }
 
 (async () => {
-  const commitment = await generateIdentity(seed1);
-  console.log(commitment);
+  const { identity, commitment } = await generateCredentials(seed1);
+  console.log({ identity, commitment });
 })();
