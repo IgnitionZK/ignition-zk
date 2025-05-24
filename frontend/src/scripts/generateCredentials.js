@@ -14,7 +14,7 @@ import * as circomlibjs from "circomlibjs";
  * // Generate a seed from a 24-word mnemonic (256 bits)
  * const seed = generateSeed(256);
  */
-export function generateSeed(bits = 128) {
+export function generateMnemonicSeed(bits = 128) {
   // create 12-word mnemonic and seed
   const mnemonic = bip39.generateMnemonic(bits);
   const seed = bip39.mnemonicToSeedSync(mnemonic);
@@ -28,10 +28,10 @@ export function generateSeed(bits = 128) {
     21888242871839275222246405745257275088548364400416034343698204186575808495617n;
   const secretSeed = ((rawBigInt % FIELD_PRIME) + FIELD_PRIME) % FIELD_PRIME;
 
-  return secretSeed;
+  return { secretSeed, mnemonic };
 }
 
-const seed1 = generateSeed();
+const { secretSeed, mnemonic } = generateMnemonicSeed();
 
 /**
  * @title Generate Credentials
@@ -43,12 +43,12 @@ const seed1 = generateSeed();
  *   - nullifier: The nullifier value generated from seed
  *   - commitment: The final commitment hash of nullifier and trapdoor
  */
-export async function generateCredentials(seed) {
+export async function generateCredentials(secretSeed) {
   const poseidon = await circomlibjs.buildPoseidon();
   const F = poseidon.F;
 
-  const trapdoor = F.toObject(poseidon([1n, seed]));
-  const nullifier = F.toObject(poseidon([2n, seed]));
+  const trapdoor = F.toObject(poseidon([1n, secretSeed]));
+  const nullifier = F.toObject(poseidon([2n, secretSeed]));
   const commitment = F.toObject(poseidon([nullifier, trapdoor]));
 
   return {
@@ -61,6 +61,6 @@ export async function generateCredentials(seed) {
 }
 
 (async () => {
-  const { identity, commitment } = await generateCredentials(seed1);
-  console.log({ identity, commitment });
+  const { identity, commitment } = await generateCredentials(secretSeed);
+  console.log({ identity, commitment, mnemonic });
 })();
