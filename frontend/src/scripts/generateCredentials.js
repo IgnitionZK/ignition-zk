@@ -77,18 +77,17 @@ export class ZkCredential {
 
   /**
    * @title Generate Credentials
-   * @notice Generates complete credentials with trapdoor, nullifier, and commitment
+   * @notice Generates complete credentials with trapdoor, nullifier, and commitment from a new mnemonic seed
    * @dev Uses Poseidon hash function from circomlibjs to generate cryptographically secure identity components
-   * @param {bigint} secretSeed - The secret seed to generate the identity from
+   * @param {number} [bits=256] - The number of bits of entropy for mnemonic generation
    * @return {Promise<Object>} Object containing:
    *   - identity: Object containing trapdoor and nullifier
    *   - commitment: The final commitment hash of nullifier and trapdoor
-   * @throws {Error} If secretSeed is not a bigint
+   *   - mnemonic: The BIP39 mnemonic phrase used to generate the credentials
+   * @throws {Error} If bits is less than 256
    */
-  static async generateCredentials(secretSeed) {
-    if (typeof secretSeed !== "bigint") {
-      throw new Error("Seed must be a bigint");
-    }
+  static async generateCredentials(bits = 256) {
+    const { secretSeed, mnemonic } = this.generateMnemonicSeed(bits);
 
     const poseidon = await this.#getPoseidon();
     const F = poseidon.F;
@@ -107,15 +106,14 @@ export class ZkCredential {
         nullifier,
       },
       commitment,
+      mnemonic,
     };
   }
 }
 
 // Example usage
-const { secretSeed, mnemonic } = ZkCredential.generateMnemonicSeed();
 (async () => {
-  const { identity, commitment } = await ZkCredential.generateCredentials(
-    secretSeed
-  );
+  const { identity, commitment, mnemonic } =
+    await ZkCredential.generateCredentials();
   console.log({ identity, commitment, mnemonic });
 })();
