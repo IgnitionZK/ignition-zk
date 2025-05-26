@@ -2,10 +2,12 @@
 // Poseidon inputs are domain-separated to prevent collisions across identity layers
 
 // imports
+import 'dotenv/config';
 import * as bip39 from "bip39";
 import * as circomlibjs from "circomlibjs";
 import hkdf from "futoin-hkdf";
 import crypto from "crypto";
+import { ethers } from "ethers";
 
 
 /**
@@ -26,8 +28,6 @@ export class ZkCredential {
    * @param {Buffer} ZK_NULLIFIER_INFO - contextual information string used during HKDF to derive the unique nullifier key. 
    * It ensures independence from the identity secret.
    * @param {number} DERIVED_KEY_BYTE_LENGTH - the desired byte length of the zk secret keys computed with HKDF (eg., 32 for 256-bit keys).
-   * @param {string} BIP39_ZK_IDENTITY_DERIVATION_PATH - a custom BIP39 derivation path for the zk identity.  Format: m / purpose' / category' / index'.
-   * The chosen path `m/1337'/0'/0'` was designed to avoid collisions with standard derivation paths used by cryptocurrency wallets.
    * @param {number} ENTROPY_BITS - the number of entropy bits used for the generation of the BIP39 mnemonic phrase.
    */
   
@@ -144,11 +144,10 @@ export class ZkCredential {
    * @dev Produces a secure 512-bit seed by combining the BIP39 mnemonic phrase with a secret (optional) passphrase,
    *  and then reduces it to BN254's finite field. The 512-bit seed is suitable for deterministic key derivation.
    * @param {number} bits - The number of bits of entropy for mnemonic generation (default: 128, i.e., 12 words)
-   * @param {string} secretPassphrase - A passphrase to be combined with the mnemonic to enhance security
-   * @return {{ seed: bigint, mnemonic: string }} The generated seed value reduced to BN254's finite field
+   * @return {{ seed: Buffer, mnemonic: string }} The generated seed value reduced to BN254's finite field
    * @throws {Error} If bits is less than 128
    */
-  static generateMnemonicSeed(bits = this.#ENTROPY_BITS, passphrase) {
+  static generateMnemonicSeed(bits = this.#ENTROPY_BITS) {
     if (bits < 128) {
       throw new Error(
         "At least 128 bits of entropy are recommended for zk-identity use."
@@ -157,7 +156,7 @@ export class ZkCredential {
 
     // create mnemonic and seed
     const mnemonic = bip39.generateMnemonic(bits);
-    const seed = bip39.mnemonicToSeedSync(mnemonic, passphrase);
+    const seed = bip39.mnemonicToSeedSync(mnemonic);
 
     return { seed, mnemonic };
   }
@@ -207,12 +206,12 @@ export class ZkCredential {
    * @throws {Error} If bits is less than 256
    */
   static async generateCredentials( 
-    bits = this.#ENTROPY_BITS, 
-    passphrase = "this is my secret passphrase",
+    bits = this.#ENTROPY_BITS,
     erc721Gating
   ) {
 
     if(erc721Gating) {
+        console.log("Applying ERC721 Gating...");
         const { tokenAddress, privateKey, alchemyUrl } = erc721Gating;
         // if the gate fails it will throw an error
         await this.#applyERC721Gating(tokenAddress, privateKey, alchemyUrl);
@@ -249,11 +248,12 @@ export class ZkCredential {
     
   const { identity, commitment, mnemonic } =
     await ZkCredential.generateCredentials(
-        /*{erc721Gating: { 
-            tokenAddress: import.meta.env.ERC721_ADDRESS,
-            privateKey: import.meta.env.PRIVATE_KEY,
-            alchemyUrl: import.meta.env.ALCHEMY_SEPOLIA_URL
-        }}*/
+        128,
+        { 
+            tokenAddress: process.env.VITE_ERC721_ADDRESS,
+            privateKey: process.env.VITE_PRIVATE_KEY,
+            alchemyUrl: process.env.VITE_ALCHEMY_SEPOLIA_URL
+        }
     );
   console.log({ identity, commitment, mnemonic });
 })();
