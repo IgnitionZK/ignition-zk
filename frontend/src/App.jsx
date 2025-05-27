@@ -1,13 +1,10 @@
-import "./App.css";
+// styles
+import GlobalStyles from "./styles/GlobalStyles";
 
 function App() {
   return (
     <>
-      <div>
-        <h1>IgnitionZK</h1>
-        <p>Anthony Spedaliere | Anastasia Tsitali</p>
-        <p>2025</p>
-      </div>
+      <GlobalStyles />
     </>
   );
 }
