@@ -25,6 +25,11 @@ function Homepage() {
       <HomepageHeader />
       <MainContent>
         <h1>IgnitionZK</h1>
+        <h3>
+          IgnitionZK leverages the power of zero knowledge proofs for anonymous
+          voting, proposals, and membership.
+        </h3>
+
         <p>Anthony Spedaliere | Anastasia Tsitali</p>
         <p>© 2025</p>
       </MainContent>
