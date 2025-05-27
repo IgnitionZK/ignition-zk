@@ -27,6 +27,7 @@
     "ethers": "^6.14.1",
     "futoin-hkdf": "^1.5.3",
     "globals": "^16.0.0",
+    "react-router-dom": "^6.30.1",
     "styled-components": "^6.1.18",
     "vite": "^6.3.5"
   }
