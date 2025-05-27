@@ -1,4 +1,5 @@
 import styled from "styled-components";
+import { useNavigate } from "react-router-dom";
 import CustomButton from "./CustomButton";
 
 const StyledHeader = styled.header`
@@ -15,6 +16,8 @@ const Title = styled.h1`
 `;
 
 function HomepageHeader() {
+  const navigate = useNavigate();
+
   return (
     <StyledHeader>
       <Title>IgnitionZK</Title>
@@ -22,6 +25,7 @@ function HomepageHeader() {
         $backgroundColor="var(--color-grey-700)"
         $hoverColor="var(--color-grey-600)"
         $textColor="var(--color-grey-100)"
+        onClick={() => navigate("/GenerateCredentials")}
       >
         Generate Credentials
       </CustomButton>

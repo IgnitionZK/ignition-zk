@@ -6,6 +6,7 @@ import {
 
 // Pages
 import Homepage from "./pages/Homepage";
+import GenerateCredentials from "./pages/GenerateCredentials";
 
 // styles
 import GlobalStyles from "./styles/GlobalStyles";
@@ -14,6 +15,10 @@ const router = createBrowserRouter([
   {
     path: "/",
     element: <Homepage />,
+  },
+  {
+    path: "/GenerateCredentials",
+    element: <GenerateCredentials />,
   },
 ]);
 
