@@ -2,8 +2,6 @@ import * as bip39 from "bip39";
 import * as circomlibjs from "circomlibjs";
 import { hkdf } from "@noble/hashes/hkdf";
 import { sha256 } from "@noble/hashes/sha2";
-import { Buffer } from "buffer";
-// import { ethers } from "ethers";
 
 export class ZkCredential {
   static #ENC = new TextEncoder();
