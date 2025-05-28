@@ -202,14 +202,7 @@ export class ZkCredential {
    *   - mnemonic: The BIP39 mnemonic phrase used to generate the credentials
    * @throws {Error} If bits is less than 256
    */
-  static async generateCredentials(bits = this.#ENTROPY_BITS, erc721Gating) {
-    if (erc721Gating) {
-      console.log("Applying ERC721 Gating...");
-      const { tokenAddress, privateKey, alchemyUrl } = erc721Gating;
-      // if the gate fails it will throw an error
-      await this.#applyERC721Gating(tokenAddress, privateKey, alchemyUrl);
-    }
-
+  static async generateCredentials(bits = this.#ENTROPY_BITS) {
     const { seed, mnemonic } = this.generateMnemonicSeed(bits);
 
     const { trapdoorKey, nullifierKey } = this.generateKeys(seed);
@@ -239,10 +232,6 @@ export class ZkCredential {
 // Example usage
 (async () => {
   const { identity, commitment, mnemonic } =
-    await ZkCredential.generateCredentials(128, {
-      tokenAddress: import.meta.env.VITE_ERC721_ADDRESS,
-      privateKey: import.meta.env.VITE_PRIVATE_KEY,
-      alchemyUrl: import.meta.env.VITE_ALCHEMY_SEPOLIA_URL,
-    });
+    await ZkCredential.generateCredentials(128);
   console.log({ identity, commitment, mnemonic });
 })();
