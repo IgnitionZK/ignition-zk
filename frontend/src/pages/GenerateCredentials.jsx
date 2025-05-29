@@ -5,6 +5,8 @@ import { ZkCredential } from "../scripts/generateCredentials-browser-safe";
 import MnemonicDisplay from "../components/MnemonicDisplay";
 import { useNavigate } from "react-router-dom";
 
+import { supabase } from "../services/supabase";
+
 const Container = styled.div`
   min-height: 100vh;
   background: #232328;
@@ -76,15 +78,32 @@ function GenerateCredentials() {
   const [isGenerating, setIsGenerating] = useState(false);
   const navigate = useNavigate();
 
+  // async function fetchGroup() {
+  //   const { data, error } = await supabase
+  //     .schema("ignitionzk")
+  //     .from("groups")
+  //     .select("*")
+  //     .eq("name", "Test DAO")
+  //     .single(); // because you expect only one result
+
+  //   if (error) {
+  //     console.error("Error fetching group:", error);
+  //   } else {
+  //     console.log("Group data:", data);
+  //   }
+  // }
+
   const handleGenerate = async () => {
     try {
       setIsGenerating(true);
       const result = await ZkCredential.generateCredentials(128);
       setCredentials(result);
+      // const queryGroup = await fetchGroup();
       console.log("Generated Credentials:", {
         mnemonic: result.mnemonic,
         identity: result.identity,
         commitment: result.commitment,
+        // queryGroup,
       });
     } catch (error) {
       console.error("Error generating credentials:", error);
