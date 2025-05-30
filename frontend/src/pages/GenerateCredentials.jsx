@@ -5,8 +5,6 @@ import { ZkCredential } from "../scripts/generateCredentials-browser-safe";
 import MnemonicDisplay from "../components/MnemonicDisplay";
 import { useNavigate } from "react-router-dom";
 
-// import { supabase } from "../services/supabase";
-
 const Container = styled.div`
   min-height: 100vh;
   background: #232328;
@@ -78,36 +76,16 @@ function GenerateCredentials() {
   const [isGenerating, setIsGenerating] = useState(false);
   const navigate = useNavigate();
 
-  // async function insertCommitment(credentials) {
-  //   const { data, error } = await supabase
-  //     .schema("ignitionzk")
-  //     .from("merkle_tree_leaves")
-  //     .insert({
-  //       group_member_id: "f430b2c6-de43-4d97-882a-4ed3ebc1828a",
-  //       commitment_value: credentials.commitment.toString(),
-  //     });
-
-  //   if (error) {
-  //     console.error("Error inserting Merkle tree leaf:", error);
-
-  //     throw new Error(`Failed to add leaf: ${error.message}`);
-  //   } else {
-  //     console.log("Merkle tree leaf inserted successfully:", data);
-  //   }
-  //   return data;
-  // }
-
   const handleGenerate = async () => {
     try {
       setIsGenerating(true);
       const result = await ZkCredential.generateCredentials(128);
       setCredentials(result);
-      // const insertGroup = await insertCommitment(result);
+
       console.log("Generated Credentials:", {
         mnemonic: result.mnemonic,
         identity: result.identity,
         commitment: result.commitment,
-        // insertGroup,
       });
     } catch (error) {
       console.error("Error generating credentials:", error);
