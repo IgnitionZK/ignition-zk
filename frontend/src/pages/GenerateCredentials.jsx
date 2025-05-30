@@ -5,7 +5,7 @@ import { ZkCredential } from "../scripts/generateCredentials-browser-safe";
 import MnemonicDisplay from "../components/MnemonicDisplay";
 import { useNavigate } from "react-router-dom";
 
-import { supabase } from "../services/supabase";
+// import { supabase } from "../services/supabase";
 
 const Container = styled.div`
   min-height: 100vh;
@@ -114,7 +114,7 @@ function GenerateCredentials() {
 
   const handleCloseMnemonic = () => {
     setCredentials(null);
-    navigate("/");
+    navigate("/dashboard");
   };
 
   return (

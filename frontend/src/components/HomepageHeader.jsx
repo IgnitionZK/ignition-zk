@@ -25,9 +25,9 @@ function HomepageHeader() {
         $backgroundColor="var(--color-grey-700)"
         $hoverColor="var(--color-grey-600)"
         $textColor="var(--color-grey-100)"
-        onClick={() => navigate("/GenerateCredentials")}
+        onClick={() => navigate("/login")}
       >
-        Generate Credentials
+        Login
       </CustomButton>
     </StyledHeader>
   );
