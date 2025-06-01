@@ -1,9 +1,15 @@
-import styled from "styled-components";
-import CustomButton from "../components/CustomButton";
 import { useState } from "react";
-import { ZkCredential } from "../scripts/generateCredentials-browser-safe";
-import MnemonicDisplay from "../components/MnemonicDisplay";
 import { useNavigate } from "react-router-dom";
+import styled from "styled-components";
+
+//components
+import MnemonicDisplay from "../components/MnemonicDisplay";
+import CustomButton from "../components/CustomButton";
+// scrips
+import { ZkCredential } from "../scripts/generateCredentials-browser-safe";
+// queries
+import { useInsertLeaf } from "../hooks/queries/merkleTreeLeaves/useInsertLeaf";
+import { useGetGroupMemberId } from "../hooks/queries/groupMembers/useGetGroupMemberId";
 
 const Container = styled.div`
   min-height: 100vh;
@@ -75,12 +81,30 @@ function GenerateCredentials() {
   const [credentials, setCredentials] = useState(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const navigate = useNavigate();
+  const { insertLeaf, isLoading: isLoadingInsertLeaf } = useInsertLeaf();
+  const { isLoading, groupMemberId } = useGetGroupMemberId();
 
   const handleGenerate = async () => {
     try {
       setIsGenerating(true);
       const result = await ZkCredential.generateCredentials(128);
       setCredentials(result);
+
+      // Insert the commitment into the merkle tree
+      if (!groupMemberId) {
+        console.error("No group member ID available");
+        throw new Error("Group member ID is required to insert commitment");
+      }
+
+      try {
+        await insertLeaf({
+          groupMemberId: groupMemberId,
+          commitment: result.commitment.toString(),
+        });
+      } catch (error) {
+        console.error("Failed to insert leaf:", error);
+        throw new Error("Failed to insert commitment into merkle tree");
+      }
 
       console.log("Generated Credentials:", {
         mnemonic: result.mnemonic,
@@ -146,15 +170,20 @@ function GenerateCredentials() {
               textColor="#232328"
               size="large"
               onClick={handleGenerate}
-              disabled={isGenerating}
+              disabled={isGenerating || isLoading || !groupMemberId}
             >
-              {isGenerating ? "Generating..." : "Generate"}
+              {isGenerating
+                ? "Generating..."
+                : isLoading
+                ? "Loading..."
+                : "Generate"}
             </CustomButton>
           </ButtonWrapper>
           <Note>
             <i>
-              Upon clicking 'Generate', your 24-word mnemonic will be displayed
-              for you to securely record.
+              {!groupMemberId && !isLoading
+                ? "Please wait while we prepare your credentials..."
+                : "Upon clicking 'Generate', your 24-word mnemonic will be displayed for you to securely record."}
             </i>
           </Note>
         </Container>
