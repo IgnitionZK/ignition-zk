@@ -15,7 +15,8 @@ import GlobalStyles from "./styles/GlobalStyles";
 import ProtectedRoute from "./components/ProtectedRoute";
 import AppLayout from "./components/AppLayout";
 import Login from "./pages/Login";
-import UserDashboard from "./pages/UserDashboard";
+import DashboardLayout from "./pages/DashboardLayout";
+import Dashboard from "./pages/Dashboard";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -35,11 +36,17 @@ const router = createBrowserRouter([
     children: [
       {
         path: "/dashboard",
-        element: <UserDashboard />,
-      },
-      {
-        path: "/generate-credentials",
-        element: <GenerateCredentials />,
+        element: <DashboardLayout />,
+        children: [
+          {
+            path: "home",
+            element: <Dashboard />,
+          },
+          {
+            path: "generate-credentials",
+            element: <GenerateCredentials />,
+          },
+        ],
       },
     ],
   },
