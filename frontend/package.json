@@ -14,6 +14,7 @@
     "@tanstack/react-query": "^5.79.0",
     "buffer": "^6.0.3",
     "dotenv": "^16.5.0",
+    "ethers": "^6.14.3",
     "react": "^19.1.0",
     "react-dom": "^19.1.0"
   },
@@ -28,7 +29,6 @@
     "eslint": "^9.25.0",
     "eslint-plugin-react-hooks": "^5.2.0",
     "eslint-plugin-react-refresh": "^0.4.19",
-    "ethers": "^6.14.1",
     "futoin-hkdf": "^1.5.3",
     "globals": "^16.0.0",
     "react-router-dom": "^6.30.1",
