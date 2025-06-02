@@ -1,5 +1,6 @@
 import styled from "styled-components";
 import { useWallet } from "../hooks/wallet/useWallet";
+import { useGetUserGroups } from "../hooks/queries/groupMembers/useGetUserGroups";
 
 const DashboardContainer = styled.div`
   display: flex;
@@ -63,10 +64,33 @@ const Content = styled.div`
   flex: 1;
   display: flex;
   flex-direction: column;
+  gap: 2rem;
+`;
+
+const GroupsList = styled.ul`
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 1.2rem;
+`;
+
+const GroupItem = styled.li`
+  background-color: rgba(165, 180, 252, 0.1);
+  padding: 1.6rem;
+  border-radius: 0.8rem;
+  border: 1px solid rgba(165, 180, 252, 0.2);
+  font-size: 1.6rem;
+  transition: all 0.2s ease-in-out;
+
+  &:hover {
+    background-color: rgba(165, 180, 252, 0.15);
+    transform: translateX(4px);
+  }
 `;
 
 function Dashboard() {
   const { connect, address } = useWallet();
+  const { isLoading, userGroups, error } = useGetUserGroups();
 
   const formatAddress = (address) => {
     if (!address) return "";
@@ -86,7 +110,18 @@ function Dashboard() {
         )}
       </Header>
       <Content>
-        <h1>Content</h1>
+        <h2>Your Groups</h2>
+        {isLoading ? (
+          <p>Loading groups...</p>
+        ) : error ? (
+          <p>Error loading groups: {error.message}</p>
+        ) : (
+          <GroupsList>
+            {userGroups?.map((group) => (
+              <GroupItem key={group.name}>{group.name}</GroupItem>
+            ))}
+          </GroupsList>
+        )}
       </Content>
     </DashboardContainer>
   );
