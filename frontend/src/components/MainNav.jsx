@@ -1,5 +1,6 @@
 import { NavLink } from "react-router-dom";
 import styled from "styled-components";
+import { useLogout } from "../hooks/queries/authentication/useLogout";
 
 const NavList = styled.ul`
   display: flex;
@@ -53,26 +54,49 @@ const StyledNavLink = styled(NavLink)`
   }
 `;
 
-const LogoutLink = styled(StyledNavLink)`
-  &:link,
-  &:visited {
-    color: var(--color-red-400);
+const CustomButton = styled.button`
+  background-color: var(--color-red-300);
+  color: var(--color-grey-800);
+  padding: 1rem 2rem;
+  border: none;
+  border-radius: 0.8rem;
+  font-size: 1.6rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease-in-out;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  width: 100%;
+
+  &:hover {
+    background-color: var(--color-red-400);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
   }
 
-  &:hover,
-  &:active,
-  &.active:link,
-  &.active:visited {
-    color: var(--color-red-300);
-    background-color: var(--color-red-900);
+  &:active {
+    transform: translateY(1px);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  }
+
+  &:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+    transform: none;
   }
 `;
 
 const LogoutContainer = styled.div`
   margin-top: auto;
+  padding: 0 2.4rem;
 `;
 
 function MainNav() {
+  const { logout, isPending } = useLogout();
+
   return (
     <NavContainer>
       <NavList>
@@ -90,9 +114,9 @@ function MainNav() {
       <LogoutContainer>
         <NavList>
           <li>
-            <LogoutLink to="/homepage" end>
-              <span>Logout</span>
-            </LogoutLink>
+            <CustomButton onClick={logout} disabled={isPending}>
+              {isPending ? "Logging out..." : "Logout"}
+            </CustomButton>
           </li>
         </NavList>
       </LogoutContainer>

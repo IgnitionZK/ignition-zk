@@ -3,8 +3,8 @@ import { insertLeaf as insertLeafApi } from "../../../services/apiMerkleTreeLeav
 
 export function useInsertLeaf() {
   const { mutate: insertLeaf, isLoading } = useMutation({
-    mutationFn: ({ groupMemberId, commitment }) =>
-      insertLeafApi({ groupMemberId, commitment }),
+    mutationFn: ({ groupMemberId, commitment, groupId }) =>
+      insertLeafApi({ groupMemberId, commitment, groupId }),
     onError: (err) => {
       console.log("ERROR", err);
     },
