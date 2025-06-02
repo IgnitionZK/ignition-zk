@@ -21,7 +21,7 @@ const StyledNavLink = styled(NavLink)`
     align-items: center;
     gap: 1.2rem;
 
-    color: var(--color-grey-600);
+    color: var(--color-grey-300);
     font-size: 1.6rem;
     font-weight: 500;
     padding: 1.2rem 2.4rem;
@@ -33,8 +33,8 @@ const StyledNavLink = styled(NavLink)`
   &:active,
   &.active:link,
   &.active:visited {
-    color: var(--color-grey-800);
-    background-color: var(--color-grey-50);
+    color: var(--color-grey-50);
+    background-color: var(--color-grey-700);
     border-radius: var(--border-radius-sm);
   }
 
@@ -49,22 +49,22 @@ const StyledNavLink = styled(NavLink)`
   &:active svg,
   &.active:link svg,
   &.active:visited svg {
-    color: var(--color-brand-600);
+    color: var(--color-brand-400);
   }
 `;
 
 const LogoutLink = styled(StyledNavLink)`
   &:link,
   &:visited {
-    color: var(--color-red-600);
+    color: var(--color-red-400);
   }
 
   &:hover,
   &:active,
   &.active:link,
   &.active:visited {
-    color: var(--color-red-700);
-    background-color: var(--color-red-50);
+    color: var(--color-red-300);
+    background-color: var(--color-red-900);
   }
 `;
 
@@ -77,12 +77,12 @@ function MainNav() {
     <NavContainer>
       <NavList>
         <li>
-          <StyledNavLink to="/dashboard/home" end>
+          <StyledNavLink to="." end>
             <span>Home</span>
           </StyledNavLink>
         </li>
         <li>
-          <StyledNavLink to="/dashboard/generate-credentials" end>
+          <StyledNavLink to="generate-credentials" end>
             <span>Settings</span>
           </StyledNavLink>
         </li>
