@@ -1,6 +1,8 @@
 import styled from "styled-components";
 import { useWallet } from "../hooks/wallet/useWallet";
 import { useGetUserGroups } from "../hooks/queries/groupMembers/useGetUserGroups";
+import { RiDeleteBack2Fill } from "react-icons/ri";
+import { useState } from "react";
 
 const DashboardContainer = styled.div`
   display: flex;
@@ -8,7 +10,10 @@ const DashboardContainer = styled.div`
   gap: 3.2rem;
   flex: 1;
   min-height: 100%;
+  min-width: 55rem;
   color: var(--color-grey-100);
+  padding: 0 2rem;
+  overflow: hidden;
 `;
 
 const Header = styled.header`
@@ -81,6 +86,9 @@ const GroupItem = styled.li`
   border: 1px solid rgba(165, 180, 252, 0.2);
   font-size: 1.6rem;
   transition: all 0.2s ease-in-out;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 
   &:hover {
     background-color: rgba(165, 180, 252, 0.15);
@@ -88,9 +96,101 @@ const GroupItem = styled.li`
   }
 `;
 
+const GroupInfo = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 1.2rem;
+`;
+
+const GroupName = styled.span`
+  font-weight: 500;
+`;
+
+const ContractAddress = styled.span`
+  color: var(--color-grey-400);
+  font-size: 1.4rem;
+  font-family: monospace;
+`;
+
+const DeleteButton = styled.div`
+  position: relative;
+  cursor: pointer;
+
+  svg {
+    color: var(--color-grey-100);
+    font-size: 2rem;
+    transition: color 0.2s ease-in-out;
+  }
+
+  &:hover {
+    svg {
+      color: var(--color-red-500);
+    }
+  }
+`;
+
+const Tooltip = styled.div`
+  position: absolute;
+  right: 0;
+  top: -3rem;
+  background-color: var(--color-grey-800);
+  color: var(--color-grey-100);
+  padding: 0.8rem 1.2rem;
+  border-radius: 0.4rem;
+  font-size: 1.4rem;
+  opacity: 0;
+  visibility: hidden;
+  transition: all 0.2s ease-in-out;
+  white-space: nowrap;
+
+  ${DeleteButton}:hover & {
+    opacity: 1;
+    visibility: visible;
+  }
+
+  &::after {
+    content: "";
+    position: absolute;
+    bottom: -0.5rem;
+    right: 1rem;
+    border-width: 0.5rem;
+    border-style: solid;
+    border-color: var(--color-grey-800) transparent transparent transparent;
+  }
+`;
+
+const GroupsHeader = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.6rem;
+`;
+
+const SearchInput = styled.input`
+  background-color: rgba(165, 180, 252, 0.1);
+  border: 1px solid rgba(165, 180, 252, 0.2);
+  border-radius: 0.8rem;
+  padding: 0.8rem 1.2rem;
+  color: var(--color-grey-100);
+  font-size: 1.4rem;
+  width: 24rem;
+  transition: all 0.2s ease-in-out;
+
+  &::placeholder {
+    color: var(--color-grey-400);
+  }
+
+  &:focus {
+    outline: none;
+    border-color: rgba(165, 180, 252, 0.4);
+    background-color: rgba(165, 180, 252, 0.15);
+  }
+`;
+
 function Dashboard() {
   const { connect, address } = useWallet();
   const { isLoading, userGroups, error } = useGetUserGroups();
+  const [searchQuery, setSearchQuery] = useState("");
 
   const formatAddress = (address) => {
     if (!address) return "";
@@ -110,7 +210,15 @@ function Dashboard() {
         )}
       </Header>
       <Content>
-        <h2>Your Groups</h2>
+        <GroupsHeader>
+          <h2>Your Groups</h2>
+          <SearchInput
+            type="text"
+            placeholder="Search groups..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
+        </GroupsHeader>
         {isLoading ? (
           <p>Loading groups...</p>
         ) : error ? (
@@ -118,7 +226,18 @@ function Dashboard() {
         ) : (
           <GroupsList>
             {userGroups?.map((group) => (
-              <GroupItem key={group.name}>{group.name}</GroupItem>
+              <GroupItem key={group.name}>
+                <GroupInfo>
+                  <GroupName>{group.name}</GroupName>
+                  <ContractAddress>
+                    {group.erc721_contract_address}
+                  </ContractAddress>
+                </GroupInfo>
+                <DeleteButton>
+                  <RiDeleteBack2Fill />
+                  <Tooltip>Leave group</Tooltip>
+                </DeleteButton>
+              </GroupItem>
             ))}
           </GroupsList>
         )}

@@ -106,7 +106,7 @@ function MainNav() {
           </StyledNavLink>
         </li>
         <li>
-          <StyledNavLink to="generate-credentials" end>
+          <StyledNavLink to="settings" end>
             <span>Settings</span>
           </StyledNavLink>
         </li>

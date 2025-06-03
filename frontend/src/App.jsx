@@ -17,6 +17,7 @@ import AppLayout from "./components/AppLayout";
 import Login from "./pages/Login";
 import DashboardLayout from "./pages/DashboardLayout";
 import Dashboard from "./pages/Dashboard";
+import Settings from "./pages/Settings";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -45,6 +46,10 @@ const router = createBrowserRouter([
           {
             path: "generate-credentials",
             element: <GenerateCredentials />,
+          },
+          {
+            path: "settings",
+            element: <Settings />,
           },
         ],
       },
