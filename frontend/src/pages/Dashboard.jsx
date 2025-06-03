@@ -3,6 +3,7 @@ import { useWallet } from "../hooks/wallet/useWallet";
 import { useGetUserGroups } from "../hooks/queries/groupMembers/useGetUserGroups";
 import { RiDeleteBack2Fill } from "react-icons/ri";
 import { useState } from "react";
+import GroupItemComponent from "../components/GroupItem";
 
 const DashboardContainer = styled.div`
   display: flex;
@@ -77,23 +78,6 @@ const GroupsList = styled.ul`
   display: flex;
   flex-direction: column;
   gap: 1.2rem;
-`;
-
-const GroupItem = styled.li`
-  background-color: rgba(165, 180, 252, 0.1);
-  padding: 1.6rem;
-  border-radius: 0.8rem;
-  border: 1px solid rgba(165, 180, 252, 0.2);
-  font-size: 1.6rem;
-  transition: all 0.2s ease-in-out;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-
-  &:hover {
-    background-color: rgba(165, 180, 252, 0.15);
-    transform: translateX(4px);
-  }
 `;
 
 const GroupInfo = styled.div`
@@ -187,6 +171,33 @@ const SearchInput = styled.input`
   }
 `;
 
+const GenerateButton = styled.button`
+  background-color: #a5b4fc;
+  color: #232328;
+  padding: 0.8rem 1.6rem;
+  border: none;
+  border-radius: 0.8rem;
+  font-size: 1.4rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease-in-out;
+
+  &:hover {
+    background-color: #818cf8;
+    transform: translateY(-1px);
+  }
+
+  &:active {
+    transform: translateY(1px);
+  }
+`;
+
+const GroupActions = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 1.2rem;
+`;
+
 function Dashboard() {
   const { connect, address } = useWallet();
   const { isLoading, userGroups, error } = useGetUserGroups();
@@ -226,18 +237,12 @@ function Dashboard() {
         ) : (
           <GroupsList>
             {userGroups?.map((group) => (
-              <GroupItem key={group.name}>
-                <GroupInfo>
-                  <GroupName>{group.name}</GroupName>
-                  <ContractAddress>
-                    {group.erc721_contract_address}
-                  </ContractAddress>
-                </GroupInfo>
-                <DeleteButton>
-                  <RiDeleteBack2Fill />
-                  <Tooltip>Leave group</Tooltip>
-                </DeleteButton>
-              </GroupItem>
+              <GroupItemComponent
+                key={group.group_id}
+                group={group}
+                groupId={group.group_id}
+                groupMemberId={group.group_member_id}
+              />
             ))}
           </GroupsList>
         )}

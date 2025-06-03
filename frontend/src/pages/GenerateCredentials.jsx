@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import styled from "styled-components";
+import { useQueryClient } from "@tanstack/react-query";
 
 //components
 import MnemonicDisplay from "../components/MnemonicDisplay";
@@ -81,8 +82,10 @@ function GenerateCredentials() {
   const [credentials, setCredentials] = useState(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const { insertLeaf, isLoading: isLoadingInsertLeaf } = useInsertLeaf();
-  const { isLoading, groupMemberId } = useGetGroupMemberId();
+  const groupId = queryClient.getQueryData(["currentGroupId"]);
+  const { isLoading, groupMemberId } = useGetGroupMemberId({ groupId });
 
   const handleGenerate = async () => {
     try {
@@ -100,7 +103,7 @@ function GenerateCredentials() {
         await insertLeaf({
           groupMemberId: groupMemberId,
           commitment: result.commitment.toString(),
-          groupId: "81373f0e-8e13-4b8f-80fa-4e8f94821a1e",
+          groupId: groupId,
         });
       } catch (error) {
         console.error("Failed to insert leaf:", error);
@@ -171,10 +174,17 @@ function GenerateCredentials() {
               textColor="#232328"
               size="large"
               onClick={handleGenerate}
-              disabled={isGenerating || isLoading || !groupMemberId}
+              disabled={
+                isGenerating ||
+                isLoading ||
+                isLoadingInsertLeaf ||
+                !groupMemberId
+              }
             >
               {isGenerating
                 ? "Generating..."
+                : isLoadingInsertLeaf
+                ? "Inserting Commitment..."
                 : isLoading
                 ? "Loading..."
                 : "Generate"}

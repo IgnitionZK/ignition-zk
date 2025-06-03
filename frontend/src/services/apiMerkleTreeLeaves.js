@@ -13,3 +13,15 @@ export async function insertLeaf({ groupMemberId, commitment, groupId }) {
 
   return data;
 }
+
+export async function getLeavesByGroupId({ groupId }) {
+  const { data, error } = await supabase
+    .schema("ignitionzk")
+    .from("merkle_tree_leaves")
+    .select("*")
+    .eq("group_id", groupId);
+
+  if (error) throw new Error(error.message);
+
+  return data;
+}
