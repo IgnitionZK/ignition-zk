@@ -8,9 +8,11 @@ import MnemonicDisplay from "../components/MnemonicDisplay";
 import CustomButton from "../components/CustomButton";
 // scrips
 import { ZkCredential } from "../scripts/generateCredentials-browser-safe";
+import MerkleTreeGenerator from "../scripts/generateRoot";
 // queries
 import { useInsertLeaf } from "../hooks/queries/merkleTreeLeaves/useInsertLeaf";
 import { useGetGroupMemberId } from "../hooks/queries/groupMembers/useGetGroupMemberId";
+import { useGetLeavesByGroupId } from "../hooks/queries/merkleTreeLeaves/useGetLeavesByGroupId";
 
 const Container = styled.div`
   min-height: 100vh;
@@ -79,13 +81,21 @@ const Note = styled.p`
 `;
 
 function GenerateCredentials() {
-  const [credentials, setCredentials] = useState(null);
-  const [isGenerating, setIsGenerating] = useState(false);
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const { insertLeaf, isLoading: isLoadingInsertLeaf } = useInsertLeaf();
+
+  const [credentials, setCredentials] = useState(null);
+  const [isGenerating, setIsGenerating] = useState(false);
+
   const groupId = queryClient.getQueryData(["currentGroupId"]);
+  const { insertLeaf, isLoading: isLoadingInsertLeaf } = useInsertLeaf();
   const { isLoading, groupMemberId } = useGetGroupMemberId({ groupId });
+
+  const {
+    isLoading: groupCommitmentsLoading,
+    groupCommitments,
+    error,
+  } = useGetLeavesByGroupId();
 
   const handleGenerate = async () => {
     try {
@@ -105,6 +115,14 @@ function GenerateCredentials() {
           commitment: result.commitment.toString(),
           groupId: groupId,
         });
+
+        // Generate the Merkle tree root
+        const generator = new MerkleTreeGenerator();
+        const root = generator.generateRoot(
+          groupCommitments,
+          result.commitment
+        );
+        console.log("Generated Merkle Tree Root:", root);
       } catch (error) {
         console.error("Failed to insert leaf:", error);
         throw new Error("Failed to insert commitment into merkle tree");

@@ -1,10 +1,33 @@
 import { IMT } from "@zk-kit/imt";
 import { poseidon2 } from "poseidon-lite";
 
-const depth = 5;
-const zeroValue = 0;
-const arity = 2;
-const leaves = [];
+class MerkleTreeGenerator {
+  constructor(depth = 5, zeroValue = 0, arity = 2) {
+    this.depth = depth;
+    this.zeroValue = zeroValue;
+    this.arity = arity;
+  }
 
-// initialize a new tree
-const tree = new IMT(poseidon2, depth, zeroValue, arity, leaves);
+  generateRoot(commitmentObjects, singleCommitmentValue) {
+    // Handle empty commitmentObjects array
+    const leaves =
+      commitmentObjects.length === 0
+        ? [singleCommitmentValue]
+        : [
+            ...commitmentObjects.map((obj) => BigInt(obj.commitment_value)),
+            singleCommitmentValue,
+          ];
+
+    // Initialize and return the tree
+    const tree = new IMT(
+      poseidon2,
+      this.depth,
+      this.zeroValue,
+      this.arity,
+      leaves
+    );
+    return tree.root;
+  }
+}
+
+export default MerkleTreeGenerator;
