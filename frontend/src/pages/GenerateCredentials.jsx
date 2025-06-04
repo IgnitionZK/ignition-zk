@@ -13,6 +13,7 @@ import MerkleTreeGenerator from "../scripts/generateRoot";
 import { useInsertLeaf } from "../hooks/queries/merkleTreeLeaves/useInsertLeaf";
 import { useGetGroupMemberId } from "../hooks/queries/groupMembers/useGetGroupMemberId";
 import { useGetLeavesByGroupId } from "../hooks/queries/merkleTreeLeaves/useGetLeavesByGroupId";
+import { useInsertMerkleTreeRoot } from "../hooks/queries/merkleTreeRoots/useInsertMerkleTreeRoot";
 
 const Container = styled.div`
   min-height: 100vh;
@@ -88,8 +89,17 @@ function GenerateCredentials() {
   const [isGenerating, setIsGenerating] = useState(false);
 
   const groupId = queryClient.getQueryData(["currentGroupId"]);
+  const currentTreeVersion = queryClient.getQueryData([
+    "currentMerkleTreeRootVersion",
+  ]);
+
   const { insertLeaf, isLoading: isLoadingInsertLeaf } = useInsertLeaf();
   const { isLoading, groupMemberId } = useGetGroupMemberId({ groupId });
+  const {
+    mutate: insertNewMerkleTreeRoot,
+    isLoading: isLoadingInsertMerkleTreeRoot,
+    error: errorIsnertMerkleTreeRoot,
+  } = useInsertMerkleTreeRoot();
 
   const {
     isLoading: groupCommitmentsLoading,
@@ -122,17 +132,17 @@ function GenerateCredentials() {
           groupCommitments,
           result.commitment
         );
-        console.log("Generated Merkle Tree Root:", root);
+
+        // Insert the new Merkle tree root
+        await insertNewMerkleTreeRoot({
+          groupId: groupId,
+          rootHash: root.toString(),
+          treeVersion: currentTreeVersion ? currentTreeVersion + 1 : 1,
+        });
       } catch (error) {
         console.error("Failed to insert leaf:", error);
         throw new Error("Failed to insert commitment into merkle tree");
       }
-
-      console.log("Generated Credentials:", {
-        mnemonic: result.mnemonic,
-        identity: result.identity,
-        commitment: result.commitment,
-      });
     } catch (error) {
       console.error("Error generating credentials:", error);
     } finally {
@@ -196,6 +206,7 @@ function GenerateCredentials() {
                 isGenerating ||
                 isLoading ||
                 isLoadingInsertLeaf ||
+                isLoadingInsertMerkleTreeRoot ||
                 !groupMemberId
               }
             >
@@ -203,6 +214,8 @@ function GenerateCredentials() {
                 ? "Generating..."
                 : isLoadingInsertLeaf
                 ? "Inserting Commitment..."
+                : isLoadingInsertMerkleTreeRoot
+                ? "Updating Merkle Tree..."
                 : isLoading
                 ? "Loading..."
                 : "Generate"}

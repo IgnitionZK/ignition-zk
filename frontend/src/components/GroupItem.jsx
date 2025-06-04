@@ -4,6 +4,7 @@ import styled from "styled-components";
 import { useCheckCommitment } from "../hooks/queries/groupMembers/useCheckCommitment";
 import MiniSpinner from "./MiniSpinner";
 import { useQueryClient } from "@tanstack/react-query";
+import { useGetActiveMerkleTreeRoot } from "../hooks/queries/merkleTreeRoots/useGetActiveMerkleTreeRoot";
 
 const GroupItem = styled.li`
   background-color: rgba(165, 180, 252, 0.1);
@@ -118,9 +119,15 @@ function GroupItemComponent({ group, groupMemberId, groupId }) {
   const { hasCommitment, isLoading, error } = useCheckCommitment({
     groupMemberId,
   });
+  const { data: currentTreeRoot } = useGetActiveMerkleTreeRoot({ groupId });
 
   const handleGenerateCredentials = () => {
     queryClient.setQueryData(["currentGroupId"], groupId);
+    queryClient.setQueryData("currentRootId", currentTreeRoot?.root_id);
+    queryClient.setQueryData(
+      ["currentMerkleTreeRootVersion"],
+      currentTreeRoot?.tree_version
+    );
     navigate(`/dashboard/generate-credentials`);
   };
 
