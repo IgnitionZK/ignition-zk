@@ -1,4 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 
 import {
   createBrowserRouter,
@@ -77,6 +78,7 @@ function App() {
       <QueryClientProvider client={queryClient}>
         <RouterProvider router={router} />
         <GlobalStyles />
+        <ReactQueryDevtools />
 
         <Toaster
           position="top-center"
