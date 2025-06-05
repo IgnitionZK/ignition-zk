@@ -44,6 +44,10 @@ const Input = styled.input`
   }
 `;
 
+/**
+ * A form component that handles user authentication by collecting email and password.
+ * Provides a clean interface for users to log in to the application.
+ */
 const LoginForm = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");

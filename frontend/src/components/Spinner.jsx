@@ -6,6 +6,10 @@ const rotate = keyframes`
   }
 `;
 
+/**
+ * A styled loading spinner component that displays a circular animation.
+ * Used to indicate loading states or processing in the application.
+ */
 const Spinner = styled.div`
   margin: 4.8rem auto;
 

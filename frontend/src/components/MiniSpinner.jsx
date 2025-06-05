@@ -18,6 +18,10 @@ const Spinner = styled.div`
   }
 `;
 
+/**
+ * A small loading spinner component that displays a circular animation.
+ * Used to indicate loading states in the UI with a minimal footprint.
+ */
 function MiniSpinner() {
   return <Spinner />;
 }

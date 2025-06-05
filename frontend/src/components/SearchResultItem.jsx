@@ -46,6 +46,10 @@ const ErrorMessage = styled.p`
   margin-top: 0.8rem;
 `;
 
+/**
+ * Renders a search result item for a group, displaying group information and handling group joining functionality.
+ * The component checks for ERC721 token ownership and allows users to join groups if they own the required token.
+ */
 function SearchResultItemComponent({ group, onJoinSuccess }) {
   const queryClient = useQueryClient();
   const { address } = useWallet();

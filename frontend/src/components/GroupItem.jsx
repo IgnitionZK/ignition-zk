@@ -113,6 +113,10 @@ const Tooltip = styled.div`
   }
 `;
 
+/**
+ * Renders a single group item in the dashboard, displaying group information and actions.
+ * Allows users to generate credentials if they haven't committed yet, and provides the ability to leave the group.
+ */
 function GroupItemComponent({ group, groupMemberId, groupId }) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();

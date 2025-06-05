@@ -94,6 +94,10 @@ const LogoutContainer = styled.div`
   padding: 0 2.4rem;
 `;
 
+/**
+ * MainNav is a navigation component that renders the primary navigation menu.
+ * It includes links to Home and Settings pages, along with a logout button positioned at the bottom of the navigation.
+ */
 function MainNav() {
   const { logout, isPending } = useLogout();
 

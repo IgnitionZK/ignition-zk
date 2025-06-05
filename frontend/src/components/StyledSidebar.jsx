@@ -11,6 +11,10 @@ const StyledSidebar = styled.aside`
   gap: 3.2rem;
 `;
 
+/**
+ * Sidebar component that provides the main navigation interface.
+ * Renders a styled aside element containing the MainNav component.
+ */
 function Sidebar() {
   return (
     <StyledSidebar>
