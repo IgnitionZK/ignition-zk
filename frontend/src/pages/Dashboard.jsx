@@ -1,9 +1,11 @@
 import styled from "styled-components";
 import { useWallet } from "../hooks/wallet/useWallet";
 import { useGetUserGroups } from "../hooks/queries/groupMembers/useGetUserGroups";
-import { RiDeleteBack2Fill } from "react-icons/ri";
-import { useState } from "react";
+import { useSearchGroups } from "../hooks/queries/groups/useSearchGroups";
+import { useState, useMemo } from "react";
 import GroupItemComponent from "../components/GroupItem";
+import SearchResultItemComponent from "../components/SearchResultItem";
+import { useQueryClient } from "@tanstack/react-query";
 
 const DashboardContainer = styled.div`
   display: flex;
@@ -171,41 +173,64 @@ const SearchInput = styled.input`
   }
 `;
 
-const GenerateButton = styled.button`
-  background-color: #a5b4fc;
-  color: #232328;
-  padding: 0.8rem 1.6rem;
-  border: none;
-  border-radius: 0.8rem;
-  font-size: 1.4rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s ease-in-out;
-
-  &:hover {
-    background-color: #818cf8;
-    transform: translateY(-1px);
-  }
-
-  &:active {
-    transform: translateY(1px);
-  }
+const SearchResults = styled.div`
+  margin-top: 2rem;
 `;
 
-const GroupActions = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 1.2rem;
+const SearchResultsTitle = styled.h3`
+  font-size: 1.8rem;
+  font-weight: 500;
+  margin-bottom: 1.2rem;
+`;
+
+const ErrorMessage = styled.p`
+  color: var(--color-red-500);
+  font-size: 1.4rem;
+  margin-top: 0.8rem;
+`;
+
+const Section = styled.div`
+  margin-bottom: 3.2rem;
+`;
+
+const SectionTitle = styled.h2`
+  font-size: 2rem;
+  font-weight: 500;
+  margin-bottom: 1.6rem;
+  color: var(--color-grey-100);
 `;
 
 function Dashboard() {
   const { connect, address } = useWallet();
   const { isLoading, userGroups, error } = useGetUserGroups();
   const [searchQuery, setSearchQuery] = useState("");
+  const {
+    searchResults,
+    isLoading: isSearching,
+    error: searchError,
+  } = useSearchGroups({
+    name: searchQuery,
+  });
+  const queryClient = useQueryClient();
+
+  // Filter out groups that user has already joined
+  const filteredSearchResults = useMemo(() => {
+    if (!searchResults || !userGroups) return [];
+
+    const userGroupIds = new Set(userGroups.map((group) => group.group_id));
+    return searchResults.filter((group) => !userGroupIds.has(group.group_id));
+  }, [searchResults, userGroups]);
 
   const formatAddress = (address) => {
     if (!address) return "";
     return `${address.slice(0, 6)}...${address.slice(-4)}`;
+  };
+
+  const handleJoinSuccess = () => {
+    // Invalidate and refetch user groups
+    queryClient.invalidateQueries(["userGroups"]);
+    // Clear search
+    setSearchQuery("");
   };
 
   return (
@@ -222,7 +247,7 @@ function Dashboard() {
       </Header>
       <Content>
         <GroupsHeader>
-          <h2>Your Groups</h2>
+          <SectionTitle>Search Groups</SectionTitle>
           <SearchInput
             type="text"
             placeholder="Search groups..."
@@ -230,22 +255,50 @@ function Dashboard() {
             onChange={(e) => setSearchQuery(e.target.value)}
           />
         </GroupsHeader>
-        {isLoading ? (
-          <p>Loading groups...</p>
-        ) : error ? (
-          <p>Error loading groups: {error.message}</p>
-        ) : (
-          <GroupsList>
-            {userGroups?.map((group) => (
-              <GroupItemComponent
-                key={group.group_id}
-                group={group}
-                groupId={group.group_id}
-                groupMemberId={group.group_member_id}
-              />
-            ))}
-          </GroupsList>
+
+        {searchQuery && (
+          <Section>
+            {isSearching ? (
+              <p>Searching...</p>
+            ) : searchError ? (
+              <ErrorMessage>
+                Error searching groups: {searchError.message}
+              </ErrorMessage>
+            ) : filteredSearchResults.length === 0 ? (
+              <p>No new groups found</p>
+            ) : (
+              <GroupsList>
+                {filteredSearchResults.map((group) => (
+                  <SearchResultItemComponent
+                    key={group.group_id}
+                    group={group}
+                    onJoinSuccess={handleJoinSuccess}
+                  />
+                ))}
+              </GroupsList>
+            )}
+          </Section>
         )}
+
+        <Section>
+          <SectionTitle>Your Groups</SectionTitle>
+          {isLoading ? (
+            <p>Loading groups...</p>
+          ) : error ? (
+            <ErrorMessage>Error loading groups: {error.message}</ErrorMessage>
+          ) : (
+            <GroupsList>
+              {userGroups?.map((group) => (
+                <GroupItemComponent
+                  key={group.group_id}
+                  group={group}
+                  groupId={group.group_id}
+                  groupMemberId={group.group_member_id}
+                />
+              ))}
+            </GroupsList>
+          )}
+        </Section>
       </Content>
     </DashboardContainer>
   );

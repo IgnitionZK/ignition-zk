@@ -8,19 +8,75 @@ export function useWallet() {
 
   const connect = async () => {
     if (!window.ethereum) return alert("MetaMask not found");
-    const provider = new BrowserProvider(window.ethereum);
-    await provider.send("eth_requestAccounts", []);
-    const signer = await provider.getSigner();
-    const address = await signer.getAddress();
+    try {
+      const provider = new BrowserProvider(window.ethereum);
+      await provider.send("eth_requestAccounts", []);
+      const signer = await provider.getSigner();
+      const address = await signer.getAddress();
 
-    setProvider(provider);
-    setSigner(signer);
-    setAddress(address);
+      setProvider(provider);
+      setSigner(signer);
+      setAddress(address);
+    } catch {
+      disconnect();
+    }
+  };
+
+  const disconnect = () => {
+    setProvider(null);
+    setSigner(null);
+    setAddress(null);
   };
 
   useEffect(() => {
-    if (window.ethereum && window.ethereum.selectedAddress) {
-      connect();
+    const checkInitialConnection = async () => {
+      if (window.ethereum && window.ethereum.selectedAddress) {
+        try {
+          const provider = new BrowserProvider(window.ethereum);
+          const signer = await provider.getSigner();
+          const address = await signer.getAddress();
+
+          setProvider(provider);
+          setSigner(signer);
+          setAddress(address);
+        } catch {
+          disconnect();
+        }
+      }
+    };
+
+    if (window.ethereum) {
+      checkInitialConnection();
+
+      window.ethereum.removeAllListeners();
+
+      window.ethereum.on("accountsChanged", async (accounts) => {
+        if (!accounts || accounts.length === 0) {
+          disconnect();
+        } else {
+          try {
+            const provider = new BrowserProvider(window.ethereum);
+            const signer = await provider.getSigner();
+            const address = await signer.getAddress();
+
+            setProvider(provider);
+            setSigner(signer);
+            setAddress(address);
+          } catch {
+            disconnect();
+          }
+        }
+      });
+
+      window.ethereum.on("chainChanged", () => {
+        window.location.reload();
+      });
+
+      return () => {
+        if (window.ethereum) {
+          window.ethereum.removeAllListeners();
+        }
+      };
     }
   }, []);
 

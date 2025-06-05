@@ -31,6 +31,13 @@ export async function getGroupMemberId({ userId, groupId }) {
   return data?.group_member_id;
 }
 
+/**
+ * Retrieves all groups that a user is a member of
+ * @param {Object} params - The parameters object
+ * @param {string} params.userId - The ID of the user to get groups for
+ * @returns {Promise<Array<Object>>} Array of group objects containing group details and group_member_id
+ * @throws {Error} If userId is not provided or if there's a database error
+ */
 export async function getUserGroups({ userId }) {
   if (!userId) {
     throw new Error("userId is required");
@@ -64,6 +71,13 @@ export async function getUserGroups({ userId }) {
   }));
 }
 
+/**
+ * Checks if a commitment exists for a given group member
+ * @param {Object} params - The parameters object
+ * @param {string} params.groupMemberId - The ID of the group member to check for
+ * @returns {Promise<boolean>} True if an active commitment exists, false otherwise
+ * @throws {Error} If groupMemberId is not provided or if there's a database error
+ */
 export async function checkCommitmentExists({ groupMemberId }) {
   if (!groupMemberId) {
     throw new Error("groupMemberId is required");
@@ -86,4 +100,34 @@ export async function checkCommitmentExists({ groupMemberId }) {
   }
 
   return !!data; // Returns true if commitment exists, false otherwise
+}
+
+/**
+ * Inserts a new group member into the database
+ * @param {Object} params - The parameters object
+ * @param {string} params.userId - The ID of the user to add as a group member
+ * @param {string} params.groupId - The ID of the group to add the user to
+ * @returns {Promise<Object>} The newly created group member record
+ * @throws {Error} If userId or groupId are not provided or if there's a database error
+ */
+export async function insertGroupMember({ userId, groupId }) {
+  if (!userId || !groupId) {
+    throw new Error("userId and groupId are required");
+  }
+
+  const { data, error } = await supabase
+    .schema("ignitionzk")
+    .from("group_members")
+    .insert({
+      user_id: userId,
+      group_id: groupId,
+    })
+    .select()
+    .single();
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  return data;
 }

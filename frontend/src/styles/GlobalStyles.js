@@ -1,5 +1,29 @@
 import { createGlobalStyle } from "styled-components";
 
+/**
+ * GlobalStyles component that defines global CSS styles and CSS variables for the application.
+ * Uses styled-components' createGlobalStyle to inject global styles.
+ *
+ * CSS Variables:
+ * - Grey scale colors (--color-grey-0 to --color-grey-900)
+ * - Red scale colors (--color-red-50 to --color-red-900)
+ * - Border radius utilities (--border-radius-tiny to --border-radius-lg)
+ *
+ * Global styles include:
+ * - CSS reset and box-sizing
+ * - Base font settings (Poppins)
+ * - Responsive font sizing (62.5% base = 10px, making 1rem = 10px for easier calculations)
+ * - Default styles for common elements (buttons, links, lists)
+ * - Typography and image handling
+ *
+ * Font Sizing:
+ * The base font size is set to 62.5% (10px) of the browser's default 16px,
+ * making 1rem = 10px. This simplifies rem calculations:
+ * - 1.6rem = 16px
+ * - 2rem = 20px
+ * - 2.4rem = 24px
+ * etc.
+ */
 const GlobalStyles = createGlobalStyle`
 
 :root {

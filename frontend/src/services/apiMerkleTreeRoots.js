@@ -1,5 +1,12 @@
 import { supabase } from "./supabase";
 
+/**
+ * Retrieves the active Merkle tree root for a specific group.
+ * @param {Object} params - The parameters object
+ * @param {string} params.groupId - The ID of the group to get the active root for
+ * @returns {Promise<Object|null>} The active Merkle tree root object, or null if none exists
+ * @throws {Error} If groupId is not provided or if there's a database error
+ */
 export async function getActiveMerkleTreeRoot({ groupId }) {
   if (!groupId) {
     throw new Error("groupId is required");
@@ -23,6 +30,15 @@ export async function getActiveMerkleTreeRoot({ groupId }) {
   return data;
 }
 
+/**
+ * Inserts a new Merkle tree root into the database.
+ * @param {Object} params - The parameters object
+ * @param {string} params.groupId - The ID of the group this root belongs to
+ * @param {string} params.rootHash - The hash of the Merkle tree root
+ * @param {number} params.treeVersion - The version number of the tree
+ * @returns {Promise<Object>} The newly created Merkle tree root object
+ * @throws {Error} If required parameters are missing or if there's a database error
+ */
 export async function insertMerkleTreeRoot({ groupId, rootHash, treeVersion }) {
   if (!groupId || !rootHash || treeVersion === undefined) {
     throw new Error("groupId, rootHash, and treeVersion are required");
@@ -47,6 +63,14 @@ export async function insertMerkleTreeRoot({ groupId, rootHash, treeVersion }) {
   return data;
 }
 
+/**
+ * Updates the active status of a Merkle tree root.
+ * @param {Object} params - The parameters object
+ * @param {string} params.rootId - The ID of the root to update
+ * @param {boolean} params.isActive - The new active status to set
+ * @returns {Promise<Object>} The updated Merkle tree root object
+ * @throws {Error} If required parameters are missing or if there's a database error
+ */
 export async function updateMerkleTreeRootActiveStatus({ rootId, isActive }) {
   if (!rootId || isActive === undefined) {
     throw new Error("rootId and isActive are required");
