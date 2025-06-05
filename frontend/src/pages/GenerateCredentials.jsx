@@ -13,7 +13,7 @@ import MnemonicDisplay from "../components/MnemonicDisplay";
 import CustomButton from "../components/CustomButton";
 // scrips
 import { ZkCredential } from "../scripts/generateCredentials-browser-safe";
-import MerkleTreeGenerator from "../scripts/generateRoot";
+import { MerkleTreeService } from "../scripts/generateRoot";
 // queries
 import { useInsertLeaf } from "../hooks/queries/merkleTreeLeaves/useInsertLeaf";
 import { useGetGroupMemberId } from "../hooks/queries/groupMembers/useGetGroupMemberId";
@@ -148,12 +148,20 @@ function GenerateCredentials() {
           groupId: groupId,
         });
 
-        // Generate the Merkle tree root
-        const generator = new MerkleTreeGenerator();
-        const root = generator.generateRoot(
-          groupCommitments,
-          result.commitment
-        );
+        const merkleService = new MerkleTreeService();
+
+        // Insert all existing commitments
+        if (groupCommitments && groupCommitments.length > 0) {
+          merkleService.insertLeaves(
+            groupCommitments.map((commitment) => commitment.commitment_value)
+          );
+        }
+
+        // Insert the new commitment
+        merkleService.insertLeaf(result.commitment);
+
+        // Get the root
+        const root = merkleService.root;
 
         // Insert the new Merkle tree root
         await insertNewMerkleTreeRoot({
