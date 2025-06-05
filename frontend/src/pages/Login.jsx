@@ -11,6 +11,9 @@ const LoginLayout = styled.main`
   background-color: var(--color-grey-800);
 `;
 
+/**
+ * Login page component that renders the login form in a centered layout
+ */
 function Login() {
   return (
     <LoginLayout>

@@ -1,3 +1,8 @@
+/**
+ * @fileoverview A React component for generating and managing user credentials including mnemonic phrases
+ * and Merkle tree commitments for anonymous voting and membership.
+ */
+
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import styled from "styled-components";
@@ -81,6 +86,14 @@ const Note = styled.p`
   margin-top: 16px;
 `;
 
+/**
+ * GenerateCredentials Component
+ *
+ * A component that handles the generation of user credentials including:
+ * - 12-word mnemonic phrase for account recovery
+ * - Commitment insertion into Merkle tree
+ * - Merkle tree root generation and updates
+ */
 function GenerateCredentials() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -107,6 +120,15 @@ function GenerateCredentials() {
     error,
   } = useGetLeavesByGroupId();
 
+  /**
+   * Generates new credentials and updates the Merkle tree
+   *
+   * This function:
+   * 1. Generates a new 12-word mnemonic and commitment
+   * 2. Inserts the commitment into the Merkle tree
+   * 3. Generates a new Merkle tree root
+   * 4. Updates the Merkle tree root in the database
+   */
   const handleGenerate = async () => {
     try {
       setIsGenerating(true);
@@ -150,6 +172,11 @@ function GenerateCredentials() {
     }
   };
 
+  /**
+   * Handles the closing of the mnemonic display and navigation
+   *
+   * Clears the credentials state and navigates to the dashboard
+   */
   const handleCloseMnemonic = () => {
     setCredentials(null);
     navigate("/dashboard");

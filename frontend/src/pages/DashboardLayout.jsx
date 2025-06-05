@@ -2,6 +2,11 @@ import { Outlet } from "react-router-dom";
 import Sidebar from "../components/StyledSidebar";
 import styled from "styled-components";
 
+/**
+ * Styled component that creates the main layout grid for the dashboard.
+ * Uses CSS Grid to create a two-column layout with a fixed sidebar and main content area.
+ * @type {import('styled-components').StyledComponent<'div', any>}
+ */
 const StyledAppLayout = styled.div`
   display: grid;
   grid-template-columns: 26rem 1fr;
@@ -25,6 +30,10 @@ const Container = styled.div`
   height: 100%;
 `;
 
+/**
+ * Main dashboard layout component that provides the structure for the user dashboard.
+ * Renders a sidebar and main content area using React Router's Outlet for nested routes.
+ */
 function UserDashboard() {
   return (
     <StyledAppLayout>

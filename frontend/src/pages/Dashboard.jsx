@@ -200,7 +200,12 @@ const SectionTitle = styled.h2`
   color: var(--color-grey-100);
 `;
 
+/**
+ * Dashboard component that displays user's groups and allows searching for new groups
+ */
 function Dashboard() {
+  const queryClient = useQueryClient();
+
   const { connect, address } = useWallet();
   const { isLoading, userGroups, error } = useGetUserGroups();
   const [searchQuery, setSearchQuery] = useState("");
@@ -211,7 +216,6 @@ function Dashboard() {
   } = useSearchGroups({
     name: searchQuery,
   });
-  const queryClient = useQueryClient();
 
   // Filter out groups that user has already joined
   const filteredSearchResults = useMemo(() => {
