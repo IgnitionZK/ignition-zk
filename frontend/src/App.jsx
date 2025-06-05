@@ -12,16 +12,22 @@ import { Toaster } from "react-hot-toast";
 // Pages
 import Homepage from "./pages/Homepage";
 import GenerateCredentials from "./pages/GenerateCredentials";
-
-// styles
-import GlobalStyles from "./styles/GlobalStyles";
-import ProtectedRoute from "./components/ProtectedRoute";
-import AppLayout from "./components/AppLayout";
 import Login from "./pages/Login";
 import DashboardLayout from "./pages/DashboardLayout";
 import Dashboard from "./pages/Dashboard";
 import Settings from "./pages/Settings";
 
+// components
+import ProtectedRoute from "./components/ProtectedRoute";
+import AppLayout from "./components/AppLayout";
+
+// styles
+import GlobalStyles from "./styles/GlobalStyles";
+
+/**
+ * QueryClient configuration for React Query
+ * @type {QueryClient}
+ */
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -30,6 +36,11 @@ const queryClient = new QueryClient({
   },
 });
 
+/**
+ * Application router configuration using React Router
+ * Defines all routes and their corresponding components
+ * @type {BrowserRouter}
+ */
 const router = createBrowserRouter([
   {
     element: (
@@ -72,6 +83,20 @@ const router = createBrowserRouter([
   },
 ]);
 
+/**
+ * Main App component that sets up the application's core providers and layout
+ *
+ * @component
+ * @returns {JSX.Element} The rendered application with all necessary providers
+ *
+ * @description
+ * This component serves as the root of the application and provides:
+ * - React Query for data fetching and caching
+ * - React Router for navigation
+ * - Global styles
+ * - Toast notifications
+ * - React Query DevTools in development
+ */
 function App() {
   return (
     <>
