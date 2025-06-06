@@ -1,9 +1,11 @@
 import { useNavigate } from "react-router-dom";
 import { RiDeleteBack2Fill } from "react-icons/ri";
-import styled from "styled-components";
-import { useCheckCommitment } from "../hooks/queries/groupMembers/useCheckCommitment";
-import MiniSpinner from "./MiniSpinner";
 import { useQueryClient } from "@tanstack/react-query";
+import styled from "styled-components";
+// components
+import MiniSpinner from "./MiniSpinner";
+// hooks
+import { useCheckCommitment } from "../hooks/queries/groupMembers/useCheckCommitment";
 import { useGetActiveMerkleTreeRoot } from "../hooks/queries/merkleTreeRoots/useGetActiveMerkleTreeRoot";
 
 const GroupItemContainer = styled.li`

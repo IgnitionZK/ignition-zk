@@ -16,17 +16,21 @@ const testMerkleTree = async () => {
   const commitmentObjects = [
     {
       commitment_value:
-        "4569404356060217892567000226667571007085840243496351421444043897830417204841",
+        "18542401090204566243593041266509016391106809403929295783279372702922347973218",
+    },
+    {
+      commitment_value:
+        "4855139869605244460670050730810796654058639838745333684826983922418488834955",
     },
   ];
   const singleCommitmentValue =
-    21565830651962172967289248360519028712249373956516218692264979672623543179659n;
-
+    17407540925533418293037768568283548809278187951133537192913816185756450737740n;
   // Create array of all commitment values
   const allCommitments = [
     ...commitmentObjects.map((obj) => BigInt(obj.commitment_value)),
     singleCommitmentValue,
   ];
+  console.log(allCommitments);
 
   // Create merkle tree with all commitments
   const { root } = await MerkleTreeService.createMerkleTree(allCommitments);
@@ -34,12 +38,12 @@ const testMerkleTree = async () => {
   console.log("Generated root:", root);
   console.log(
     "Expected root:",
-    "6288498092224451765349377587088464623948296876784490711334113964722103913972"
+    "60833269661901831284991364166993258570409755072845072681144846546614438111"
   );
   console.log(
     "Test passed:",
     root ===
-      "6288498092224451765349377587088464623948296876784490711334113964722103913972"
+      "60833269661901831284991364166993258570409755072845072681144846546614438111"
   );
 
   // Generate and display proof for the first commitment (index 0)

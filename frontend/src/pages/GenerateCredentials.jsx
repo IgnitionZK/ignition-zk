@@ -17,8 +17,7 @@ import { MerkleTreeService } from "../scripts/merkleTreeService";
 // queries
 import { useInsertLeaf } from "../hooks/queries/merkleTreeLeaves/useInsertLeaf";
 import { useGetGroupMemberId } from "../hooks/queries/groupMembers/useGetGroupMemberId";
-import { useGetLeavesByGroupId } from "../hooks/queries/merkleTreeLeaves/useGetLeavesByGroupId";
-import { useInsertMerkleTreeRoot } from "../hooks/queries/merkleTreeRoots/useInsertMerkleTreeRoot";
+import { useCreateMerkleTreeRoot } from "../hooks/queries/merkleTreeRoots/useCreateMerkleTreeRoot";
 
 const Container = styled.div`
   min-height: 100vh;
@@ -102,23 +101,11 @@ function GenerateCredentials() {
   const [isGenerating, setIsGenerating] = useState(false);
 
   const groupId = queryClient.getQueryData(["currentGroupId"]);
-  const currentTreeVersion = queryClient.getQueryData([
-    "currentMerkleTreeRootVersion",
-  ]);
 
   const { insertLeaf, isLoading: isLoadingInsertLeaf } = useInsertLeaf();
   const { isLoading, groupMemberId } = useGetGroupMemberId({ groupId });
-  const {
-    mutate: insertNewMerkleTreeRoot,
-    isLoading: isLoadingInsertMerkleTreeRoot,
-    error: errorIsnertMerkleTreeRoot,
-  } = useInsertMerkleTreeRoot();
-
-  const {
-    isLoading: groupCommitmentsLoading,
-    groupCommitments,
-    error,
-  } = useGetLeavesByGroupId();
+  const { createMerkleTreeRoot, isLoading: isLoadingCreateMerkleTreeRoot } =
+    useCreateMerkleTreeRoot();
 
   /**
    * Generates new credentials and updates the Merkle tree
@@ -148,24 +135,10 @@ function GenerateCredentials() {
           groupId: groupId,
         });
 
-        // Create array of all commitment values
-        const allCommitments = [
-          ...(groupCommitments || []).map((commitment) =>
-            BigInt(commitment.commitment_value)
-          ),
-          result.commitment,
-        ];
-
-        // Create new merkle tree with all commitments
-        const { root } = await MerkleTreeService.createMerkleTree(
-          allCommitments
-        );
-
-        // Insert the new Merkle tree root
-        await insertNewMerkleTreeRoot({
-          groupId: groupId,
-          rootHash: root,
-          treeVersion: currentTreeVersion ? currentTreeVersion + 1 : 1,
+        // Create and insert new Merkle tree root
+        await createMerkleTreeRoot({
+          groupId,
+          newCommitment: result.commitment,
         });
       } catch (error) {
         console.error("Failed to insert leaf:", error);
@@ -239,7 +212,7 @@ function GenerateCredentials() {
                 isGenerating ||
                 isLoading ||
                 isLoadingInsertLeaf ||
-                isLoadingInsertMerkleTreeRoot ||
+                isLoadingCreateMerkleTreeRoot ||
                 !groupMemberId
               }
             >
@@ -247,7 +220,7 @@ function GenerateCredentials() {
                 ? "Generating..."
                 : isLoadingInsertLeaf
                 ? "Inserting Commitment..."
-                : isLoadingInsertMerkleTreeRoot
+                : isLoadingCreateMerkleTreeRoot
                 ? "Updating Merkle Tree..."
                 : isLoading
                 ? "Loading..."
