@@ -3,6 +3,11 @@ import * as circomlibjs from "circomlibjs";
 import { hkdf } from "@noble/hashes/hkdf";
 import { sha256 } from "@noble/hashes/sha2";
 
+/**
+ * A class for generating and managing zero-knowledge credentials.
+ * This class provides methods for generating mnemonic seeds, cryptographic keys,
+ * and zero-knowledge credentials for identity management.
+ */
 export class ZkCredential {
   static #ENC = new TextEncoder();
   static #FIELD_PRIME =
@@ -14,24 +19,47 @@ export class ZkCredential {
   static #ENTROPY_BITS = 128;
   static #poseidonInstance;
 
+  /**
+   * Converts a byte array to a hexadecimal string.
+   * @private
+   * @param {Uint8Array} bytes - The byte array to convert
+   * @returns {string} The hexadecimal representation of the bytes
+   */
   static #bytesToHex(bytes) {
     return Array.from(new Uint8Array(bytes))
       .map((b) => b.toString(16).padStart(2, "0"))
       .join("");
   }
 
+  /**
+   * Converts a tag string to a field element using SHA-256.
+   * @private
+   * @param {string} tag - The tag string to convert
+   * @returns {Promise<bigint>} The field element representation of the tag
+   */
   static async #tagToField(tag) {
     const data = ZkCredential.#ENC.encode(tag);
     const buf = await crypto.subtle.digest("SHA-256", data);
     return BigInt("0x" + this.#bytesToHex(buf)) % this.#FIELD_PRIME;
   }
 
+  /**
+   * Performs modular reduction on a BigInt value.
+   * @private
+   * @param {bigint} rawBigInt - The BigInt value to reduce
+   * @returns {bigint} The reduced value modulo FIELD_PRIME
+   */
   static #performModularReduction(rawBigInt) {
     return (
       ((rawBigInt % this.#FIELD_PRIME) + this.#FIELD_PRIME) % this.#FIELD_PRIME
     );
   }
 
+  /**
+   * Gets or initializes the Poseidon hash instance.
+   * @private
+   * @returns {Promise<Object>} The Poseidon hash instance
+   */
   static async #getPoseidon() {
     if (!this.#poseidonInstance) {
       this.#poseidonInstance = await circomlibjs.buildPoseidon();
@@ -39,6 +67,12 @@ export class ZkCredential {
     return this.#poseidonInstance;
   }
 
+  /**
+   * Generates a mnemonic seed phrase and its corresponding seed.
+   * @param {number} [bits=128] - The number of bits of entropy for the mnemonic
+   * @returns {{seed: Buffer, mnemonic: string}} Object containing the seed and mnemonic phrase
+   * @throws {Error} If bits is less than 128
+   */
   static generateMnemonicSeed(bits = this.#ENTROPY_BITS) {
     if (bits < 128) {
       throw new Error(
@@ -53,6 +87,11 @@ export class ZkCredential {
     return { seed, mnemonic };
   }
 
+  /**
+   * Generates trapdoor and nullifier keys from an initial key material.
+   * @param {Uint8Array} ikm - The initial key material
+   * @returns {{trapdoorKey: bigint, nullifierKey: bigint}} Object containing the trapdoor and nullifier keys
+   */
   static generateKeys(ikm) {
     // ikm must be Uint8Array; if you have Buffer, do: new Uint8Array(ikm)
     const trapdoorBytes = hkdf(
@@ -79,6 +118,12 @@ export class ZkCredential {
     return { trapdoorKey: trapdoor, nullifierKey: nullifier };
   }
 
+  /**
+   * Generates complete zero-knowledge credentials including identity and commitment.
+   * @param {number} [bits=128] - The number of bits of entropy for the mnemonic
+   * @returns {Promise<{identity: {trapdoor: bigint, nullifier: bigint}, commitment: bigint, mnemonic: string}>}
+   * Object containing the identity (trapdoor and nullifier), commitment, and mnemonic phrase
+   */
   static async generateCredentials(bits = this.#ENTROPY_BITS) {
     const { seed, mnemonic } = this.generateMnemonicSeed(bits);
     const { trapdoorKey, nullifierKey } = this.generateKeys(seed);

@@ -19,6 +19,17 @@ const MainContent = styled.main`
   padding: 2rem;
 `;
 
+const Footer = styled.footer`
+  padding: 1rem;
+  text-align: center;
+  border-top: 1px solid var(--color-grey-700);
+  margin-top: auto;
+`;
+
+/**
+ * Homepage component that serves as the landing page for IgnitionZK
+ * Displays the application header, title, description, and credits
+ */
 function Homepage() {
   return (
     <StyledHomepage>
@@ -29,10 +40,11 @@ function Homepage() {
           IgnitionZK leverages the power of zero knowledge proofs for anonymous
           voting, proposals, and membership.
         </h3>
-
+      </MainContent>
+      <Footer>
         <p>Anthony Spedaliere | Anastasia Tsitali</p>
         <p>© 2025</p>
-      </MainContent>
+      </Footer>
     </StyledHomepage>
   );
 }
