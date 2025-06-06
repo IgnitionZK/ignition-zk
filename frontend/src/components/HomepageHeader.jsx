@@ -15,6 +15,10 @@ const Title = styled.h1`
   font-weight: 600;
 `;
 
+/**
+ * Header component for the homepage that displays the application title and login button.
+ * Provides navigation functionality to the login page.
+ */
 function HomepageHeader() {
   const navigate = useNavigate();
 

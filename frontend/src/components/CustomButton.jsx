@@ -46,6 +46,10 @@ const StyledButton = styled.button`
   }
 `;
 
+/**
+ * A customizable button component with support for different sizes, colors, and states.
+ * Features hover effects, disabled state, and flexible styling options.
+ */
 function CustomButton({
   children,
   onClick,

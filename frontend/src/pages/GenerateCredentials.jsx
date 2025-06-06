@@ -1,9 +1,23 @@
-import styled from "styled-components";
-import CustomButton from "../components/CustomButton";
+/**
+ * @fileoverview A React component for generating and managing user credentials including mnemonic phrases
+ * and Merkle tree commitments for anonymous voting and membership.
+ */
+
 import { useState } from "react";
-import { ZkCredential } from "../scripts/generateCredentials-browser-safe";
-import MnemonicDisplay from "../components/MnemonicDisplay";
 import { useNavigate } from "react-router-dom";
+import styled from "styled-components";
+import { useQueryClient } from "@tanstack/react-query";
+
+//components
+import MnemonicDisplay from "../components/MnemonicDisplay";
+import CustomButton from "../components/CustomButton";
+// scrips
+import { ZkCredential } from "../scripts/generateCredentials-browser-safe";
+import { MerkleTreeService } from "../scripts/merkleTreeService";
+// queries
+import { useInsertLeaf } from "../hooks/queries/merkleTreeLeaves/useInsertLeaf";
+import { useGetGroupMemberId } from "../hooks/queries/groupMembers/useGetGroupMemberId";
+import { useCreateMerkleTreeRoot } from "../hooks/queries/merkleTreeRoots/useCreateMerkleTreeRoot";
 
 const Container = styled.div`
   min-height: 100vh;
@@ -71,22 +85,65 @@ const Note = styled.p`
   margin-top: 16px;
 `;
 
+/**
+ * GenerateCredentials Component
+ *
+ * A component that handles the generation of user credentials including:
+ * - 12-word mnemonic phrase for account recovery
+ * - Commitment insertion into Merkle tree
+ * - Merkle tree root generation and updates
+ */
 function GenerateCredentials() {
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
+
   const [credentials, setCredentials] = useState(null);
   const [isGenerating, setIsGenerating] = useState(false);
-  const navigate = useNavigate();
 
+  const groupId = queryClient.getQueryData(["currentGroupId"]);
+
+  const { insertLeaf, isLoading: isLoadingInsertLeaf } = useInsertLeaf();
+  const { isLoading, groupMemberId } = useGetGroupMemberId({ groupId });
+  const { createMerkleTreeRoot, isLoading: isLoadingCreateMerkleTreeRoot } =
+    useCreateMerkleTreeRoot();
+
+  /**
+   * Generates new credentials and updates the Merkle tree
+   *
+   * This function:
+   * 1. Generates a new 12-word mnemonic and commitment
+   * 2. Inserts the commitment into the Merkle tree
+   * 3. Generates a new Merkle tree root
+   * 4. Updates the Merkle tree root in the database
+   */
   const handleGenerate = async () => {
     try {
       setIsGenerating(true);
       const result = await ZkCredential.generateCredentials(128);
       setCredentials(result);
 
-      console.log("Generated Credentials:", {
-        mnemonic: result.mnemonic,
-        identity: result.identity,
-        commitment: result.commitment,
-      });
+      // Insert the commitment into the merkle tree
+      if (!groupMemberId) {
+        console.error("No group member ID available");
+        throw new Error("Group member ID is required to insert commitment");
+      }
+
+      try {
+        await insertLeaf({
+          groupMemberId: groupMemberId,
+          commitment: result.commitment.toString(),
+          groupId: groupId,
+        });
+
+        // Create and insert new Merkle tree root
+        await createMerkleTreeRoot({
+          groupId,
+          newCommitment: result.commitment,
+        });
+      } catch (error) {
+        console.error("Failed to insert leaf:", error);
+        throw new Error("Failed to insert commitment into merkle tree");
+      }
     } catch (error) {
       console.error("Error generating credentials:", error);
     } finally {
@@ -94,6 +151,11 @@ function GenerateCredentials() {
     }
   };
 
+  /**
+   * Handles the closing of the mnemonic display and navigation
+   *
+   * Clears the credentials state and navigates to the dashboard
+   */
   const handleCloseMnemonic = () => {
     setCredentials(null);
     navigate("/dashboard");
@@ -146,15 +208,30 @@ function GenerateCredentials() {
               textColor="#232328"
               size="large"
               onClick={handleGenerate}
-              disabled={isGenerating}
+              disabled={
+                isGenerating ||
+                isLoading ||
+                isLoadingInsertLeaf ||
+                isLoadingCreateMerkleTreeRoot ||
+                !groupMemberId
+              }
             >
-              {isGenerating ? "Generating..." : "Generate"}
+              {isGenerating
+                ? "Generating..."
+                : isLoadingInsertLeaf
+                ? "Inserting Commitment..."
+                : isLoadingCreateMerkleTreeRoot
+                ? "Updating Merkle Tree..."
+                : isLoading
+                ? "Loading..."
+                : "Generate"}
             </CustomButton>
           </ButtonWrapper>
           <Note>
             <i>
-              Upon clicking 'Generate', your 24-word mnemonic will be displayed
-              for you to securely record.
+              {!groupMemberId && !isLoading
+                ? "Please wait while we prepare your credentials..."
+                : "Upon clicking 'Generate', your 24-word mnemonic will be displayed for you to securely record."}
             </i>
           </Note>
         </Container>

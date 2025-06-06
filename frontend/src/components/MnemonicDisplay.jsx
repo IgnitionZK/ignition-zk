@@ -92,6 +92,10 @@ function getGridColumns(wordCount) {
   return 5;
 }
 
+/**
+ * A modal component that displays a mnemonic phrase in a grid layout with numbered words.
+ * Used for securely showing users their recovery phrase during wallet creation.
+ */
 function MnemonicDisplay({ mnemonic, onClose }) {
   const words = mnemonic.trim().split(/\s+/);
   const columns = getGridColumns(words.length);

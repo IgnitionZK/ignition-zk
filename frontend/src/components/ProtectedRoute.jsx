@@ -12,6 +12,10 @@ const FullPage = styled.div`
   justify-content: center;
 `;
 
+/**
+ * A wrapper component that protects routes requiring authentication.
+ * Shows a loading spinner while checking auth status and redirects unauthenticated users to the homepage.
+ */
 function ProtectedRoute({ children }) {
   const navigate = useNavigate();
 
