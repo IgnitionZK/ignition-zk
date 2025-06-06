@@ -12,43 +12,39 @@ import { MerkleTreeService } from "../generateRoot.js";
  * "680780018581728271426222388546552142147820390769025677186621783736598362542"
  */
 const testMerkleTree = async () => {
-  const merkleService = new MerkleTreeService();
-
   // Test with the example values from comments
   const commitmentObjects = [
     {
       commitment_value:
-        "19390292043422339260847467200953875780798709567123589708718186347656518151257",
+        "4569404356060217892567000226667571007085840243496351421444043897830417204841",
     },
   ];
   const singleCommitmentValue =
-    12121353085160087440887344551642837028869145131855022171875984584633137567556n;
+    21565830651962172967289248360519028712249373956516218692264979672623543179659n;
 
-  // Insert all commitments from commitmentObjects
-  if (commitmentObjects.length > 0) {
-    await merkleService.insertLeaves(
-      commitmentObjects.map((obj) => obj.commitment_value)
-    );
-  }
+  // Create array of all commitment values
+  const allCommitments = [
+    ...commitmentObjects.map((obj) => BigInt(obj.commitment_value)),
+    singleCommitmentValue,
+  ];
 
-  // Insert the single commitment value
-  await merkleService.insertLeaf(singleCommitmentValue);
+  // Create merkle tree with all commitments
+  const { root } = await MerkleTreeService.createMerkleTree(allCommitments);
 
-  const root = merkleService.root;
-  console.log("Generated root:", root.toString());
+  console.log("Generated root:", root);
   console.log(
     "Expected root:",
-    "680780018581728271426222388546552142147820390769025677186621783736598362542"
+    "6288498092224451765349377587088464623948296876784490711334113964722103913972"
   );
   console.log(
     "Test passed:",
-    root.toString() ===
-      "680780018581728271426222388546552142147820390769025677186621783736598362542"
+    root ===
+      "6288498092224451765349377587088464623948296876784490711334113964722103913972"
   );
 
   // Generate and display proof for the first commitment (index 0)
   console.log("\nGenerating proof for first commitment:");
-  const proof = merkleService.generateProof(0);
+  const proof = await MerkleTreeService.generateMerkleProof(0, allCommitments);
   console.log("Proof details:", JSON.stringify(proof, null, 2));
 };
 

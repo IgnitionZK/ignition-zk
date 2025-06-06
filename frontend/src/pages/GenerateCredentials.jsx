@@ -148,25 +148,23 @@ function GenerateCredentials() {
           groupId: groupId,
         });
 
-        const merkleService = new MerkleTreeService();
+        // Create array of all commitment values
+        const allCommitments = [
+          ...(groupCommitments || []).map((commitment) =>
+            BigInt(commitment.commitment_value)
+          ),
+          result.commitment,
+        ];
 
-        // Insert all existing commitments
-        if (groupCommitments && groupCommitments.length > 0) {
-          merkleService.insertLeaves(
-            groupCommitments.map((commitment) => commitment.commitment_value)
-          );
-        }
-
-        // Insert the new commitment
-        merkleService.insertLeaf(result.commitment);
-
-        // Get the root
-        const root = merkleService.root;
+        // Create new merkle tree with all commitments
+        const { root } = await MerkleTreeService.createMerkleTree(
+          allCommitments
+        );
 
         // Insert the new Merkle tree root
         await insertNewMerkleTreeRoot({
           groupId: groupId,
-          rootHash: root.toString(),
+          rootHash: root,
           treeVersion: currentTreeVersion ? currentTreeVersion + 1 : 1,
         });
       } catch (error) {
