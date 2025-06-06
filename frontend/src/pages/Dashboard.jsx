@@ -3,7 +3,7 @@ import { useWallet } from "../hooks/wallet/useWallet";
 import { useGetUserGroups } from "../hooks/queries/groupMembers/useGetUserGroups";
 import { useSearchGroups } from "../hooks/queries/groups/useSearchGroups";
 import { useState, useMemo } from "react";
-import GroupItemComponent from "../components/GroupItem";
+import GroupItem from "../components/GroupItem";
 import SearchResultItemComponent from "../components/SearchResultItem";
 import { useQueryClient } from "@tanstack/react-query";
 
@@ -293,7 +293,7 @@ function Dashboard() {
           ) : (
             <GroupsList>
               {userGroups?.map((group) => (
-                <GroupItemComponent
+                <GroupItem
                   key={group.group_id}
                   group={group}
                   groupId={group.group_id}

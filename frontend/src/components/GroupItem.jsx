@@ -6,7 +6,7 @@ import MiniSpinner from "./MiniSpinner";
 import { useQueryClient } from "@tanstack/react-query";
 import { useGetActiveMerkleTreeRoot } from "../hooks/queries/merkleTreeRoots/useGetActiveMerkleTreeRoot";
 
-const GroupItem = styled.li`
+const GroupItemContainer = styled.li`
   background-color: rgba(165, 180, 252, 0.1);
   padding: 1.6rem;
   border-radius: 0.8rem;
@@ -117,7 +117,7 @@ const Tooltip = styled.div`
  * Renders a single group item in the dashboard, displaying group information and actions.
  * Allows users to generate credentials if they haven't committed yet, and provides the ability to leave the group.
  */
-function GroupItemComponent({ group, groupMemberId, groupId }) {
+function GroupItem({ group, groupMemberId, groupId }) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { hasCommitment, isLoading, error } = useCheckCommitment({
@@ -136,7 +136,7 @@ function GroupItemComponent({ group, groupMemberId, groupId }) {
   };
 
   return (
-    <GroupItem>
+    <GroupItemContainer>
       <GroupInfo>
         <GroupName>{group.name}</GroupName>
         <ContractAddress>{group.erc721_contract_address}</ContractAddress>
@@ -156,8 +156,8 @@ function GroupItemComponent({ group, groupMemberId, groupId }) {
           <Tooltip>Leave group</Tooltip>
         </DeleteButton>
       </GroupActions>
-    </GroupItem>
+    </GroupItemContainer>
   );
 }
 
-export default GroupItemComponent;
+export default GroupItem;
