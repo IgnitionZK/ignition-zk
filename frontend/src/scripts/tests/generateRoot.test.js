@@ -1,4 +1,4 @@
-import { MerkleTreeService } from "../generateRoot.js";
+import { MerkleTreeService } from "../merkleTreeService.js";
 
 /**
  * Tests the MerkleTreeService functionality by verifying root generation

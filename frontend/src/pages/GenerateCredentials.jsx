@@ -13,7 +13,7 @@ import MnemonicDisplay from "../components/MnemonicDisplay";
 import CustomButton from "../components/CustomButton";
 // scrips
 import { ZkCredential } from "../scripts/generateCredentials-browser-safe";
-import { MerkleTreeService } from "../scripts/generateRoot";
+import { MerkleTreeService } from "../scripts/merkleTreeService";
 // queries
 import { useInsertLeaf } from "../hooks/queries/merkleTreeLeaves/useInsertLeaf";
 import { useGetGroupMemberId } from "../hooks/queries/groupMembers/useGetGroupMemberId";
