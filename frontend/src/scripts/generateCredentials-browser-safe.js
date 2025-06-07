@@ -73,7 +73,7 @@ export class ZkCredential {
    * @returns {{seed: Buffer, mnemonic: string}} Object containing the seed and mnemonic phrase
    * @throws {Error} If bits is less than 128
    */
-  static generateMnemonicSeed(bits = this.#ENTROPY_BITS) {
+  static generateMnemonic(bits = this.#ENTROPY_BITS) {
     if (bits < 128) {
       throw new Error(
         "At least 128 bits of entropy are recommended for zk-identity use."
@@ -82,9 +82,16 @@ export class ZkCredential {
 
     // create mnemonic and seed
     const mnemonic = bip39.generateMnemonic(bits);
-    const seed = bip39.mnemonicToSeedSync(mnemonic);
+    //const seed = bip39.mnemonicToSeedSync(mnemonic);
 
-    return { seed, mnemonic };
+    //return { seed, mnemonic };
+    return mnemonic;
+  }
+
+  static generateSeedFromMnemonic(mnemonic) {
+    // Generate seed from mnemonic
+    const seed = bip39.mnemonicToSeedSync(mnemonic);
+    return seed;
   }
 
   /**
@@ -118,15 +125,7 @@ export class ZkCredential {
     return { trapdoorKey: trapdoor, nullifierKey: nullifier };
   }
 
-  /**
-   * Generates complete zero-knowledge credentials including identity and commitment.
-   * @param {number} [bits=128] - The number of bits of entropy for the mnemonic
-   * @returns {Promise<{identity: {trapdoor: bigint, nullifier: bigint}, commitment: bigint, mnemonic: string}>}
-   * Object containing the identity (trapdoor and nullifier), commitment, and mnemonic phrase
-   */
-  static async generateCredentials(bits = this.#ENTROPY_BITS) {
-    const { seed, mnemonic } = this.generateMnemonicSeed(bits);
-    const { trapdoorKey, nullifierKey } = this.generateKeys(seed);
+  static async generateIdentity(trapdoorKey, nullifierKey) {
     const poseidon = await this.#getPoseidon();
     const F = poseidon.F;
 
@@ -136,6 +135,22 @@ export class ZkCredential {
     const trapdoor = F.toObject(poseidon([trapdoorTag, trapdoorKey]));
     const nullifier = F.toObject(poseidon([nullifierTag, nullifierKey]));
     const commitment = F.toObject(poseidon([nullifier, trapdoor]));
+
+    return { trapdoor, nullifier, commitment };
+  }
+
+
+  /**
+   * Generates complete zero-knowledge credentials including identity and commitment.
+   * @param {number} [bits=128] - The number of bits of entropy for the mnemonic
+   * @returns {Promise<{identity: {trapdoor: bigint, nullifier: bigint}, commitment: bigint, mnemonic: string}>}
+   * Object containing the identity (trapdoor and nullifier), commitment, and mnemonic phrase
+   */
+  static async generateCredentials(bits = this.#ENTROPY_BITS) {
+    const mnemonic = this.generateMnemonic(bits);
+    const seed = this.generateSeedFromMnemonic(mnemonic);
+    const { trapdoorKey, nullifierKey } = this.generateKeys(seed);
+    const { trapdoor, nullifier, commitment } = await this.generateIdentity(trapdoorKey, nullifierKey);
 
     return { identity: { trapdoor, nullifier }, commitment, mnemonic };
   }
