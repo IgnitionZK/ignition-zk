@@ -87,6 +87,13 @@ export class ZkCredential {
     return { seed, mnemonic };
   }
 
+  // recover identity
+  static generateSeedFromMnemonic(mnemonic) {
+    // Generate seed from mnemonic
+    const seed = bip39.mnemonicToSeedSync(mnemonic);
+    return seed;
+  }
+
   /**
    * Generates trapdoor and nullifier keys from an initial key material.
    * @param {Uint8Array} ikm - The initial key material
@@ -116,6 +123,20 @@ export class ZkCredential {
       BigInt("0x" + this.#bytesToHex(nullifierBytes))
     );
     return { trapdoorKey: trapdoor, nullifierKey: nullifier };
+  }
+
+  static async generateIdentity(trapdoorKey, nullifierKey) {
+    const poseidon = await this.#getPoseidon();
+    const F = poseidon.F;
+
+    const trapdoorTag = await this.#tagToField("zk-trapdoor");
+    const nullifierTag = await this.#tagToField("zk-nullifier");
+
+    const trapdoor = F.toObject(poseidon([trapdoorTag, trapdoorKey]));
+    const nullifier = F.toObject(poseidon([nullifierTag, nullifierKey]));
+    const commitment = F.toObject(poseidon([nullifier, trapdoor]));
+
+    return { trapdoor, nullifier, commitment };
   }
 
   /**
