@@ -2,7 +2,7 @@ import * as circomlibjs from "circomlibjs";
 import { IMT } from "@zk-kit/imt";
 
 export class MerkleTreeService {
-  static #TREE_DEPTH = 5;
+  static #TREE_DEPTH = 10;
   static #ZERO_ELEMENT = BigInt(0);
   static #ARITY = 2;
   static #poseidonInstance;
