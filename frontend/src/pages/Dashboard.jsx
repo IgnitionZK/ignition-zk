@@ -218,6 +218,7 @@ function Dashboard() {
     name: searchQuery,
   });
 
+  /*
   // User1 test1@mail.com
   const mnemonic_user1 =
     "immune common syrup eight obscure include cake wagon night bid orange blind";
@@ -281,6 +282,7 @@ function Dashboard() {
 
     testCircuitInputAndProof();
   }, []);
+  */
 
   // Filter out groups that user has already joined
   const filteredSearchResults = useMemo(() => {
