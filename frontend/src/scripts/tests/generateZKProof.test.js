@@ -1,7 +1,4 @@
-import { ZkCredential } from "../generateCredentials-browser-safe.js";
-import { ZKProofGenerator } from "../generateZKProof.js";
-import { promises as fs } from "fs";
-import { MerkleTreeService } from "../merkleTreeService.js";
+import { ZKProofGenerator } from "../generateZKProof-browser-safe.js";
 
 // Group ID: 81373f0e-8e13-4b8f-80fa-4e8f94821a1e
 // Commitment values and group IDs extracted from DB: hashedLeaves.json
