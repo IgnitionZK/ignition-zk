@@ -23,6 +23,7 @@ import AppLayout from "./components/AppLayout";
 
 // styles
 import GlobalStyles from "./styles/GlobalStyles";
+import Proofs from "./pages/Proofs";
 
 /**
  * QueryClient configuration for React Query
@@ -60,6 +61,10 @@ const router = createBrowserRouter([
           {
             path: "generate-credentials",
             element: <GenerateCredentials />,
+          },
+          {
+            path: "proofs",
+            element: <Proofs />,
           },
           {
             path: "settings",

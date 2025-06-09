@@ -110,6 +110,11 @@ function MainNav() {
           </StyledNavLink>
         </li>
         <li>
+          <StyledNavLink to="proofs" end>
+            <span>Proofs</span>
+          </StyledNavLink>
+        </li>
+        <li>
           <StyledNavLink to="settings" end>
             <span>Settings</span>
           </StyledNavLink>

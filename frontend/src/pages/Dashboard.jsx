@@ -1,11 +1,17 @@
+import { useQueryClient } from "@tanstack/react-query";
 import styled from "styled-components";
+import { useState, useMemo, useEffect } from "react";
+
+// custom hooks
 import { useWallet } from "../hooks/wallet/useWallet";
 import { useGetUserGroups } from "../hooks/queries/groupMembers/useGetUserGroups";
 import { useSearchGroups } from "../hooks/queries/groups/useSearchGroups";
-import { useState, useMemo, useEffect } from "react";
+
+//components
 import GroupItem from "../components/GroupItem";
 import SearchResultItemComponent from "../components/SearchResultItem";
-import { useQueryClient } from "@tanstack/react-query";
+
+// scripts
 import { ZKProofGenerator } from "../scripts/generateZKProof-browser-safe";
 
 const DashboardContainer = styled.div`
