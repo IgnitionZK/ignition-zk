@@ -1,5 +1,6 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import styled from "styled-components";
+import { useQueryClient } from "@tanstack/react-query";
 
 // icon
 import { MdAddCircle } from "react-icons/md";
@@ -8,6 +9,13 @@ import { MdAddCircle } from "react-icons/md";
 import PageHeader from "../components/PageHeader";
 import CustomButtonIcon from "../components/CustomButtonIcon";
 import ProposalItem from "../components/ProposalItem";
+import DummyMembershipItem from "../components/DummyMembershipItem";
+// hooks
+import { useGetLeavesByGroupId } from "../hooks/queries/merkleTreeLeaves/useGetLeavesByGroupId";
+import { useInsertProof } from "../hooks/queries/proofs/useInsertProof";
+import { useGetGroupMemberId } from "../hooks/queries/groupMembers/useGetGroupMemberId";
+// import scripts
+import { ZKProofGenerator } from "../scripts/generateZKProof-browser-safe";
 
 const PageContainer = styled.div`
   display: flex;
@@ -143,7 +151,14 @@ const SelectButton = styled.button`
 
 export default function Proofs() {
   const [showModal, setShowModal] = useState(false);
+  const [showMnemonicModal, setShowMnemonicModal] = useState(false);
   const [selected, setSelected] = useState(null);
+  const [mnemonicString, setMnemonicString] = useState(''); 
+  const [inputValue, setInputValue] = useState('');
+  const [wordCount, setWordCount] = useState(0);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submissionSuccess, setSubmissionSuccess] = useState(false);
+
   const items = [
     "Proposal1",
     "Proposal2",
@@ -154,48 +169,174 @@ export default function Proofs() {
   ];
   console.log(selected);
 
-  return (
-    <PageContainer>
-      <PageHeader title="" />
-      <Section>
-        <ProofHeader>
-          <SectionTitle> Pending </SectionTitle>
-          <CustomButtonIcon
-            icon={MdAddCircle}
-            tooltipText="Create new proof"
-            iconProps={{ size: 36 }}
-            hoverColor="#818cf8"
-            onClick={() => setShowModal(true)}
-          />
-        </ProofHeader>
-        <ProposalItem name={"Proposal1 - Vote"} />
-        <ProposalItem name={"Proposal2 - Vote"} />
-        <ProposalItem name={"Proposal3 - Vote"} />
-        <ProposalItem name={"Proposal4 - Vote"} />
-      </Section>
-      <Section>
-        <SectionTitle>Activity History</SectionTitle>
-      </Section>
-      {showModal && (
-        <Overlay onClick={() => setShowModal(false)}>
-          <Modal onClick={(e) => e.stopPropagation()}>
-            <ModalTitle>Select Proposal</ModalTitle>
-            <CloseButton onClick={() => setShowModal(false)}>×</CloseButton>
-            <ItemList>
-              {items.map((item, idx) => (
-                <Item
-                  key={item}
-                  selected={selected === idx}
-                  onClick={() => setSelected(idx)}
-                >
-                  {item}
-                </Item>
-              ))}
-            </ItemList>
-            <SelectButton disabled={selected === null}>Select</SelectButton>
-          </Modal>
-        </Overlay>
-      )}
-    </PageContainer>
-  );
-}
+  const queryClient = useQueryClient();
+  const groupId = queryClient.getQueryData(["currentGroupId"]);
+  
+  const { isLoading: isLoadingGroupMemberId, groupMemberId } = useGetGroupMemberId({ groupId });
+  const { isLoading: isLoadingGroupCommitments, groupCommitments, error } = useGetLeavesByGroupId();
+  const { insertProof, isLoading: isLoadingInsertProof, error: insertProofError } = useInsertProof();
+  console.log("group member id:", groupMemberId, "groupCommitments", groupCommitments );
+
+  useEffect(() => {
+    if (!mnemonicString) {
+      setShowMnemonicModal(true);
+    }
+  }, [mnemonicString, groupId]);
+
+  const handleMnemonicSubmit = () => {
+    const submittedMnemonic = inputValue.trim();
+    if (submittedMnemonic.split(/\s+/).length === 12) {
+      setMnemonicString(submittedMnemonic);
+      setShowMnemonicModal(false);
+    } else {
+      alert("Please enter a valid mnemonic (12 words)");
+    }
+  };
+
+  // When the user logs out or closes the tab, this state is automatically cleared.
+  const clearMnemonic = () => {
+    setMnemonicString('');
+  };
+
+  // runs once when the component mounts
+  // returns a cleanup function that runs when the component unmounts.
+  useEffect(() => {
+    return () => {
+      clearMnemonic(); 
+    };
+  }, []);
+
+  
+  const handleInputChange = (e) => {
+    const normalized = e.target.value.replace(/\s+/g, ' ');
+    setInputValue(normalized);
+    setWordCount(normalized === '' ? 0 : normalized.split(' ').length);
+  };
+
+  const handleSubmitMembershipProof = async () => {
+
+    setIsSubmitting(true);
+    setSubmissionSuccess(false);
+
+    try {
+      console.log("Creating membership proof...");
+      const commitmentArray = await ZKProofGenerator.getCommitmentArray(groupCommitments);
+      
+      const circuitInput = await ZKProofGenerator.generateCircuitInput(
+        mnemonicString,
+        commitmentArray
+      );
+        
+      const { proof, publicSignals } = await ZKProofGenerator.generateProof(
+        circuitInput,
+        "membership"
+      );
+      
+      // insert proof and public signals into the database 
+  
+      console.log("Verifying proof off-chain...");
+      const isValidProof = await ZKProofGenerator.verifyProofOffChain(
+        proof,
+        publicSignals,
+        "membership"
+      );
+
+      console.log(`Proof valid for groupId ${groupId}:`, isValidProof);
+
+      try {
+        console.log("Inserting membership proof...")
+        await insertProof({
+        groupMemberId,
+        groupId,
+        circuitType: "membership",
+        nullifierHash: circuitInput.identityNullifier,
+        proof,
+        publicSignals
+        });
+
+        console.log("Proof inserted into database successfully.");
+        setSubmissionSuccess(true);
+        
+      } catch (error) {
+        throw new Error("Failed to insert proof into database");
+      }
+ 
+    } catch (error) {
+      console.error("Error generating or verifying proof:", error);
+      alert("An error occurred while generating the proof. Please try again.");
+    } finally {
+      setIsSubmitting(false);
+    }
+    
+  }
+  
+  
+  return (
+    <PageContainer>
+      {mnemonicString ? (
+        <>
+          <PageHeader title="" />
+          <Section>
+            <DummyMembershipItem
+              name={
+                isSubmitting
+                  ? "Submitting..."
+                  : submissionSuccess
+                  ? "✅ Proof Submitted!"
+                  : "Submit Membership Proof"
+              }
+              onClick={handleSubmitMembershipProof}
+              disabled={isSubmitting}
+            />
+          </Section>
+          <Section>
+            <ProofHeader>
+              <SectionTitle>Pending</SectionTitle>
+              <CustomButtonIcon
+                icon={MdAddCircle}
+                tooltipText="Create new proof"
+                iconProps={{ size: 36 }}
+                hoverColor="#818cf8"
+                onClick={() => setShowModal(true)}
+              />
+            </ProofHeader>
+            <ProposalItem name={"Proposal1 - Vote"} />
+            <ProposalItem name={"Proposal2 - Vote"} />
+            <ProposalItem name={"Proposal3 - Vote"} />
+            <ProposalItem name={"Proposal4 - Vote"} />
+          </Section>
+          <Section>
+            <SectionTitle>Activity History</SectionTitle>
+          </Section>
+        </>
+      ) : null}
+
+      {showMnemonicModal && (
+        <Overlay onClick={(e) => e.stopPropagation()}>
+          <Modal onClick={(e) => e.stopPropagation()}>
+            <ModalTitle>Enter Mnemonic</ModalTitle>
+            <CloseButton onClick={() => setShowMnemonicModal(false)}>×</CloseButton>
+            <textarea
+              style={{
+                width: "100%",
+                minHeight: "100px",
+                marginBottom: "16px",
+                padding: "8px",
+                borderRadius: "8px",
+                fontSize: "1.4rem",
+              }}
+              value={inputValue}
+              onChange={handleInputChange}//{(e) => setInputValue(e.target.value)}
+              placeholder="Enter your 12 word mnemonic phrase"
+            />
+            <p>Words: {wordCount} / 12 {wordCount === 12 ? "✅" : "❌"}</p>
+            <SelectButton 
+              onClick={handleMnemonicSubmit}
+              disabled={wordCount !== 12}>
+                Submit
+            </SelectButton>
+          </Modal>
+        </Overlay>
+      )}
+    </PageContainer>
+  );}

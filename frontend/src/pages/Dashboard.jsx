@@ -224,7 +224,7 @@ function Dashboard() {
                   key={group.group_id}
                   group={group}
                   groupId={group.group_id}
-                  groupMemberId={group.group_member_id}
+                  groupMemberId={group.group_member_id}  
                 />
               ))}
             </GroupsList>

@@ -53,6 +53,7 @@ export class ZKProofGenerator {
     return await vKey.json();
   }
 
+  // replace with getLeavesByGroupId function from apiMerkleTreeLeaves.js
   /**
    * Filters leaves by group ID and returns an array of commitment values.
    * @param {string} leavesJson - Path to the JSON file containing leaves data.
@@ -73,7 +74,15 @@ export class ZKProofGenerator {
 
     return commitmentArray;
   }
+  
+  static async getCommitmentArray(groupCommitments) {
+    
+    const commitmentArray = groupCommitments.map((leaf) =>
+      BigInt(leaf.commitment_value)
+    );
 
+    return commitmentArray;
+  }
   /**
    * Generates the circuit input for a given mnemonic and commitment array.
    * @param {string} mnemonic - The mnemonic phrase used to generate the identity.

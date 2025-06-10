@@ -43,7 +43,8 @@ export async function getLeavesByGroupId({ groupId }) {
     .schema("ignitionzk")
     .from("merkle_tree_leaves")
     .select("*")
-    .eq("group_id", groupId);
+    .eq("group_id", groupId)
+    .order('created_at', { ascending: true });
 
   if (error) throw new Error(error.message);
 

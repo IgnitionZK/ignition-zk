@@ -91,6 +91,11 @@ function GroupItem({ group, groupMemberId, groupId }) {
     navigate(`/dashboard/generate-credentials`);
   };
 
+  const handleGoToInbox = () => {
+    queryClient.setQueryData(["currentGroupId"], groupId);
+    navigate(`/dashboard/inbox`);
+  };
+
   return (
     <GroupItemContainer>
       <GroupInfo>
@@ -101,11 +106,21 @@ function GroupItem({ group, groupMemberId, groupId }) {
         {isLoading ? (
           <MiniSpinner />
         ) : (
-          !hasCommitment && (
-            <GenerateButton onClick={handleGenerateCredentials}>
-              Generate Credentials
-            </GenerateButton>
-          )
+           <>
+            {/* Show Generate Credentials button if no commitment */}
+            {!hasCommitment && (
+              <GenerateButton onClick={handleGenerateCredentials}>
+                Generate Credentials
+              </GenerateButton>
+            )}
+
+            {/* Show Go to Inbox button if commitment exists */}
+            {hasCommitment && (
+              <GenerateButton onClick={handleGoToInbox}>
+                Inbox
+              </GenerateButton>
+            )}
+          </>
         )}
         <CustomButtonIcon
           tooltipText="Leave group"
