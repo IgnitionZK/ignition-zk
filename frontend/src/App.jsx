@@ -16,6 +16,8 @@ import Login from "./pages/Login";
 import DashboardLayout from "./pages/DashboardLayout";
 import Dashboard from "./pages/Dashboard";
 import Settings from "./pages/Settings";
+import Proposals from "./pages/Proposals";
+import Proofs from "./pages/Proofs";
 
 // components
 import ProtectedRoute from "./components/ProtectedRoute";
@@ -23,7 +25,6 @@ import AppLayout from "./components/AppLayout";
 
 // styles
 import GlobalStyles from "./styles/GlobalStyles";
-import Proofs from "./pages/Proofs";
 
 /**
  * QueryClient configuration for React Query
@@ -63,8 +64,12 @@ const router = createBrowserRouter([
             element: <GenerateCredentials />,
           },
           {
-            path: "proofs",
+            path: "inbox",
             element: <Proofs />,
+          },
+          {
+            path: "proposals",
+            element: <Proposals />,
           },
           {
             path: "settings",

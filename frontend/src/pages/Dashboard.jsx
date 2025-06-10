@@ -87,7 +87,7 @@ const Tooltip = styled.div`
   }
 `;
 
-const GroupsHeader = styled.div`
+const SearchHeader = styled.div`
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -177,7 +177,7 @@ function Dashboard() {
     <DashboardContainer>
       <PageHeader title="Welcome!" />
       <Content>
-        <GroupsHeader>
+        <SearchHeader>
           <SectionTitle>Search Groups</SectionTitle>
           <SearchInput
             type="text"
@@ -185,7 +185,7 @@ function Dashboard() {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
-        </GroupsHeader>
+        </SearchHeader>
 
         {searchQuery && (
           <Section>

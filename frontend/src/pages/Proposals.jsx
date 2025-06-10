@@ -13,14 +13,10 @@ const PageContainer = styled.div`
   overflow: hidden;
 `;
 
-/**
- * Settings component that renders the application settings page.
- * This component serves as a container for various user settings and preferences.
- */
-export default function Settings() {
+export default function Proposals() {
   return (
     <PageContainer>
-      <div>Settings</div>
+      <div>Proposals</div>
     </PageContainer>
   );
 }
