@@ -23,7 +23,6 @@ const DashboardContainer = styled.div`
   min-width: 55rem;
   color: var(--color-grey-100);
   padding: 0 2rem;
-  overflow: hidden;
 `;
 
 const Content = styled.div`
