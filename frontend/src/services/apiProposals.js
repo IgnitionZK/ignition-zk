@@ -34,3 +34,26 @@ export async function getProposalsByGroupId({ groupId }) {
     group_name: proposal.groups.name,
   }));
 }
+
+export async function updateProposalStatus({ proposalId, status }) {
+  if (!proposalId) {
+    throw new Error("proposalId is required");
+  }
+  if (!status) {
+    throw new Error("status is required");
+  }
+
+  const { data, error } = await supabase
+    .schema("ignitionzk")
+    .from("proposals")
+    .update({ status })
+    .eq("id", proposalId)
+    .select()
+    .single();
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  return data;
+}

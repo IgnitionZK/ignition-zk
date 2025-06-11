@@ -136,9 +136,12 @@ function MnemonicInput({ proposal, onClose, onSubmit }) {
   };
 
   const handleSubmit = () => {
-    const mnemonic = words.join(" ").trim();
+    const mnemonic = words.map((word) => word.trim()).join(" ");
     onSubmit(mnemonic);
   };
+
+  // Check if all words are filled
+  const areAllWordsFilled = words.every((word) => word.trim() !== "");
 
   // Split words into two columns
   const firstColumn = words.slice(0, 6);
@@ -201,6 +204,7 @@ function MnemonicInput({ proposal, onClose, onSubmit }) {
             size="large"
             onClick={handleSubmit}
             style={{ minWidth: 120 }}
+            disabled={!areAllWordsFilled}
           >
             Confirm
           </CustomButton>

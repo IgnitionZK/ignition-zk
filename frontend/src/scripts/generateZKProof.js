@@ -141,7 +141,7 @@ export class ZKProofGenerator {
           wasmBuffer,
           zkeyBuffer
         );
-        return { proof, publicSignals };
+        return { proof, publicSignals, circuitType };
       } catch (proveError) {
         console.error("Error in plonk.fullProve:", proveError);
         throw proveError;

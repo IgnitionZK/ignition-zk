@@ -2,6 +2,8 @@ import styled from "styled-components";
 import { useState } from "react";
 import CustomButton from "./CustomButton";
 import MnemonicInput from "./MnemonicInput";
+import { useGetCommitmentArray } from "../hooks/queries/merkleTreeLeaves/useGetCommitmentArray";
+import { useGenerateProof } from "../hooks/queries/proofs/createNewProof";
 
 const ProposalItemContainer = styled.li`
   background-color: rgba(165, 180, 252, 0.1);
@@ -92,6 +94,21 @@ const VotingTime = styled.span`
 
 function ProposalItem({ proposal, showSubmitButton = true }) {
   const [showMnemonicInput, setShowMnemonicInput] = useState(false);
+  const {
+    isLoading: isLoadingCommitments,
+    commitmentArray,
+    error: commitmentError,
+  } = useGetCommitmentArray({
+    groupId: proposal.group_id,
+  });
+
+  console.log(commitmentArray);
+
+  const {
+    generateProofFromInput,
+    isLoading: isGeneratingProof,
+    error: proofError,
+  } = useGenerateProof();
 
   const formatDate = (dateString) => {
     return new Date(dateString).toLocaleDateString("en-US", {
@@ -107,14 +124,27 @@ function ProposalItem({ proposal, showSubmitButton = true }) {
     setShowMnemonicInput(true);
   };
 
-  const handleSubmitMnemonic = (mnemonic) => {
-    // TODO: Handle the submitted mnemonic
-    console.log(
-      "Submitted mnemonic for proposal:",
-      proposal.proposal_id,
-      mnemonic
-    );
-    setShowMnemonicInput(false);
+  const handleSubmitMnemonic = async (mnemonic) => {
+    try {
+      if (!commitmentArray) {
+        throw new Error("Commitment array not loaded");
+      }
+
+      const { proof, publicSignals } = await generateProofFromInput(
+        commitmentArray,
+        mnemonic,
+        "membership"
+      );
+
+      // TODO: Handle the generated proof and public signals
+      console.log("Generated proof:", proof);
+      console.log("Public signals:", publicSignals);
+
+      setShowMnemonicInput(false);
+    } catch (error) {
+      console.error("Error generating proof:", error);
+      // TODO: Handle error appropriately
+    }
   };
 
   const formatStatus = (status) => {
@@ -166,8 +196,13 @@ function ProposalItem({ proposal, showSubmitButton = true }) {
                 fontWeight: "500",
                 minWidth: "auto",
               }}
+              disabled={isLoadingCommitments || isGeneratingProof}
             >
-              Submit
+              {isLoadingCommitments
+                ? "Loading..."
+                : isGeneratingProof
+                ? "Generating..."
+                : "Submit"}
             </CustomButton>
           )}
         </div>

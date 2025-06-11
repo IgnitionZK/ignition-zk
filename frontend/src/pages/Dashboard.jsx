@@ -11,9 +11,6 @@ import GroupItem from "../components/GroupItem";
 import SearchResultItemComponent from "../components/SearchResultItem";
 import PageHeader from "../components/PageHeader";
 
-// scripts
-import { ZKProofGenerator } from "../scripts/generateZKProof-browser-safe";
-
 const DashboardContainer = styled.div`
   display: flex;
   flex-direction: column;
