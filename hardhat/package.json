@@ -14,6 +14,7 @@
   },
   "devDependencies": {
     "@nomicfoundation/hardhat-toolbox": "^5.0.0",
+    "@nomicfoundation/hardhat-verify": "^2.0.14",
     "dotenv": "^16.5.0",
     "hardhat": "^2.24.0"
   }
