@@ -60,7 +60,7 @@ export const useGenerateProof = () => {
       // Then generate the proof using the circuit input
       const { proof, publicSignals } = await generateProof(input, circuitType);
 
-      return { proof, publicSignals };
+      return { proof, publicSignals, circuitType };
     } catch (err) {
       setError(err.message || "Failed to generate proof from input");
       throw err;

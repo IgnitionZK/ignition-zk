@@ -102,8 +102,6 @@ function ProposalItem({ proposal, showSubmitButton = true }) {
     groupId: proposal.group_id,
   });
 
-  console.log(commitmentArray);
-
   const {
     generateProofFromInput,
     isLoading: isGeneratingProof,
@@ -130,15 +128,13 @@ function ProposalItem({ proposal, showSubmitButton = true }) {
         throw new Error("Commitment array not loaded");
       }
 
-      const { proof, publicSignals } = await generateProofFromInput(
-        commitmentArray,
-        mnemonic,
-        "membership"
-      );
+      const { proof, publicSignals, circuitType } =
+        await generateProofFromInput(commitmentArray, mnemonic, "membership");
 
       // TODO: Handle the generated proof and public signals
       console.log("Generated proof:", proof);
       console.log("Public signals:", publicSignals);
+      console.log("circuitType", circuitType);
 
       setShowMnemonicInput(false);
     } catch (error) {
