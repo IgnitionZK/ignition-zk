@@ -1,4 +1,4 @@
-const { ethers } = require("hardhat");
+/*const { ethers } = require("hardhat");
 const { ZKProofGenerator } = require("../../frontend/src/scripts/generateZKProof-browser-safe.js");
 const { fs } = require("fs");
 require("dotenv").config();
@@ -111,3 +111,5 @@ main()
     console.error(error);
     process.exit(1);
   });
+
+  */
