@@ -3,7 +3,7 @@ import { useState } from "react";
 import CustomButton from "./CustomButton";
 import MnemonicInput from "./MnemonicInput";
 import { useGetCommitmentArray } from "../hooks/queries/merkleTreeLeaves/useGetCommitmentArray";
-import { useGenerateProof } from "../hooks/queries/proofs/createNewProof";
+import { useGenerateProof } from "../hooks/queries/proofs/useCreateNewProof";
 
 const ProposalItemContainer = styled.li`
   background-color: rgba(165, 180, 252, 0.1);
