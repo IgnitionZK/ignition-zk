@@ -187,9 +187,7 @@ export default function Proofs() {
     await provider.send("eth_requestAccounts", []);
     const signer = await provider.getSigner();
     const contractAddress = "0xaeDE5a1376B914F3F6c2B1999d7A322627088496"
-    const contractABI = [
-      "function verifyProof(uint256[24] calldata _proof, uint256[2] calldata _pubSignals) public view returns (bool)"
-    ];
+    const contractABI = [{"inputs":[{"internalType":"uint256[24]","name":"_proof","type":"uint256[24]"},{"internalType":"uint256[2]","name":"_pubSignals","type":"uint256[2]"}],"name":"verifyProof","outputs":[{"internalType":"bool","name":"","type":"bool"}],"stateMutability":"view","type":"function"}];
     return new ethers.Contract(contractAddress, contractABI, signer);
   }
 
@@ -251,12 +249,19 @@ export default function Proofs() {
 
       console.log("Proof generated successfully:", proof);
       console.log("Public signals:", publicSignals);
-      
+
+     const {
+        proofSolidity,
+        publicSignalsSolidity
+      } = await ZKProofGenerator.generateSolidityCalldata(proof, publicSignals);
+      console.log("Proof for Solidity:", proofSolidity);
+      console.log("Public signals for Solidity:", publicSignalsSolidity);
+
       const contract = await getContract();
       console.log("Verifying proof on-chain...");
       const isValidProofOnChain = await ZKProofGenerator.verifyProofOnChain(
-        proof,
-        publicSignals,
+        proofSolidity,
+        publicSignalsSolidity,
         contract
       );
       console.log(`Proof valid on-chain for groupId ${groupId}:`, isValidProofOnChain);

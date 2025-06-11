@@ -191,11 +191,35 @@ export class ZKProofGenerator {
     }
   }
 
-  static async verifyProofOnChain(proof, publicSignals, contract) {
+  static async generateSolidityCalldata(proof, publicSignals) {
+    try {
+      const rawCalldata = await plonk.exportSolidityCallData(proof, publicSignals);
+      console.log("Raw Solidity calldata:", rawCalldata);
+      const calldata = `[${rawCalldata}]`.replace("][", "],[");
+      console.log("Formatted Solidity calldata:", calldata);
+
+      let [_proof, _publicSignals] = JSON.parse(calldata);
+
+      // convert _proof and _publicSignals to BigInts to match the expected method parameter input types
+      _proof = _proof.map((x) => BigInt(x));
+      _publicSignals = _publicSignals.map((x) => BigInt(x));
+
+      return {
+        proofSolidity: _proof,
+        publicSignalsSolidity: _publicSignals
+      };
+    } catch (error) {
+      console.error("Error generating Solidity calldata:", error);
+      throw error;
+    }
+
+  }
+
+  static async verifyProofOnChain(proofSolidity, publicSignalsSolidity, contract) {
     try {
       const isValid = await contract.verifyProof(
-        proof,
-        publicSignals
+        proofSolidity,
+        publicSignalsSolidity
       );
       console.log("On-chain proof verification result:", isValid);
       return isValid;
