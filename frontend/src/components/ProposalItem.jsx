@@ -3,7 +3,7 @@ import { useState } from "react";
 import CustomButton from "./CustomButton";
 import MnemonicInput from "./MnemonicInput";
 import { useGetCommitmentArray } from "../hooks/queries/merkleTreeLeaves/useGetCommitmentArray";
-import { useGenerateProof } from "../hooks/queries/proofs/useCreateNewProof";
+import { useVerifyMembership } from "../hooks/queries/proofs/useVerifyMembership";
 
 const ProposalItemContainer = styled.li`
   background-color: rgba(165, 180, 252, 0.1);
@@ -103,10 +103,10 @@ function ProposalItem({ proposal, showSubmitButton = true }) {
   });
 
   const {
-    generateProofFromInput,
-    isLoading: isGeneratingProof,
-    error: proofError,
-  } = useGenerateProof();
+    verifyMembership,
+    isVerifying,
+    error: verificationError,
+  } = useVerifyMembership();
 
   const formatDate = (dateString) => {
     return new Date(dateString).toLocaleDateString("en-US", {
@@ -128,17 +128,19 @@ function ProposalItem({ proposal, showSubmitButton = true }) {
         throw new Error("Commitment array not loaded");
       }
 
-      const { proof, publicSignals, circuitType } =
-        await generateProofFromInput(commitmentArray, mnemonic, "membership");
+      const isValid = await verifyMembership(commitmentArray, mnemonic);
 
-      // TODO: Handle the generated proof and public signals
-      console.log("Generated proof:", proof);
-      console.log("Public signals:", publicSignals);
-      console.log("circuitType", circuitType);
+      if (isValid) {
+        // TODO: Handle successful verification
+        console.log("Membership verified successfully", isValid);
+      } else {
+        // TODO: Handle failed verification
+        console.log("Membership verification failed", isValid);
+      }
 
       setShowMnemonicInput(false);
     } catch (error) {
-      console.error("Error generating proof:", error);
+      console.error("Error verifying membership:", error);
       // TODO: Handle error appropriately
     }
   };
@@ -192,12 +194,12 @@ function ProposalItem({ proposal, showSubmitButton = true }) {
                 fontWeight: "500",
                 minWidth: "auto",
               }}
-              disabled={isLoadingCommitments || isGeneratingProof}
+              disabled={isLoadingCommitments || isVerifying}
             >
               {isLoadingCommitments
                 ? "Loading..."
-                : isGeneratingProof
-                ? "Generating..."
+                : isVerifying
+                ? "Verifying..."
                 : "Submit"}
             </CustomButton>
           )}

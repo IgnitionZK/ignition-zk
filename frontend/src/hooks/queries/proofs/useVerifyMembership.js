@@ -24,6 +24,9 @@ export function useVerifyMembership() {
       throw new Error("Wallet not connected");
     }
 
+    console.log("Commitment array: ", commitmentArray);
+    console.log("Mnemonic: ", mnemonic);
+
     setIsVerifying(true);
     setError(null);
 
@@ -34,6 +37,9 @@ export function useVerifyMembership() {
         mnemonic,
         "membership"
       );
+
+      console.log("Proof: ", proof);
+      console.log("Public Signals: ", publicSignals);
 
       // Convert proof and public signals to Solidity calldata
       const { proofSolidity, publicSignalsSolidity } =
@@ -46,10 +52,11 @@ export function useVerifyMembership() {
         provider
       );
 
-      // Verify the proof on-chain
-      const isValid = await contract.verifyProof(
+      // Use ZKProofGenerator's verifyProofOnChain method
+      const isValid = await ZKProofGenerator.verifyProofOnChain(
         proofSolidity,
-        publicSignalsSolidity
+        publicSignalsSolidity,
+        contract
       );
 
       return isValid;
