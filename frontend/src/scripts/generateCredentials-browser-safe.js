@@ -32,6 +32,23 @@ export class ZkCredential {
   }
 
   /**
+   * Converts a string to a BigInt representation.
+   * @param {string} str - The string to convert
+   * @returns {bigint} The BigInt representation of the string
+   */
+  static #stringToBigInt(str) {
+    const encoder = new TextEncoder();
+    const strEncoded = encoder.encode(str); // Uint8Array
+
+    // Convert Uint8Array to a BigInt
+    return BigInt(
+      "0x" + Array.from(strEncoded)
+        .map(b => b.toString(16).padStart(2, "0"))
+        .join("")
+    );
+  }
+
+  /**
    * Converts a tag string to a field element using SHA-256.
    * @private
    * @param {string} tag - The tag string to convert
@@ -137,6 +154,28 @@ export class ZkCredential {
     const commitment = F.toObject(poseidon([nullifier, trapdoor]));
 
     return { trapdoor, nullifier, commitment };
+  }
+
+  static async generateNullifierHash(identityNullifier, externalNullifier) {
+    if (!identityNullifier || !externalNullifier) {
+      throw new Error("Both identityNullifier and externalNullifier are required.");
+    }
+
+    if (typeof identityNullifier !== "bigint") {
+      throw new TypeError("identityNullifier must be a bigint.");
+    }
+    if (typeof externalNullifier !== "string") {
+      throw new TypeError("externalNullifier must be a string.");
+    }
+
+    const poseidon = await this.#getPoseidon();
+    const F = poseidon.F;
+
+    const externalNullifierBigInt = this.#stringToBigInt(externalNullifier);
+    const externalNullifierHash = F.toObject(poseidon([externalNullifierBigInt]));
+    const publicNullifierHash =  F.toObject(poseidon([identityNullifier, externalNullifierHash]));
+
+    return publicNullifierHash;
   }
 
   /**
