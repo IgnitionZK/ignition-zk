@@ -36,8 +36,8 @@ const StatusDot = styled.span`
   width: 0.8rem;
   height: 0.8rem;
   border-radius: 50%;
-  background-color: ${({ status }) => {
-    switch (status) {
+  background-color: ${({ $status }) => {
+    switch ($status) {
       case "active":
         return "#22c55e"; // green
       case "approved":
@@ -177,7 +177,7 @@ function ProposalItem({ proposal, showSubmitButton = true }) {
           }}
         >
           <StatusIndicator>
-            <StatusDot status={proposal.status} />
+            <StatusDot $status={proposal.status} />
             {formatStatus(proposal.status)}
           </StatusIndicator>
           {showSubmitButton && (
