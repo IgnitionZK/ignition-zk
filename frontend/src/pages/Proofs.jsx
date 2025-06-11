@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import styled from "styled-components";
 import { useQueryClient } from "@tanstack/react-query";
+import { ethers } from "ethers";
 
 // icon
 import { MdAddCircle } from "react-icons/md";
@@ -177,6 +178,22 @@ export default function Proofs() {
   const { insertProof, isLoading: isLoadingInsertProof, error: insertProofError } = useInsertProof();
   console.log("group member id:", groupMemberId, "groupCommitments", groupCommitments );
 
+  async function getContract() {
+    if (!window.ethereum) {
+      throw new Error("MetaMask not detected");
+    }
+
+    const provider = new ethers.BrowserProvider(window.ethereum);
+    await provider.send("eth_requestAccounts", []);
+    const signer = await provider.getSigner();
+    const contractAddress = "0xaeDE5a1376B914F3F6c2B1999d7A322627088496"
+    const contractABI = [
+      "function verifyProof(uint256[24] calldata _proof, uint256[2] calldata _pubSignals) public view returns (bool)"
+    ];
+    return new ethers.Contract(contractAddress, contractABI, signer);
+  }
+
+
   useEffect(() => {
     if (!mnemonicString) {
       setShowMnemonicModal(true);
@@ -231,8 +248,18 @@ export default function Proofs() {
         circuitInput,
         "membership"
       );
+
+      console.log("Proof generated successfully:", proof);
+      console.log("Public signals:", publicSignals);
       
-      // insert proof and public signals into the database 
+      const contract = await getContract();
+      console.log("Verifying proof on-chain...");
+      const isValidProofOnChain = await ZKProofGenerator.verifyProofOnChain(
+        proof,
+        publicSignals,
+        contract
+      );
+      console.log(`Proof valid on-chain for groupId ${groupId}:`, isValidProofOnChain);
   
       console.log("Verifying proof off-chain...");
       const isValidProof = await ZKProofGenerator.verifyProofOffChain(

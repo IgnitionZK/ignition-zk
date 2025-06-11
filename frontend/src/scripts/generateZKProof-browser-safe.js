@@ -193,7 +193,7 @@ export class ZKProofGenerator {
 
   static async verifyProofOnChain(proof, publicSignals, contract) {
     try {
-      const isValid = await contract.verifyMembershipProof(
+      const isValid = await contract.verifyProof(
         proof,
         publicSignals
       );
