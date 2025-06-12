@@ -1,7 +1,7 @@
 import styled from "styled-components";
 import { useQueryClient } from "@tanstack/react-query";
 import { useERC721Ownership } from "../hooks/wallet/useERC721Ownership";
-import { useWallet } from "../hooks/wallet/useWallet";
+import { useWalletQuery } from "../hooks/wallet/useWalletQuery";
 import { insertGroupMember } from "../services/apiGroupMembers";
 import CustomButton from "./CustomButton";
 import MiniSpinner from "./MiniSpinner";
@@ -52,7 +52,7 @@ const ErrorMessage = styled.p`
  */
 function SearchResultItemComponent({ group, onJoinSuccess }) {
   const queryClient = useQueryClient();
-  const { address } = useWallet();
+  const { address, isLoading: isWalletLoading } = useWalletQuery();
   const {
     isOwner,
     isChecking,
@@ -88,6 +88,18 @@ function SearchResultItemComponent({ group, onJoinSuccess }) {
       setIsJoining(false);
     }
   };
+
+  if (isWalletLoading) {
+    return (
+      <SearchResultItem>
+        <GroupInfo>
+          <GroupName>{group.name}</GroupName>
+          <ContractAddress>{group.erc721_contract_address}</ContractAddress>
+        </GroupInfo>
+        <MiniSpinner />
+      </SearchResultItem>
+    );
+  }
 
   if (!address) {
     return (

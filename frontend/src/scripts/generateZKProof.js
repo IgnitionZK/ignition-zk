@@ -155,7 +155,7 @@ export class ZKProofGenerator {
           wasmBuffer,
           zkeyBuffer
         );
-        return { proof, publicSignals };
+        return { proof, publicSignals, circuitType };
       } catch (proveError) {
         console.error("Error in plonk.fullProve:", proveError);
         throw proveError;
@@ -205,7 +205,10 @@ export class ZKProofGenerator {
    */
   static async generateSolidityCalldata(proof, publicSignals) {
     try {
-      const rawCalldata = await plonk.exportSolidityCallData(proof, publicSignals);
+      const rawCalldata = await plonk.exportSolidityCallData(
+        proof,
+        publicSignals
+      );
       const calldata = `[${rawCalldata}]`.replace("][", "],[");
 
       let [_proof, _publicSignals] = JSON.parse(calldata);
@@ -216,13 +219,12 @@ export class ZKProofGenerator {
 
       return {
         proofSolidity: _proof,
-        publicSignalsSolidity: _publicSignals
+        publicSignalsSolidity: _publicSignals,
       };
     } catch (error) {
       console.error("Error generating Solidity calldata:", error);
       throw error;
     }
-
   }
 
   /**
@@ -232,7 +234,11 @@ export class ZKProofGenerator {
    * @param {Object} contract - The smart contract instance that implements the verification function.
    * @returns {Promise<boolean>} A promise that resolves to true if the proof is valid, false otherwise.
    */
-  static async verifyProofOnChain(proofSolidity, publicSignalsSolidity, contract) {
+  static async verifyProofOnChain(
+    proofSolidity,
+    publicSignalsSolidity,
+    contract
+  ) {
     try {
       const isValid = await contract.verifyProof(
         proofSolidity,
