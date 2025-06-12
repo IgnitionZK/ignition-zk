@@ -32,9 +32,25 @@ template MembershipProof(treeLevels) {
 
     /**
      * @notice identityNullifier: the nullifier key that is used together with the identityTrapdoor in the generation of the final identity commitment.
-     * @dev The nullifier will be part of the public output values.
+     * @dev This value is not revealed in the public output.
      */
     signal input identityNullifier;
+
+    /**
+     * @notice externalNullifier: an external nullifier that is used to create a unique public nullifier.
+     * @dev This value is not revealed in the public output.
+     */
+    signal input externalNullifier;
+
+    /**
+     * @notice publicNullifier: the final nullifier that is computed from identityNullifier and externalNullifier.
+     * @dev This value is revealed in the public output.
+     */
+    signal output publicNullifier;
+    component nullifierHash = Poseidon(2);
+    nullifierHash.inputs[0] <== identityNullifier;
+    nullifierHash.inputs[1] <== externalNullifier;
+    publicNullifier <== nullifierHash.out;
 
     /**
      * @notice pathElements: the sibling nodes of the current hash at each tree level (layer).
@@ -172,6 +188,7 @@ template MembershipProof(treeLevels) {
  * @notice Creates an instance of the MembershipProof template to prepare it for compilation.
  * @dev The tree levels have to be set to a fixed size. 
  * @dev The inputs pathElements and pathIndices have to be padded to that size even if the actual tree is shallower.
- * @dev Declares the root signal as public.
+ * @dev Declares the root signal as public. 
+ * @dev The publicNullifier signal is also public by default as it is declared as output.
  */
-component main {public [root, identityNullifier]} = MembershipProof(10);
+component main {public [root]} = MembershipProof(10);
