@@ -1,16 +1,16 @@
 import { plonk } from "snarkjs";
 import { ZkCredential } from "./generateCredentials-browser-safe.js";
 import { MerkleTreeService } from "./merkleTreeService.js";
-// import { promises as fs } from "fs";
+import { promises as fs } from "fs";
+import { keccak256, toUtf8Bytes } from "ethers";
 
 export class ZKProofGenerator {
   // Membership circuit paths
+  
   static #MEMBERSHIP_WASM_PATH = "/membership_circuit/membership_circuit.wasm";
-  static #MEMBERSHIP_ZKEY_PATH =
-    "/membership_circuit/membership_circuit_final.zkey";
-  static #MEMBERSHIP_VKEY_PATH =
-    "/membership_circuit/membership_circuit_key.json";
-
+  static #MEMBERSHIP_ZKEY_PATH = "/membership_circuit/membership_circuit_final.zkey";
+  static #MEMBERSHIP_VKEY_PATH = "/membership_circuit/membership_circuit_key.json";
+  
   // Voting circuit paths
   static #VOTING_WASM_PATH = "";
   static #VOTING_ZKEY_PATH = "";
@@ -20,6 +20,16 @@ export class ZKProofGenerator {
   static #PROPOSAL_WASM_PATH = "";
   static #PROPOSAL_ZKEY_PATH = "";
   static #PROPOSAL_VKEY_PATH = "";
+
+  
+  /**
+   * Converts a UUID string to a BigInt representation.
+   * @param {string} uuid - The UUID string to convert.
+   * @returns {bigint} The BigInt representation of the UUID.
+   */
+  static #uuidToBigInt(uuid) {
+    return BigInt(keccak256(toUtf8Bytes(uuid)));
+  }
 
   /**
    * Converts a file to an ArrayBuffer.
@@ -80,7 +90,7 @@ export class ZKProofGenerator {
    * @param {Array<BigInt>} commitmentArray - An array of commitment values to use for the Merkle proof.
    * @returns {Promise<Object>} An object containing the circuit input including root, identity trapdoor, identity nullifier, path elements, and path indices.
    */
-  static async generateCircuitInput(mnemonic, commitmentArray) {
+  static async generateCircuitInput(mnemonic, commitmentArray, externalNullifier) {
     const seed = ZkCredential.generateSeedFromMnemonic(mnemonic);
     const { trapdoorKey, nullifierKey } = ZkCredential.generateKeys(seed);
     const { trapdoor, nullifier, commitment } =
@@ -90,13 +100,17 @@ export class ZKProofGenerator {
 
     const { root, pathElements, pathIndices } =
       await MerkleTreeService.generateMerkleProof(index, commitmentArray);
+    
+    const externalNullifierBigInt = this.#uuidToBigInt(externalNullifier);
+    console.log("External Nullifier BigInt:", externalNullifierBigInt);
 
     const circuitInput = {
       root,
       identityTrapdoor: trapdoor.toString(),
       identityNullifier: nullifier.toString(),
+      externalNullifier: externalNullifierBigInt.toString(),
       pathElements,
-      pathIndices: pathIndices.map((index) => index.toString()),
+      pathIndices: pathIndices.map((index) => index.toString())
     };
 
     console.log("Circuit Input:", circuitInput);

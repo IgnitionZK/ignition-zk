@@ -2,6 +2,7 @@ import * as bip39 from "bip39";
 import * as circomlibjs from "circomlibjs";
 import { hkdf } from "@noble/hashes/hkdf";
 import { sha256 } from "@noble/hashes/sha2";
+import { keccak256, toUtf8Bytes } from "ethers";
 
 /**
  * A class for generating and managing zero-knowledge credentials.
@@ -46,6 +47,15 @@ export class ZkCredential {
         .map(b => b.toString(16).padStart(2, "0"))
         .join("")
     );
+  }
+
+  /**
+   * Converts a UUID string to a BigInt representation.
+   * @param {string} uuid - The UUID string to convert.
+   * @returns {bigint} The BigInt representation of the UUID.
+   */
+  static #uuidToBigInt(uuid) {
+    return BigInt(keccak256(toUtf8Bytes(uuid)));
   }
 
   /**
@@ -156,7 +166,7 @@ export class ZkCredential {
     return { trapdoor, nullifier, commitment };
   }
 
-  static async generateNullifierHash(identityNullifier, externalNullifier) {
+  static async generatePublicNullifier(identityNullifier, externalNullifier) {
     if (!identityNullifier || !externalNullifier) {
       throw new Error("Both identityNullifier and externalNullifier are required.");
     }
@@ -171,11 +181,11 @@ export class ZkCredential {
     const poseidon = await this.#getPoseidon();
     const F = poseidon.F;
 
-    const externalNullifierBigInt = this.#stringToBigInt(externalNullifier);
-    const externalNullifierHash = F.toObject(poseidon([externalNullifierBigInt]));
-    const publicNullifierHash =  F.toObject(poseidon([identityNullifier, externalNullifierHash]));
+    const externalNullifierBigInt = this.#uuidToBigInt(externalNullifier);
+    const publicNullifier =  F.toObject(poseidon([identityNullifier, externalNullifierBigInt]));
 
-    return publicNullifierHash;
+    return publicNullifier;
+    console.log("Public Nullifier:", publicNullifier);
   }
 
   /**
