@@ -24,13 +24,35 @@ export async function insertProof({
     .from("proofs")
     .insert({
       proposal_id: proposalId,
-      circuit_type: "membership",
+      circuit_type: "voting",
       group_id: groupId,
       group_member_id: groupMemberId,
       nullifier_hash: nullifierHash,
+      is_verified: true,
     })
     .select()
     .single();
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  return data;
+}
+
+export async function getProofsByGroupMemberId(groupMemberId) {
+  if (!groupMemberId) {
+    throw new Error("groupMemberId is required");
+  }
+
+  const { data, error } = await supabase
+    .schema("ignitionzk")
+    .from("proofs")
+    .select("*")
+    .in(
+      "group_member_id",
+      Array.isArray(groupMemberId) ? groupMemberId : [groupMemberId]
+    );
 
   if (error) {
     throw new Error(error.message);

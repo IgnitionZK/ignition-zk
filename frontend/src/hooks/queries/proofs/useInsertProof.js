@@ -1,4 +1,4 @@
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { insertProof } from "../../../services/apiProofs";
 
 /**
@@ -8,34 +8,29 @@ import { insertProof } from "../../../services/apiProofs";
  * @property {boolean} isLoading - Boolean indicating if the mutation is in progress
  */
 export function useInsertProof() {
+  const queryClient = useQueryClient();
+
   const { mutate: insertProofMutation, isLoading } = useMutation({
     /**
      * Mutation function to insert a new proof
      * @param {Object} params - The parameters for inserting a proof
      * @param {string} params.proposalId - The ID of the proposal
-     * @param {string} params.proof - The proof data
-     * @param {string} params.publicInputs - The public inputs
      * @param {string} params.groupId - The ID of the group
      * @param {string} params.groupMemberId - The ID of the group member
      * @param {string} params.nullifierHash - The nullifier hash
      * @returns {Promise} A promise that resolves when the proof is inserted
      */
-    mutationFn: ({
-      proposalId,
-      proof,
-      publicInputs,
-      groupId,
-      groupMemberId,
-      nullifierHash,
-    }) =>
+    mutationFn: ({ proposalId, groupId, groupMemberId, nullifierHash }) =>
       insertProof({
         proposalId,
-        proof,
-        publicInputs,
         groupId,
         groupMemberId,
         nullifierHash,
       }),
+    onSuccess: () => {
+      // Invalidate and refetch proofs queries
+      queryClient.invalidateQueries({ queryKey: ["proofs"] });
+    },
     onError: (err) => {
       console.log("ERROR", err);
     },

@@ -3,10 +3,11 @@ import styled from "styled-components";
 
 // components
 import PageHeader from "../components/PageHeader";
-import ProposalItem from "../components/ProposalItem";
+import InboxItem from "../components/InboxItem";
 import CustomDropdown from "../components/CustomDropdown";
 import { useGetProposalsByGroupId } from "../hooks/queries/proposals/useGetActiveProposalsByGroupId";
 import { useGetUserGroups } from "../hooks/queries/groupMembers/useGetUserGroups";
+import { useGetProofsByGroupMemberId } from "../hooks/queries/proofs/useGetProofsByGroupMemberId";
 
 const PageContainer = styled.div`
   display: flex;
@@ -54,6 +55,13 @@ const ActivityList = styled.ul`
 export default function Proofs() {
   const { userGroups, isLoading: isLoadingGroups } = useGetUserGroups();
   const { isLoading, proposals, error } = useGetProposalsByGroupId(userGroups);
+  const groupMemberIds =
+    userGroups?.map((group) => group.group_member_id) || [];
+  const {
+    isLoading: isLoading2,
+    proofs,
+    error: err,
+  } = useGetProofsByGroupMemberId(groupMemberIds);
 
   const [selectedGroup, setSelectedGroup] = useState("All Groups");
 
@@ -69,7 +77,32 @@ export default function Proofs() {
       selectedGroup === "All Groups"
         ? true
         : proposal.group_name === selectedGroup
+    )
+    .filter(
+      (proposal) =>
+        !proofs?.some((proof) => proof.proposal_id === proposal.proposal_id)
     );
+
+  // Filter verified proposals for activity history
+  const verifiedProposals = proposals
+    ?.filter((proposal) =>
+      proofs?.some(
+        (proof) =>
+          proof.proposal_id === proposal.proposal_id &&
+          proof.is_verified === true
+      )
+    )
+    .filter((proposal) =>
+      selectedGroup === "All Groups"
+        ? true
+        : proposal.group_name === selectedGroup
+    )
+    .map((proposal) => ({
+      ...proposal,
+      is_verified: proofs?.find(
+        (proof) => proof.proposal_id === proposal.proposal_id
+      )?.is_verified,
+    }));
 
   return (
     <PageContainer>
@@ -91,7 +124,11 @@ export default function Proofs() {
         ) : (
           <ActivityList>
             {filteredProposals?.map((proposal) => (
-              <ProposalItem key={proposal.proposal_id} proposal={proposal} />
+              <InboxItem
+                key={proposal.proposal_id}
+                proposal={proposal}
+                isVerified={false}
+              />
             ))}
           </ActivityList>
         )}
@@ -104,20 +141,14 @@ export default function Proofs() {
           <div>Error: {error.message}</div>
         ) : (
           <ActivityList>
-            {proposals
-              ?.filter((proposal) => proposal.status !== "active")
-              .filter((proposal) =>
-                selectedGroup === "All Groups"
-                  ? true
-                  : proposal.group_name === selectedGroup
-              )
-              .map((proposal) => (
-                <ProposalItem
-                  key={proposal.proposal_id}
-                  proposal={proposal}
-                  showSubmitButton={false}
-                />
-              ))}
+            {verifiedProposals?.map((proposal) => (
+              <InboxItem
+                key={proposal.proposal_id}
+                proposal={proposal}
+                showSubmitButton={false}
+                isVerified={proposal.is_verified}
+              />
+            ))}
           </ActivityList>
         )}
       </Section>
