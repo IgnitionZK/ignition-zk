@@ -76,7 +76,7 @@ export default function Proposals() {
       <PageHeader title="" />
       <Section>
         <ProofHeader>
-          <SectionTitle> Pending </SectionTitle>
+          <SectionTitle> Active </SectionTitle>
           <CustomDropdown
             options={groupNames}
             selectedOption={selectedGroup}

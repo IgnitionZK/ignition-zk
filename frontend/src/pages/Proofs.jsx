@@ -134,7 +134,7 @@ export default function Proofs() {
         )}
       </Section>
       <Section>
-        <SectionTitle>Activity History</SectionTitle>
+        <SectionTitle>Verified</SectionTitle>
         {isLoading || isLoadingGroups ? (
           <div>Loading...</div>
         ) : error ? (
