@@ -10,7 +10,7 @@ const MEMBERSHIP_VERIFIER_ABI = [
 ];
 
 const MEMBERSHIP_VERIFIER_ADDRESS =
-  "0xaeDE5a1376B914F3F6c2B1999d7A322627088496";
+  "0x8C3f64C4D2315842e40Fa281a0dF7411F1Caf13f";
 
 export function useVerifyMembership() {
   const [isVerifying, setIsVerifying] = useState(false);

@@ -1,9 +1,5 @@
 import styled from "styled-components";
-import { useState } from "react";
 import CustomButton from "./CustomButton";
-import MnemonicInput from "./MnemonicInput";
-import { useGetCommitmentArray } from "../hooks/queries/merkleTreeLeaves/useGetCommitmentArray";
-import { useVerifyMembership } from "../hooks/queries/proofs/useVerifyMembership";
 
 const ProposalItemContainer = styled.li`
   background-color: rgba(165, 180, 252, 0.1);
@@ -93,21 +89,6 @@ const VotingTime = styled.span`
 `;
 
 function ProposalItem({ proposal, showSubmitButton = true }) {
-  const [showMnemonicInput, setShowMnemonicInput] = useState(false);
-  const {
-    isLoading: isLoadingCommitments,
-    commitmentArray,
-    error: commitmentError,
-  } = useGetCommitmentArray({
-    groupId: proposal.group_id,
-  });
-
-  const {
-    verifyMembership,
-    isVerifying,
-    error: verificationError,
-  } = useVerifyMembership();
-
   const formatDate = (dateString) => {
     return new Date(dateString).toLocaleDateString("en-US", {
       year: "numeric",
@@ -118,33 +99,6 @@ function ProposalItem({ proposal, showSubmitButton = true }) {
     });
   };
 
-  const handleSubmit = () => {
-    setShowMnemonicInput(true);
-  };
-
-  const handleSubmitMnemonic = async (mnemonic) => {
-    try {
-      if (!commitmentArray) {
-        throw new Error("Commitment array not loaded");
-      }
-
-      const isValid = await verifyMembership(commitmentArray, mnemonic);
-
-      if (isValid) {
-        // TODO: Handle successful verification
-        console.log("Membership verified successfully", isValid);
-      } else {
-        // TODO: Handle failed verification
-        console.log("Membership verification failed", isValid);
-      }
-
-      setShowMnemonicInput(false);
-    } catch (error) {
-      console.error("Error verifying membership:", error);
-      // TODO: Handle error appropriately
-    }
-  };
-
   const formatStatus = (status) => {
     return status
       .split("_")
@@ -153,67 +107,51 @@ function ProposalItem({ proposal, showSubmitButton = true }) {
   };
 
   return (
-    <>
-      <ProposalItemContainer>
-        <ProposalInfo>
-          <ProposalTitle>{proposal.title}</ProposalTitle>
-          <GroupName>{proposal.group_name}</GroupName>
-          <ProposalDescription>{proposal.description}</ProposalDescription>
-          <VotingPeriod>
-            <VotingTime>
-              <span>Start:</span> {formatDate(proposal.voting_start_time)}
-            </VotingTime>
-            <VotingTime>
-              <span>End:</span> {formatDate(proposal.voting_end_time)}
-            </VotingTime>
-          </VotingPeriod>
-        </ProposalInfo>
-        <div
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "flex-end",
-            gap: "1.2rem",
-          }}
-        >
-          <StatusIndicator>
-            <StatusDot $status={proposal.status} />
-            {formatStatus(proposal.status)}
-          </StatusIndicator>
-          {showSubmitButton && (
-            <CustomButton
-              size="small"
-              backgroundColor="rgba(165, 180, 252, 0.1)"
-              hoverColor="rgba(165, 180, 252, 0.15)"
-              textColor="#A5B4FC"
-              onClick={handleSubmit}
-              style={{
-                border: "1px solid rgba(165, 180, 252, 0.2)",
-                padding: "0.8rem 1.6rem",
-                fontSize: "1.4rem",
-                fontWeight: "500",
-                minWidth: "auto",
-              }}
-              disabled={isLoadingCommitments || isVerifying}
-            >
-              {isLoadingCommitments
-                ? "Loading..."
-                : isVerifying
-                ? "Verifying..."
-                : "Submit"}
-            </CustomButton>
-          )}
-        </div>
-      </ProposalItemContainer>
-
-      {showMnemonicInput && (
-        <MnemonicInput
-          proposal={proposal}
-          onClose={() => setShowMnemonicInput(false)}
-          onSubmit={handleSubmitMnemonic}
-        />
-      )}
-    </>
+    <ProposalItemContainer>
+      <ProposalInfo>
+        <ProposalTitle>{proposal.title}</ProposalTitle>
+        <GroupName>{proposal.group_name}</GroupName>
+        <ProposalDescription>{proposal.description}</ProposalDescription>
+        <VotingPeriod>
+          <VotingTime>
+            <span>Start:</span> {formatDate(proposal.voting_start_time)}
+          </VotingTime>
+          <VotingTime>
+            <span>End:</span> {formatDate(proposal.voting_end_time)}
+          </VotingTime>
+        </VotingPeriod>
+      </ProposalInfo>
+      <div
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "flex-end",
+          gap: "1.2rem",
+        }}
+      >
+        <StatusIndicator>
+          <StatusDot $status={proposal.status} />
+          {formatStatus(proposal.status)}
+        </StatusIndicator>
+        {showSubmitButton && (
+          <CustomButton
+            size="small"
+            backgroundColor="rgba(165, 180, 252, 0.1)"
+            hoverColor="rgba(165, 180, 252, 0.15)"
+            textColor="#A5B4FC"
+            style={{
+              border: "1px solid rgba(165, 180, 252, 0.2)",
+              padding: "0.8rem 1.6rem",
+              fontSize: "1.4rem",
+              fontWeight: "500",
+              minWidth: "auto",
+            }}
+          >
+            Submit
+          </CustomButton>
+        )}
+      </div>
+    </ProposalItemContainer>
   );
 }
 
