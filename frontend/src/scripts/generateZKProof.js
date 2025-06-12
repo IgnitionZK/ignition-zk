@@ -1,7 +1,6 @@
 import { plonk } from "snarkjs";
 import { ZkCredential } from "./generateCredentials-browser-safe.js";
 import { MerkleTreeService } from "./merkleTreeService.js";
-import { promises as fs } from "fs";
 import { keccak256, toUtf8Bytes } from "ethers";
 
 export class ZKProofGenerator {
