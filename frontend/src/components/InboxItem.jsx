@@ -2,8 +2,8 @@ import styled from "styled-components";
 import { useState } from "react";
 import CustomButton from "./CustomButton";
 import MnemonicInput from "./MnemonicInput";
-import { useGetCommitmentArray } from "../hooks/queries/merkleTreeLeaves/useGetCommitmentArray";
 import { useVerifyMembership } from "../hooks/queries/proofs/useVerifyMembership";
+import { useGetCommitmentArray } from "../hooks/queries/merkleTreeLeaves/useGetCommitmentArray";
 import { useInsertProof } from "../hooks/queries/proofs/useInsertProof";
 import { useGetUserGroups } from "../hooks/queries/groupMembers/useGetUserGroups";
 
@@ -130,24 +130,26 @@ function InboxItem({ proposal, showSubmitButton = true, isVerified = false }) {
         throw new Error("Could not find your group member ID for this group");
       }
 
-      const isValid = await verifyMembership(commitmentArray, mnemonic);
-      console.log(proposal);
+      // Get the proof and verification result
+      const { isValid, publicSignals } = await verifyMembership(
+        commitmentArray,
+        mnemonic,
+        proposal.group_id
+      );
 
       if (isValid) {
-        // Insert proof when verification is successful
+        const nullifierHash = publicSignals[0]; // First value in publicSignals is the nullifier hash
+
         await insertProof({
           proposalId: proposal.proposal_id,
           groupId: proposal.group_id,
           groupMemberId: userGroupMemberId,
-          nullifierHash: "dummy_nullifier_hash_123", // Dummy value for testing
+          nullifierHash,
         });
         setHasSubmittedProof(true);
-        console.log("Membership verified and proof inserted successfully");
-      } else {
-        console.log("Membership verification failed");
       }
     } catch (error) {
-      console.error("Error verifying membership or inserting proof:", error);
+      console.error("Error submitting proof:", error);
     }
   };
 

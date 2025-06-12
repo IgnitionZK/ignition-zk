@@ -19,13 +19,18 @@ export function useVerifyMembership() {
   const { generateProofFromInput, isLoading: isGeneratingProof } =
     useGenerateProof();
 
-  const verifyMembership = async (commitmentArray, mnemonic) => {
+  const verifyMembership = async (
+    commitmentArray,
+    mnemonic,
+    externalNullifier
+  ) => {
     if (!address || !provider) {
       throw new Error("Wallet not connected");
     }
 
     console.log("Commitment array: ", commitmentArray);
     console.log("Mnemonic: ", mnemonic);
+    console.log("External Nullifier: ", externalNullifier);
 
     setIsVerifying(true);
     setError(null);
@@ -35,6 +40,7 @@ export function useVerifyMembership() {
       const { proof, publicSignals } = await generateProofFromInput(
         commitmentArray,
         mnemonic,
+        externalNullifier,
         "membership"
       );
 
@@ -59,7 +65,7 @@ export function useVerifyMembership() {
         contract
       );
 
-      return isValid;
+      return { isValid, publicSignals };
     } catch (err) {
       setError(err.message || "Failed to verify membership");
       throw err;
