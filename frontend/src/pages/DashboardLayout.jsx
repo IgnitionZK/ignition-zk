@@ -13,12 +13,14 @@ const StyledAppLayout = styled.div`
   grid-template-rows: auto 1fr;
   height: 100vh;
   background-color: var(--color-grey-800);
+  overflow: hidden;
 `;
 
 const Main = styled.main`
   padding: 4rem 4.8rem;
   height: 100%;
-  overflow: auto;
+  overflow: hidden;
+  position: relative;
 `;
 
 const Container = styled.div`
@@ -28,6 +30,27 @@ const Container = styled.div`
   flex-direction: column;
   gap: 3.2rem;
   height: 100%;
+  overflow-y: auto;
+  padding-right: 1rem;
+
+  /* Custom scrollbar styling */
+  &::-webkit-scrollbar {
+    width: 0.8rem;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: var(--color-grey-800);
+    border-radius: 0.4rem;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: var(--color-grey-600);
+    border-radius: 0.4rem;
+  }
+
+  &::-webkit-scrollbar-thumb:hover {
+    background: var(--color-grey-500);
+  }
 `;
 
 /**

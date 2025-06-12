@@ -49,3 +49,20 @@ export async function getLeavesByGroupId({ groupId }) {
 
   return data;
 }
+
+export async function getCommitmentArray({ groupId }) {
+  if (!groupId) {
+    throw new Error("groupId is required.");
+  }
+
+  const { data, error } = await supabase
+    .schema("ignitionzk")
+    .from("merkle_tree_leaves")
+    .select("commitment_value")
+    .eq("group_id", groupId)
+    .order("created_at", { ascending: true });
+
+  if (error) throw new Error(error.message);
+
+  return data;
+}

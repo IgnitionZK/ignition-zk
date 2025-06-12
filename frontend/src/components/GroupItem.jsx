@@ -4,6 +4,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import styled from "styled-components";
 // components
 import MiniSpinner from "./MiniSpinner";
+import CustomButtonIcon from "./CustomButtonIcon";
 // hooks
 import { useCheckCommitment } from "../hooks/queries/groupMembers/useCheckCommitment";
 import { useGetActiveMerkleTreeRoot } from "../hooks/queries/merkleTreeRoots/useGetActiveMerkleTreeRoot";
@@ -68,53 +69,6 @@ const GenerateButton = styled.button`
   }
 `;
 
-const DeleteButton = styled.div`
-  position: relative;
-  cursor: pointer;
-
-  svg {
-    color: var(--color-grey-100);
-    font-size: 2rem;
-    transition: color 0.2s ease-in-out;
-  }
-
-  &:hover {
-    svg {
-      color: var(--color-red-500);
-    }
-  }
-`;
-
-const Tooltip = styled.div`
-  position: absolute;
-  right: 0;
-  top: -3rem;
-  background-color: var(--color-grey-800);
-  color: var(--color-grey-100);
-  padding: 0.8rem 1.2rem;
-  border-radius: 0.4rem;
-  font-size: 1.4rem;
-  opacity: 0;
-  visibility: hidden;
-  transition: all 0.2s ease-in-out;
-  white-space: nowrap;
-
-  ${DeleteButton}:hover & {
-    opacity: 1;
-    visibility: visible;
-  }
-
-  &::after {
-    content: "";
-    position: absolute;
-    bottom: -0.5rem;
-    right: 1rem;
-    border-width: 0.5rem;
-    border-style: solid;
-    border-color: var(--color-grey-800) transparent transparent transparent;
-  }
-`;
-
 /**
  * Renders a single group item in the dashboard, displaying group information and actions.
  * Allows users to generate credentials if they haven't committed yet, and provides the ability to leave the group.
@@ -153,10 +107,11 @@ function GroupItem({ group, groupMemberId, groupId }) {
             </GenerateButton>
           )
         )}
-        <DeleteButton>
-          <RiDeleteBack2Fill />
-          <Tooltip>Leave group</Tooltip>
-        </DeleteButton>
+        <CustomButtonIcon
+          tooltipText="Leave group"
+          icon={RiDeleteBack2Fill}
+          hoverColor="var(--color-red-500)"
+        />
       </GroupActions>
     </GroupItemContainer>
   );
