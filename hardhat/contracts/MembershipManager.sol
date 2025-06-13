@@ -35,7 +35,7 @@ contract MembershipManager {
     // General errors:
     error VerifierAddressCannotBeZero();
     error RelayerAddressCannotBeZero();
-    error GovernanceAddressCannotBeZero();
+    error GovernorAddressCannotBeZero();
     error NewRelayerMustBeDifferent();
 
     // Events:
@@ -54,7 +54,7 @@ contract MembershipManager {
     // State variables:
     IMembershipVerifier public immutable verifier;
     address public relayer;
-    address public governance;
+    address public governor;
 
     // Constants:
     uint256 public constant MAX_MEMBERS_BATCH = 30;
@@ -64,32 +64,29 @@ contract MembershipManager {
         _;
     }
 
-    modifier onlyGovernance() {
-        if (msg.sender != governance) revert OnlyGovernanceAllowed();
+    modifier onlyGovernor() {
+        if (msg.sender != governor) revert OnlyGovernorAllowed();
         _;
     }
 
     constructor(
-        address verifierAddress, 
-        address relayerAddress,
-        address governanceAddress
+        address _verfifier, 
+        address _governor
         ) {
 
-        if (verifierAddress == address(0)) revert VerifierAddressCannotBeZero();
-        if (relayerAddress == address(0)) revert RelayerAddressCannotBeZero();
-        if (governanceAddress == address(0)) revert GovernanceAddressCannotBeZero();
+        if (_verifier == address(0)) revert VerifierAddressCannotBeZero();
+        if (_governor == address(0)) revert GovernorAddressCannotBeZero();
 
-        governance = governanceAddress;
-        relayer = relayerAddress;
-        verifier = IMembershipVerifier(verifierAddress);
+        governor = _governor;
+        verifier = IMembershipVerifier(_verifier);
     }
 
-    function setRelayer(address newRelayer) external onlyGovernance() {
+    function setRelayer(address _relayer) external onlyGovernance() {
 
-        if (newRelayer == address(0)) revert RelayerAddressCannotBeZero();
-        if (newRelayer == relayer) revert NewRelayerMustBeDifferent();
+        if (_relayer == address(0)) revert RelayerAddressCannotBeZero();
+        if (_relayer == relayer) revert NewRelayerMustBeDifferent();
 
-        relayer = newRelayer;
+        relayer = _relayer;
     }
 
     function initRoot(bytes32 initialRoot, bytes32 groupKey) external onlyRelayer {
@@ -146,7 +143,7 @@ contract MembershipManager {
     function initGroupNft(
         bytes32 groupKey, 
         address nftAddress
-        ) external onlyGovernance() {
+        ) external onlyGovernor() {
 
         // checks:
         if (nftAddress == address(0)) revert NftAddressCannotBeZero();
@@ -161,7 +158,7 @@ contract MembershipManager {
     function addMember(
         address memberAddress, 
         bytes32 groupKey
-        ) public onlyGovernance() {
+        ) public onlyGovernor() {
         
         address groupNftAddress = groupNftAddresses[groupKey];
         IERC721Mintable nft = IERC721Mintable(groupNftAddress);  
@@ -187,7 +184,7 @@ contract MembershipManager {
     function addMembers(
         address[] calldata memberAddresses, 
         bytes32 groupKey
-        ) public onlyGovernance() {
+        ) public onlyGovernor() {
         
         uint256 memberCount = memberAddresses.length;
 
