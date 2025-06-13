@@ -1,12 +1,31 @@
 import { useState } from "react";
 import { ZKProofGenerator } from "../../../scripts/generateZKProof";
 
+/**
+ * Custom hook for generating zero-knowledge proofs
+ * @returns {Object} An object containing proof generation functions and state
+ * @property {Function} generateCircuitInput - Generates circuit input from commitment array and mnemonic
+ * @property {Function} generateProof - Generates a ZK proof from circuit input
+ * @property {Function} generateProofFromInput - Generates a complete proof from raw inputs
+ * @property {boolean} isLoading - Loading state indicator
+ * @property {string|null} error - Error message if any
+ * @property {Object|null} circuitInput - Generated circuit input
+ * @property {Object|null} proof - Generated proof and public signals
+ */
 export const useGenerateProof = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
   const [circuitInput, setCircuitInput] = useState(null);
   const [proof, setProof] = useState(null);
 
+  /**
+   * Generates circuit input from commitment array and mnemonic
+   * @param {string[]} commitmentArray - Array of commitment values
+   * @param {string} mnemonic - Mnemonic phrase
+   * @param {string} externalNullifier - External nullifier value
+   * @returns {Promise<Object>} Generated circuit input
+   * @throws {Error} If circuit input generation fails
+   */
   const generateCircuitInput = async (
     commitmentArray,
     mnemonic,
@@ -31,6 +50,13 @@ export const useGenerateProof = () => {
     }
   };
 
+  /**
+   * Generates a ZK proof from circuit input
+   * @param {Object} circuitInput - Circuit input object
+   * @param {string} [circuitType="membership"] - Type of circuit to use
+   * @returns {Promise<Object>} Object containing proof and public signals
+   * @throws {Error} If proof generation fails
+   */
   const generateProof = async (circuitInput, circuitType = "membership") => {
     setIsLoading(true);
     setError(null);
@@ -50,6 +76,15 @@ export const useGenerateProof = () => {
     }
   };
 
+  /**
+   * Generates a complete proof from raw inputs
+   * @param {string[]} commitmentArray - Array of commitment values
+   * @param {string} mnemonic - Mnemonic phrase
+   * @param {string} externalNullifier - External nullifier value
+   * @param {string} [circuitType="membership"] - Type of circuit to use
+   * @returns {Promise<Object>} Object containing proof, public signals, and circuit type
+   * @throws {Error} If proof generation fails
+   */
   const generateProofFromInput = async (
     commitmentArray,
     mnemonic,

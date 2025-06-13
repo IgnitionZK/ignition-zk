@@ -50,6 +50,13 @@ export async function getLeavesByGroupId({ groupId }) {
   return data;
 }
 
+/**
+ * Retrieves an array of commitment values for a specific group, ordered by creation time
+ * @param {Object} params - The parameters object
+ * @param {string} params.groupId - The ID of the group to fetch commitments for
+ * @returns {Promise<Array<{commitment_value: string}>>} Array of commitment values for the specified group
+ * @throws {Error} If there is an error during the database operation or if groupId is not provided
+ */
 export async function getCommitmentArray({ groupId }) {
   if (!groupId) {
     throw new Error("groupId is required.");

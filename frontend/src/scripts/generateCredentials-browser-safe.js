@@ -43,9 +43,10 @@ export class ZkCredential {
 
     // Convert Uint8Array to a BigInt
     return BigInt(
-      "0x" + Array.from(strEncoded)
-        .map(b => b.toString(16).padStart(2, "0"))
-        .join("")
+      "0x" +
+        Array.from(strEncoded)
+          .map((b) => b.toString(16).padStart(2, "0"))
+          .join("")
     );
   }
 
@@ -168,7 +169,9 @@ export class ZkCredential {
 
   static async generatePublicNullifier(identityNullifier, externalNullifier) {
     if (!identityNullifier || !externalNullifier) {
-      throw new Error("Both identityNullifier and externalNullifier are required.");
+      throw new Error(
+        "Both identityNullifier and externalNullifier are required."
+      );
     }
 
     if (typeof identityNullifier !== "bigint") {
@@ -182,10 +185,11 @@ export class ZkCredential {
     const F = poseidon.F;
 
     const externalNullifierBigInt = this.#uuidToBigInt(externalNullifier);
-    const publicNullifier =  F.toObject(poseidon([identityNullifier, externalNullifierBigInt]));
+    const publicNullifier = F.toObject(
+      poseidon([identityNullifier, externalNullifierBigInt])
+    );
 
     return publicNullifier;
-    console.log("Public Nullifier:", publicNullifier);
   }
 
   /**

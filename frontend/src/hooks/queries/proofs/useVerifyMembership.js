@@ -12,6 +12,13 @@ const MEMBERSHIP_VERIFIER_ABI = [
 const MEMBERSHIP_VERIFIER_ADDRESS =
   "0x8C3f64C4D2315842e40Fa281a0dF7411F1Caf13f";
 
+/**
+ * Custom hook for verifying membership using zero-knowledge proofs
+ * @returns {Object} An object containing the verification function and state
+ * @property {Function} verifyMembership - Function to verify membership
+ * @property {boolean} isVerifying - Loading state for verification process
+ * @property {string|null} error - Error message if verification fails
+ */
 export function useVerifyMembership() {
   const [isVerifying, setIsVerifying] = useState(false);
   const [error, setError] = useState(null);
@@ -19,6 +26,14 @@ export function useVerifyMembership() {
   const { generateProofFromInput, isLoading: isGeneratingProof } =
     useGenerateProof();
 
+  /**
+   * Verifies membership using zero-knowledge proofs
+   * @param {Array<number>} commitmentArray - Array of commitment values
+   * @param {string} mnemonic - Mnemonic phrase for proof generation
+   * @param {string} externalNullifier - External nullifier for proof generation
+   * @returns {Promise<{isValid: boolean, publicSignals: Array<number>}>} Object containing verification result and public signals
+   * @throws {Error} If wallet is not connected or verification fails
+   */
   const verifyMembership = async (
     commitmentArray,
     mnemonic,

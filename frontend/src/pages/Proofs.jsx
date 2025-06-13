@@ -52,6 +52,12 @@ const ActivityList = styled.ul`
   gap: 1.2rem;
 `;
 
+/**
+ * Proofs component displays a list of pending and verified proposals for the user's groups.
+ * It allows filtering proposals by group and shows different sections for pending and verified items.
+ *
+ * @component
+ */
 export default function Proofs() {
   const { userGroups, isLoading: isLoadingGroups } = useGetUserGroups();
   const { isLoading, proposals, error } = useGetProposalsByGroupId(userGroups);

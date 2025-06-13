@@ -1,7 +1,7 @@
 import { supabase } from "./supabase";
 
 /**
- * Retrieves the active Merkle tree root for a specific group.
+ * Retrieves the single active Merkle tree root for a specific group.
  * @param {Object} params - The parameters object
  * @param {string} params.groupId - The ID of the group to get the active root for
  * @returns {Promise<Object|null>} The active Merkle tree root object, or null if none exists
@@ -31,7 +31,7 @@ export async function getActiveMerkleTreeRoot({ groupId }) {
 }
 
 /**
- * Inserts a new Merkle tree root into the database.
+ * Inserts a new Merkle tree root into the database. The root is inserted with is_active set to false by default.
  * @param {Object} params - The parameters object
  * @param {string} params.groupId - The ID of the group this root belongs to
  * @param {string} params.rootHash - The hash of the Merkle tree root
@@ -64,10 +64,10 @@ export async function insertMerkleTreeRoot({ groupId, rootHash, treeVersion }) {
 }
 
 /**
- * Updates the active status of a Merkle tree root.
+ * Updates the active status of a Merkle tree root. This is typically used to toggle between active and inactive states.
  * @param {Object} params - The parameters object
  * @param {string} params.rootId - The ID of the root to update
- * @param {boolean} params.isActive - The new active status to set
+ * @param {boolean} params.isActive - The new active status to set (true for active, false for inactive)
  * @returns {Promise<Object>} The updated Merkle tree root object
  * @throws {Error} If required parameters are missing or if there's a database error
  */

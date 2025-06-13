@@ -51,6 +51,10 @@ const ActivityList = styled.ul`
   gap: 1.2rem;
 `;
 
+/**
+ * Proposals page component that displays active and historical proposals
+ * @component
+ */
 export default function Proposals() {
   const { userGroups, isLoading: isLoadingGroups } = useGetUserGroups();
   const { isLoading, proposals, error } = useGetProposalsByGroupId(userGroups);

@@ -4,6 +4,12 @@ import { useEffect } from "react";
 
 const WALLET_QUERY_KEY = "wallet";
 
+/**
+ * Retrieves the current wallet state including provider, signer, and address.
+ * @async
+ * @function getWalletState
+ * @returns {Promise<{provider: BrowserProvider, signer: Signer, address: string} | null>} The wallet state object containing provider, signer, and address, or null if wallet is not available
+ */
 async function getWalletState() {
   if (!window.ethereum) return null;
 
@@ -25,6 +31,16 @@ async function getWalletState() {
   }
 }
 
+/**
+ * A React hook that provides wallet connection functionality and wallet state.
+ * @function useWalletQuery
+ * @returns {Object} An object containing wallet connection utilities and state
+ * @property {Function} connect - Function to connect the wallet
+ * @property {string|null} address - The connected wallet address
+ * @property {BrowserProvider|null} provider - The ethers.js provider instance
+ * @property {Signer|null} signer - The ethers.js signer instance
+ * @property {boolean} isLoading - Loading state of the wallet query
+ */
 export function useWalletQuery() {
   const queryClient = useQueryClient();
 
