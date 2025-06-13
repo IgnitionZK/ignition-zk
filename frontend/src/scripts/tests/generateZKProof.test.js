@@ -31,7 +31,7 @@ console.log(`Commitments for groupId ${targetGroupId}:`, commitmentArray);
 async function testProof(mnemonic) {
   const circuitInput = await ZKProofGenerator.generateCircuitInput(
     mnemonic,
-    commitmentArray, 
+    commitmentArray,
     targetGroupId // external nullifier
   );
   const { proof, publicSignals } = await ZKProofGenerator.generateProof(
@@ -46,7 +46,7 @@ async function testProof(mnemonic) {
     BigInt(circuitInput.identityNullifier),
     targetGroupId // external nullifier
   );
-  
+
   if (publicSignals[0] !== publiNullifierTest.toString()) {
     throw new Error(
       "Public Nullifier in public signals does not match the expected public nullifier."
