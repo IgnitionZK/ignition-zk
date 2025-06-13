@@ -4,10 +4,9 @@ pragma solidity ^0.8.28;
 import "./IMembershipVerifier.sol";
 import "./IERC721Mintable.sol";
 import { IERC165 } from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
+import { IERC721 } from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 
 contract MembershipManager {
-
-    IMembershipVerifier public immutable verifier;
 
     // Custom errors:
     // Merkle Root errors:
@@ -32,15 +31,18 @@ contract MembershipManager {
     error MemberAlreadyHasToken();
     error MemberBatchTooLarge();
     error NoMembersProvided();
+    error MemberMustBeEOA();
     // General errors:
     error VerifierAddressCannotBeZero();
     error RelayerAddressCannotBeZero();
+    error GovernanceAddressCannotBeZero();
+    error NewRelayerMustBeDifferent();
 
     // Events:
     event RootInitialized(bytes32 indexed groupKey, bytes32 root);
     event RootSet(bytes32 indexed groupKey, bytes32 oldRoot, bytes32 newRoot);
-    event ProofVerified(bytes32 indexed groupKey, bytes32 indexed nullifier);
-    event GroupNftSet(bytes32 indexed groupKey, address nftAddress);
+    event ProofVerified(bytes32 indexed groupKey, bytes32 indexed nullifier, bool isValid); 
+    event GroupNftInitialized(bytes32 indexed groupKey, address nftAddress);
     event MemberAdded(bytes32 indexed groupKey, address memberAddress, uint256 tokenId);
 
     // Mappings:
@@ -50,7 +52,11 @@ contract MembershipManager {
     mapping(bytes32 => uint256) public nextTokenIds; // groupKey => next token ID
 
     // State variables:
+    IMembershipVerifier public immutable verifier;
     address public relayer;
+    address public governance;
+
+    // Constants:
     uint256 public constant MAX_MEMBERS_BATCH = 30;
 
     modifier onlyRelayer() {
@@ -58,16 +64,32 @@ contract MembershipManager {
         _;
     }
 
+    modifier onlyGovernance() {
+        if (msg.sender != governance) revert OnlyGovernanceAllowed();
+        _;
+    }
+
     constructor(
         address verifierAddress, 
-        address relayerAddress
+        address relayerAddress,
+        address governanceAddress
         ) {
 
         if (verifierAddress == address(0)) revert VerifierAddressCannotBeZero();
         if (relayerAddress == address(0)) revert RelayerAddressCannotBeZero();
-        
-        verifier = IMembershipVerifier(verifierAddress);
+        if (governanceAddress == address(0)) revert GovernanceAddressCannotBeZero();
+
+        governance = governanceAddress;
         relayer = relayerAddress;
+        verifier = IMembershipVerifier(verifierAddress);
+    }
+
+    function setRelayer(address newRelayer) external onlyGovernance() {
+
+        if (newRelayer == address(0)) revert RelayerAddressCannotBeZero();
+        if (newRelayer == relayer) revert NewRelayerMustBeDifferent();
+
+        relayer = newRelayer;
     }
 
     function initRoot(bytes32 initialRoot, bytes32 groupKey) external onlyRelayer {
@@ -86,10 +108,12 @@ contract MembershipManager {
 
         bytes32 currentRoot = roots[groupKey];
 
+        // checks:
         if (currentRoot == bytes32(0)) revert RootNotYetInitialized();
         if (newRoot == bytes32(0)) revert RootCannotBeZero();
         if (newRoot == currentRoot) revert NewRootMustBeDifferent();
         
+        // effects:
         roots[groupKey] = newRoot;
         emit RootSet(groupKey, currentRoot, newRoot);
     }
@@ -116,28 +140,28 @@ contract MembershipManager {
         // effects: 
         usedNullifiers[nullifier] = true;
 
-        emit ProofVerified(groupKey, nullifier);
+        emit ProofVerified(groupKey, nullifier, isValid);
     }
 
-    function setGroupNft(
+    function initGroupNft(
         bytes32 groupKey, 
         address nftAddress
-        ) external onlyRelayer {
+        ) external onlyGovernance() {
 
         // checks:
-        if (!IERC165(nftAddress).supportsInterface(0x80ac58cd) == false) revert NftMustBeERC721();
-        if (groupNftAddresses[groupKey] != address(0)) revert GroupNftAlreadySet();
         if (nftAddress == address(0)) revert NftAddressCannotBeZero();
+        if (!IERC165(nftAddress).supportsInterface(type(IERC721).interfaceId)) revert NftMustBeERC721();
+        if (groupNftAddresses[groupKey] != address(0)) revert GroupNftAlreadySet();
 
         // effects:
         groupNftAddresses[groupKey] = nftAddress;
-        emit GroupNftSet(groupKey, nftAddress);
+        emit GroupNftInitialized(groupKey, nftAddress);
     }
 
     function addMember(
         address memberAddress, 
         bytes32 groupKey
-        ) public onlyRelayer {
+        ) public onlyGovernance() {
         
         address groupNftAddress = groupNftAddresses[groupKey];
         IERC721Mintable nft = IERC721Mintable(groupNftAddress);  
@@ -148,11 +172,10 @@ contract MembershipManager {
         if (memberAddress == address(0)) revert MemberAddressCannotBeZero();
         if (groupNftAddress == address(0)) revert GroupNftNotSet();
         if (memberBalance > 0) revert MemberAlreadyHasToken();
+        if (memberAddress.code.length != 0) revert MemberMustBeEOA();
     
-        try {
-            // interactions:
-            nft.safeMint(memberAddress, tokenId);
-
+        // interactions:
+        try nft.mint(memberAddress, tokenId) {
             // effects:
             nextTokenIds[groupKey]++;
             emit MemberAdded(groupKey, memberAddress, tokenId);
@@ -164,7 +187,7 @@ contract MembershipManager {
     function addMembers(
         address[] calldata memberAddresses, 
         bytes32 groupKey
-        ) public onlyRelayer() {
+        ) public onlyGovernance() {
         
         uint256 memberCount = memberAddresses.length;
 
@@ -176,9 +199,4 @@ contract MembershipManager {
             addMember(memberAddresses[i], groupKey);
         }
     }
-
-    //function _getGroupKey(string memory groupId) private pure returns (bytes32) {
-    //    return keccak256(abi.encodePacked(groupId));
-    //}
-
 }
