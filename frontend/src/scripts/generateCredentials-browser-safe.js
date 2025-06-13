@@ -2,6 +2,7 @@ import * as bip39 from "bip39";
 import * as circomlibjs from "circomlibjs";
 import { hkdf } from "@noble/hashes/hkdf";
 import { sha256 } from "@noble/hashes/sha2";
+import { keccak256, toUtf8Bytes } from "ethers";
 
 /**
  * A class for generating and managing zero-knowledge credentials.
@@ -29,6 +30,32 @@ export class ZkCredential {
     return Array.from(new Uint8Array(bytes))
       .map((b) => b.toString(16).padStart(2, "0"))
       .join("");
+  }
+
+  /**
+   * Converts a string to a BigInt representation.
+   * @param {string} str - The string to convert
+   * @returns {bigint} The BigInt representation of the string
+   */
+  static #stringToBigInt(str) {
+    const encoder = new TextEncoder();
+    const strEncoded = encoder.encode(str); // Uint8Array
+
+    // Convert Uint8Array to a BigInt
+    return BigInt(
+      "0x" + Array.from(strEncoded)
+        .map(b => b.toString(16).padStart(2, "0"))
+        .join("")
+    );
+  }
+
+  /**
+   * Converts a UUID string to a BigInt representation.
+   * @param {string} uuid - The UUID string to convert.
+   * @returns {bigint} The BigInt representation of the UUID.
+   */
+  static #uuidToBigInt(uuid) {
+    return BigInt(keccak256(toUtf8Bytes(uuid)));
   }
 
   /**
@@ -137,6 +164,28 @@ export class ZkCredential {
     const commitment = F.toObject(poseidon([nullifier, trapdoor]));
 
     return { trapdoor, nullifier, commitment };
+  }
+
+  static async generatePublicNullifier(identityNullifier, externalNullifier) {
+    if (!identityNullifier || !externalNullifier) {
+      throw new Error("Both identityNullifier and externalNullifier are required.");
+    }
+
+    if (typeof identityNullifier !== "bigint") {
+      throw new TypeError("identityNullifier must be a bigint.");
+    }
+    if (typeof externalNullifier !== "string") {
+      throw new TypeError("externalNullifier must be a string.");
+    }
+
+    const poseidon = await this.#getPoseidon();
+    const F = poseidon.F;
+
+    const externalNullifierBigInt = this.#uuidToBigInt(externalNullifier);
+    const publicNullifier =  F.toObject(poseidon([identityNullifier, externalNullifierBigInt]));
+
+    return publicNullifier;
+    console.log("Public Nullifier:", publicNullifier);
   }
 
   /**

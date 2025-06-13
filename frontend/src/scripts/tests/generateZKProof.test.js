@@ -1,3 +1,4 @@
+import { ZkCredential } from "../generateCredentials-browser-safe.js";
 import { ZKProofGenerator } from "../generateZKProof-browser-safe.js";
 
 // Group ID: 81373f0e-8e13-4b8f-80fa-4e8f94821a1e
@@ -22,7 +23,7 @@ const users = [
 ];
 
 const commitmentArray = await ZKProofGenerator.filterLeavesByGroupId(
-  "./hashedLeaves.json", // leaves JSON file
+  "src/scripts/tests/hashedLeaves.json", // leaves JSON file
   targetGroupId // group ID to filter by
 );
 console.log(`Commitments for groupId ${targetGroupId}:`, commitmentArray);
@@ -30,12 +31,29 @@ console.log(`Commitments for groupId ${targetGroupId}:`, commitmentArray);
 async function testProof(mnemonic) {
   const circuitInput = await ZKProofGenerator.generateCircuitInput(
     mnemonic,
-    commitmentArray
+    commitmentArray,
+    targetGroupId // external nullifier
   );
   const { proof, publicSignals } = await ZKProofGenerator.generateProof(
     circuitInput,
     "membership"
   );
+  console.log("Generated proof:", proof);
+  console.log("Public signals:", publicSignals);
+
+  // internal test to check if public nullifier in the public Signals matches the expected public nullifier
+  const publiNullifierTest = await ZkCredential.generatePublicNullifier(
+    BigInt(circuitInput.identityNullifier),
+    targetGroupId // external nullifier
+  );
+
+  if (publicSignals[0] !== publiNullifierTest.toString()) {
+    throw new Error(
+      "Public Nullifier in public signals does not match the expected public nullifier."
+    );
+  }
+  console.log("Public Nullifier matches the expected value.");
+
   const isValidProof = await ZKProofGenerator.verifyProofOffChain(
     proof,
     publicSignals,

@@ -16,6 +16,8 @@ import Login from "./pages/Login";
 import DashboardLayout from "./pages/DashboardLayout";
 import Dashboard from "./pages/Dashboard";
 import Settings from "./pages/Settings";
+import Proposals from "./pages/Proposals";
+import Proofs from "./pages/Proofs";
 
 // components
 import ProtectedRoute from "./components/ProtectedRoute";
@@ -60,6 +62,14 @@ const router = createBrowserRouter([
           {
             path: "generate-credentials",
             element: <GenerateCredentials />,
+          },
+          {
+            path: "inbox",
+            element: <Proofs />,
+          },
+          {
+            path: "proposals",
+            element: <Proposals />,
           },
           {
             path: "settings",

@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { useWallet } from "./useWallet";
+import { useWalletQuery } from "./useWalletQuery";
 import { ethers } from "ethers";
 
 // ERC721 ABI for balanceOf function
@@ -19,7 +19,7 @@ const ERC721_ABI = ["function balanceOf(address owner) view returns (uint256)"];
  * const { isOwner, isChecking, error, checkOwnership } = useERC721Ownership("0x123...");
  */
 export function useERC721Ownership(contractAddress) {
-  const { provider, address } = useWallet();
+  const { provider, address, isLoading: isWalletLoading } = useWalletQuery();
   const [isChecking, setIsChecking] = useState(false);
   const [error, setError] = useState(null);
   const [isOwner, setIsOwner] = useState(false);
@@ -56,7 +56,7 @@ export function useERC721Ownership(contractAddress) {
     let timeoutId;
 
     const checkWithDebounce = async () => {
-      if (!contractAddress || !address) return;
+      if (!contractAddress || !address || isWalletLoading) return;
 
       // Clear any existing timeout
       if (timeoutId) {
@@ -79,11 +79,11 @@ export function useERC721Ownership(contractAddress) {
         clearTimeout(timeoutId);
       }
     };
-  }, [checkOwnership, contractAddress, address]);
+  }, [checkOwnership, contractAddress, address, isWalletLoading]);
 
   return {
     isOwner,
-    isChecking,
+    isChecking: isChecking || isWalletLoading,
     error,
     checkOwnership,
   };
