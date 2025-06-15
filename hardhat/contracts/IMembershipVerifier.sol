@@ -1,6 +1,10 @@
 //SPDX-License-Identifier: MIT
 pragma solidity ^0.8.28;
 
+/**
+ * @title IMembershipVerifier
+ * @dev Interface for a zk-SNARK membership verifier.
+ */
 interface IMembershipVerifier {
     /**
      * @notice Verifies a zk-SNARK proof for membership in a Merkle tree.
