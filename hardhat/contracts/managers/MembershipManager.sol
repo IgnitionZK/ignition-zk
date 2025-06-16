@@ -147,6 +147,11 @@ contract MembershipManager is Initializable, UUPSUpgradeable {
      */
     function _authorizeUpgrade(address newImplementation) internal override onlyGovernor() {}
 
+    /// @custom:oz-upgrades-unsafe-allow constructor
+    constructor() {
+        _disableInitializers(); 
+    }
+
     /**
      * @notice Initializes the MembershipManager contract.
      * @dev This function replaces the constructor for upgradeable contracts and is called once
