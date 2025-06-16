@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.28;
 
-import "./IMembershipVerifier.sol";
-import "./IERC721IgnitionZK.sol";
-import { ERC721IgnitionZK } from "./ERC721IgnitionZK.sol";
+import "../interfaces/IMembershipVerifier.sol";
+import "../interfaces/IERC721IgnitionZK.sol";
+import { ERC721IgnitionZK } from "../token/ERC721IgnitionZK.sol";
 import { IERC165 } from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 import { IERC721 } from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 
