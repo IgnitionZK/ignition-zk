@@ -40,6 +40,7 @@ contract MembershipManager is Initializable, UUPSUpgradeable {
     error NullifierAlreadyUsed();
     // Authorization errors:
     error OnlyRelayerAllowed();
+    error OnlyGovernorAllowed();
     // Member errors:
     error MemberAddressCannotBeZero();
     error MemberAlreadyHasToken();

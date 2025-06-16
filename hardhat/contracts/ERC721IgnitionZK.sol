@@ -30,7 +30,7 @@ contract ERC721IgnitionZK is ERC721, ERC721Enumerable, ERC721Burnable, Ownable {
     // Function to burn a token, effectively revoking the membership associated with it.
     // This function can only be called by the owner of the contract (governor).
     function revokeMembershipToken(uint256 tokenId) public onlyOwner {
-        require(_exists(tokenId), "NFT: Token does not exist");
+        require(_ownerOf(tokenId) != address(0), "NFT: Token does not exist");
         _burn(tokenId);
     }
 
