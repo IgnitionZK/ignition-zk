@@ -80,7 +80,7 @@ class EthereumNumberFormatConverter {
 
 // Test all functions
 const testInput =
-  "2816585570619196139655348047484435893091094801877254464923708610492590781282";
+  "7399290420861955693060962736903061675911908219461822652458746358261565833465";
 console.log("\nTesting decimalToBytes32 with input:", testInput);
 const result = EthereumNumberFormatConverter.decimalToBytes32(testInput);
 console.log("Final result:", result);
