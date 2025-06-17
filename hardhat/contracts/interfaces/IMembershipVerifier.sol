@@ -1,19 +1,15 @@
-//SPDX-License-Identifier: MIT
+// SPDX-License-Identifier: MIT
 pragma solidity ^0.8.28;
 
-/**
- * @title IMembershipVerifier
- * @dev Interface for a zk-SNARK membership verifier.
- */
 interface IMembershipVerifier {
     /**
-     * @notice Verifies a zk-SNARK proof for membership in a Merkle tree.
-     * @param proof The zk-SNARK proof data.
-     * @param pubSignals Public signals including the nullifier and the Merkle root.
-     * @return True if the proof is valid, false otherwise.
+     * @notice Verifies a zero-knowledge proof for membership verification
+     * @param _proof The proof data array containing 24 elements
+     * @param _pubSignals The public signals array containing 2 elements: merkle root and nullifierHash
+     * @return bool Returns true if the proof is valid, false otherwise
      */
     function verifyProof(
-        uint256[24] calldata proof, 
-        uint256[2] calldata pubSignals
-        ) external view returns (bool);
-}
+        uint256[24] calldata _proof,
+        uint256[2] calldata _pubSignals
+    ) external view returns (bool);
+} 
