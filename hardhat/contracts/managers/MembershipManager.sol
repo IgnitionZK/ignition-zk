@@ -10,6 +10,7 @@ import { IERC721 } from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 // UUPS imports:
 import { UUPSUpgradeable } from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import { Initializable } from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
+import { OwnableUpgradeable } from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 
 /**
  * @title MembershipManager
@@ -18,9 +19,9 @@ import { Initializable } from "@openzeppelin/contracts-upgradeable/proxy/utils/I
  * and adding/removing members. This contract acts as a factory for ERC721IgnitionZK NFT contracts.
  * @notice This contract serves as the central hub for managing group memberships, utilizing a
  * zk-SNARK verifier for privacy-preserving proof verification and dedicated ERC721 NFTs for membership tokens.
- * It is designed to be upgradeable via the UUPS proxy pattern.
+ * It is designed to be upgradeable via the UUPS proxy pattern by the governor.
  */
-contract MembershipManager is Initializable, UUPSUpgradeable {
+contract MembershipManager is Initializable, UUPSUpgradeable, OwnableUpgradeable {
 
     // Custom errors:
     // Merkle Root errors:
@@ -38,9 +39,6 @@ contract MembershipManager is Initializable, UUPSUpgradeable {
     // Proof errors:
     error InvalidProof();
     error NullifierAlreadyUsed();
-    // Authorization errors:
-    error OnlyRelayerAllowed();
-    error OnlyGovernorAllowed();
     // Member errors:
     error MemberAddressCannotBeZero();
     error MemberAlreadyHasToken();
@@ -51,9 +49,8 @@ contract MembershipManager is Initializable, UUPSUpgradeable {
     error MemberMustBeEOA();
     // General errors:
     error VerifierAddressCannotBeZero();
-    error RelayerAddressCannotBeZero();
     error GovernorAddressCannotBeZero();
-    error NewRelayerMustBeDifferent();
+    
 
     // Events:
     /**
@@ -99,53 +96,33 @@ contract MembershipManager is Initializable, UUPSUpgradeable {
      * @param tokenId The ID of the burned membership token.
      */
     event MemberRemoved(bytes32 indexed groupKey, address indexed memberAddress, uint256 tokenId);
-     /**
-     * @notice Emitted when the relayer address is updated.
-     * @param newRelayer The new address of the relayer.
-     */
-    event RelayerSet(address indexed newRelayer);
 
+// ====================================================================================================================
+// NOTE: Once the contract is deployed do not change the order of the variables. If this contract is updated append new variables to the end of this list. 
+// ====================================================================================================================
     // Mappings:
     /// @dev Maps a unique group key to its current Merkle root.
-    mapping(bytes32 => bytes32) public groupRoots; 
+    mapping(bytes32 => bytes32) private groupRoots; 
     /// @dev Maps a group key to a mapping of nullifiers, tracking used nullifiers for that group.
-    mapping(bytes32 => mapping(bytes32 => bool)) public groupNullifiers;
+    mapping(bytes32 => mapping(bytes32 => bool)) private groupNullifiers;
     /// @dev Maps a group key to the address of its associated ERC721 NFT contract.
-    mapping(bytes32 => address) public groupNftAddresses; 
+    mapping(bytes32 => address) private groupNftAddresses; 
 
     // State variables:
     /// @dev The address of the zk-SNARK verifier contract.
-    IMembershipVerifier public verifier;
-    /// @dev The address of the designated relayer, authorized to update roots and verify proofs.
-    address public relayer;
+    IMembershipVerifier private verifier;
     /// @dev The address of the governor (DAO) responsible for core contract management and upgrades.
-    address public governor;
+    address private governor;
 
     // Constants:
     /// @dev The maximum number of members that can be added in a single batch transaction.
-    uint256 public constant MAX_MEMBERS_BATCH = 30;
-
-    /**
-     * @dev Restricts function execution to the designated relayer address.
-     */
-    modifier onlyRelayer() {
-        if (msg.sender != relayer) revert OnlyRelayerAllowed();
-        _;
-    }
-
-    /**
-     * @dev Restricts function execution to the designated governor address.
-     */
-    modifier onlyGovernor() {
-        if (msg.sender != governor) revert OnlyGovernorAllowed();
-        _;
-    }
+    uint256 private constant MAX_MEMBERS_BATCH = 30;
 
     /**
      * @dev Authorizes upgrades for the UUPS proxy. Only callable by the contract's governor.
      * @param newImplementation The address of the new implementation contract.
      */
-    function _authorizeUpgrade(address newImplementation) internal override onlyGovernor() {}
+    function _authorizeUpgrade(address newImplementation) internal override onlyOwner() {}
 
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() {
@@ -155,54 +132,37 @@ contract MembershipManager is Initializable, UUPSUpgradeable {
     /**
      * @notice Initializes the MembershipManager contract.
      * @dev This function replaces the constructor for upgradeable contracts and is called once
-     * after the proxy is deployed. It sets the initial verifier, governor, and relayer addresses.
+     * after the proxy is deployed. It sets the initial verifier and governor.
      * @param _verifier The address of the zk-SNARK verifier contract.
      * @param _governor The address of the governor (DAO) contract.
-     * @param _relayer The initial address of the relayer.
      * @custom:error VerifierAddressCannotBeZero If the provided verifier address is zero.
      * @custom:error GovernorAddressCannotBeZero If the provided governor address is zero.
-     * @custom:error RelayerAddressCannotBeZero If the provided relayer address is zero.
      */
     function initialize(
         address _verifier, 
-        address _governor, 
-        address _relayer
+        address _governor 
     ) external initializer {
+        // this makes the MembershipManager owner == governor so that only the governor can update the MembershipManager logic
+        __Ownable_init(_governor);
         __UUPSUpgradeable_init();
         if (_verifier == address(0)) revert VerifierAddressCannotBeZero();
         if (_governor == address(0)) revert GovernorAddressCannotBeZero();
-        if (_relayer == address(0)) revert RelayerAddressCannotBeZero();
+        
 
         governor = _governor;
         verifier = IMembershipVerifier(_verifier);
-        relayer = _relayer;
-        emit RelayerSet(_relayer);
     }
 
-    /**
-     * @notice Sets a new relayer address.
-     * @dev Only the governor can call this function.
-     * @param _relayer The new address for the relayer.
-     * @custom:error RelayerAddressCannotBeZero If the provided relayer address is zero.
-     * @custom:error NewRelayerMustBeDifferent If the new relayer address is the same as the current one.
-     */
-    function setRelayer(address _relayer) external onlyGovernor() {
-        if (_relayer == address(0)) revert RelayerAddressCannotBeZero();
-        if (_relayer == relayer) revert NewRelayerMustBeDifferent();
-
-        relayer = _relayer;
-        emit RelayerSet(_relayer);
-    }
 
     /**
      * @notice Initializes the first Merkle root for a specific group.
-     * @dev Can only be called once per `groupKey` by the relayer.
+     * @dev Can only be called once per `groupKey` by the governor.
      * @param initialRoot The initial Merkle root to set.
      * @param groupKey The unique identifier for the group.
      * @custom:error RootAlreadyInitialized If a root for the given group key has already been set.
      * @custom:error RootCannotBeZero If the provided initial root is zero.
      */
-    function initRoot(bytes32 initialRoot, bytes32 groupKey) external onlyRelayer {
+    function initRoot(bytes32 initialRoot, bytes32 groupKey) external onlyOwner {
         bytes32 currentRoot = groupRoots[groupKey];
         if (currentRoot != bytes32(0)) revert RootAlreadyInitialized();
         if (initialRoot == bytes32(0)) revert RootCannotBeZero();
@@ -213,14 +173,14 @@ contract MembershipManager is Initializable, UUPSUpgradeable {
     
     /**
      * @notice Updates the Merkle root for an existing group.
-     * @dev Can only be called by the relayer.
+     * @dev Can only be called by the governor.
      * @param newRoot The new Merkle root to set.
      * @param groupKey The unique identifier for the group.
      * @custom:error RootNotYetInitialized If no root has been set for the group yet.
      * @custom:error RootCannotBeZero If the new root is zero.
      * @custom:error NewRootMustBeDifferent If the new root is identical to the current root.
      */
-    function setRoot(bytes32 newRoot, bytes32 groupKey) external onlyRelayer {
+    function setRoot(bytes32 newRoot, bytes32 groupKey) external onlyOwner {
         bytes32 currentRoot = groupRoots[groupKey];
         if (currentRoot == bytes32(0)) revert RootNotYetInitialized();
         if (newRoot == bytes32(0)) revert RootCannotBeZero();
@@ -231,8 +191,19 @@ contract MembershipManager is Initializable, UUPSUpgradeable {
     }
 
     /**
+     * @notice Retrieves the current Merkle root for a specific group.
+     * @dev Only callable by the owner (governor). Returns the stored root for the given group key.
+     * @param groupKey The unique identifier for the group.
+     * @return The current Merkle root for the specified group. Returns bytes32(0) if no root has been set.
+     * @custom:error (No custom errors thrown by this function)
+     */
+    function getRoot(bytes32 groupKey) external view onlyOwner returns (bytes32){
+        return groupRoots[groupKey];
+    }
+
+    /**
      * @notice Verifies a zk-SNARK proof against a group's current Merkle root and marks the nullifier as used.
-     * @dev Can only be called by the relayer. Prevents double-spending by checking nullifier usage.
+     * @dev Can only be called by the governor. Prevents double-spending by checking nullifier usage.
      * @param proof The zk-SNARK proof data.
      * @param publicSignals The public signals associated with the proof, including root and nullifier.
      * @param groupKey The unique identifier for the group to verify against.
@@ -245,7 +216,7 @@ contract MembershipManager is Initializable, UUPSUpgradeable {
         uint256[24] calldata proof, 
         uint256[2] calldata publicSignals,
         bytes32 groupKey
-        ) external onlyRelayer {
+        ) external onlyOwner {
         bytes32 proofRoot = bytes32(publicSignals[1]);
         bytes32 nullifier = bytes32(publicSignals[0]);
         bytes32 currentRoot = groupRoots[groupKey];
@@ -274,7 +245,7 @@ contract MembershipManager is Initializable, UUPSUpgradeable {
         bytes32 groupKey,
         string calldata name, 
         string calldata symbol
-        ) external onlyGovernor() returns (address){
+        ) external onlyOwner() returns (address){
         if (groupNftAddresses[groupKey] != address(0)) revert GroupNftAlreadySet();
 
         ERC721IgnitionZK newNft = new ERC721IgnitionZK(governor, name, symbol);
@@ -299,7 +270,7 @@ contract MembershipManager is Initializable, UUPSUpgradeable {
     function addMember(
         address memberAddress, 
         bytes32 groupKey
-        ) public onlyGovernor() {
+        ) public onlyOwner() {
         
         address groupNftAddress = groupNftAddresses[groupKey];
         IERC721IgnitionZK nft = IERC721IgnitionZK(groupNftAddress);
@@ -331,7 +302,7 @@ contract MembershipManager is Initializable, UUPSUpgradeable {
     function addMembers(
         address[] calldata memberAddresses, 
         bytes32 groupKey
-        ) public onlyGovernor() {
+        ) public onlyOwner() {
         uint256 memberCount = memberAddresses.length;
 
         if (memberCount == 0) revert NoMembersProvided();
@@ -355,7 +326,7 @@ contract MembershipManager is Initializable, UUPSUpgradeable {
     function removeMember(
         address memberAddress, 
         bytes32 groupKey
-        ) external onlyGovernor() {
+        ) external onlyOwner() {
         address groupNftAddress = groupNftAddresses[groupKey];
         if (groupNftAddress == address(0)) revert GroupNftNotSet();
 
@@ -370,4 +341,5 @@ contract MembershipManager is Initializable, UUPSUpgradeable {
         nft.revokeMembershipToken(tokenIdToBurn);
         emit MemberRemoved(groupKey, memberAddress, tokenIdToBurn);
     }
+
 }
