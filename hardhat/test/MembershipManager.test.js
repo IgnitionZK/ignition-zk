@@ -1,11 +1,6 @@
 const { ethers, upgrades, keccak256 , toUtf8Bytes, HashZero} = require("hardhat");
 const { expect } = require("chai");
 
-// TEST PLAN
-// 1. Deploy MembershipManager contract
-// 2. Deploy MembershipManagerVerifier contract
-// Functions to test: addMember, addMembers, removeMember, deployGroupNft, verifyProof
-
 describe("MembershipManager", function () {
     let MembershipManager;
     let membershipManager;
@@ -27,7 +22,6 @@ describe("MembershipManager", function () {
     let nftName2;
     let nftSymbol2;
 
-
     // RUN ONCE BEFORE ALL TESTS
     before(async function () {
         [deployer, governor, relayer, user1] = await ethers.getSigners();
@@ -43,9 +37,6 @@ describe("MembershipManager", function () {
         // Deploy MembershipVerifier contract
         membershipVerifier = await MembershipVerifier.deploy();
         await membershipVerifier.waitForDeployment();
-        //console.log("MembershipVerifier deployed to:", membershipVerifier.target);
-        //console.log("Governor address:", await governor.getAddress());
-        //console.log("Relayer address:", await relayer.getAddress());
 
         // Deploy the MembershipMannager UUPS Proxy contract
         membershipManager = await upgrades.deployProxy(
@@ -60,7 +51,6 @@ describe("MembershipManager", function () {
             }
         );
         await membershipManager.waitForDeployment();
-        //console.log("MembershipManager deployed to:", membershipManager.target);
 
         groupId = '123e4567-e89b-12d3-a456-426614174000'; // Example UUID
         groupKey = ethers.keccak256(ethers.toUtf8Bytes(groupId));
@@ -212,6 +202,16 @@ describe("MembershipManager", function () {
             membershipManager.connect(user1).deployGroupNft(groupKey, nftName, nftSymbol)
         ).to.be.reverted;
     });
+
+    /*
+    it("getGroupNftAddress: should return the correct NFT address for a given group key", async function () {
+        const tx = await membershipManager.connect(governor).deployGroupNft(groupKey, nftName, nftSymbol);
+        const receipt = await tx.wait();
+        console.log("Receipt:", receipt);
+        const nftAddress = await membershipManager.connect(governor).getGroupNftAddress(groupKey);
+        expect(nftAddress).to.not.equal(ethers.ZeroAddress, "NFT address should not be zero");
+    });
+    */
 
 
 });
