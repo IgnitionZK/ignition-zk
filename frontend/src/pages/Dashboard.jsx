@@ -11,6 +11,7 @@ import GroupItem from "../components/GroupItem";
 import SearchResultItemComponent from "../components/SearchResultItem";
 import PageHeader from "../components/PageHeader";
 import CustomButtonIcon from "../components/CustomButtonIcon";
+import CreateGroup from "./CreateGroup";
 
 // icon
 import { FaCirclePlus } from "react-icons/fa6";
@@ -115,6 +116,9 @@ function Dashboard() {
     name: searchQuery,
   });
 
+  // New state for create group mode
+  const [showCreateGroup, setShowCreateGroup] = useState(false);
+
   // Filter out groups that user has already joined
   const filteredSearchResults = useMemo(() => {
     if (!searchResults || !userGroups) return [];
@@ -129,6 +133,13 @@ function Dashboard() {
     // Clear search
     setSearchQuery("");
   };
+
+  // Handler to show dashboard again
+  const handleCancelCreateGroup = () => setShowCreateGroup(false);
+
+  if (showCreateGroup) {
+    return <CreateGroup onCancel={handleCancelCreateGroup} />;
+  }
 
   return (
     <DashboardContainer>
@@ -174,7 +185,7 @@ function Dashboard() {
             <CustomButtonIcon
               icon={FaCirclePlus}
               tooltipText="Create new group"
-              onClick={() => console.log("Create group clicked")}
+              onClick={() => setShowCreateGroup(true)}
             />
           </SectionHeader>
           {isLoading ? (
