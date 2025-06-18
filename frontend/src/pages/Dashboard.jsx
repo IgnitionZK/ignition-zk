@@ -10,6 +10,10 @@ import { useSearchGroups } from "../hooks/queries/groups/useSearchGroups";
 import GroupItem from "../components/GroupItem";
 import SearchResultItemComponent from "../components/SearchResultItem";
 import PageHeader from "../components/PageHeader";
+import CustomButtonIcon from "../components/CustomButtonIcon";
+
+// icon
+import { FaCirclePlus } from "react-icons/fa6";
 
 const DashboardContainer = styled.div`
   display: flex;
@@ -34,53 +38,6 @@ const GroupsList = styled.ul`
   display: flex;
   flex-direction: column;
   gap: 1.2rem;
-`;
-
-const DeleteButton = styled.div`
-  position: relative;
-  cursor: pointer;
-
-  svg {
-    color: var(--color-grey-100);
-    font-size: 2rem;
-    transition: color 0.2s ease-in-out;
-  }
-
-  &:hover {
-    svg {
-      color: var(--color-red-500);
-    }
-  }
-`;
-
-const Tooltip = styled.div`
-  position: absolute;
-  right: 0;
-  top: -3rem;
-  background-color: var(--color-grey-800);
-  color: var(--color-grey-100);
-  padding: 0.8rem 1.2rem;
-  border-radius: 0.4rem;
-  font-size: 1.4rem;
-  opacity: 0;
-  visibility: hidden;
-  transition: all 0.2s ease-in-out;
-  white-space: nowrap;
-
-  ${DeleteButton}:hover & {
-    opacity: 1;
-    visibility: visible;
-  }
-
-  &::after {
-    content: "";
-    position: absolute;
-    bottom: -0.5rem;
-    right: 1rem;
-    border-width: 0.5rem;
-    border-style: solid;
-    border-color: var(--color-grey-800) transparent transparent transparent;
-  }
 `;
 
 const SearchHeader = styled.div`
@@ -111,16 +68,6 @@ const SearchInput = styled.input`
   }
 `;
 
-const SearchResults = styled.div`
-  margin-top: 2rem;
-`;
-
-const SearchResultsTitle = styled.h3`
-  font-size: 1.8rem;
-  font-weight: 500;
-  margin-bottom: 1.2rem;
-`;
-
 const ErrorMessage = styled.p`
   color: var(--color-red-500);
   font-size: 1.4rem;
@@ -136,6 +83,20 @@ const SectionTitle = styled.h2`
   font-weight: 500;
   margin-bottom: 1.6rem;
   color: var(--color-grey-100);
+`;
+
+const SectionHeader = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.6rem;
+`;
+
+const SectionTitleInline = styled.h2`
+  font-size: 2rem;
+  font-weight: 500;
+  color: var(--color-grey-100);
+  margin: 0;
 `;
 
 /**
@@ -208,7 +169,14 @@ function Dashboard() {
         )}
 
         <Section>
-          <SectionTitle>Your Groups</SectionTitle>
+          <SectionHeader>
+            <SectionTitleInline>Your Groups</SectionTitleInline>
+            <CustomButtonIcon
+              icon={FaCirclePlus}
+              tooltipText="Create new group"
+              onClick={() => console.log("Create group clicked")}
+            />
+          </SectionHeader>
           {isLoading ? (
             <p>Loading groups...</p>
           ) : error ? (
