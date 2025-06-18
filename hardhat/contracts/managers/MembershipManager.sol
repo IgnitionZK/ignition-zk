@@ -2,8 +2,9 @@
 pragma solidity ^0.8.28;
 
 import "../interfaces/IMembershipVerifier.sol";
-import "../interfaces/IERC721IgnitionZK.sol";
-import { ERC721IgnitionZK } from "../token/ERC721IgnitionZK.sol";
+//import "../interfaces/IERC721IgnitionZK.sol";
+//import { ERC721IgnitionZK } from "../token/ERC721IgnitionZK.sol";
+import { IERC721IgnitionZK } from "../interfaces/IERC721IgnitionZK.sol";
 import { IERC165 } from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 import { IERC721 } from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 
@@ -11,6 +12,9 @@ import { IERC721 } from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import { UUPSUpgradeable } from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import { Initializable } from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import { OwnableUpgradeable } from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+
+// import Clones for NFT factory pattern:
+import { Clones } from "@openzeppelin/contracts/proxy/Clones.sol";
 
 /**
  * @title MembershipManager
@@ -35,7 +39,7 @@ contract MembershipManager is Initializable, UUPSUpgradeable, OwnableUpgradeable
     error GroupNftAlreadySet();
     error NftAddressCannotBeZero();
     error NftMustBeERC721();
-    error MintingFailed();
+    error MintingFailed(string reason);
     // Proof errors:
     error InvalidProof();
     error NullifierAlreadyUsed();
@@ -118,6 +122,8 @@ contract MembershipManager is Initializable, UUPSUpgradeable, OwnableUpgradeable
     /// @dev The maximum number of members that can be added in a single batch transaction.
     uint256 private constant MAX_MEMBERS_BATCH = 30;
 
+    address private nftImplementation;
+
     /**
      * @dev Authorizes upgrades for the UUPS proxy. Only callable by the contract's governor.
      * @param newImplementation The address of the new implementation contract.
@@ -140,17 +146,20 @@ contract MembershipManager is Initializable, UUPSUpgradeable, OwnableUpgradeable
      */
     function initialize(
         address _verifier, 
-        address _governor 
+        address _governor, 
+        address _nftImplementation
     ) external initializer {
         // this makes the MembershipManager owner == governor so that only the governor can update the MembershipManager logic
         __Ownable_init(_governor);
         __UUPSUpgradeable_init();
         if (_verifier == address(0)) revert VerifierAddressCannotBeZero();
         if (_governor == address(0)) revert GovernorAddressCannotBeZero();
-        
+        if (_nftImplementation == address(0)) revert NftAddressCannotBeZero();
+        if (!IERC165(_nftImplementation).supportsInterface(type(IERC721).interfaceId)) revert NftMustBeERC721();
 
         governor = _governor;
         verifier = IMembershipVerifier(_verifier);
+        nftImplementation = _nftImplementation;
     }
 
 
@@ -254,12 +263,34 @@ contract MembershipManager is Initializable, UUPSUpgradeable, OwnableUpgradeable
         ) external onlyOwner() returns (address){
         if (groupNftAddresses[groupKey] != address(0)) revert GroupNftAlreadySet();
 
-        ERC721IgnitionZK newNft = new ERC721IgnitionZK(governor, name, symbol);
-        address newNftAddress = address(newNft);
-        groupNftAddresses[groupKey] = newNftAddress;
+        bytes32 salt = groupKey;
+        address clone = Clones.cloneDeterministic(
+            nftImplementation, 
+            salt // Use groupKey as the salt for deterministic deployment
+        );
 
-        emit GroupNftDeployed(groupKey, newNftAddress, name, symbol);
-        return newNftAddress;
+        IERC721IgnitionZK(clone).initialize(
+            governor, // DEFAULT_ADMIN_ROLE
+            address(this), // MINTER_ROLE will be this contract
+            address(this), // BURNER_ROLE will be this contract
+            name, 
+            symbol
+        );
+
+        /*
+        ERC721IgnitionZK newNft = new ERC721IgnitionZK(
+            governor, // DEFAULT_ADMIN_ROLE
+            address(this), // MINTER_ROLE will be this contract
+            address(this), // BURNER_ROLE will be this contract
+            name, 
+            symbol
+            );
+        address newNftAddress = address(newNft);
+        */
+        groupNftAddresses[groupKey] = clone;
+
+        emit GroupNftDeployed(groupKey, clone, name, symbol);
+        return clone;
     }
 
     /**
@@ -301,8 +332,8 @@ contract MembershipManager is Initializable, UUPSUpgradeable, OwnableUpgradeable
         try nft.safeMint(memberAddress) returns (uint256 _tokenId) {
             mintedTokenId = _tokenId;
             emit MemberNftMinted(groupKey, memberAddress, mintedTokenId);
-        } catch {
-            revert MintingFailed();
+        } catch Error(string memory reason) {
+            revert MintingFailed(reason);
         }
     }
 

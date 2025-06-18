@@ -1,5 +1,6 @@
 const { ethers, upgrades, keccak256 , toUtf8Bytes, HashZero} = require("hardhat");
 const { expect } = require("chai");
+const { anyUint } = require("@nomicfoundation/hardhat-chai-matchers/withArgs");
 
 describe("MembershipManager", function () {
     let MembershipManager;
@@ -211,6 +212,40 @@ describe("MembershipManager", function () {
         const nftAddress = await membershipManager.connect(governor).getGroupNftAddress(groupKey);
         expect(nftAddress).to.not.equal(ethers.ZeroAddress, "NFT address should not be zero");
     });
+    */
+
+    it("mintNftToMember: should allow the governor to mint an NFT to a member and emit event", async function () {
+        const user1Address = await user1.getAddress();
+        console.log("User1 Address:", user1Address);
+        await membershipManager.connect(governor).deployGroupNft(groupKey, nftName, nftSymbol);
+        await expect(membershipManager.connect(governor).mintNftToMember(user1Address, groupKey))
+            .to.emit(membershipManager, "MemberNftMinted")
+            .withArgs(groupKey, user1Address, anyUint); // Assuming the first minted token ID is 0
+    })
+
+    /*function mintNftToMember(
+        address memberAddress, 
+        bytes32 groupKey
+        ) public onlyOwner() {
+        
+        address groupNftAddress = groupNftAddresses[groupKey];
+        IERC721IgnitionZK nft = IERC721IgnitionZK(groupNftAddress);
+        uint256 memberBalance = nft.balanceOf(memberAddress);
+        uint256 mintedTokenId;
+
+        if (memberAddress == address(0)) revert MemberAddressCannotBeZero();
+        if (groupNftAddress == address(0)) revert GroupNftNotSet();
+        if (memberBalance > 0) revert MemberAlreadyHasToken();
+        if (memberAddress.code.length != 0) revert MemberMustBeEOA();
+    
+        try nft.safeMint(memberAddress) returns (uint256 _tokenId) {
+            mintedTokenId = _tokenId;
+            emit MemberNftMinted(groupKey, memberAddress, mintedTokenId);
+        } catch {
+            revert MintingFailed();
+        }
+    }
+
     */
 
 
