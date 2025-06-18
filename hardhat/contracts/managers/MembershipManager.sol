@@ -117,12 +117,12 @@ contract MembershipManager is Initializable, UUPSUpgradeable, OwnableUpgradeable
     IMembershipVerifier private verifier;
     /// @dev The address of the governor (DAO) responsible for core contract management and upgrades.
     address private governor;
+    /// @dev The address of the NFT implementation contract used for creating new group NFTs.
+    address private nftImplementation;
 
     // Constants:
     /// @dev The maximum number of members that can be added in a single batch transaction.
     uint256 private constant MAX_MEMBERS_BATCH = 30;
-
-    address private nftImplementation;
 
     /**
      * @dev Authorizes upgrades for the UUPS proxy. Only callable by the contract's governor.

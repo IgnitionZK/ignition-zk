@@ -31,6 +31,8 @@ describe("MembershipManager", function () {
         MembershipManager = await ethers.getContractFactory("MembershipManager");  
         // Get Contract Factory for MembershipManagerVerifier
         MembershipVerifier = await ethers.getContractFactory("MembershipVerifier");
+        // Get Contract Factory for NFT implementation
+        NFTImplementation = await ethers.getContractFactory("ERC721IgnitionZK");
     });
 
     // RUN BEFORE EACH TEST
@@ -39,12 +41,17 @@ describe("MembershipManager", function () {
         membershipVerifier = await MembershipVerifier.deploy();
         await membershipVerifier.waitForDeployment();
 
-        // Deploy the MembershipMannager UUPS Proxy contract
+        // Deploy the NFT implementation minimal proxy (Clones EIP‑1167) contract
+        const nftImplementation = await NFTImplementation.deploy();
+        await nftImplementation.waitForDeployment();
+
+        // Deploy the MembershipMannager UUPS Proxy (ERC‑1967) contract
         membershipManager = await upgrades.deployProxy(
             MembershipManager, 
             [
                 membershipVerifier.target, 
-                await governor.getAddress()
+                await governor.getAddress(),
+                nftImplementation.target
             ],
             {
                 initializer: "initialize",
