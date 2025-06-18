@@ -7,6 +7,8 @@ describe("MembershipManager", function () {
     let membershipManager;
     let MembershipVerifier;
     let membershipVerifier;
+    let NFTImplementation;
+    let nftImplementation;
     
     let deployer;
     let governor;
@@ -42,7 +44,7 @@ describe("MembershipManager", function () {
         await membershipVerifier.waitForDeployment();
 
         // Deploy the NFT implementation minimal proxy (Clones EIP‑1167) contract
-        const nftImplementation = await NFTImplementation.deploy();
+        nftImplementation = await NFTImplementation.deploy();
         await nftImplementation.waitForDeployment();
 
         // Deploy the MembershipMannager UUPS Proxy (ERC‑1967) contract
@@ -71,9 +73,10 @@ describe("MembershipManager", function () {
     });
 
     // TEST CASES
-    it("should deploy MembershipManager and MembershipVerifier contracts", async function () {
+    it("should deploy NFTImplementation, MembershipManager and MembershipVerifier contracts", async function () {
         expect(membershipManager.target).to.be.properAddress;
         expect(membershipVerifier.target).to.be.properAddress;
+        expect(nftImplementation.target).to.be.properAddress;
     });
 
     it("initRoot: should allow the governor to initialize the root of a group and emit event", async function () {
