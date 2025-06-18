@@ -2,8 +2,9 @@
 pragma solidity ^0.8.28;
 
 import "../interfaces/IMembershipVerifier.sol";
-import "../interfaces/IERC721IgnitionZK.sol";
-import { ERC721IgnitionZK } from "../token/ERC721IgnitionZK.sol";
+//import "../interfaces/IERC721IgnitionZK.sol";
+//import { ERC721IgnitionZK } from "../token/ERC721IgnitionZK.sol";
+import { IERC721IgnitionZK } from "../interfaces/IERC721IgnitionZK.sol";
 import { IERC165 } from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 import { IERC721 } from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 
@@ -11,6 +12,9 @@ import { IERC721 } from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import { UUPSUpgradeable } from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import { Initializable } from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import { OwnableUpgradeable } from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+
+// import Clones for NFT factory pattern:
+import { Clones } from "@openzeppelin/contracts/proxy/Clones.sol";
 
 /**
  * @title MembershipManager
@@ -35,7 +39,7 @@ contract MembershipManager is Initializable, UUPSUpgradeable, OwnableUpgradeable
     error GroupNftAlreadySet();
     error NftAddressCannotBeZero();
     error NftMustBeERC721();
-    error MintingFailed();
+    error MintingFailed(string reason);
     // Proof errors:
     error InvalidProof();
     error NullifierAlreadyUsed();
@@ -88,14 +92,14 @@ contract MembershipManager is Initializable, UUPSUpgradeable, OwnableUpgradeable
      * @param memberAddress The address of the new member.
      * @param tokenId The ID of the minted membership token.
      */
-    event MemberAdded(bytes32 indexed groupKey, address indexed memberAddress, uint256 tokenId);
+    event MemberNftMinted(bytes32 indexed groupKey, address indexed memberAddress, uint256 tokenId);
     /**
      * @notice Emitted when a member is successfully removed from a group and their token is burned.
      * @param groupKey The unique identifier for the group.
      * @param memberAddress The address of the removed member.
      * @param tokenId The ID of the burned membership token.
      */
-    event MemberRemoved(bytes32 indexed groupKey, address indexed memberAddress, uint256 tokenId);
+    event MemberNftBurned(bytes32 indexed groupKey, address indexed memberAddress, uint256 tokenId);
 
 // ====================================================================================================================
 // NOTE: Once the contract is deployed do not change the order of the variables. If this contract is updated append new variables to the end of this list. 
@@ -113,6 +117,8 @@ contract MembershipManager is Initializable, UUPSUpgradeable, OwnableUpgradeable
     IMembershipVerifier private verifier;
     /// @dev The address of the governor (DAO) responsible for core contract management and upgrades.
     address private governor;
+    /// @dev The address of the NFT implementation contract used for creating new group NFTs.
+    address private nftImplementation;
 
     // Constants:
     /// @dev The maximum number of members that can be added in a single batch transaction.
@@ -140,17 +146,20 @@ contract MembershipManager is Initializable, UUPSUpgradeable, OwnableUpgradeable
      */
     function initialize(
         address _verifier, 
-        address _governor 
+        address _governor, 
+        address _nftImplementation
     ) external initializer {
         // this makes the MembershipManager owner == governor so that only the governor can update the MembershipManager logic
         __Ownable_init(_governor);
         __UUPSUpgradeable_init();
         if (_verifier == address(0)) revert VerifierAddressCannotBeZero();
         if (_governor == address(0)) revert GovernorAddressCannotBeZero();
-        
+        if (_nftImplementation == address(0)) revert NftAddressCannotBeZero();
+        if (!IERC165(_nftImplementation).supportsInterface(type(IERC721).interfaceId)) revert NftMustBeERC721();
 
         governor = _governor;
         verifier = IMembershipVerifier(_verifier);
+        nftImplementation = _nftImplementation;
     }
 
 
@@ -164,6 +173,9 @@ contract MembershipManager is Initializable, UUPSUpgradeable, OwnableUpgradeable
      */
     function initRoot(bytes32 initialRoot, bytes32 groupKey) external onlyOwner {
         bytes32 currentRoot = groupRoots[groupKey];
+        address nftAddress = groupNftAddresses[groupKey];
+
+        if (nftAddress == address(0)) revert GroupNftNotSet();
         if (currentRoot != bytes32(0)) revert RootAlreadyInitialized();
         if (initialRoot == bytes32(0)) revert RootCannotBeZero();
 
@@ -182,6 +194,9 @@ contract MembershipManager is Initializable, UUPSUpgradeable, OwnableUpgradeable
      */
     function setRoot(bytes32 newRoot, bytes32 groupKey) external onlyOwner {
         bytes32 currentRoot = groupRoots[groupKey];
+        address nftAddress = groupNftAddresses[groupKey];
+
+        if (nftAddress == address(0)) revert GroupNftNotSet();
         if (currentRoot == bytes32(0)) revert RootNotYetInitialized();
         if (newRoot == bytes32(0)) revert RootCannotBeZero();
         if (newRoot == currentRoot) revert NewRootMustBeDifferent();
@@ -248,16 +263,48 @@ contract MembershipManager is Initializable, UUPSUpgradeable, OwnableUpgradeable
         ) external onlyOwner() returns (address){
         if (groupNftAddresses[groupKey] != address(0)) revert GroupNftAlreadySet();
 
-        ERC721IgnitionZK newNft = new ERC721IgnitionZK(governor, name, symbol);
-        address newNftAddress = address(newNft);
-        groupNftAddresses[groupKey] = newNftAddress;
+        bytes32 salt = groupKey;
+        address clone = Clones.cloneDeterministic(
+            nftImplementation, 
+            salt // Use groupKey as the salt for deterministic deployment
+        );
 
-        emit GroupNftDeployed(groupKey, newNftAddress, name, symbol);
-        return newNftAddress;
+        IERC721IgnitionZK(clone).initialize(
+            governor, // DEFAULT_ADMIN_ROLE
+            address(this), // MINTER_ROLE will be this contract
+            address(this), // BURNER_ROLE will be this contract
+            name, 
+            symbol
+        );
+
+        /*
+        ERC721IgnitionZK newNft = new ERC721IgnitionZK(
+            governor, // DEFAULT_ADMIN_ROLE
+            address(this), // MINTER_ROLE will be this contract
+            address(this), // BURNER_ROLE will be this contract
+            name, 
+            symbol
+            );
+        address newNftAddress = address(newNft);
+        */
+        groupNftAddresses[groupKey] = clone;
+
+        emit GroupNftDeployed(groupKey, clone, name, symbol);
+        return clone;
     }
 
     /**
-     * @notice Adds a single member to a specific group by minting a new membership token.
+     * @notice Retrieves the address of the ERC721 NFT contract for a specific group.
+     * @dev Only callable by the owner (governor). Returns the NFT contract address for the given group key.
+     * @param groupKey The unique identifier for the group.
+     * @return address of the ERC721 NFT contract associated with the specified group key.
+     */
+    function getGroupNftAddress(bytes32 groupKey) external view onlyOwner returns (address) {
+        return groupNftAddresses[groupKey];
+    }
+
+    /** 
+     * @notice Adds a new member to a specific group by minting an ERC721 token.
      * @dev Only the governor can call this. Ensures only one token per member per group.
      * @param memberAddress The address of the member to add.
      * @param groupKey The identifier of the group.
@@ -267,7 +314,7 @@ contract MembershipManager is Initializable, UUPSUpgradeable, OwnableUpgradeable
      * @custom:error MemberMustBeEOA If the member address is a contract address (and not an EOA).
      * @custom:error MintingFailed If the `safeMint` call to the NFT contract fails.
      */
-    function addMember(
+    function mintNftToMember(
         address memberAddress, 
         bytes32 groupKey
         ) public onlyOwner() {
@@ -284,9 +331,9 @@ contract MembershipManager is Initializable, UUPSUpgradeable, OwnableUpgradeable
     
         try nft.safeMint(memberAddress) returns (uint256 _tokenId) {
             mintedTokenId = _tokenId;
-            emit MemberAdded(groupKey, memberAddress, mintedTokenId);
-        } catch {
-            revert MintingFailed();
+            emit MemberNftMinted(groupKey, memberAddress, mintedTokenId);
+        } catch Error(string memory reason) {
+            revert MintingFailed(reason);
         }
     }
 
@@ -299,7 +346,7 @@ contract MembershipManager is Initializable, UUPSUpgradeable, OwnableUpgradeable
      * @custom:error MemberBatchTooLarge If the number of members exceeds `MAX_MEMBERS_BATCH`.
      * @custom:error (Propagates errors from `addMember`)
      */
-    function addMembers(
+    function mintNftToMembers(
         address[] calldata memberAddresses, 
         bytes32 groupKey
         ) public onlyOwner() {
@@ -309,7 +356,7 @@ contract MembershipManager is Initializable, UUPSUpgradeable, OwnableUpgradeable
         if (memberCount > MAX_MEMBERS_BATCH) revert MemberBatchTooLarge();
 
         for (uint256 i = 0; i < memberCount; i++) {
-            addMember(memberAddresses[i], groupKey);
+            mintNftToMember(memberAddresses[i], groupKey);
         }
     }
 
@@ -323,7 +370,7 @@ contract MembershipManager is Initializable, UUPSUpgradeable, OwnableUpgradeable
      * @custom:error MemberHasMultipleTokens If the member holds more than one token for this group (violates 1:1 model).
      * @custom:error MemberAddressCannotBeZero If `memberAddress` is the zero address.
      */
-    function removeMember(
+    function burnMemberNft(
         address memberAddress, 
         bytes32 groupKey
         ) external onlyOwner() {
@@ -339,7 +386,7 @@ contract MembershipManager is Initializable, UUPSUpgradeable, OwnableUpgradeable
 
         uint256 tokenIdToBurn = nft.tokenOfOwnerByIndex(memberAddress, 0);
         nft.revokeMembershipToken(tokenIdToBurn);
-        emit MemberRemoved(groupKey, memberAddress, tokenIdToBurn);
+        emit MemberNftBurned(groupKey, memberAddress, tokenIdToBurn);
     }
 
 }
