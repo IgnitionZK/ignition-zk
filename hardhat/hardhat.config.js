@@ -9,7 +9,7 @@ module.exports = {
     version: "0.8.28",
     settings: {
       optimizer: { enabled: true, runs: 100_000 },   // use a very high runs value
-      viaIR: true,                                   // ▶ 5‑10 % size drop
+      //viaIR: true,                                   // ▶ 5‑10 % size drop
       // metadata: { bytecodeHash: "none" }             // saves ±120 bytes
     },
   },
