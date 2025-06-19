@@ -65,6 +65,8 @@ export function useVerifyMembership() {
       // Convert proof and public signals to Solidity calldata
       const { proofSolidity, publicSignalsSolidity } =
         await ZKProofGenerator.generateSolidityCalldata(proof, publicSignals);
+      console.log("Proof Solidity: ", proofSolidity);
+      console.log("Public Signals Solidity: ", publicSignalsSolidity);
 
       // Create contract instance
       const contract = new ethers.Contract(

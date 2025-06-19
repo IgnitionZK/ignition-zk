@@ -9,6 +9,8 @@ describe("MembershipManager", function () {
     let membershipVerifier;
     let NFTImplementation;
     let nftImplementation;
+    let AttackerERC721;
+    let attackerERC721;
     
     let deployer;
     let governor;
@@ -25,6 +27,13 @@ describe("MembershipManager", function () {
     let nftName2;
     let nftSymbol2;
 
+    let invalidProof;
+    let invalidPublicSignals;
+
+    let validRoot;
+    let validProof;
+    let validPublicSignals;
+
     // RUN ONCE BEFORE ALL TESTS
     before(async function () {
         [deployer, governor, relayer, user1] = await ethers.getSigners();
@@ -35,6 +44,8 @@ describe("MembershipManager", function () {
         MembershipVerifier = await ethers.getContractFactory("MembershipVerifier");
         // Get Contract Factory for NFT implementation
         NFTImplementation = await ethers.getContractFactory("ERC721IgnitionZK");
+        // Get Contract Factory for AttackerERC721
+        AttackerERC721 = await ethers.getContractFactory("AttackerERC721");
     });
 
     // RUN BEFORE EACH TEST
@@ -70,13 +81,36 @@ describe("MembershipManager", function () {
         nftSymbol = "TGNFT";  
         nftName2 = "Test Group NFT 2";
         nftSymbol2 = "TGNFT2";  
+
+        // invalid proof inputs:
+        invalidProof = [
+            1, 2, 3, 4, 5, 6,
+            7, 8, 9, 10, 11, 12,
+            13, 14, 15, 16, 17, 18,
+            19, 20, 21, 22, 23, 24
+        ];
+        invalidPublicSignals = [
+            ethers.keccak256(ethers.toUtf8Bytes("nullifier")),
+            ethers.keccak256(ethers.toUtf8Bytes("rootHash"))
+        ];
+
+        //valid proof inputs:
+        validGroupKey =  ethers.keccak256(ethers.toUtf8Bytes("bf56d8b4-618e-4bfe-a2b8-0ebeb9c06d2f"));
+        validProof = [20674327637025367664506244357097979168874011659997965212578840228821579083917n, 18154562055949517591009366677147562198736228463028186015368306069411072277399n, 7123596389929049825700189106621770751324891314754936025036587078961564030289n, 9281029334595411766441580381150926959899653652899850646606894291676838891531n, 1447343571025195077543763729484389366627857056153168189544385074435713348107n, 16253308708768748035389080963267786726633177064911817899761481629125349879576n, 12701221827554035367649901166654368730216804495826452307606409039151265999058n, 9553189797919831865213080280057701465606022569425331110549551300946678002421n, 14394218438259968846290506442992167719794631448278776139132896842032459409067n, 17513880645893501135423194462609283488441135379358433717179954758763851869066n, 6777220326612688938495862645415152889581039257329440535370662451289936295279n, 15228564177227916761628330529627362823743069237269459156226479555237648634906n, 11197320498812021529773144257147012589910490770489462666608614607531035232197n, 19703124114507239786573491784163203699503925288041337095070162536301210355259n, 16132479802799583295349530962508551815824072217343315199759373561666581047750n, 5038883688664860352301876460359711297178859361798126011933687759190366167514n, 10484567550861316135619427475672543588094455002133303014946572231673601876921n, 686060677057090146153975231859482127887534647144234586938262712799689957333n, 7922762181338968434410137138468593979559044141024155959859430594752856930367n, 14236382074830612923104187448419417138772320387336712972787281392698217960631n, 15104054627204394003699965595848530547370907105330354061309146536527696505280n, 6534735420410825772982162367315490627623022683850765317556994567185322176694n, 20484809097961565313803679741352766846028526536934273228526895403998124497936n, 16391146020758777388827024924092728385929212801864226190846545137553669805134n]
+        validPublicSignals = [14625843210609328628808221693020936775910419632505608599170019946391716016853n, 21284411868483133640015840002243641200058418874841859199644495183871744595557n]
+        validRoot = ethers.toBeHex(validPublicSignals[1], 32);
+
+        // Deploy AttackerERC721 contract
+        attackerERC721 = await AttackerERC721.deploy(membershipManager.target, groupKey);
+        await attackerERC721.waitForDeployment();
     });
 
     // TEST CASES
-    it("should deploy NFTImplementation, MembershipManager and MembershipVerifier contracts", async function () {
+    it("should deploy NFTImplementation, MembershipManager, MembershipVerifier and AttackerERC721 contracts", async function () {
         expect(membershipManager.target).to.be.properAddress;
         expect(membershipVerifier.target).to.be.properAddress;
         expect(nftImplementation.target).to.be.properAddress;
+        expect(attackerERC721.target).to.be.properAddress;
     });
 
     it("initRoot: should allow the governor to initialize the root of a group and emit event", async function () {
@@ -124,7 +158,7 @@ describe("MembershipManager", function () {
             MembershipManager,
             "RootCannotBeZero"
         );
-    });
+    });    
 
     it("setRoot: should allow the governor to set a new root for an existing group and emit event", async function () {
         await membershipManager.connect(governor).deployGroupNft(groupKey, nftName, nftSymbol);
@@ -214,6 +248,15 @@ describe("MembershipManager", function () {
         ).to.be.reverted;
     });
 
+    it("deployGroupNft: should not allow the governor to deploy a group NFT with a zero groupKey", async function () {
+        await expect(
+            membershipManager.connect(governor).deployGroupNft(ethers.ZeroHash, nftName, nftSymbol)
+        ).to.be.revertedWithCustomError(
+            MembershipManager,
+            "KeyCannotBeZero"
+        );
+    });
+
     /*
     it("getGroupNftAddress: should return the correct NFT address for a given group key", async function () {
         const tx = await membershipManager.connect(governor).deployGroupNft(groupKey, nftName, nftSymbol);
@@ -226,38 +269,281 @@ describe("MembershipManager", function () {
 
     it("mintNftToMember: should allow the governor to mint an NFT to a member and emit event", async function () {
         const user1Address = await user1.getAddress();
-        console.log("User1 Address:", user1Address);
         await membershipManager.connect(governor).deployGroupNft(groupKey, nftName, nftSymbol);
         await expect(membershipManager.connect(governor).mintNftToMember(user1Address, groupKey))
             .to.emit(membershipManager, "MemberNftMinted")
-            .withArgs(groupKey, user1Address, anyUint); // Assuming the first minted token ID is 0
+            .withArgs(groupKey, user1Address, anyUint); // anyUint allows for any uint256 value for the tokenId
     })
 
-    /*function mintNftToMember(
-        address memberAddress, 
-        bytes32 groupKey
-        ) public onlyOwner() {
+    it("mintNftToMember: should not allow the governor to mint an NFT to a member with a zero address", async function () {
+        await membershipManager.connect(governor).deployGroupNft(groupKey, nftName, nftSymbol);
+        await expect(
+            membershipManager.connect(governor).mintNftToMember(ethers.ZeroAddress, groupKey)
+        ).to.be.revertedWithCustomError(
+            MembershipManager,
+            "MemberAddressCannotBeZero"
+        );
+    });
+
+    it("mintNftToMember: should not allow the governor to mint an NFT to a member for a group that has not been initialized", async function () {
+        const user1Address = await user1.getAddress();
+        // Attempt to mint NFT for a group that has not been initialized
+        await expect(
+            membershipManager.connect(governor).mintNftToMember(user1Address, groupKey)
+        ).to.be.revertedWithCustomError(
+            MembershipManager,
+            "GroupNftNotSet"
+        );
+    });
+
+    it("mintNftToMember: should not allow the governor to mint an NFT to a member if the member already has a token", async function () {
+        const user1Address = await user1.getAddress();
+        await membershipManager.connect(governor).deployGroupNft(groupKey, nftName, nftSymbol);
+        await membershipManager.connect(governor).mintNftToMember(user1Address, groupKey);
         
-        address groupNftAddress = groupNftAddresses[groupKey];
-        IERC721IgnitionZK nft = IERC721IgnitionZK(groupNftAddress);
-        uint256 memberBalance = nft.balanceOf(memberAddress);
-        uint256 mintedTokenId;
+        // Attempt to mint NFT again for the same member
+        await expect(
+            membershipManager.connect(governor).mintNftToMember(user1Address, groupKey)
+        ).to.be.revertedWithCustomError(
+            MembershipManager,
+            "MemberAlreadyHasToken"
+        );
+    });
 
-        if (memberAddress == address(0)) revert MemberAddressCannotBeZero();
-        if (groupNftAddress == address(0)) revert GroupNftNotSet();
-        if (memberBalance > 0) revert MemberAlreadyHasToken();
-        if (memberAddress.code.length != 0) revert MemberMustBeEOA();
-    
-        try nft.safeMint(memberAddress) returns (uint256 _tokenId) {
-            mintedTokenId = _tokenId;
-            emit MemberNftMinted(groupKey, memberAddress, mintedTokenId);
-        } catch {
-            revert MintingFailed();
-        }
-    }
+    it("mintNftToMember: should not allow the governor to mint an NFT to a member if the member address is a contract", async function () {
+        await membershipManager.connect(governor).deployGroupNft(groupKey, nftName, nftSymbol); 
+        // Attempt to mint NFT to a contract address
+        await expect(
+            membershipManager.connect(governor).mintNftToMember(membershipVerifier.target, groupKey)
+        ).to.be.revertedWithCustomError(
+            MembershipManager,
+            "MemberMustBeEOA"
+        );
+    });
 
+    it("mintNftToMember: should not allow non-governor to mint an NFT to a member", async function () {
+        const user1Address = await user1.getAddress();
+        await membershipManager.connect(governor).deployGroupNft(groupKey, nftName, nftSymbol);
+        // Attempt to mint NFT by a non-governor
+        await expect(
+            membershipManager.connect(user1).mintNftToMember(user1Address, groupKey)
+        ).to.be.reverted;
+    });
+
+    it("mintNftToMember: should not mint an NFT to a member if the governor revokes the MINTER_ROLE", async function () {
+        const user1Address = await user1.getAddress();
+        await membershipManager.connect(governor).deployGroupNft(groupKey, nftName, nftSymbol);
+        const cloneAddress = await membershipManager.connect(governor).getGroupNftAddress(groupKey);
+        const clone = nftImplementation.attach(cloneAddress);
+        
+        // Revoke MINTER_ROLE from the governor
+        const minterRole = await clone.MINTER_ROLE();
+        await clone.connect(governor).revokeRole(
+            minterRole,
+            membershipManager.target
+        );
+        
+        // Attempt to mint NFT after revoking MINTER_ROLE
+        await expect(
+            membershipManager.connect(governor).mintNftToMember(user1Address, groupKey)
+        ).to.be.revertedWithCustomError(
+            clone,
+            "AccessControlUnauthorizedAccount"
+        );
+    });
+
+    it("mintNftToMember: should allow the governor to mint an NFT to a member after re-granting the MINTER_ROLE", async function () {
+        const user1Address = await user1.getAddress();
+        await membershipManager.connect(governor).deployGroupNft(groupKey, nftName, nftSymbol);
+        const cloneAddress = await membershipManager.connect(governor).getGroupNftAddress(groupKey);
+        const clone = nftImplementation.attach(cloneAddress);
+        
+        // Revoke MINTER_ROLE from the governor
+        const minterRole = await clone.MINTER_ROLE();
+        await clone.connect(governor).revokeRole(
+            minterRole,
+            membershipManager.target
+        );
+
+        // Re-grant MINTER_ROLE to the governor
+        await clone.connect(governor).grantRole(
+            minterRole,
+            membershipManager.target
+        );
+
+        // Mint NFT after re-granting MINTER_ROLE
+        await expect(membershipManager.connect(governor).mintNftToMember(user1Address, groupKey))
+            .to.emit(membershipManager, "MemberNftMinted")
+            .withArgs(groupKey, user1Address, anyUint); // anyUint allows for any uint256 value for the tokenId
+    });
+
+    /*
+    it("mintNftToMember: should not allow reentrancy attack on minting NFT", async function () {
+        const user1Address = await user1.getAddress();
+        const attackerAddress = await attackerERC721.getAddress();
+        console.log("Attacker Address:", attackerAddress);
+        await membershipManager.connect(governor).setGroupNftAddress(groupKey, attackerAddress);
+        const checkAddress = await membershipManager.connect(governor).getGroupNftAddress(groupKey);
+        console.log("Check Address:", checkAddress);
+        await membershipManager.connect(governor).mintNftToMember(user1Address, groupKey);
+    });
     */
 
+    it("burnMemberNft: should allow the governor to burn a member's NFT and emit event", async function () {
+        const user1Address = await user1.getAddress();
+        await membershipManager.connect(governor).deployGroupNft(groupKey, nftName, nftSymbol);
+        await membershipManager.connect(governor).mintNftToMember(user1Address, groupKey);
+        await expect(membershipManager.connect(governor).burnMemberNft(user1Address, groupKey))
+            .to.emit(membershipManager, "MemberNftBurned")
+            .withArgs(groupKey, user1Address, anyUint);
+    });
+
+    it("burnMemberNft: should not allow the governor to burn a member's NFT if the member does not have a token", async function () {
+        const user1Address = await user1.getAddress();
+        await membershipManager.connect(governor).deployGroupNft(groupKey, nftName, nftSymbol);
+        // Attempt to burn NFT for a member that does not have a token
+        await expect(
+            membershipManager.connect(governor).burnMemberNft(user1Address, groupKey)
+        ).to.be.revertedWithCustomError(
+            MembershipManager,
+            "MemberDoesNotHaveToken"
+        );
+    });
+
+    it("burnMemberNft: should not allow the governor to burn an NFT at address zero", async function () {
+        await membershipManager.connect(governor).deployGroupNft(groupKey, nftName, nftSymbol);
+        await expect(membershipManager.connect(governor).mintNftToMember(ethers.ZeroAddress, groupKey)).to.be.revertedWithCustomError(
+            MembershipManager,
+            "MemberAddressCannotBeZero"
+        );
+    });
+
+    it("burnMemberNft: should not allow non-governor to burn a member's NFT", async function () {
+        const user1Address = await user1.getAddress();
+        await membershipManager.connect(governor).deployGroupNft(groupKey, nftName, nftSymbol);
+        await membershipManager.connect(governor).mintNftToMember(user1Address, groupKey);
+        // Attempt to burn NFT by a non-governor
+        await expect(
+            membershipManager.connect(user1).burnMemberNft(user1Address, groupKey)
+        ).to.be.reverted;
+    });
+
+    it("burnMemberNft: should not allow the NFT to be burned if the governor revokes the BURNER_ROLE", async function () {
+        const user1Address = await user1.getAddress();
+        await membershipManager.connect(governor).deployGroupNft(groupKey, nftName, nftSymbol);
+        await membershipManager.connect(governor).mintNftToMember(user1Address, groupKey);
+
+        const cloneAddress = await membershipManager.connect(governor).getGroupNftAddress(groupKey);
+        const clone = nftImplementation.attach(cloneAddress);
+        // Revoke BURNER_ROLE from the governor
+        const burnerRole = await clone.BURNER_ROLE();
+        await clone.connect(governor).revokeRole(
+            burnerRole,
+            membershipManager.target
+        );
+        // Attempt to burn NFT after revoking BURNER_ROLE
+        await expect(
+            membershipManager.connect(governor).burnMemberNft(user1Address, groupKey)
+        ).to.be.revertedWithCustomError(
+            clone,
+            "AccessControlUnauthorizedAccount"
+        );
+    });
+
+    it("burnMemberNft: should allow the governor to burn a member's NFT after re-granting the BURNER_ROLE", async function () {
+        const user1Address = await user1.getAddress();
+        await membershipManager.connect(governor).deployGroupNft(groupKey, nftName, nftSymbol);
+        await membershipManager.connect(governor).mintNftToMember(user1Address, groupKey);
+
+        const cloneAddress = await membershipManager.connect(governor).getGroupNftAddress(groupKey);
+        const clone = nftImplementation.attach(cloneAddress);
+        // Revoke BURNER_ROLE from the governor
+        const burnerRole = await clone.BURNER_ROLE();
+        await clone.connect(governor).revokeRole(
+            burnerRole,
+            membershipManager.target
+        ); 
+        // Re-grant BURNER_ROLE to the governor
+        await clone.connect(governor).grantRole(
+            burnerRole,
+            membershipManager.target
+        );  
+        // Burn NFT after re-granting BURNER_ROLE
+        await expect(membershipManager.connect(governor).burnMemberNft(user1Address, groupKey))
+            .to.emit(membershipManager, "MemberNftBurned")
+            .withArgs(groupKey, user1Address, anyUint); 
+    });
+
+    it("verifyProof: should not allow the governor to verify an invalid proof", async function () {
+        const user1Address = await user1.getAddress();
+        await membershipManager.connect(governor).deployGroupNft(groupKey, nftName, nftSymbol);
+        await membershipManager.connect(governor).initRoot(rootHash, groupKey);
+        await expect(membershipManager.connect(governor).verifyProof(invalidProof, invalidPublicSignals, groupKey))
+            .to.be.revertedWithCustomError(
+                membershipManager,
+                "InvalidProof"
+            );
+    });
+
+    it("verifyProof: should emit ProofFailed event for an invalid proof", async function () {
+        await membershipManager.connect(governor).deployGroupNft(groupKey, nftName, nftSymbol);
+        await membershipManager.connect(governor).initRoot(rootHash, groupKey);
+        await expect(membershipManager.connect(governor).verifyProof(invalidProof, invalidPublicSignals, groupKey))
+            .to.be.revertedWithCustomError(
+                membershipManager,
+                "InvalidProof"
+            )
+            .withArgs(groupKey, invalidPublicSignals[0]);
+    });
+
+    it("verifyProof: should not allow the governor to verify a proof with an uninitialized group root", async function () {
+        const user1Address = await user1.getAddress();
+        await membershipManager.connect(governor).deployGroupNft(groupKey, nftName, nftSymbol);
+        // Attempt to verify proof without initializing the group root
+        await expect(
+            membershipManager.connect(governor).verifyProof(invalidProof, invalidPublicSignals, groupKey)
+        ).to.be.revertedWithCustomError(
+            membershipManager,
+            "RootNotYetInitialized"
+        );
+    });
+      
+    it("verifyProof: should allow the governor to verify a valid proof and emit event", async function () {
+        
+        await membershipManager.connect(governor).deployGroupNft(validGroupKey, nftName, nftSymbol);
+        await membershipManager.connect(governor).initRoot(validRoot, validGroupKey);
+        await expect(membershipManager.connect(governor).verifyProof(validProof, validPublicSignals, validGroupKey))
+            .to.emit(membershipManager, "ProofVerified")
+            .withArgs(validGroupKey, validPublicSignals[0]);
+    });
+
+    it("verifyProof: should store the nullifier after a successful proof verification", async function () {
+        await membershipManager.connect(governor).deployGroupNft(validGroupKey, nftName, nftSymbol);
+        await membershipManager.connect(governor).initRoot(validRoot, validGroupKey);
+        await membershipManager.connect(governor).verifyProof(validProof, validPublicSignals, validGroupKey);
+        const nullifier = ethers.toBeHex(validPublicSignals[0], 32);
+        const isNullifierUsed = await membershipManager.connect(governor).getNullifier(validGroupKey, nullifier);
+        expect(isNullifierUsed).to.be.true;
+    });
+
+    it("verifyProof: should not allow the governor to verify a proof with an already used nullifier", async function () {
+        await membershipManager.connect(governor).deployGroupNft(validGroupKey, nftName, nftSymbol);
+        await membershipManager.connect(governor).initRoot(validRoot, validGroupKey);
+        await membershipManager.connect(governor).verifyProof(validProof, validPublicSignals, validGroupKey);
+        await expect(membershipManager.connect(governor).verifyProof(validProof, validPublicSignals, validGroupKey))
+            .to.be.revertedWithCustomError(
+                membershipManager,
+                "NullifierAlreadyUsed"
+            );
+    });
+
+    it("verifyProof: should not allow non-governor to verify a proof", async function () {
+        await membershipManager.connect(governor).deployGroupNft(validGroupKey, nftName, nftSymbol);
+        await membershipManager.connect(governor).initRoot(validRoot, validGroupKey);
+        await expect(
+            membershipManager.connect(user1).verifyProof(validProof, validPublicSignals, validGroupKey)
+        ).to.be.reverted;
+    });
 
 });
 
