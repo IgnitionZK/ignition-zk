@@ -485,7 +485,7 @@ describe("MembershipManager", function () {
             );
     });
 
-    it("verifyProof: should emit ProofFailed event for an invalid proof", async function () {
+    it("verifyProof: should emit InvalidProof event with parameters for an invalid proof", async function () {
         await membershipManager.connect(governor).deployGroupNft(groupKey, nftName, nftSymbol);
         await membershipManager.connect(governor).initRoot(rootHash, groupKey);
         await expect(membershipManager.connect(governor).verifyProof(invalidProof, invalidPublicSignals, groupKey))
