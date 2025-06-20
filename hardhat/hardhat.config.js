@@ -1,14 +1,14 @@
 require("@nomicfoundation/hardhat-toolbox");
 require("@openzeppelin/hardhat-upgrades");
-require('hardhat-contract-sizer');
+require("hardhat-contract-sizer");
 require("dotenv").config();
 
 /** @type import('hardhat/config').HardhatUserConfig */
 module.exports = {
-  solidity: { 
+  solidity: {
     version: "0.8.28",
     settings: {
-      optimizer: { enabled: true, runs: 100_000 },   // use a very high runs value
+      optimizer: { enabled: true, runs: 100_000 }, // use a very high runs value
       //viaIR: true,                                   // ▶ 5‑10 % size drop
       // metadata: { bytecodeHash: "none" }             // saves ±120 bytes
     },
@@ -22,21 +22,24 @@ module.exports = {
       "MembershipManager",
       "ERC721IgnitionZK",
       "MembershipVerifier",
-      "Governor"
+      "Governor",
     ],
   },
   networks: {
     sepolia: {
       url: process.env.ALCHEMY_SEPOLIA_URL,
-      accounts: [process.env.PRIVATE_KEY]
+      accounts: [process.env.PRIVATE_KEY],
+      gasPrice: 20000000000, // 20 gwei
+      gas: 8000000, // 8M gas limit
+      timeout: 300000, // 5 minutes
     },
     localhost: {
-      url: "http://127.0.0.1:8545" // Local Hardhat node URL
+      url: "http://127.0.0.1:8545", // Local Hardhat node URL
     },
   },
   etherscan: {
     apiKey: {
-      sepolia: process.env.ETHERSCAN_API_KEY
-    }
-  }
-}
+      sepolia: process.env.ETHERSCAN_API_KEY,
+    },
+  },
+};
