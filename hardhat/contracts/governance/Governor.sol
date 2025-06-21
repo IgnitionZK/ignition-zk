@@ -146,33 +146,90 @@ contract Governor is Initializable, UUPSUpgradeable, OwnableUpgradeable {
     }
 
     /**
-     * @notice Delegates the addMember call to the membership manager.
+     * @notice Delegates the mintNftToMember call to the membership manager.
      * @dev Only callable by the relayer.
      * @param memberAddress The address of the member to add.
      * @param groupKey The unique identifier for the group.
      */
-    function delegateAddMember(address memberAddress, bytes32 groupKey) external onlyRelayer {
-        IMembershipManager(membershipManager).addMember(memberAddress, groupKey);
+    function delegateMintNftToMember(address memberAddress, bytes32 groupKey) external onlyRelayer {
+        IMembershipManager(membershipManager).mintNftToMember(memberAddress, groupKey);
     }
 
     /**
-     * @notice Delegates the addMembers call to the membership manager.
+     * @notice Delegates the mintNftToMembers call to the membership manager.
      * @dev Only callable by the relayer.
      * @param memberAddresses The addresses of the members to add.
      * @param groupKey The unique identifier for the group.
      */
-    function delegateAddMembers(address[] calldata memberAddresses, bytes32 groupKey) external onlyRelayer {
-        IMembershipManager(membershipManager).addMembers(memberAddresses, groupKey);
+    function delegateMintNftToMembers(address[] calldata memberAddresses, bytes32 groupKey) external onlyRelayer {
+        IMembershipManager(membershipManager).mintNftToMembers(memberAddresses, groupKey);
     }
 
     /**
-     * @notice Delegates the removeMember call to the membership manager.
+     * @notice Delegates the burnMemberNft call to the membership manager.
      * @dev Only callable by the relayer.
      * @param memberAddress The address of the member to remove.
      * @param groupKey The unique identifier for the group.
      */
-    function delegateRemoveMember(address memberAddress, bytes32 groupKey) external onlyRelayer {
-        IMembershipManager(membershipManager).removeMember(memberAddress, groupKey);
+    function delegateBurnMemberNft(address memberAddress, bytes32 groupKey) external onlyRelayer {
+        IMembershipManager(membershipManager).burnMemberNft(memberAddress, groupKey);
+    }
+
+    /**
+     * @notice Delegates the getVerifier call to the membership manager.
+     * @dev Only callable by the relayer.
+     * @return The address of the verifier contract.
+     */
+    function delegateGetVerifier() external view onlyRelayer returns (address) {
+        return IMembershipManager(membershipManager).getVerifier();
+    }
+
+    /**
+     * @notice Delegates the getGovernor call to the membership manager.
+     * @dev Only callable by the relayer.
+     * @return The address of the governor contract.
+     */
+    function delegateGetGovernor() external view onlyRelayer returns (address) {
+        return IMembershipManager(membershipManager).getGovernor();
+    }
+
+    /**
+     * @notice Delegates the getNftImplementation call to the membership manager.
+     * @dev Only callable by the relayer.
+     * @return The address of the NFT implementation contract.
+     */
+    function delegateGetNftImplementation() external view onlyRelayer returns (address) {
+        return IMembershipManager(membershipManager).getNftImplementation();
+    }
+
+    /**
+     * @notice Delegates the getMaxMembersBatch call to the membership manager.
+     * @dev Only callable by the relayer.
+     * @return The maximum batch size for member additions.
+     */
+    function delegateGetMaxMembersBatch() external view onlyRelayer returns (uint256) {
+        return IMembershipManager(membershipManager).getMaxMembersBatch();
+    }
+
+    /**
+     * @notice Delegates the getGroupNftAddress call to the membership manager.
+     * @dev Only callable by the relayer.
+     * @param groupKey The unique identifier for the group.
+     * @return The address of the ERC721 NFT contract associated with the specified group key.
+     */
+    function delegateGetGroupNftAddress(bytes32 groupKey) external view onlyRelayer returns (address) {
+        return IMembershipManager(membershipManager).getGroupNftAddress(groupKey);
+    }
+
+    /**
+     * @notice Delegates the getNullifier call to the membership manager.
+     * @dev Only callable by the relayer.
+     * @param groupKey The unique identifier for the group.
+     * @param nullifier The nullifier to check.
+     * @return bool indicating whether the nullifier has been used.
+     */
+    function delegateGetNullifier(bytes32 groupKey, bytes32 nullifier) external view onlyRelayer returns (bool) {
+        return IMembershipManager(membershipManager).getNullifier(groupKey, nullifier);
     }
 
 }
