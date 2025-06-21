@@ -37,7 +37,7 @@ interface IMembershipManager {
     function initRoot(bytes32 initialRoot, bytes32 groupKey) external;
     function setRoot(bytes32 newRoot, bytes32 groupKey) external;
     function getRoot(bytes32 groupKey) external view returns (bytes32);
-    function verifyProof(uint256[24] calldata proof, uint256[2] calldata publicSignals, bytes32 groupKey) external;
+    function verifyProof(uint256[24] calldata proof, uint256[3] calldata publicSignals, bytes32 groupKey) external;
     function deployGroupNft(bytes32 groupKey, string calldata name, string calldata symbol) external returns (address);
     function getGroupNftAddress(bytes32 groupKey) external view returns (address);
     function getNullifier(bytes32 groupKey, bytes32 nullifier) external view returns (bool);

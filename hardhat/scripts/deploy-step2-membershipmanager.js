@@ -14,8 +14,8 @@ async function main() {
 
   // Configuration - Update these addresses from previous steps
   const NFT_IMPLEMENTATION_ADDRESS =
-    "0x8C49a9e2ED2c8e2AbA0D7B1Eead12C08bbd342C8"; // From Step 1
-  const VERIFIER_ADDRESS = "0x8C3f64C4D2315842e40Fa281a0dF7411F1Caf13f";
+    "0xbaa533Df4Ce143ADf582c342d8D2f65E6C48f1c4"; // From Step 1
+  const VERIFIER_ADDRESS = "0x03032Eb295D287cE69d0c9be0F75F35d916564A6"; // From hardhat ignition deploy
   const GOVERNOR_PLACEHOLDER = "0x5F909fd25A9F5e4f5a219318FdeD6C8124F6c1F1";
 
   console.log("📋 Configuration:");

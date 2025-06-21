@@ -43,6 +43,7 @@ contract MembershipManager is Initializable, UUPSUpgradeable, OwnableUpgradeable
     // Proof errors:
     error InvalidProof(bytes32 groupKey, bytes32 nullifier);
     error NullifierAlreadyUsed();
+    error InvalidGroupKey();
     // Member errors:
     error MemberAddressCannotBeZero();
     error MemberAlreadyHasToken();
@@ -235,7 +236,7 @@ contract MembershipManager is Initializable, UUPSUpgradeable, OwnableUpgradeable
      */
     function initRoot(bytes32 initialRoot, bytes32 groupKey) external onlyOwner nonZeroKey(groupKey) {
         bytes32 currentRoot = groupRoots[groupKey];
-        address nftAddress = _mustHaveSetGroupNft(groupKey);
+        _mustHaveSetGroupNft(groupKey);
         if (currentRoot != bytes32(0)) revert RootAlreadyInitialized();
         if (initialRoot == bytes32(0)) revert RootCannotBeZero();
 
@@ -254,7 +255,7 @@ contract MembershipManager is Initializable, UUPSUpgradeable, OwnableUpgradeable
      */
     function setRoot(bytes32 newRoot, bytes32 groupKey) external onlyOwner nonZeroKey(groupKey) {
         bytes32 currentRoot = groupRoots[groupKey];
-        address nftAddress = _mustHaveSetGroupNft(groupKey);
+        _mustHaveSetGroupNft(groupKey);
 
         if (currentRoot == bytes32(0)) revert RootNotYetInitialized();
         if (newRoot == bytes32(0)) revert RootCannotBeZero();
@@ -288,16 +289,18 @@ contract MembershipManager is Initializable, UUPSUpgradeable, OwnableUpgradeable
      */
     function verifyProof(
         uint256[24] calldata proof, 
-        uint256[2] calldata publicSignals,
+        uint256[3] calldata publicSignals,
         bytes32 groupKey
         ) external onlyOwner nonZeroKey(groupKey) {
         bytes32 proofRoot = bytes32(publicSignals[1]);
         bytes32 nullifier = bytes32(publicSignals[0]);
+        bytes32 externalNullifier = bytes32(publicSignals[2]);
         bytes32 currentRoot = groupRoots[groupKey];
 
         if (currentRoot == bytes32(0)) revert RootNotYetInitialized();
         if (currentRoot != proofRoot) revert InvalidMerkleRoot();
         if (groupNullifiers[groupKey][nullifier]) revert NullifierAlreadyUsed();
+        if (externalNullifier != groupKey) revert InvalidGroupKey();
 
         bool isValid = verifier.verifyProof(proof, publicSignals);
         if (!isValid) {
