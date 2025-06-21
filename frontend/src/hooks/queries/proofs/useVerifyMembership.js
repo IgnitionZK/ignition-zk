@@ -6,11 +6,11 @@ import { ethers } from "ethers";
 
 // ABI for the MembershipVerifier contract
 const MEMBERSHIP_VERIFIER_ABI = [
-  "function verifyProof(uint256[24] calldata _proof, uint256[2] calldata _pubSignals) public view returns (bool)",
+  "function verifyProof(uint256[24] calldata _proof, uint256[3] calldata _pubSignals) public view returns (bool)",
 ];
 
 const MEMBERSHIP_VERIFIER_ADDRESS =
-  "0x8C3f64C4D2315842e40Fa281a0dF7411F1Caf13f";
+  "0x03032Eb295D287cE69d0c9be0F75F35d916564A6";
 
 /**
  * Custom hook for verifying membership using zero-knowledge proofs
