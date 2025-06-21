@@ -319,6 +319,41 @@ contract MembershipManager is Initializable, UUPSUpgradeable, OwnableUpgradeable
         return groupNullifiers[groupKey][nullifier];
     }
 
+    /**
+     * @notice Retrieves the address of the zk-SNARK verifier contract.
+     * @dev Only callable by the owner (governor).
+     * @return The address of the verifier contract.
+     */
+    function getVerifier() external view onlyOwner returns (address) {
+        return address(verifier);
+    }
+
+    /**
+     * @notice Retrieves the address of the governor contract.
+     * @dev Only callable by the owner (governor).
+     * @return The address of the governor contract.
+     */
+    function getGovernor() external view onlyOwner returns (address) {
+        return governor;
+    }
+
+    /**
+     * @notice Retrieves the address of the NFT implementation contract.
+     * @dev Only callable by the owner (governor).
+     * @return The address of the NFT implementation contract.
+     */
+    function getNftImplementation() external view onlyOwner returns (address) {
+        return nftImplementation;
+    }
+
+    /**
+     * @notice Retrieves the maximum number of members that can be added in a single batch transaction.
+     * @dev Only callable by the owner (governor).
+     * @return The maximum batch size for member additions.
+     */
+    function getMaxMembersBatch() external view onlyOwner returns (uint256) {
+        return MAX_MEMBERS_BATCH;
+    }
 
     /** 
      * @notice Adds a new member to a specific group by minting an ERC721 token.
