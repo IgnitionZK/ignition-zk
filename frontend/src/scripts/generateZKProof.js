@@ -4,8 +4,8 @@ import { MerkleTreeService } from "./merkleTreeService.js";
 import { keccak256, toUtf8Bytes } from "ethers";
 
 export class ZKProofGenerator {
-  // Membership circuit paths
 
+  // Membership circuit paths
   static #MEMBERSHIP_WASM_PATH = "/membership_circuit/membership_circuit.wasm";
   static #MEMBERSHIP_ZKEY_PATH =
     "/membership_circuit/membership_circuit_final.zkey";
@@ -22,13 +22,20 @@ export class ZKProofGenerator {
   static #PROPOSAL_ZKEY_PATH = "";
   static #PROPOSAL_VKEY_PATH = "";
 
+  // Field modulus for the ZK circuits
+  static FIELD_MODULUS = BigInt(
+  "21888242871839275222246405745257275088548364400416034343698204186575808495617"
+  );
+
   /**
    * Converts a UUID string to a BigInt representation.
+   * This method hashes the UUID using keccak256 and reduces it modulo the field modulus.
    * @param {string} uuid - The UUID string to convert.
    * @returns {bigint} The BigInt representation of the UUID.
    */
   static #uuidToBigInt(uuid) {
-    return BigInt(keccak256(toUtf8Bytes(uuid)));
+    const hash = BigInt(keccak256(toUtf8Bytes(uuid)));
+    return hash % this.FIELD_MODULUS;
   }
 
   /**
@@ -109,7 +116,7 @@ export class ZKProofGenerator {
     console.log("External Nullifier BigInt:", externalNullifierBigInt);
 
     const circuitInput = {
-      root,
+      root: root.toString(),
       identityTrapdoor: trapdoor.toString(),
       identityNullifier: nullifier.toString(),
       externalNullifier: externalNullifierBigInt.toString(),

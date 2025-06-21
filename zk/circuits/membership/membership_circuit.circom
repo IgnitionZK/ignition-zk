@@ -191,4 +191,4 @@ template MembershipProof(treeLevels) {
  * @dev Declares the root signal as public. 
  * @dev The publicNullifier signal is also public by default as it is declared as output.
  */
-component main {public [root]} = MembershipProof(10);
+component main {public [root, externalNullifier]} = MembershipProof(10);

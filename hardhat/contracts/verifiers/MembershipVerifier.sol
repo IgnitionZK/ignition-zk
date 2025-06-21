@@ -40,31 +40,31 @@ contract MembershipVerifier {
     
     // Verification Key data
     uint32 constant n         = 8192;
-    uint16 constant nPublic   = 2;
-    uint16 constant nLagrange = 2;
+    uint16 constant nPublic   = 3;
+    uint16 constant nLagrange = 3;
     
-    uint256 constant Qmx  = 18427325575008305775622827183420536138964615502239202540529246208440628627999;
-    uint256 constant Qmy  = 19484613299284010471921314758861631385408261929706061716097393990122270093620;
-    uint256 constant Qlx  = 18403290872605430684274705438769375800457921071357160550285984961948107459815;
-    uint256 constant Qly  = 10743924541763381489211055421764203377193578975450100490256310499238515440414;
-    uint256 constant Qrx  = 7853642843006472111566494959607064231420029411472460100227924225226017449462;
-    uint256 constant Qry  = 12931689895253730662110030278177292701204623982174775479836851594764895006641;
-    uint256 constant Qox  = 17422329189538359814336198894558585856339393769020786076436633055881655693881;
-    uint256 constant Qoy  = 15859290325364740235302534733132082541537965247233298606864502547378504726582;
-    uint256 constant Qcx  = 5484671096960238564291326769826918377901447616283648528270171858368259596465;
-    uint256 constant Qcy  = 21459518004794442278337166737706562022657207299462054524056001994961257794351;
-    uint256 constant S1x  = 5543494130367579011583404816823863946315485141913780856723108854852680892882;
-    uint256 constant S1y  = 4637140484706041307485595064944625694508559123487121853595476810033601935836;
-    uint256 constant S2x  = 3356628054578168021683470119721801405679696556014076949696552466411222789265;
-    uint256 constant S2y  = 3792922288431199738755338870075594719886860878637812620788822977428797311957;
-    uint256 constant S3x  = 8132076624704878247418006731920572130045186022428364092652956893999248934686;
-    uint256 constant S3y  = 14905410151069720497450223002617815684266828358059790436011003924158461085865;
+    uint256 constant Qmx  = 7467899701582794261941058439772788267796888600705895682610525246491160596934;
+    uint256 constant Qmy  = 11029853517818101706070609584725121567807692088842156879767648207595222596281;
+    uint256 constant Qlx  = 12750294573872352206475577303542508662582522641285278901734496788780902132471;
+    uint256 constant Qly  = 15443236459389558733930909752243836529803754588927326258473117329365008514870;
+    uint256 constant Qrx  = 20168728563447911549555880180216746216736977009685923192063830856054684897286;
+    uint256 constant Qry  = 16017548918994430557113888387391353411789692842569355995769456041050563684477;
+    uint256 constant Qox  = 12052289941116574625339891656295039671351588137491841209691100791173674242186;
+    uint256 constant Qoy  = 5221423696682849745420780876513741256109617218496167751588529211789553672436;
+    uint256 constant Qcx  = 16185199078511654761189972023386352916381952454591687125213880066850301709865;
+    uint256 constant Qcy  = 2928572543232181546937727150057803130959952386451856612534385652761480477743;
+    uint256 constant S1x  = 18534069073945190083389083277425542947673065110547270720209877075107374337031;
+    uint256 constant S1y  = 17788924156680467111600863207012656058913256737163435641145498409696659964907;
+    uint256 constant S2x  = 20698758205616596877816030039192709240471736191013504504134989827557068869809;
+    uint256 constant S2y  = 2504677004980488865933134142946680747937706658594244067606153087097839221397;
+    uint256 constant S3x  = 5572221415569848587248849784370641299645710679921625372944972159029685376274;
+    uint256 constant S3y  = 6011361499823041331564913424692779189799221016311476304734129616728482629658;
     uint256 constant k1   = 2;
     uint256 constant k2   = 3;
-    uint256 constant X2x1 = 9478732079958189179603512881005323040172578420361545931373633743365462734142;
-    uint256 constant X2x2 = 13586925473528798549856269980817300223678507598246280528676677011378344356968;
-    uint256 constant X2y1 = 9428482633226695550844627774940495240986864786783203378171836988902357617362;
-    uint256 constant X2y2 = 6565357459592894631023212103388317497852590158526797244806766908441818695715;
+    uint256 constant X2x1 = 12162926275010107821417086553760861934065845606081231188020364549341243249980;
+    uint256 constant X2x2 = 429473859590849411761439013384010998760759221203649431302673068997700033071;
+    uint256 constant X2y1 = 8347411835858079638275100245099179601198814908695462000130145102263836657099;
+    uint256 constant X2y2 = 17542233151552854675183487649525382833261187512742012676498943237517048575322;
     
     // Proof calldata
     // Byte offset of every parameter of the calldata
@@ -116,11 +116,13 @@ contract MembershipVerifier {
     
     uint16 constant pEval_l2 = 832;
     
+    uint16 constant pEval_l3 = 864;
     
     
-    uint16 constant lastMem = 864;
+    
+    uint16 constant lastMem = 896;
 
-    function verifyProof(uint256[24] calldata _proof, uint256[2] calldata _pubSignals) public view returns (bool) {
+    function verifyProof(uint256[24] calldata _proof, uint256[3] calldata _pubSignals) public view returns (bool) {
         assembly {
             /////////
             // Computes the inverse using the extended euclidean algorithm
@@ -237,14 +239,16 @@ contract MembershipVerifier {
                 
                 mstore(add(mIn, 544), calldataload(add(pPublic, 32)))
                 
-                mstore(add(mIn, 576 ), calldataload(pA))
-                mstore(add(mIn, 608 ), calldataload(add(pA, 32)))
-                mstore(add(mIn, 640 ), calldataload(pB))
-                mstore(add(mIn, 672 ), calldataload(add(pB, 32)))
-                mstore(add(mIn, 704 ), calldataload(pC))
-                mstore(add(mIn, 736 ), calldataload(add(pC, 32)))
+                mstore(add(mIn, 576), calldataload(add(pPublic, 64)))
                 
-                beta := mod(keccak256(mIn, 768), q) 
+                mstore(add(mIn, 608 ), calldataload(pA))
+                mstore(add(mIn, 640 ), calldataload(add(pA, 32)))
+                mstore(add(mIn, 672 ), calldataload(pB))
+                mstore(add(mIn, 704 ), calldataload(add(pB, 32)))
+                mstore(add(mIn, 736 ), calldataload(pC))
+                mstore(add(mIn, 768 ), calldataload(add(pC, 32)))
+                
+                beta := mod(keccak256(mIn, 800), q) 
                 mstore(add(pMem, pBeta), beta)
 
                 // challenges.gamma
@@ -383,9 +387,30 @@ contract MembershipVerifier {
                     )
                 )
                 
+                w := mulmod(w, w1, q)
                 
                 
-                inverseArray(add(pMem, pZhInv), 3 )
+                mstore(
+                    add(pMem, pEval_l3), 
+                    mulmod(
+                        n, 
+                        mod(
+                            add(
+                                sub(
+                                    mload(add(pMem, pXi)), 
+                                    w
+                                ), 
+                                q
+                            ),
+                            q
+                        ), 
+                        q
+                    )
+                )
+                
+                
+                
+                inverseArray(add(pMem, pZhInv), 4 )
                 
                 let zh := mload(add(pMem, pZh))
                 w := 1
@@ -411,6 +436,24 @@ contract MembershipVerifier {
                         w,
                         mulmod(
                             mload(add(pMem, pEval_l2)),
+                            zh,
+                            q
+                        ),
+                        q
+                    )
+                )
+                
+                
+                w := mulmod(w, w1, q)
+                
+                
+                
+                mstore(
+                    add(pMem, pEval_l3), 
+                    mulmod(
+                        w,
+                        mulmod(
+                            mload(add(pMem, pEval_l3)),
                             zh,
                             q
                         ),
@@ -450,6 +493,21 @@ contract MembershipVerifier {
                             mulmod(
                                 mload(add(pMem, pEval_l2)),
                                 calldataload(add(pPub, 32)),
+                                q
+                            )
+                        ),
+                        q
+                    ),
+                    q
+                )
+                 
+                pl := mod(
+                    add(
+                        sub(
+                            pl,  
+                            mulmod(
+                                mload(add(pMem, pEval_l3)),
+                                calldataload(add(pPub, 64)),
                                 q
                             )
                         ),

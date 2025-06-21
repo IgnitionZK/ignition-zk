@@ -14,7 +14,7 @@ async function main() {
 
   // Configuration - Update these addresses from previous steps
   const MEMBERSHIP_MANAGER_ADDRESS =
-    "0xCd07Bf51Ccd58A3B43eF407ca771497DE7744672"; // From Step 2
+    "0xeE60b7b9A5016E39c37cEEDE021a0a38799ba0AE"; // From Step 2
   const OWNER_RELAYER = "0x5F909fd25A9F5e4f5a219318FdeD6C8124F6c1F1";
 
   console.log("📋 Configuration:");
@@ -27,7 +27,7 @@ async function main() {
     console.log("📦 Deploying Governor as UUPS proxy...");
     console.log("⏳ This may take a few minutes...");
 
-    const Governor = await ethers.getContractFactory("Governor");
+    const Governor = await ethers.getContractFactory("GovernanceManager");
     const governor = await upgrades.deployProxy(
       Governor,
       [

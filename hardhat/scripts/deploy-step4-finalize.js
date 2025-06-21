@@ -14,8 +14,8 @@ async function main() {
 
   // Configuration - Update these addresses from previous steps
   const MEMBERSHIP_MANAGER_ADDRESS =
-    "0xCd07Bf51Ccd58A3B43eF407ca771497DE7744672"; // From Step 2
-  const GOVERNOR_ADDRESS = "0x62f8A5d3A2B578D46fdd8e9C02Ab0C30c2d9F9B9"; // From Step 3
+    "0xeE60b7b9A5016E39c37cEEDE021a0a38799ba0AE"; // From Step 2
+  const GOVERNOR_ADDRESS = "0x809B3aF634aC3F45bfDFc09Fd7887F980831DC13"; // From Step 3
   const OWNER_RELAYER = "0x5F909fd25A9F5e4f5a219318FdeD6C8124F6c1F1";
 
   console.log("📋 Configuration:");
@@ -38,7 +38,7 @@ async function main() {
       "MembershipManager",
       MEMBERSHIP_MANAGER_ADDRESS
     );
-    const governor = await ethers.getContractAt("Governor", GOVERNOR_ADDRESS);
+    const governor = await ethers.getContractAt("GovernanceManager", GOVERNOR_ADDRESS);
 
     console.log(
       "🔧 Step 4a: Transferring MembershipManager ownership to Governor..."
@@ -77,7 +77,7 @@ async function main() {
     console.log("=".repeat(60));
     console.log("📋 Final Contract Addresses:");
     console.log(
-      `🔧 ERC721IgnitionZK (Implementation): 0x8C49a9e2ED2c8e2AbA0D7B1Eead12C08bbd342C8`
+      `🔧 ERC721IgnitionZK (Implementation): 0xbaa533Df4Ce143ADf582c342d8D2f65E6C48f1c4`
     );
     console.log(`👥 MembershipManager (Proxy): ${MEMBERSHIP_MANAGER_ADDRESS}`);
     console.log(`🏛️  Governor (Proxy): ${GOVERNOR_ADDRESS}`);
