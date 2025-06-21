@@ -32,3 +32,47 @@ export async function searchGroups({ name }) {
 
   return data;
 }
+
+export async function insertNewGroup({ name }) {
+  if (!name) {
+    throw new Error("name is required");
+  }
+
+  const { data, error } = await supabase
+    .schema("ignitionzk")
+    .from("groups")
+    .insert([{ name }])
+    .select();
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  return data;
+}
+
+export async function insertERC721ContractAddress({
+  group_id,
+  erc721_contract_address,
+}) {
+  if (!group_id) {
+    throw new Error("group_id is required");
+  }
+
+  if (!erc721_contract_address) {
+    throw new Error("erc721_contract_address is required");
+  }
+
+  const { data, error } = await supabase
+    .schema("ignitionzk")
+    .from("groups")
+    .update({ erc721_contract_address })
+    .eq("id", group_id)
+    .select();
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  return data;
+}
