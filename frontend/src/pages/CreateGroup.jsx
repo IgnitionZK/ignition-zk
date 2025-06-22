@@ -6,6 +6,11 @@ import PageHeader from "../components/PageHeader";
 import CustomButton from "../components/CustomButton";
 import CustomButtonIcon from "../components/CustomButtonIcon";
 
+// hooks
+import { useInsertNewGroup } from "../hooks/queries/groups/useInsertNewGroup";
+import { useRelayerDeployERC721 } from "../hooks/relayers/useRelayerDeployERC721";
+import { useInsertERC721ContractAddress } from "../hooks/queries/groups/useInsertERC721ContractAddress";
+
 // icons
 import { IoIosInformationCircle } from "react-icons/io";
 import { FaCirclePlus } from "react-icons/fa6";
@@ -165,6 +170,15 @@ export default function CreateGroup({ onCancel }) {
   const [touched, setTouched] = useState([]);
   const [formSubmitted, setFormSubmitted] = useState(false);
 
+  // Hook for inserting new group
+  const { insertNewGroup, isLoading } = useInsertNewGroup();
+
+  // Hook for deploying ERC721 contract
+  const { deployERC721 } = useRelayerDeployERC721();
+
+  // Hook for inserting ERC721 contract address
+  const { insertERC721ContractAddress } = useInsertERC721ContractAddress();
+
   // Add a new empty member input row
   const handleAddMemberInput = () => {
     setMemberInputs((prev) => [...prev, ""]);
@@ -228,7 +242,80 @@ export default function CreateGroup({ onCancel }) {
     ) {
       return;
     }
-    // Proceed with form submission logic here
+
+    // Insert the new group using the hook
+    insertNewGroup(
+      { name: groupName.trim() },
+      {
+        onSuccess: (data) => {
+          console.log("Group created successfully:", data);
+          console.log("Token name: ", tokenName);
+          console.log("Token symbol: ", tokenSymbol);
+
+          // Deploy ERC721 contract using the new group data
+          deployERC721(
+            {
+              groupId: data[0].group_id,
+              tokenName: tokenName,
+              tokenSymbol: tokenSymbol,
+            },
+            {
+              onSuccess: (deployedData) => {
+                console.log(
+                  "ERC721 contract deployed successfully:",
+                  deployedData
+                );
+
+                // Save the deployed contract address to the database
+                if (deployedData.deployedNftAddress) {
+                  insertERC721ContractAddress(
+                    {
+                      group_id: data[0].group_id,
+                      erc721_contract_address: deployedData.deployedNftAddress,
+                    },
+                    {
+                      onSuccess: (updatedGroup) => {
+                        console.log(
+                          "Contract address saved to database:",
+                          updatedGroup
+                        );
+                        // You can add additional logic here, such as:
+                        // - Redirecting to the new group page
+                        // - Showing a success message
+                        // - Resetting the form
+                      },
+                      onError: (error) => {
+                        console.error(
+                          "Failed to save contract address to database:",
+                          error
+                        );
+                        // You can add error handling here, such as:
+                        // - Showing an error message to the user
+                      },
+                    }
+                  );
+                } else {
+                  console.warn(
+                    "No deployed NFT address found in response:",
+                    deployedData
+                  );
+                }
+              },
+              onError: (error) => {
+                console.error("Failed to deploy ERC721 contract:", error);
+                // You can add error handling here, such as:
+                // - Showing an error message to the user
+              },
+            }
+          );
+        },
+        onError: (error) => {
+          console.error("Failed to create group:", error);
+          // You can add error handling here, such as:
+          // - Showing an error message to the user
+        },
+      }
+    );
   };
 
   return (
@@ -447,16 +534,17 @@ export default function CreateGroup({ onCancel }) {
           backgroundColor="#a5b4fc"
           textColor="#232328"
           hoverColor="#818cf8"
-          disabled={hasErrors || hasFieldErrors}
+          disabled={hasErrors || hasFieldErrors || isLoading}
           onClick={handleCreate}
         >
-          Create
+          {isLoading ? "Creating..." : "Create"}
         </CustomButton>
         <CustomButton
           backgroundColor="var(--color-red-300)"
           textColor="#232328"
           hoverColor="var(--color-red-400)"
           onClick={onCancel}
+          disabled={isLoading}
         >
           Cancel
         </CustomButton>
