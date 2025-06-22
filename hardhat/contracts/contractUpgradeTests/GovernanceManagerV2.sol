@@ -9,12 +9,7 @@ import { UUPSUpgradeable } from "@openzeppelin/contracts-upgradeable/proxy/utils
 import { Initializable } from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import { OwnableUpgradeable } from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 
-/**
- * @title GovernanceManager
- * @dev Manages governance-related functions and access control.
- */
-
-contract GovernanceManager is Initializable, UUPSUpgradeable, OwnableUpgradeable {
+contract GovernanceManagerV2 is Initializable, UUPSUpgradeable, OwnableUpgradeable {
 
 // ====================================================================================================================
 //                                                  CUSTOM ERRORS
@@ -281,12 +276,5 @@ contract GovernanceManager is Initializable, UUPSUpgradeable, OwnableUpgradeable
         return relayer;
     }
 
-    /**
-     * @notice Gets the address of the membership manager.
-     * @return address of the membership manager.
-     */
-    function getMembershipManager() external view onlyOwner returns (address) {
-        return membershipManager;
-    }
 
 }

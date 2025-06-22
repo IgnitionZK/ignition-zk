@@ -17,7 +17,7 @@ import { OwnableUpgradeable } from "@openzeppelin/contracts-upgradeable/access/O
 import { Clones } from "@openzeppelin/contracts/proxy/Clones.sol";
 
 /**
- * @title MembershipManager
+ * @title MembershipManagerV2
  * @dev A contract to manage membership in groups using Merkle trees and zk-SNARKs.
  * It allows for initializing and updating Merkle roots, verifying proofs, managing group NFTs,
  * and adding/removing members. This contract acts as a factory for ERC721IgnitionZK NFT contracts.
@@ -25,7 +25,7 @@ import { Clones } from "@openzeppelin/contracts/proxy/Clones.sol";
  * zk-SNARK verifier for privacy-preserving proof verification and dedicated ERC721 NFTs for membership tokens.
  * It is designed to be upgradeable via the UUPS proxy pattern by the governor.
  */
-contract MembershipManager is Initializable, UUPSUpgradeable, OwnableUpgradeable {
+contract MembershipManagerV2 is Initializable, UUPSUpgradeable, OwnableUpgradeable {
 
 // ====================================================================================================================
 //                                                  CUSTOM ERRORS
@@ -444,15 +444,6 @@ contract MembershipManager is Initializable, UUPSUpgradeable, OwnableUpgradeable
      */
     function getNftImplementation() external view onlyOwner returns (address) {
         return nftImplementation;
-    }
-
-    /**
-     * @notice Retrieves the maximum number of members that can be added in a single batch transaction.
-     * @dev Only callable by the owner (governor).
-     * @return The maximum batch size for member additions.
-     */
-    function getMaxMembersBatch() external view onlyOwner returns (uint256) {
-        return MAX_MEMBERS_BATCH;
     }
 
 // ====================================================================================================================

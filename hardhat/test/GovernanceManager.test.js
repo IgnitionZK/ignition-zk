@@ -1,6 +1,6 @@
 const { ethers, upgrades, keccak256 , toUtf8Bytes, HashZero} = require("hardhat");
 const { expect } = require("chai");
-const { anyUint } = require("@nomicfoundation/hardhat-chai-matchers/withArgs");
+const { anyUint, anyValue } = require("@nomicfoundation/hardhat-chai-matchers/withArgs");
 
 describe("GovernanceManager", function () {
     let MembershipManager;
@@ -145,30 +145,82 @@ describe("GovernanceManager", function () {
         validExternalNullifier = ethers.toBeHex(validPublicSignals[2], 32);
     });
 
-    it("setup: should deploy contracts correctly", async function () {
+    it("deployment: should deploy contracts correctly", async function () {
         expect(await membershipManager.target).to.be.properAddress;
         expect(await membershipVerifier.target).to.be.properAddress;
         expect(await nftImplementation.target).to.be.properAddress;
         expect(await governanceManager.target).to.be.properAddress;
     });
 
-    it("setup: should set the GovernanceManager as the owner of MembershipManager", async function () {
+    it("ownership: should set the GovernanceManager as the owner of MembershipManager", async function () {
         const owner = await membershipManager.owner();
         expect(owner).to.equal(governanceManager.target);
     });
 
-    it("setup: should set the deployer as the initial owner of GovernanceManager", async function () {
+    it("ownership: should set the deployer as the initial owner of GovernanceManager", async function () {
         const owner = await governanceManager.owner();
         expect(owner).to.equal(deployerAddress);
     });
 
-    it("setup: should allow the deployer to upgrade the GovernanceManager", async function () {
-        console.log("TO DO");
+    it("ownership: should allow the owner to transfer ownership of GovernanceManager", async function () {
+        await expect(governanceManager.connect(deployer).transferOwnership(user1Address))
+            .to.emit(governanceManager, "OwnershipTransferred")
+            .withArgs(deployerAddress, user1Address);
+        const newOwner = await governanceManager.owner();
+        expect(newOwner).to.equal(user1Address);
     });
 
-     it("setup: should not allow a non-owner to upgrade the GovernanceManager", async function () {
-        console.log("TO DO");
+    it("ownership: should not allow a non-owner to transfer ownership of GovernanceManager", async function () {
+        await expect(governanceManager.connect(user1).transferOwnership(user1Address))
+            .to.be.revertedWithCustomError(governanceManager, "OwnableUnauthorizedAccount");
     });
+
+    it("upgrades: should allow the owner (deployer) to upgrade GovernanceManager", async function () {
+        // governance Manager proxy address:
+        const governanceManagerAddress = await governanceManager.target;
+        const implementationAddress = await upgrades.erc1967.getImplementationAddress(governanceManagerAddress);
+
+        // Get contract factory for the new version of GovernanceManager
+        const GovernanceManagerV2 = await ethers.getContractFactory("GovernanceManagerV2", {
+            signer: deployer
+        });
+        // Upgrade the GovernanceManager contract
+        const upgradedGovernanceManager = await upgrades.upgradeProxy(
+            governanceManagerAddress, 
+            GovernanceManagerV2,
+            {
+                kind: "uups"
+            }
+        );
+        await upgradedGovernanceManager.waitForDeployment();
+        const upgradedAddress = await upgradedGovernanceManager.target;
+        const newImplementationAddress = await upgrades.erc1967.getImplementationAddress(upgradedAddress);
+
+        // check that the upgrade was successful
+        expect(upgradedAddress).to.be.properAddress;
+        // check that the proxy address is still the same
+        expect(governanceManagerAddress).to.equal(upgradedAddress);
+        // check that the implementation address has changed
+        expect(implementationAddress).to.not.equal(newImplementationAddress);
+    });
+
+    it("upgrades: should not allow a non-owner to upgrade GovernanceManager", async function () {
+        const currentOwner = await governanceManager.owner();
+        // Get contract factory for the new version of GovernanceManager
+        const GovernanceManagerV2 = await ethers.getContractFactory("GovernanceManagerV2", {
+            signer: user1
+        }); 
+        // Attempt to upgrade the GovernanceManager contract
+        await expect(upgrades.upgradeProxy(
+            governanceManager.target, 
+            GovernanceManagerV2,
+            {
+                kind: "uups"
+            }
+        ))
+            .to.be.revertedWithCustomError(governanceManager, "OwnableUnauthorizedAccount");
+    });
+
 
     it("setRelayer: should allow the owner (deployer) to set a new relayer and emit event", async function () {
         await expect(governanceManager.connect(deployer).setRelayer(user1Address))
@@ -229,20 +281,88 @@ describe("GovernanceManager", function () {
             );
     });
 
-    it("delegateGetRoot: should allow the relayer to get the root of a group", async function () {
-        await governanceManager.connect(relayer).delegateDeployGroupNft(groupKey, nftName, nftSymbol);
-        await governanceManager.connect(relayer).delegateInitRoot(rootHash, groupKey);
-        const root = await governanceManager.connect(relayer).delegateGetRoot(groupKey);
-        expect(root).to.equal(rootHash);
+    it("delegateDeployGroupNft: should allow the relayer to deploy a new group NFT and emit event", async function () {
+        await expect(governanceManager.connect(relayer).delegateDeployGroupNft(groupKey, nftName, nftSymbol))
+            .to.emit(
+                membershipManager, 
+                "GroupNftDeployed"
+            )
+            .withArgs(groupKey, anyValue, nftName, nftSymbol);
     });
 
-    it("delegateGetRoot: should not allow non-relayer to get the root of a group", async function () {
+    it("delegateDeployGroupNft: should store the correct NFT address after a group NFT is deployed", async function () {
+        const tx = await governanceManager.connect(relayer).delegateDeployGroupNft(groupKey, nftName, nftSymbol);
+        const receipt = await tx.wait();
+    
+        const parsedEvents = [];
+        for (const log of receipt.logs) {
+            try {
+                const parsedLog = membershipManager.interface.parseLog(log);
+                parsedEvents.push(parsedLog);
+            } catch (error) {
+                console.log("Could not parse log:", log, "Error:", error.message);
+            }
+        }
+        const groupNftDeployedEvent = parsedEvents.find((event) => event && event.name === "GroupNftDeployed");
+        expect(groupNftDeployedEvent).to.exist;
+        const nftAddress = groupNftDeployedEvent.args[1];
+        expect(nftAddress).to.be.properAddress;
+        expect(await governanceManager.connect(relayer).delegateGetGroupNftAddress(groupKey)).to.equal(nftAddress);
+    });
+
+    it("delegateMintNftToMember: should allow the relayer to mint an NFT to a member and emit event", async function () {
         await governanceManager.connect(relayer).delegateDeployGroupNft(groupKey, nftName, nftSymbol);
-        await governanceManager.connect(relayer).delegateInitRoot(rootHash, groupKey);
-        await expect(governanceManager.connect(deployer).delegateGetRoot(groupKey))
+        await expect(governanceManager.connect(relayer).delegateMintNftToMember(user1Address, groupKey))
+            .to.emit(
+                membershipManager, 
+                "MemberNftMinted"
+            )
+            .withArgs(groupKey, user1Address, anyUint);
+    });
+
+    it("delegateMintNftToMember: should not allow a non-relayer to mint an NFT to a member", async function () {
+        await governanceManager.connect(relayer).delegateDeployGroupNft(groupKey, nftName, nftSymbol);
+        await expect(governanceManager.connect(deployer).delegateMintNftToMember(user1Address, groupKey))
             .to.be.revertedWithCustomError(
                 governanceManager, 
                 "OnlyRelayerAllowed"
+            );
+    });
+
+    it("delegateMintNftToMember: should not allow the relayer to mint an NFT to a member if the group does not exist", async function () {
+        await expect(governanceManager.connect(relayer).delegateMintNftToMember(user1Address, groupKey))
+            .to.be.revertedWithCustomError(
+                membershipManager, 
+                "GroupNftNotSet"
+            );
+    });
+
+    it("delegateBurnMemberNft: should allow the relayer to burn a member's NFT and emit event", async function () {
+        await governanceManager.connect(relayer).delegateDeployGroupNft(groupKey, nftName, nftSymbol);
+        await governanceManager.connect(relayer).delegateMintNftToMember(user1Address, groupKey);
+        await expect(governanceManager.connect(relayer).delegateBurnMemberNft(user1Address, groupKey))
+            .to.emit(
+                membershipManager, 
+                "MemberNftBurned"
+            )
+            .withArgs(groupKey, user1Address, anyUint);
+    });
+
+    it("delegateBurnMemberNft: should not allow a non-relayer to burn a member's NFT", async function () {
+        await governanceManager.connect(relayer).delegateDeployGroupNft(groupKey, nftName, nftSymbol);
+        await governanceManager.connect(relayer).delegateMintNftToMember(user1Address, groupKey);
+        await expect(governanceManager.connect(deployer).delegateBurnMemberNft(user1Address, groupKey))
+            .to.be.revertedWithCustomError(
+                governanceManager, 
+                "OnlyRelayerAllowed"
+            );
+    });
+
+    it("delegateBurnMemberNft: should not allow the relayer to burn a member's NFT if the group does not exist", async function () {
+        await expect(governanceManager.connect(relayer).delegateBurnMemberNft(user1Address, groupKey))
+            .to.be.revertedWithCustomError(
+                membershipManager, 
+                "GroupNftNotSet"
             );
     });
 
@@ -287,29 +407,123 @@ describe("GovernanceManager", function () {
             );
     });
 
-    it("delegateMintNftToMember: should allow the relayer to mint an NFT to a member and emit event", async function () {
-        await governanceManager.connect(relayer).delegateDeployGroupNft(groupKey, nftName, nftSymbol);
-        await expect(governanceManager.connect(relayer).delegateMintNftToMember(user1Address, groupKey))
-            .to.emit(
-                membershipManager, 
-                "MemberNftMinted"
-            )
-            .withArgs(groupKey, user1Address, anyUint);
+    it("delegateGetVerifier: should allow the relayer to view the address of the membership verifier", async function () {
+        const verifierAddress = await governanceManager.connect(relayer).delegateGetVerifier();
+        expect(verifierAddress).to.equal(membershipVerifier.target);
     });
 
-    it("delegateMintNftToMember: should not allow a non-relayer to mint an NFT to a member", async function () {
+    it("delegateGetVerifier: should not allow a  non-relayer to view the address of the membership verifier", async function () {
+        await expect(governanceManager.connect(deployer).delegateGetVerifier())
+            .to.be.revertedWithCustomError(
+                governanceManager, 
+                "OnlyRelayerAllowed"
+            );  
+    });
+
+    it("delegateGetRoot: should allow the relayer to get the root of a group", async function () {
         await governanceManager.connect(relayer).delegateDeployGroupNft(groupKey, nftName, nftSymbol);
-        await expect(governanceManager.connect(deployer).delegateMintNftToMember(user1Address, groupKey))
+        await governanceManager.connect(relayer).delegateInitRoot(rootHash, groupKey);
+        const root = await governanceManager.connect(relayer).delegateGetRoot(groupKey);
+        expect(root).to.equal(rootHash);
+    });
+
+    it("delegateGetRoot: should not allow non-relayer to get the root of a group", async function () {
+        await governanceManager.connect(relayer).delegateDeployGroupNft(groupKey, nftName, nftSymbol);
+        await governanceManager.connect(relayer).delegateInitRoot(rootHash, groupKey);
+        await expect(governanceManager.connect(deployer).delegateGetRoot(groupKey))
             .to.be.revertedWithCustomError(
                 governanceManager, 
                 "OnlyRelayerAllowed"
             );
     });
 
+    it("delegateGetGovernor: should allow the relayer to get the address of the governor", async function () {
+        const governorAddress = await governanceManager.connect(relayer).delegateGetGovernor();
+        expect(governorAddress).to.equal(governanceManager.target);
+    });
 
-    /*
-    function delegateMintNftToMember(address memberAddress, bytes32 groupKey) external onlyRelayer {
-        IMembershipManager(membershipManager).mintNftToMember(memberAddress, groupKey);
-    }
-    */
+    it("delegateGetGovernor: should not allow a non-relayer to get the address of the governor", async function () {
+        await expect(governanceManager.connect(deployer).delegateGetGovernor())
+            .to.be.revertedWithCustomError(
+                governanceManager, 
+                "OnlyRelayerAllowed"
+            );
+    });
+
+    it("delegateGetNftImplementation: should allow the relayer to get the address of the NFT implementation", async function () {
+        const nftImplementationAddress = await governanceManager.connect(relayer).delegateGetNftImplementation();
+        expect(nftImplementationAddress).to.equal(nftImplementation.target);
+    });
+
+    it("delegateGetNftImplementation: should not allow a non-relayer to get the address of the NFT implementation", async function () {
+        await expect(governanceManager.connect(deployer).delegateGetNftImplementation())
+            .to.be.revertedWithCustomError(
+                governanceManager,
+                "OnlyRelayerAllowed"
+            );
+    });
+
+    it("delegateGetGroupNftAddress: should allow the relayer to get the address of a group's NFT", async function () {
+        await governanceManager.connect(relayer).delegateDeployGroupNft(groupKey, nftName, nftSymbol);
+        const nftAddress = await governanceManager.connect(relayer).delegateGetGroupNftAddress(groupKey);
+        expect(nftAddress).to.be.properAddress;
+    });
+
+    it("delegateGetGroupNftAddress: should not allow a non-relayer to get the address of a group's NFT", async function () {
+        await governanceManager.connect(relayer).delegateDeployGroupNft(groupKey, nftName, nftSymbol);
+        await expect(governanceManager.connect(deployer).delegateGetGroupNftAddress(groupKey))
+            .to.be.revertedWithCustomError(
+                governanceManager, 
+                "OnlyRelayerAllowed"
+            );
+    });
+
+    it("delegateGetNullifierStatus: should allow the relayer to get FALSE as the nullifier status of an unused nullifier", async function () {
+        const nullifier = ethers.keccak256(ethers.toUtf8Bytes("nullifier"));
+        const isNullifierUsed = await governanceManager.connect(relayer).delegateGetNullifierStatus(groupKey, nullifier);
+        expect(isNullifierUsed).to.equal(false);
+    });
+
+    it("delegateGetNullifierStatus: should allow the relayer to get TRUE as the nullifier status of a used nullifier", async function () {
+        await governanceManager.connect(relayer).delegateDeployGroupNft(validGroupKey, nftName, nftSymbol);
+        await governanceManager.connect(relayer).delegateInitRoot(validRoot, validGroupKey);
+        await governanceManager.connect(relayer).delegateVerifyProof(validProof, validPublicSignals, validGroupKey);
+        const isNullifierUsed = await governanceManager.connect(relayer).delegateGetNullifierStatus(validGroupKey, validPublicNullifier);
+        expect(isNullifierUsed).to.equal(true);
+    });
+
+    it("delegateGetNullifierStatus: should not allow a non-relayer to get the nullifier status", async function () {
+        const nullifier = ethers.keccak256(ethers.toUtf8Bytes("nullifier"));
+        await expect(governanceManager.connect(deployer).delegateGetNullifierStatus(groupKey, nullifier))
+            .to.be.revertedWithCustomError(
+                governanceManager, 
+                "OnlyRelayerAllowed"
+            );
+    });
+
+    it("getRelayer: should allow the owner (deployer) to get the relayer address", async function () {
+        const addr = await governanceManager.connect(deployer).getRelayer();
+        expect(addr).to.equal(relayerAddress);
+    });
+
+    it("getRelayer: should not allow a non-owner to get the relayer address", async function () {
+        await expect(governanceManager.connect(user1).getRelayer())
+            .to.be.revertedWithCustomError(
+                governanceManager, 
+                "OwnableUnauthorizedAccount"
+            );
+    });
+
+    it("getMembershipManager: should allow the owner (deployer) to get the address of the MembershipManager", async function () {
+        const addr = await governanceManager.connect(deployer).getMembershipManager();
+        expect(addr).to.equal(membershipManager.target);
+    });
+
+    it("getMembershipManager: should not allow a non-owner to get the address of the MembershipManager", async function () {
+        await expect(governanceManager.connect(user1).getMembershipManager())
+            .to.be.revertedWithCustomError(
+                governanceManager, 
+                "OwnableUnauthorizedAccount"
+            );
+    });
 });

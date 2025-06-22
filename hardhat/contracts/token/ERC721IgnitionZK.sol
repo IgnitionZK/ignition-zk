@@ -46,23 +46,6 @@ contract ERC721IgnitionZK is Initializable, ContextUpgradeable, ERC721Upgradeabl
         _grantRole(BURNER_ROLE, initialBurner);
         _grantRole(BURNER_ROLE, initialAdmin);
     }
-    /*
-    constructor(
-        address initialAdmin, 
-        address initialMinter,
-        address initialBurner,
-        string memory name_, 
-        string memory symbol_
-        ) ERC721(name_, symbol_) {
-            _grantRole(DEFAULT_ADMIN_ROLE, initialAdmin);
-
-            _grantRole(MINTER_ROLE, initialMinter);
-            _grantRole(MINTER_ROLE, initialAdmin); // Admin can also mint
-            
-            _grantRole(BURNER_ROLE, initialBurner);
-            _grantRole(BURNER_ROLE, initialAdmin); // Admin can also burn
-    }
-    */
 
     function safeMint(address to) external onlyRole(MINTER_ROLE) returns (uint256) {
         uint256 tokenId = _nextTokenId++;

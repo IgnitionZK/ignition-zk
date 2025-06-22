@@ -125,11 +125,64 @@ describe("MembershipManager", function () {
     });
 
     // TEST CASES
-    it("should deploy NFTImplementation, MembershipManager, MembershipVerifier and AttackerERC721 contracts", async function () {
+    it("deployment: should deploy NFTImplementation, MembershipManager, MembershipVerifier and AttackerERC721 contracts", async function () {
         expect(membershipManager.target).to.be.properAddress;
         expect(membershipVerifier.target).to.be.properAddress;
         expect(nftImplementation.target).to.be.properAddress;
         expect(attackerERC721.target).to.be.properAddress;
+    });
+
+    it("ownership: should allow the owner to transfer ownership of membershipManager", async function () {
+        const membershipManagerOwner = await membershipManager.owner();
+        expect(membershipManagerOwner).to.equal(await governor.getAddress(), "MembershipManager owner should be the governor");
+        // Transfer ownership to a new address
+        const newOwner = await user1.getAddress();
+        await expect(membershipManager.connect(governor).transferOwnership(newOwner))
+            .to.emit(membershipManager, "OwnershipTransferred")
+            .withArgs(await governor.getAddress(), newOwner);
+        const updatedOwner = await membershipManager.owner();
+        expect(updatedOwner).to.equal(newOwner, "MembershipManager owner should be updated to user1");
+    });
+
+    it("ownership: should not allow non-owner to transfer ownership of membershipManager", async function () {
+        const newOwner = await user1.getAddress();
+        await expect(
+            membershipManager.connect(user1).transferOwnership(newOwner)
+        ).to.be.revertedWithCustomError(
+            membershipManager,
+            "OwnableUnauthorizedAccount"
+        );
+    });
+
+    it("upgrades: should allow the governor to upgrade the MembershipManager contract", async function () {
+        const proxyAddress = await membershipManager.target;
+        const implementationAddress = await upgrades.erc1967.getImplementationAddress(proxyAddress);
+
+        const MembershipManagerV2 = await ethers.getContractFactory("MembershipManagerV2", { signer: governor });
+        const membershipManagerV2 = await upgrades.upgradeProxy(
+            proxyAddress, 
+            MembershipManagerV2, 
+            {
+                kind: "uups"
+            }
+        );
+        await membershipManagerV2.waitForDeployment();
+        const upgradedAddress = await membershipManagerV2.target;
+        const newImplementationAddress = await upgrades.erc1967.getImplementationAddress(upgradedAddress);
+        expect(upgradedAddress).to.equal(proxyAddress, "Proxy address should remain the same after upgrade");
+        expect(newImplementationAddress).to.not.equal(implementationAddress, "Implementation address should change after upgrade");
+    });
+
+    it("upgrades: should not allow non-governor to upgrade the MembershipManager contract", async function () {
+        const proxyAddress = await membershipManager.target;
+        const MembershipManagerV2 = await ethers.getContractFactory("MembershipManagerV2", { signer: user1 });
+        await expect(upgrades.upgradeProxy(
+            proxyAddress,
+            MembershipManagerV2,
+            {
+                kind: "uups"
+            }
+        )).to.be.revertedWithCustomError(membershipManager, "OwnableUnauthorizedAccount");
     });
 
     it("initRoot: should allow the governor to initialize the root of a group and emit event", async function () {
@@ -349,18 +402,14 @@ describe("MembershipManager", function () {
         ).to.be.reverted;
     });
 
-    it("mintNftToMember: should not mint an NFT to a member if the governor revokes the MINTER_ROLE", async function () {
+    it("mintNftToMember: should not mint an NFT to a member if the membershipManager revokes the MINTER_ROLE via the governor", async function () {
         const user1Address = await user1.getAddress();
         await membershipManager.connect(governor).deployGroupNft(groupKey, nftName, nftSymbol);
         const cloneAddress = await membershipManager.connect(governor).getGroupNftAddress(groupKey);
         const clone = nftImplementation.attach(cloneAddress);
         
-        // Revoke MINTER_ROLE from the governor
-        const minterRole = await clone.MINTER_ROLE();
-        await clone.connect(governor).revokeRole(
-            minterRole,
-            membershipManager.target
-        );
+        // Revoke MINTER_ROLE from the membershipManager
+        await membershipManager.connect(governor).revokeMinterRole(cloneAddress);
         
         // Attempt to mint NFT after revoking MINTER_ROLE
         await expect(
@@ -377,18 +426,11 @@ describe("MembershipManager", function () {
         const cloneAddress = await membershipManager.connect(governor).getGroupNftAddress(groupKey);
         const clone = nftImplementation.attach(cloneAddress);
         
-        // Revoke MINTER_ROLE from the governor
-        const minterRole = await clone.MINTER_ROLE();
-        await clone.connect(governor).revokeRole(
-            minterRole,
-            membershipManager.target
-        );
+        // Revoke MINTER_ROLE from the membershipManager
+        await membershipManager.connect(governor).revokeMinterRole(cloneAddress);
 
         // Re-grant MINTER_ROLE to the governor
-        await clone.connect(governor).grantRole(
-            minterRole,
-            membershipManager.target
-        );
+        await membershipManager.connect(governor).grantMinterRole(cloneAddress, membershipManager.target);
 
         // Mint NFT after re-granting MINTER_ROLE
         await expect(membershipManager.connect(governor).mintNftToMember(user1Address, groupKey))
@@ -447,19 +489,17 @@ describe("MembershipManager", function () {
         ).to.be.reverted;
     });
 
-    it("burnMemberNft: should not allow the NFT to be burned if the governor revokes the BURNER_ROLE", async function () {
+    it("burnMemberNft: should not allow the membershipManager to burn a member's NFT if the governor revokes the BURNER_ROLE", async function () {
         const user1Address = await user1.getAddress();
         await membershipManager.connect(governor).deployGroupNft(groupKey, nftName, nftSymbol);
         await membershipManager.connect(governor).mintNftToMember(user1Address, groupKey);
 
         const cloneAddress = await membershipManager.connect(governor).getGroupNftAddress(groupKey);
         const clone = nftImplementation.attach(cloneAddress);
-        // Revoke BURNER_ROLE from the governor
-        const burnerRole = await clone.BURNER_ROLE();
-        await clone.connect(governor).revokeRole(
-            burnerRole,
-            membershipManager.target
-        );
+
+        // Revoke BURNER_ROLE from the membershipManager
+        await membershipManager.connect(governor).revokeBurnerRole(cloneAddress);
+
         // Attempt to burn NFT after revoking BURNER_ROLE
         await expect(
             membershipManager.connect(governor).burnMemberNft(user1Address, groupKey)
@@ -469,24 +509,19 @@ describe("MembershipManager", function () {
         );
     });
 
-    it("burnMemberNft: should allow the governor to burn a member's NFT after re-granting the BURNER_ROLE", async function () {
+    it("burnMemberNft: should allow the membershipManager to burn a member's NFT after re-granting the BURNER_ROLE", async function () {
         const user1Address = await user1.getAddress();
         await membershipManager.connect(governor).deployGroupNft(groupKey, nftName, nftSymbol);
         await membershipManager.connect(governor).mintNftToMember(user1Address, groupKey);
 
         const cloneAddress = await membershipManager.connect(governor).getGroupNftAddress(groupKey);
         const clone = nftImplementation.attach(cloneAddress);
-        // Revoke BURNER_ROLE from the governor
-        const burnerRole = await clone.BURNER_ROLE();
-        await clone.connect(governor).revokeRole(
-            burnerRole,
-            membershipManager.target
-        ); 
-        // Re-grant BURNER_ROLE to the governor
-        await clone.connect(governor).grantRole(
-            burnerRole,
-            membershipManager.target
-        );  
+        // Revoke BURNER_ROLE from the membershipManager
+        await membershipManager.connect(governor).revokeBurnerRole(cloneAddress);
+
+        // Re-grant BURNER_ROLE to the membershipManager
+        await membershipManager.connect(governor).grantBurnerRole(cloneAddress, membershipManager.target);
+
         // Burn NFT after re-granting BURNER_ROLE
         await expect(membershipManager.connect(governor).burnMemberNft(user1Address, groupKey))
             .to.emit(membershipManager, "MemberNftBurned")
@@ -530,7 +565,7 @@ describe("MembershipManager", function () {
         await membershipManager.connect(governor).initRoot(validRoot, validGroupKey);
         await membershipManager.connect(governor).verifyProof(validProof, validPublicSignals, validGroupKey);
         const nullifier = ethers.toBeHex(validPublicNullifier, 32);
-        const isNullifierUsed = await membershipManager.connect(governor).getNullifier(validGroupKey, nullifier);
+        const isNullifierUsed = await membershipManager.connect(governor).getNullifierStatus(validGroupKey, nullifier);
         expect(isNullifierUsed).to.be.true;
     });
 
