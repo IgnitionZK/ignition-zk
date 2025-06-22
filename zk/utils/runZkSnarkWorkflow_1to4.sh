@@ -12,3 +12,8 @@ export PTAU_POWER=14
 ./utils/3_generateKeys.sh
 
 ./utils/4_exportVerifierContract.sh
+
+# copy necessary files to the public folder
+echo "Copying necessary files to the public folder..."
+./utils/copyToPublicFolder.sh
+echo "Files copied successfully."
