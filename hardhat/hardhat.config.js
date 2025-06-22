@@ -23,8 +23,9 @@ module.exports = {
       "MembershipManager",
       "ERC721IgnitionZK",
       "MembershipVerifier",
-      "Governor",
+      "GovernanceManager"
     ],
+    except: ["MembershipManagerV2", "GovernanceManagerV2"],
   },
   networks: {
     sepolia: {

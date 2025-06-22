@@ -40,7 +40,7 @@ interface IMembershipManager {
     function verifyProof(uint256[24] calldata proof, uint256[3] calldata publicSignals, bytes32 groupKey) external;
     function deployGroupNft(bytes32 groupKey, string calldata name, string calldata symbol) external returns (address);
     function getGroupNftAddress(bytes32 groupKey) external view returns (address);
-    function getNullifier(bytes32 groupKey, bytes32 nullifier) external view returns (bool);
+    function getNullifierStatus(bytes32 groupKey, bytes32 nullifier) external view returns (bool);
     function getVerifier() external view returns (address);
     function getGovernor() external view returns (address);
     function getNftImplementation() external view returns (address);
@@ -48,4 +48,8 @@ interface IMembershipManager {
     function mintNftToMember(address memberAddress, bytes32 groupKey) external;
     function mintNftToMembers(address[] calldata memberAddresses, bytes32 groupKey) external;
     function burnMemberNft(address memberAddress, bytes32 groupKey) external;
+    function revokeMinterRole(address nftClone) external;
+    function revokeBurnerRole(address nftClone) external;
+    function grantMinterRole(address nftClone, address grantTo) external;
+    function grantBurnerRole(address nftClone, address grantTo) external;
 }

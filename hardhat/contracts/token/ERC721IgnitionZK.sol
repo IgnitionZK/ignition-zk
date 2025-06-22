@@ -8,6 +8,7 @@ import {ERC721EnumerableUpgradeable} from "@openzeppelin/contracts-upgradeable/t
 import {AccessControlUpgradeable} from "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
 import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import {ContextUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/ContextUpgradeable.sol";
+import {IERC721} from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 
 /**
 * @title ERC721IgnitionZK
@@ -16,6 +17,10 @@ import {ContextUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/Cont
 * It is owned by a governor who can manage the membership tokens.
 */
 contract ERC721IgnitionZK is Initializable, ContextUpgradeable, ERC721Upgradeable, ERC721EnumerableUpgradeable, ERC721BurnableUpgradeable, AccessControlUpgradeable {
+    
+    // Custom error for non-transferability
+    error TransferNotAllowed();
+
     uint256 private _nextTokenId;
 
     bytes32 public constant MINTER_ROLE = keccak256("MINTER_ROLE");
@@ -46,23 +51,6 @@ contract ERC721IgnitionZK is Initializable, ContextUpgradeable, ERC721Upgradeabl
         _grantRole(BURNER_ROLE, initialBurner);
         _grantRole(BURNER_ROLE, initialAdmin);
     }
-    /*
-    constructor(
-        address initialAdmin, 
-        address initialMinter,
-        address initialBurner,
-        string memory name_, 
-        string memory symbol_
-        ) ERC721(name_, symbol_) {
-            _grantRole(DEFAULT_ADMIN_ROLE, initialAdmin);
-
-            _grantRole(MINTER_ROLE, initialMinter);
-            _grantRole(MINTER_ROLE, initialAdmin); // Admin can also mint
-            
-            _grantRole(BURNER_ROLE, initialBurner);
-            _grantRole(BURNER_ROLE, initialAdmin); // Admin can also burn
-    }
-    */
 
     function safeMint(address to) external onlyRole(MINTER_ROLE) returns (uint256) {
         uint256 tokenId = _nextTokenId++;
@@ -77,6 +65,23 @@ contract ERC721IgnitionZK is Initializable, ContextUpgradeable, ERC721Upgradeabl
         _burn(tokenId);
     }
 
+    // --- BLOCK APPROVALS -------------------------------------------------
+    function approve(address to, uint256 tokenId)
+        public
+        pure
+        override(IERC721, ERC721Upgradeable)
+    {
+        revert TransferNotAllowed();
+    }
+
+    function setApprovalForAll(address operator, bool approved)
+        public
+        pure
+        override(IERC721, ERC721Upgradeable)
+    {
+        revert TransferNotAllowed();
+    }
+
     // The following functions are overrides required by Solidity.
 
     function _update(address to, uint256 tokenId, address auth)
@@ -84,6 +89,13 @@ contract ERC721IgnitionZK is Initializable, ContextUpgradeable, ERC721Upgradeabl
         override(ERC721Upgradeable, ERC721EnumerableUpgradeable)
         returns (address)
     {
+        // --- BLOCK TRANSFERS -------------------------------------------------
+        address from = _ownerOf(tokenId);
+
+        // allow mint  (from == 0)  and burn  (to == 0)
+        if (from != address(0) && to != address(0)) {
+            revert TransferNotAllowed();
+        }
         return super._update(to, tokenId, auth);
     }
 

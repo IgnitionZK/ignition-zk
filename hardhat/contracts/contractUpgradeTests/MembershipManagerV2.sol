@@ -17,7 +17,7 @@ import { OwnableUpgradeable } from "@openzeppelin/contracts-upgradeable/access/O
 import { Clones } from "@openzeppelin/contracts/proxy/Clones.sol";
 
 /**
- * @title MembershipManager
+ * @title MembershipManagerV2
  * @dev A contract to manage membership in groups using Merkle trees and zk-SNARKs.
  * It allows for initializing and updating Merkle roots, verifying proofs, managing group NFTs,
  * and adding/removing members. This contract acts as a factory for ERC721IgnitionZK NFT contracts.
@@ -25,7 +25,7 @@ import { Clones } from "@openzeppelin/contracts/proxy/Clones.sol";
  * zk-SNARK verifier for privacy-preserving proof verification and dedicated ERC721 NFTs for membership tokens.
  * It is designed to be upgradeable via the UUPS proxy pattern by the governor.
  */
-contract MembershipManager is Initializable, UUPSUpgradeable, OwnableUpgradeable {
+contract MembershipManagerV2 is Initializable, UUPSUpgradeable, OwnableUpgradeable {
 
 // ====================================================================================================================
 //                                                  CUSTOM ERRORS
@@ -104,20 +104,6 @@ contract MembershipManager is Initializable, UUPSUpgradeable, OwnableUpgradeable
      * @param tokenId The ID of the burned membership token.
      */
     event MemberNftBurned(bytes32 indexed groupKey, address indexed memberAddress, uint256 tokenId);
-    /**
-     * @notice Emitted when a role is revoked from the NFT clone.
-     * @param nftClone The address of the NFT contract clone from which the role was revoked.
-     * @param role The role that was revoked (e.g., MINTER_ROLE, BURNER_ROLE).
-     * @param revokedFrom The address from which the role was revoked (usually this contract).
-     */
-    event RoleRevoked(address indexed nftClone, bytes32 role, address indexed revokedFrom);
-    /**
-     * @notice Emitted when a role is granted to an address in the NFT clone.
-     * @param nftClone The address of the NFT contract clone to which the role was granted.
-     * @param role The role that was granted (e.g., MINTER_ROLE, BURNER_ROLE).
-     * @param grantedTo The address to which the role was granted.
-     */
-    event RoleGranted(address indexed nftClone, bytes32 role, address indexed grantedTo);
 
 // ====================================================================================================================
 //                                          STATE VARIABLES
@@ -460,18 +446,10 @@ contract MembershipManager is Initializable, UUPSUpgradeable, OwnableUpgradeable
         return nftImplementation;
     }
 
-    /**
-     * @notice Retrieves the maximum number of members that can be added in a single batch transaction.
-     * @dev Only callable by the owner (governor).
-     * @return The maximum batch size for member additions.
-     */
-    function getMaxMembersBatch() external view onlyOwner returns (uint256) {
-        return MAX_MEMBERS_BATCH;
-    }
-
 // ====================================================================================================================
 //                                       EXTERNAL HELPER FUNCTIONS
 // ====================================================================================================================
+
 
     /** 
      * @notice Revokes the MINTER_ROLE from the specified NFT clone.
@@ -519,8 +497,6 @@ contract MembershipManager is Initializable, UUPSUpgradeable, OwnableUpgradeable
     function _revokeRole(address nftClone, bytes32 role) private {
         IERC721IgnitionZK nft = IERC721IgnitionZK(nftClone);
         nft.revokeRole(role, address(this));
-
-        emit RoleRevoked(nftClone, role, address(this));
     }
 
     /**
@@ -532,8 +508,6 @@ contract MembershipManager is Initializable, UUPSUpgradeable, OwnableUpgradeable
     function _grantRole(address nftClone, bytes32 role, address grantTo) private {
         IERC721IgnitionZK nft = IERC721IgnitionZK(nftClone);
         nft.grantRole(role, grantTo);
-
-        emit RoleGranted(nftClone, role, grantTo);
     }
 
     /**
