@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 
 // components
 import styled from "styled-components";
@@ -10,6 +10,7 @@ import CustomButtonIcon from "../components/CustomButtonIcon";
 import { useInsertNewGroup } from "../hooks/queries/groups/useInsertNewGroup";
 import { useRelayerDeployERC721 } from "../hooks/relayers/useRelayerDeployERC721";
 import { useInsertERC721ContractAddress } from "../hooks/queries/groups/useInsertERC721ContractAddress";
+import { useWalletQuery } from "../hooks/wallet/useWalletQuery";
 
 // icons
 import { IoIosInformationCircle } from "react-icons/io";
@@ -179,6 +180,17 @@ export default function CreateGroup({ onCancel }) {
   // Hook for inserting ERC721 contract address
   const { insertERC721ContractAddress } = useInsertERC721ContractAddress();
 
+  // Hook for querying wallet
+  const { address: walletAddress } = useWalletQuery();
+
+  // Initialize member inputs with connected wallet address
+  useEffect(() => {
+    if (walletAddress && memberInputs.length === 0) {
+      setMemberInputs([walletAddress]);
+      setTouched([false]);
+    }
+  }, [walletAddress, memberInputs.length]);
+
   // Add a new empty member input row
   const handleAddMemberInput = () => {
     setMemberInputs((prev) => [...prev, ""]);
@@ -230,6 +242,15 @@ export default function CreateGroup({ onCancel }) {
   });
   const hasErrors = memberInputErrors.some((err) => err !== null);
 
+  // Check if at least one member is added
+  const hasAtLeastOneMember =
+    memberInputs.length > 0 &&
+    memberInputs.some((input) => input.trim() !== "");
+  const noMembersError =
+    formSubmitted && !hasAtLeastOneMember
+      ? "At least one member is required"
+      : null;
+
   // Handle create button click
   const handleCreate = (e) => {
     e.preventDefault();
@@ -238,7 +259,8 @@ export default function CreateGroup({ onCancel }) {
       groupName.trim() === "" ||
       tokenName.trim() === "" ||
       tokenSymbol.trim() === "" ||
-      hasErrors
+      hasErrors ||
+      !hasAtLeastOneMember
     ) {
       return;
     }
@@ -473,13 +495,34 @@ export default function CreateGroup({ onCancel }) {
           />
         </SectionHeaderRow>
         <Note>
+          <strong style={{ color: "#f87171" }}>
+            At least one member is required.
+          </strong>{" "}
+          Your connected wallet address has been automatically added as the
+          first member.
+          <strong style={{ color: "#a5b4fc" }}>
+            Please connect your wallet if you haven't already.
+          </strong>{" "}
+          You can add additional members by clicking the "+" button below.
           Members must hold one of the ERC721 tokens to be eligible. By adding
           their addresses here they will be granted a token. Once the group has
-          been created added members simply log into their account and connect
+          been created, added members simply log into their account and connect
           their wallet using the address entered here. They will then search for
           the newly created group and click the join button. They will be
           prompted to generate their credentials to complete the enrollment.
         </Note>
+        {noMembersError && (
+          <div
+            style={{
+              color: "#f87171",
+              fontWeight: 500,
+              marginBottom: "1.2rem",
+              fontSize: "1.15rem",
+            }}
+          >
+            {noMembersError}
+          </div>
+        )}
         {memberInputs.length > 0 &&
           memberInputs.some((input) => input.length === 0) && (
             <div
@@ -534,7 +577,9 @@ export default function CreateGroup({ onCancel }) {
           backgroundColor="#a5b4fc"
           textColor="#232328"
           hoverColor="#818cf8"
-          disabled={hasErrors || hasFieldErrors || isLoading}
+          disabled={
+            hasErrors || hasFieldErrors || !hasAtLeastOneMember || isLoading
+          }
           onClick={handleCreate}
         >
           {isLoading ? "Creating..." : "Create"}
