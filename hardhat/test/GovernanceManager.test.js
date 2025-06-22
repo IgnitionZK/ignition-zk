@@ -407,6 +407,72 @@ describe("GovernanceManager", function () {
             );
     });
 
+    it("delegateRevokeMinterRole: should allow the relayer to revoke the minter role from the membership manager and emit event", async function () {
+        await governanceManager.connect(relayer).delegateDeployGroupNft(groupKey, nftName, nftSymbol);
+        const nftAddress = await governanceManager.connect(relayer).delegateGetGroupNftAddress(groupKey);
+        const role = await nftImplementation.attach(nftAddress).MINTER_ROLE();
+        await expect(governanceManager.connect(relayer).delegateRevokeMinterRole(nftAddress))
+            .to.emit(
+                membershipManager,
+                "RoleRevoked"
+            )
+            .withArgs(nftAddress, role, membershipManager.target);
+    });
+
+    it("delegateRevokeMinterRole: should not allow a non-relayer to revoke the minter role", async function () {
+        await governanceManager.connect(relayer).delegateDeployGroupNft(groupKey, nftName, nftSymbol);
+        const nftAddress = await governanceManager.connect(relayer).delegateGetGroupNftAddress(groupKey);
+        await expect(governanceManager.connect(deployer).delegateRevokeMinterRole(nftAddress))
+            .to.be.revertedWithCustomError(
+                governanceManager, 
+                "OnlyRelayerAllowed"
+            );
+    });
+
+    it("delegateGrantMinterRole: should allow the relayer to grant the minter role to a user and emit event", async function () {
+        await governanceManager.connect(relayer).delegateDeployGroupNft(groupKey, nftName, nftSymbol);
+        const nftAddress = await governanceManager.connect(relayer).delegateGetGroupNftAddress(groupKey);
+        const role = await nftImplementation.attach(nftAddress).MINTER_ROLE();
+        await expect(governanceManager.connect(relayer).delegateGrantMinterRole(nftAddress, user1Address))
+            .to.emit(
+                membershipManager,
+                "RoleGranted"
+            )
+            .withArgs(nftAddress, role, user1Address);
+    });
+
+    it("delegateGrantMinterRole: should not allow a non-relayer to grant the minter role", async function () {
+        await governanceManager.connect(relayer).delegateDeployGroupNft(groupKey, nftName, nftSymbol);
+        const nftAddress = await governanceManager.connect(relayer).delegateGetGroupNftAddress(groupKey);
+        await expect(governanceManager.connect(deployer).delegateGrantMinterRole(nftAddress, user1Address))
+            .to.be.revertedWithCustomError(
+                governanceManager, 
+                "OnlyRelayerAllowed"
+            );
+    });
+
+    it("delegateRevokeBurnerRole: should allow the relayer to revoke the burner role from the membership manager and emit event", async function () {
+        await governanceManager.connect(relayer).delegateDeployGroupNft(groupKey, nftName, nftSymbol);
+        const nftAddress = await governanceManager.connect(relayer).delegateGetGroupNftAddress(groupKey);
+        const role = await nftImplementation.attach(nftAddress).BURNER_ROLE();
+        await expect(governanceManager.connect(relayer).delegateRevokeBurnerRole(nftAddress))
+            .to.emit(
+                membershipManager,
+                "RoleRevoked"
+            )
+            .withArgs(nftAddress, role, membershipManager.target);
+    });
+
+    it("delegateRevokeBurnerRole: should not allow a non-relayer to revoke the burner role", async function () {
+        await governanceManager.connect(relayer).delegateDeployGroupNft(groupKey, nftName, nftSymbol);
+        const nftAddress = await governanceManager.connect(relayer).delegateGetGroupNftAddress(groupKey);
+        await expect(governanceManager.connect(deployer).delegateRevokeBurnerRole(nftAddress))
+            .to.be.revertedWithCustomError(
+                governanceManager, 
+                "OnlyRelayerAllowed"
+            ); 
+    });
+
     it("delegateGetVerifier: should allow the relayer to view the address of the membership verifier", async function () {
         const verifierAddress = await governanceManager.connect(relayer).delegateGetVerifier();
         expect(verifierAddress).to.equal(membershipVerifier.target);
@@ -526,4 +592,6 @@ describe("GovernanceManager", function () {
                 "OwnableUnauthorizedAccount"
             );
     });
+
+
 });

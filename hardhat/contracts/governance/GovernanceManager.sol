@@ -198,6 +198,44 @@ contract GovernanceManager is Initializable, UUPSUpgradeable, OwnableUpgradeable
         IMembershipManager(membershipManager).burnMemberNft(memberAddress, groupKey);
     }
 
+    /**
+     * @notice Delegates the revokeMinterRole call to the membership manager.
+     * @dev Only callable by the relayer.
+     * @param nftClone The address of the NFT clone contract.
+     */
+    function delegateRevokeMinterRole(address nftClone) external onlyRelayer {
+        IMembershipManager(membershipManager).revokeMinterRole(nftClone);
+    }
+
+    /**
+     * @notice Delegates the revokeBurnerRole call to the membership manager.
+     * @dev Only callable by the relayer.
+     * @param nftClone The address of the NFT clone contract.
+     */
+    function delegateRevokeBurnerRole(address nftClone) external onlyRelayer {
+        IMembershipManager(membershipManager).revokeBurnerRole(nftClone);
+    }
+
+    /**
+     * @notice Delegates the grantMinterRole call to the membership manager.
+     * @dev Only callable by the relayer.
+     * @param nftClone The address of the NFT clone contract.
+     * @param grantTo The address to grant the minter role to.
+     */
+    function delegateGrantMinterRole(address nftClone, address grantTo) external onlyRelayer {
+        IMembershipManager(membershipManager).grantMinterRole(nftClone, grantTo);
+    }
+
+    /**
+     * @notice Delegates the grantBurnerRole call to the membership manager.
+     * @dev Only callable by the relayer.
+     * @param nftClone The address of the NFT clone contract.
+     * @param grantTo The address to grant the burner role to.
+     */
+    function delegateGrantBurnerRole(address nftClone, address grantTo) external onlyRelayer {
+        IMembershipManager(membershipManager).grantBurnerRole(nftClone, grantTo);
+    }
+
 // ====================================================================================================================
 //                           EXTERNAL VIEW FUNCTIONS (FORWARDED VIA GOVERNANCE)
 // ====================================================================================================================

@@ -588,5 +588,132 @@ describe("MembershipManager", function () {
         ).to.be.reverted;
     });
 
+    it("NFT transfer: should not allow the owner of the NFT to transfer it", async function () {
+        const user1Address = await user1.getAddress();
+        const deployerAddress = await deployer.getAddress();
+        await membershipManager.connect(governor).deployGroupNft(groupKey, nftName, nftSymbol);
+        const tx = await membershipManager.connect(governor).mintNftToMember(user1Address, groupKey);
+        const receipt = await tx.wait();
+
+        // get tokenId from the event within the logs
+        const parsedEvents = [];
+        for (const log of receipt.logs) {
+            try {
+                const parsedLog = membershipManager.interface.parseLog(log);
+                parsedEvents.push(parsedLog);
+            } catch (error) {
+                console.log("Could not parse log:", log, "Error:", error.message);
+            }
+        }
+        const MemberNftMintedEvent = parsedEvents.find((event) => event && event.name === "MemberNftMinted");
+        const tokenId = MemberNftMintedEvent.args[2];
+      
+        const cloneAddress = await membershipManager.connect(governor).getGroupNftAddress(groupKey);
+        const clone = nftImplementation.attach(cloneAddress);
+
+        // Attempt to transfer the NFT by the owner
+        await expect(
+            clone.connect(user1).transferFrom(user1Address, deployerAddress, tokenId)
+        ).to.be.revertedWithCustomError(
+            clone,
+            "TransferNotAllowed"
+        );
+    });
+
+    it("NFT transfer: should not allow the owner of the NFT to approve another address to transfer it", async function () {
+        const user1Address = await user1.getAddress();
+        const deployerAddress = await deployer.getAddress();
+        await membershipManager.connect(governor).deployGroupNft(groupKey, nftName, nftSymbol);
+        const tx = await membershipManager.connect(governor).mintNftToMember(user1Address, groupKey);
+        const receipt = await tx.wait();
+
+        const cloneAddress = await membershipManager.connect(governor).getGroupNftAddress(groupKey);
+        const clone = nftImplementation.attach(cloneAddress);
+
+        // Attempt to approve another address to transfer the NFT by the owner
+        await expect(
+            clone.connect(user1).approve(deployerAddress, 0)
+        ).to.be.revertedWithCustomError(
+            clone,
+            "TransferNotAllowed"
+        );
+    });
+
+    it("NFT transfer: should not allow the owner of the NFT to set approval for all", async function () {
+        const user1Address = await user1.getAddress();
+        const deployerAddress = await deployer.getAddress();
+        await membershipManager.connect(governor).deployGroupNft(groupKey, nftName, nftSymbol);
+        const tx = await membershipManager.connect(governor).mintNftToMember(user1Address, groupKey);
+        await tx.wait();
+
+        const cloneAddress = await membershipManager.connect(governor).getGroupNftAddress(groupKey);
+        const clone = nftImplementation.attach(cloneAddress);
+
+        // Attempt to set approval for all by the owner
+        await expect(
+            clone.connect(user1).setApprovalForAll(deployerAddress, true)
+        ).to.be.revertedWithCustomError(
+            clone,
+            "TransferNotAllowed"
+        );
+    });
+
+    it("NFT transfer: should not allow the owner of the NFT to transfer it to a contract address", async function () {
+        const user1Address = await user1.getAddress();
+        const deployerAddress = await deployer.getAddress();
+        await membershipManager.connect(governor).deployGroupNft(groupKey, nftName, nftSymbol);
+        const tx = await membershipManager.connect(governor).mintNftToMember(user1Address, groupKey);
+        await tx.wait();
+
+        const cloneAddress = await membershipManager.connect(governor).getGroupNftAddress(groupKey);
+        const clone = nftImplementation.attach(cloneAddress);
+
+        // Attempt to transfer the NFT to a contract address by the owner
+        await expect(
+            clone.connect(user1).transferFrom(user1Address, membershipVerifier.target, 0)
+        ).to.be.revertedWithCustomError(
+            clone,
+            "TransferNotAllowed"
+        );
+    });
+
+    it("NFT transfer: should not allow the owner of the NFT to approve a contract address to transfer it", async function () {
+        const user1Address = await user1.getAddress();
+        const deployerAddress = await deployer.getAddress();
+        await membershipManager.connect(governor).deployGroupNft(groupKey, nftName, nftSymbol);
+        const tx = await membershipManager.connect(governor).mintNftToMember(user1Address, groupKey);
+        await tx.wait();
+      
+        const cloneAddress = await membershipManager.connect(governor).getGroupNftAddress(groupKey);
+        const clone = nftImplementation.attach(cloneAddress);
+
+        // Attempt to approve a contract address to transfer the NFT by the owner
+        await expect(
+            clone.connect(user1).approve(membershipVerifier.target, 0)
+        ).to.be.revertedWithCustomError(
+            clone,
+            "TransferNotAllowed"
+        );
+    });
+
+    it("NFT transfer: should not allow the owner of the NFT to set approval for all for a contract address", async function () {
+        const user1Address = await user1.getAddress();
+        const deployerAddress = await deployer.getAddress();
+        await membershipManager.connect(governor).deployGroupNft(groupKey, nftName, nftSymbol);
+        const tx = await membershipManager.connect(governor).mintNftToMember(user1Address, groupKey);
+        const receipt = await tx.wait();
+      
+        const cloneAddress = await membershipManager.connect(governor).getGroupNftAddress(groupKey);
+        const clone = nftImplementation.attach(cloneAddress);
+
+        // Attempt to set approval for all for a contract address by the owner
+        await expect(
+            clone.connect(user1).setApprovalForAll(membershipVerifier.target, true)
+        ).to.be.revertedWithCustomError(
+            clone,
+            "TransferNotAllowed"
+        );
+    });
+
 });
 
