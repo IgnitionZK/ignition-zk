@@ -4,7 +4,7 @@ async function main() {
   console.log("🔍 Verifying NFT Clone Contract...\n");
 
   // Configuration - Update these addresses
-  const CLONE_ADDRESS = "0x6c2dC36fa32825A15a6e31c6Ee0E43Fd1dd54291"; // Replace with your clone address
+  const CLONE_ADDRESS = "0x6D436fB35e0b5f8AC0eF67b34A59741713F66300"; // Replace with your clone address
   const MEMBERSHIP_MANAGER_ADDRESS =
     "0xeE60b7b9A5016E39c37cEEDE021a0a38799ba0AE";
   const GOVERNOR_ADDRESS = "0x809B3aF634aC3F45bfDFc09Fd7887F980831DC13";
@@ -133,6 +133,54 @@ async function main() {
       console.log("✅ All ERC721 functions are accessible");
       console.log("✅ Access control roles are properly set");
       console.log("=".repeat(60));
+
+      // 5. Check for token ownership
+      console.log("\n🔍 Step 4: Checking token ownership...");
+
+      if (totalSupply > 0) {
+        console.log("🔍 Checking token ownership...");
+
+        // Get all token owners
+        const tokenOwners = new Map();
+
+        for (let i = 0; i < totalSupply; i++) {
+          try {
+            const tokenId = await nftContract.tokenByIndex(i);
+            const owner = await nftContract.ownerOf(tokenId);
+            tokenOwners.set(tokenId.toString(), owner);
+            console.log(`🎫 Token ID ${tokenId}: Owner ${owner}`);
+          } catch (error) {
+            console.log(`⚠️  Error getting token ${i}: ${error.message}`);
+          }
+        }
+
+        // Group tokens by owner
+        const ownerToTokens = new Map();
+        for (const [tokenId, owner] of tokenOwners) {
+          if (!ownerToTokens.has(owner)) {
+            ownerToTokens.set(owner, []);
+          }
+          ownerToTokens.get(owner).push(tokenId);
+        }
+
+        console.log("\n📋 Token Ownership Summary:");
+        console.log("=".repeat(40));
+
+        if (ownerToTokens.size > 0) {
+          for (const [owner, tokens] of ownerToTokens) {
+            console.log(`👤 Owner: ${owner}`);
+            console.log(`   Token IDs: ${tokens.join(", ")}`);
+            console.log(`   Count: ${tokens.length}`);
+            console.log("");
+          }
+        } else {
+          console.log("❌ No tokens found or error retrieving ownership data");
+        }
+
+        console.log("=".repeat(40));
+      } else {
+        console.log("📭 No tokens have been minted yet");
+      }
     } catch (error) {
       console.error("❌ Failed to call ERC721 functions:", error.message);
       console.log("\n💡 This might indicate:");

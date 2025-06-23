@@ -1,5 +1,6 @@
 import { useMutation } from "@tanstack/react-query";
 import { supabase } from "../../services/supabase";
+import { insertGroupMember } from "../../services/apiGroupMembers";
 
 /**
  * Custom hook to deploy an ERC721 contract using the Supabase edge function relayer
@@ -19,7 +20,8 @@ import { supabase } from "../../services/supabase";
  * deployERC721({
  *   groupId: "123",
  *   tokenName: "MyToken",
- *   tokenSymbol: "MTK"
+ *   tokenSymbol: "MTK",
+ *   memberAddresses: ["0x123...", "0x456..."]
  * }, {
  *   onSuccess: (data) => console.log('ERC721 deployed:', data),
  *   onError: (error) => console.error('Deployment failed:', error)
@@ -27,7 +29,13 @@ import { supabase } from "../../services/supabase";
  */
 export function useRelayerDeployERC721() {
   const deployERC721Mutation = useMutation({
-    mutationFn: async ({ groupId, tokenName, tokenSymbol }) => {
+    mutationFn: async ({
+      groupId,
+      tokenName,
+      tokenSymbol,
+      memberAddresses,
+      userId,
+    }) => {
       // Get the current session to extract the JWT token
       const {
         data: { session },
@@ -52,6 +60,14 @@ export function useRelayerDeployERC721() {
       if (!tokenSymbol) {
         throw new Error("tokenSymbol is required");
       }
+      if (!userId) {
+        throw new Error("userId is required");
+      }
+
+      // Validate memberAddresses if provided
+      if (memberAddresses && !Array.isArray(memberAddresses)) {
+        throw new Error("memberAddresses must be an array");
+      }
 
       // Call the Supabase edge function
       const { data, error } = await supabase.functions.invoke(
@@ -61,6 +77,7 @@ export function useRelayerDeployERC721() {
             groupKey: groupId.toString(), // Convert to string as expected by edge function
             name: tokenName,
             symbol: tokenSymbol,
+            memberAddresses: memberAddresses || [], // Pass the array of addresses
           },
           headers: {
             Authorization: `Bearer ${session.access_token}`,
@@ -108,6 +125,30 @@ export function useRelayerDeployERC721() {
       }
 
       console.log("Edge function response:", data);
+
+      // If deployment was successful and we have a deployed NFT address, add the group creator to group_members
+      if (data.deployedNftAddress) {
+        try {
+          console.log("Adding group creator to group_members table...");
+          const groupMemberData = await insertGroupMember({
+            userId: userId,
+            groupId: groupId,
+          });
+          console.log("Group creator added to group_members:", groupMemberData);
+
+          // Add the group member data to the response
+          data.groupMemberData = groupMemberData;
+        } catch (groupMemberError) {
+          console.error(
+            "Failed to add group creator to group_members:",
+            groupMemberError
+          );
+          // Don't throw here as the main deployment was successful
+          // Just log the error and continue
+          data.groupMemberError = groupMemberError.message;
+        }
+      }
+
       return data;
     },
   });

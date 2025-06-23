@@ -11,6 +11,7 @@ import { useInsertNewGroup } from "../hooks/queries/groups/useInsertNewGroup";
 import { useRelayerDeployERC721 } from "../hooks/relayers/useRelayerDeployERC721";
 import { useInsertERC721ContractAddress } from "../hooks/queries/groups/useInsertERC721ContractAddress";
 import { useWalletQuery } from "../hooks/wallet/useWalletQuery";
+import { useUser } from "../hooks/queries/authentication/useUser";
 
 // icons
 import { IoIosInformationCircle } from "react-icons/io";
@@ -183,6 +184,9 @@ export default function CreateGroup({ onCancel }) {
   // Hook for querying wallet
   const { address: walletAddress } = useWalletQuery();
 
+  // Hook for querying user
+  const { user } = useUser();
+
   // Initialize member inputs with connected wallet address
   useEffect(() => {
     if (walletAddress && memberInputs.length === 0) {
@@ -260,7 +264,8 @@ export default function CreateGroup({ onCancel }) {
       tokenName.trim() === "" ||
       tokenSymbol.trim() === "" ||
       hasErrors ||
-      !hasAtLeastOneMember
+      !hasAtLeastOneMember ||
+      !user?.id
     ) {
       return;
     }
@@ -280,6 +285,10 @@ export default function CreateGroup({ onCancel }) {
               groupId: data[0].group_id,
               tokenName: tokenName,
               tokenSymbol: tokenSymbol,
+              memberAddresses: memberInputs.filter(
+                (input) => input.trim() !== "" && isValidEthAddress(input)
+              ),
+              userId: user.id,
             },
             {
               onSuccess: (deployedData) => {
@@ -578,7 +587,11 @@ export default function CreateGroup({ onCancel }) {
           textColor="#232328"
           hoverColor="#818cf8"
           disabled={
-            hasErrors || hasFieldErrors || !hasAtLeastOneMember || isLoading
+            hasErrors ||
+            hasFieldErrors ||
+            !hasAtLeastOneMember ||
+            isLoading ||
+            !user?.id
           }
           onClick={handleCreate}
         >
