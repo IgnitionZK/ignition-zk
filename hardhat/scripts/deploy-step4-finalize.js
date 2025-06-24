@@ -14,9 +14,10 @@ async function main() {
 
   // Configuration - Update these addresses from previous steps
   const MEMBERSHIP_MANAGER_ADDRESS =
-    "0xeE60b7b9A5016E39c37cEEDE021a0a38799ba0AE"; // From Step 2
-  const GOVERNOR_ADDRESS = "0x809B3aF634aC3F45bfDFc09Fd7887F980831DC13"; // From Step 3
+    "0x26FB9f7A33A6dE076F588b516BB36627f6A668Bc"; // From Step 2
+  const GOVERNOR_ADDRESS = "0x28e3312F3394427D51B9C5a73d53a2129b49988D"; // From Step 3
   const OWNER_RELAYER = "0x5F909fd25A9F5e4f5a219318FdeD6C8124F6c1F1";
+  const NFT_IMPLEMENTATION = "0x8EdE77A2676F9A35D49923e25e4ADfaFCa9F1Ccf"; // From Step 1
 
   console.log("📋 Configuration:");
   console.log(`👥 MembershipManager: ${MEMBERSHIP_MANAGER_ADDRESS}`);
@@ -76,9 +77,7 @@ async function main() {
     console.log("🎉 DEPLOYMENT COMPLETED SUCCESSFULLY!");
     console.log("=".repeat(60));
     console.log("📋 Final Contract Addresses:");
-    console.log(
-      `🔧 ERC721IgnitionZK (Implementation): 0xbaa533Df4Ce143ADf582c342d8D2f65E6C48f1c4`
-    );
+    console.log(`🔧 ERC721IgnitionZK (Implementation): ${NFT_IMPLEMENTATION}`);
     console.log(`👥 MembershipManager (Proxy): ${MEMBERSHIP_MANAGER_ADDRESS}`);
     console.log(`🏛️  Governor (Proxy): ${GOVERNOR_ADDRESS}`);
     console.log(`👤 Owner/Relayer: ${OWNER_RELAYER}`);

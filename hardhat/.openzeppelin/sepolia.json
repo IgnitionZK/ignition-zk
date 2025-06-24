@@ -20,6 +20,16 @@
       "address": "0x809B3aF634aC3F45bfDFc09Fd7887F980831DC13",
       "txHash": "0x8bf104b3c93222d6082753bb0ddfb7b0225526d2088074fbb96bafc2702d76a7",
       "kind": "uups"
+    },
+    {
+      "address": "0x26FB9f7A33A6dE076F588b516BB36627f6A668Bc",
+      "txHash": "0x5718363df2659deeb9dfbce98d91a85cfc05b9884839ff46dc224c25c1fea5c2",
+      "kind": "uups"
+    },
+    {
+      "address": "0x28e3312F3394427D51B9C5a73d53a2129b49988D",
+      "txHash": "0x899d879b93302af432e4b103ddda7c870bd5ac37f2e0553fb1bffbf361ca7b33",
+      "kind": "uups"
     }
   ],
   "impls": {
@@ -453,6 +463,252 @@
             "type": "t_address",
             "contract": "GovernanceManager",
             "src": "contracts/governance/GovernanceManager.sol:46"
+          }
+        ],
+        "types": {
+          "t_address": {
+            "label": "address",
+            "numberOfBytes": "20"
+          },
+          "t_bool": {
+            "label": "bool",
+            "numberOfBytes": "1"
+          },
+          "t_struct(InitializableStorage)73_storage": {
+            "label": "struct Initializable.InitializableStorage",
+            "members": [
+              {
+                "label": "_initialized",
+                "type": "t_uint64",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "_initializing",
+                "type": "t_bool",
+                "offset": 8,
+                "slot": "0"
+              }
+            ],
+            "numberOfBytes": "32"
+          },
+          "t_struct(OwnableStorage)13_storage": {
+            "label": "struct OwnableUpgradeable.OwnableStorage",
+            "members": [
+              {
+                "label": "_owner",
+                "type": "t_address",
+                "offset": 0,
+                "slot": "0"
+              }
+            ],
+            "numberOfBytes": "32"
+          },
+          "t_uint64": {
+            "label": "uint64",
+            "numberOfBytes": "8"
+          }
+        },
+        "namespaces": {
+          "erc7201:openzeppelin.storage.Ownable": [
+            {
+              "contract": "OwnableUpgradeable",
+              "label": "_owner",
+              "type": "t_address",
+              "src": "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol:24",
+              "offset": 0,
+              "slot": "0"
+            }
+          ],
+          "erc7201:openzeppelin.storage.Initializable": [
+            {
+              "contract": "Initializable",
+              "label": "_initialized",
+              "type": "t_uint64",
+              "src": "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol:69",
+              "offset": 0,
+              "slot": "0"
+            },
+            {
+              "contract": "Initializable",
+              "label": "_initializing",
+              "type": "t_bool",
+              "src": "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol:73",
+              "offset": 8,
+              "slot": "0"
+            }
+          ]
+        }
+      }
+    },
+    "c416c7bf9a18a78429032613a975ceddbcfc1da37096efbe570af0db8f126e24": {
+      "address": "0xc61B650E75C65D879114172e236D4C84895813C4",
+      "txHash": "0x6a6a058779d483d4529f91c609b684cd885b4fc36656a2807cab59436ee1985e",
+      "layout": {
+        "solcVersion": "0.8.28",
+        "storage": [
+          {
+            "label": "groupRoots",
+            "offset": 0,
+            "slot": "0",
+            "type": "t_mapping(t_bytes32,t_bytes32)",
+            "contract": "MembershipManager",
+            "src": "contracts/managers/MembershipManager.sol:128"
+          },
+          {
+            "label": "groupNullifiers",
+            "offset": 0,
+            "slot": "1",
+            "type": "t_mapping(t_bytes32,t_mapping(t_bytes32,t_bool))",
+            "contract": "MembershipManager",
+            "src": "contracts/managers/MembershipManager.sol:130"
+          },
+          {
+            "label": "groupNftAddresses",
+            "offset": 0,
+            "slot": "2",
+            "type": "t_mapping(t_bytes32,t_address)",
+            "contract": "MembershipManager",
+            "src": "contracts/managers/MembershipManager.sol:132"
+          },
+          {
+            "label": "verifier",
+            "offset": 0,
+            "slot": "3",
+            "type": "t_contract(IMembershipVerifier)9342",
+            "contract": "MembershipManager",
+            "src": "contracts/managers/MembershipManager.sol:136"
+          },
+          {
+            "label": "nftImplementation",
+            "offset": 0,
+            "slot": "4",
+            "type": "t_address",
+            "contract": "MembershipManager",
+            "src": "contracts/managers/MembershipManager.sol:138"
+          }
+        ],
+        "types": {
+          "t_address": {
+            "label": "address",
+            "numberOfBytes": "20"
+          },
+          "t_bool": {
+            "label": "bool",
+            "numberOfBytes": "1"
+          },
+          "t_struct(InitializableStorage)73_storage": {
+            "label": "struct Initializable.InitializableStorage",
+            "members": [
+              {
+                "label": "_initialized",
+                "type": "t_uint64",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "_initializing",
+                "type": "t_bool",
+                "offset": 8,
+                "slot": "0"
+              }
+            ],
+            "numberOfBytes": "32"
+          },
+          "t_struct(OwnableStorage)13_storage": {
+            "label": "struct OwnableUpgradeable.OwnableStorage",
+            "members": [
+              {
+                "label": "_owner",
+                "type": "t_address",
+                "offset": 0,
+                "slot": "0"
+              }
+            ],
+            "numberOfBytes": "32"
+          },
+          "t_uint64": {
+            "label": "uint64",
+            "numberOfBytes": "8"
+          },
+          "t_bytes32": {
+            "label": "bytes32",
+            "numberOfBytes": "32"
+          },
+          "t_contract(IMembershipVerifier)9342": {
+            "label": "contract IMembershipVerifier",
+            "numberOfBytes": "20"
+          },
+          "t_mapping(t_bytes32,t_address)": {
+            "label": "mapping(bytes32 => address)",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_bytes32,t_bool)": {
+            "label": "mapping(bytes32 => bool)",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_bytes32,t_bytes32)": {
+            "label": "mapping(bytes32 => bytes32)",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_bytes32,t_mapping(t_bytes32,t_bool))": {
+            "label": "mapping(bytes32 => mapping(bytes32 => bool))",
+            "numberOfBytes": "32"
+          }
+        },
+        "namespaces": {
+          "erc7201:openzeppelin.storage.Ownable": [
+            {
+              "contract": "OwnableUpgradeable",
+              "label": "_owner",
+              "type": "t_address",
+              "src": "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol:24",
+              "offset": 0,
+              "slot": "0"
+            }
+          ],
+          "erc7201:openzeppelin.storage.Initializable": [
+            {
+              "contract": "Initializable",
+              "label": "_initialized",
+              "type": "t_uint64",
+              "src": "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol:69",
+              "offset": 0,
+              "slot": "0"
+            },
+            {
+              "contract": "Initializable",
+              "label": "_initializing",
+              "type": "t_bool",
+              "src": "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol:73",
+              "offset": 8,
+              "slot": "0"
+            }
+          ]
+        }
+      }
+    },
+    "9dd5e5b099aa1e46e9c3aa3d73792f6cb2223e8354cba613db284a6fb98a1f86": {
+      "address": "0x8aeacbADE4B61977D7CABD07820BaCdE92dea775",
+      "txHash": "0x533c4339e53365728d45166334c68e5e5a78cb9af8dfc605e368a80480f5cd49",
+      "layout": {
+        "solcVersion": "0.8.28",
+        "storage": [
+          {
+            "label": "relayer",
+            "offset": 0,
+            "slot": "0",
+            "type": "t_address",
+            "contract": "GovernanceManager",
+            "src": "contracts/governance/GovernanceManager.sol:52"
+          },
+          {
+            "label": "membershipManager",
+            "offset": 0,
+            "slot": "1",
+            "type": "t_address",
+            "contract": "GovernanceManager",
+            "src": "contracts/governance/GovernanceManager.sol:54"
           }
         ],
         "types": {
