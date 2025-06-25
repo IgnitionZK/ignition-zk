@@ -2,6 +2,7 @@ import { plonk } from "snarkjs";
 import { ZkCredential } from "./generateCredentials-browser-safe.js";
 import { MerkleTreeService } from "./merkleTreeService.js";
 import { keccak256, toUtf8Bytes } from "ethers";
+import * as circomlibjs from "circomlibjs";
 
 export class ZKProofGenerator {
 
@@ -26,17 +27,40 @@ export class ZKProofGenerator {
   static FIELD_MODULUS = BigInt(
   "21888242871839275222246405745257275088548364400416034343698204186575808495617"
   );
+  // Poseidon instance for hashing
+  static #poseidonInstance;
 
   /**
-   * Converts a UUID string to a BigInt representation.
-   * This method hashes the UUID using keccak256 and reduces it modulo the field modulus.
-   * @param {string} uuid - The UUID string to convert.
-   * @returns {bigint} The BigInt representation of the UUID.
+   * Converts a string to a BigInt representation.
+   * This method hashes the string using keccak256 and reduces it modulo the field modulus.
+   * @param {string} str - The string to convert.
+   * @returns {bigint} The BigInt representation of the string.
    */
-  static #uuidToBigInt(uuid) {
-    const hash = BigInt(keccak256(toUtf8Bytes(uuid)));
+  static #stringToBigInt(str) {
+    const hash = BigInt(keccak256(toUtf8Bytes(str)));
     return hash % this.FIELD_MODULUS;
   }
+
+  /**
+   * Converts an object to a deterministic JSON string.
+   * @param {Object} obj - The object to stringify.
+   * @returns {string} The deterministic JSON string representation of the object.
+   */
+  static #deterministicStringify(obj) {
+    return JSON.stringify(obj, Object.keys(obj).sort());
+  }
+
+  /**
+     * Gets or initializes the Poseidon hash instance.
+     * @private
+     * @returns {Promise<Object>} The Poseidon hash instance
+     */
+    static async #getPoseidon() {
+      if (!this.#poseidonInstance) {
+        this.#poseidonInstance = await circomlibjs.buildPoseidon();
+      }
+      return this.#poseidonInstance;
+    }
 
   /**
    * Converts a file to an ArrayBuffer.
@@ -97,7 +121,7 @@ export class ZKProofGenerator {
    * @param {Array<BigInt>} commitmentArray - An array of commitment values to use for the Merkle proof.
    * @returns {Promise<Object>} An object containing the circuit input including root, identity trapdoor, identity nullifier, path elements, and path indices.
    */
-  static async generateCircuitInput(
+  static async generateMembershipCircuitInput(
     mnemonic,
     commitmentArray,
     externalNullifier
@@ -112,7 +136,7 @@ export class ZKProofGenerator {
     const { root, pathElements, pathIndices } =
       await MerkleTreeService.generateMerkleProof(index, commitmentArray);
 
-    const externalNullifierBigInt = this.#uuidToBigInt(externalNullifier);
+    const externalNullifierBigInt = this.#stringToBigInt(externalNullifier);
     console.log("External Nullifier BigInt:", externalNullifierBigInt);
 
     const circuitInput = {
@@ -128,6 +152,64 @@ export class ZKProofGenerator {
 
     return circuitInput;
   }
+
+  static async generateProposalCircuitInput(
+    mnemonic,
+    commitmentArray,
+    groupId,
+    epochId,
+    proposalTitle,
+    proposalDescription,
+    proposalPayload
+  ) {
+    const seed = ZkCredential.generateSeedFromMnemonic(mnemonic);
+    const { trapdoorKey, nullifierKey } = ZkCredential.generateKeys(seed);
+    const { trapdoor, nullifier, commitment } =
+      await ZkCredential.generateIdentity(trapdoorKey, nullifierKey);
+
+    const index = commitmentArray.findIndex((leaf) => leaf === commitment);
+
+    const { root, pathElements, pathIndices } =
+      await MerkleTreeService.generateMerkleProof(index, commitmentArray);
+
+    const groupHashBigInt = this.#stringToBigInt(groupId);
+    const epochHashBigInt = this.#stringToBigInt(epochId);
+    const proposalTitleBigInt = this.#stringToBigInt(proposalTitle);
+    const proposalDescriptionBigInt = this.#stringToBigInt(proposalDescription);
+    const proposalPayloadBigInt = this.#stringToBigInt(this.#deterministicStringify(proposalPayload));
+    console.log("Group Hash BigInt:", groupHashBigInt);
+    console.log("Epoch Hash BigInt:", epochHashBigInt);
+    console.log("Proposal Title BigInt:", proposalTitleBigInt);
+    console.log("Proposal Description BigInt:", proposalDescriptionBigInt);
+    console.log("Proposal Payload BigInt:", proposalPayloadBigInt);
+
+    const poseidon = await this.#getPoseidon();
+    const F = poseidon.F;
+    const proposalContentHash = F.toObject(poseidon([
+      proposalTitleBigInt,
+      proposalDescriptionBigInt,
+      proposalPayloadBigInt
+    ]));
+
+    const circuitInput = {
+      root: root.toString(),
+      proposalContentHash: proposalContentHash.toString(),
+      identityTrapdoor: trapdoor.toString(),
+      identityNullifier: nullifier.toString(),
+      pathElements,
+      pathIndices: pathIndices.map((index) => index.toString()),
+      proposalTitle: proposalTitleBigInt.toString(),
+      proposalDescription: proposalDescriptionBigInt.toString(),
+      proposalPayload: proposalPayloadBigInt.toString(),
+      groupHash: groupHashBigInt.toString(),
+      epochHash: epochHashBigInt.toString(),
+    };
+
+    console.log("Proposal Circuit Input:", circuitInput);
+
+    return circuitInput;
+  }
+
 
   /**
    * Generates a zero-knowledge proof for the specified circuit input.

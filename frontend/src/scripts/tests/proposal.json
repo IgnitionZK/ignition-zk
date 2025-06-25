@@ -1,0 +1,14 @@
+{
+    "title": "Proposal for New Feature",
+    "description": "This proposal outlines a new feature that aims to enhance user experience by introducing a customizable dashboard.",
+    "payload": {
+        "targetContract": "0xGovernanceContractAddress",
+        "targetFunction": "executeProposal", 
+        "targetAction": "delegateDistributeGrant",
+        "value": "0",
+        "calldata": {
+            "recipient": "0xabcdefabcdefabcdefabcdefabcdefabcdefabcd",
+            "amount": "1000000000000000000"
+        }
+    }
+}

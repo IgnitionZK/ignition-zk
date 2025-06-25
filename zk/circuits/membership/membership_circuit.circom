@@ -37,19 +37,19 @@ template MembershipProof(treeLevels) {
     signal input identityNullifier;
 
     /**
-     * @notice externalNullifier: an external nullifier that is used to create a unique public nullifier.
-     * @dev This value is not revealed in the public output.
+     * @notice groupHash: the hash of the group context, which is used to derive the public nullifier.
+     * @dev This value is revealed in the public output.
      */
-    signal input externalNullifier;
+    signal input groupHash; 
 
     /**
-     * @notice publicNullifier: the final nullifier that is computed from identityNullifier and externalNullifier.
+     * @notice publicNullifier: the final nullifier that is computed from identityNullifier and groupHash.
      * @dev This value is revealed in the public output.
      */
     signal output publicNullifier;
     component nullifierHash = Poseidon(2);
     nullifierHash.inputs[0] <== identityNullifier;
-    nullifierHash.inputs[1] <== externalNullifier;
+    nullifierHash.inputs[1] <== groupHash;
     publicNullifier <== nullifierHash.out;
 
     /**
@@ -191,4 +191,4 @@ template MembershipProof(treeLevels) {
  * @dev Declares the root signal as public. 
  * @dev The publicNullifier signal is also public by default as it is declared as output.
  */
-component main {public [root, externalNullifier]} = MembershipProof(10);
+component main {public [root, groupHash]} = MembershipProof(10);
