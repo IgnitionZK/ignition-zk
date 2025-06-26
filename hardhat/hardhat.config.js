@@ -22,8 +22,9 @@ module.exports = {
     only: [
       "MembershipManager",
       "ERC721IgnitionZK",
+      "GovernanceManager",
       "MembershipVerifier",
-      "GovernanceManager"
+      "ProposalVerifier",
     ],
     except: ["MembershipManagerV2", "GovernanceManagerV2"],
   },

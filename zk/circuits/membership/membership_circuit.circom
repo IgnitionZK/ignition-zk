@@ -191,4 +191,6 @@ template MembershipProof(treeLevels) {
  * @dev Declares the root signal as public. 
  * @dev The publicNullifier signal is also public by default as it is declared as output.
  */
-component main {public [root, groupHash]} = MembershipProof(10);
+ // commented out to avoid compilation errors when included in other circuits
+ // to use the membership circuit independently create a wrapper file that includes this circuit
+//component main {public [root, groupHash]} = MembershipProof(10);

@@ -19,9 +19,9 @@ export class ZKProofGenerator {
   static #VOTING_VKEY_PATH = "";
 
   // Proposal circuit paths
-  static #PROPOSAL_WASM_PATH = "";
-  static #PROPOSAL_ZKEY_PATH = "";
-  static #PROPOSAL_VKEY_PATH = "";
+  static #PROPOSAL_WASM_PATH = "/proposal_circuit/proposal_circuit.wasm";
+  static #PROPOSAL_ZKEY_PATH = "/proposal_circuit/proposal_circuit_final.zkey";
+  static #PROPOSAL_VKEY_PATH = "/proposal_circuit/proposal_circuit_key.json";
 
   // Field modulus for the ZK circuits
   static FIELD_MODULUS = BigInt(
@@ -116,36 +116,70 @@ export class ZKProofGenerator {
   }
 
   /**
-   * Generates the circuit input for a given mnemonic and commitment array.
+   * Generates the input for the Merkle proof circuit.
    * @param {string} mnemonic - The mnemonic phrase used to generate the identity.
    * @param {Array<BigInt>} commitmentArray - An array of commitment values to use for the Merkle proof.
    * @returns {Promise<Object>} An object containing the circuit input including root, identity trapdoor, identity nullifier, path elements, and path indices.
    */
-  static async generateMembershipCircuitInput(
+  static async generateMerkleProofInput(
     mnemonic,
-    commitmentArray,
-    externalNullifier
+    commitmentArray
   ) {
+    console.log("Generating Merkle proof input...");
     const seed = ZkCredential.generateSeedFromMnemonic(mnemonic);
+    console.log("Seed generated from mnemonic:", seed);
     const { trapdoorKey, nullifierKey } = ZkCredential.generateKeys(seed);
+    console.log("Trapdoor Key:", trapdoorKey);
     const { trapdoor, nullifier, commitment } =
       await ZkCredential.generateIdentity(trapdoorKey, nullifierKey);
+    console.log("Trapdoor:", trapdoor);
+    console.log("Nullifier:", nullifier);
+    console.log("Commitment:", commitment);
 
     const index = commitmentArray.findIndex((leaf) => leaf === commitment);
+    console.log("Commitment Index:", index);
 
     const { root, pathElements, pathIndices } =
       await MerkleTreeService.generateMerkleProof(index, commitmentArray);
-
-    const externalNullifierBigInt = this.#stringToBigInt(externalNullifier);
-    console.log("External Nullifier BigInt:", externalNullifierBigInt);
-
-    const circuitInput = {
+    console.log("Merkle Root:", root);
+    console.log("Path Elements:", pathElements);
+    console.log("Path Indices:", pathIndices);
+    
+    return {
       root: root.toString(),
       identityTrapdoor: trapdoor.toString(),
       identityNullifier: nullifier.toString(),
-      externalNullifier: externalNullifierBigInt.toString(),
       pathElements,
       pathIndices: pathIndices.map((index) => index.toString()),
+    };
+  }
+  
+  /**
+   * Generates the inputs for the Membership circuit for a given mnemonic and commitment array.
+   * @param {string} mnemonic - The mnemonic phrase used to generate the identity.
+   * @param {Array<BigInt>} commitmentArray - An array of commitment values to use for the Merkle proof.
+   * @param {string} groupId - The group ID to include as context in the circuit input.
+   * @returns {Promise<Object>} An object containing the circuit input including root, identity trapdoor, identity nullifier, group hash, path elements, and path indices.
+   */
+  static async generateMembershipCircuitInput(
+    mnemonic,
+    commitmentArray,
+    groupId
+  ) {
+    const merkleProofInput = await this.generateMerkleProofInput(
+      mnemonic,
+      commitmentArray
+    );
+    const groupHashBigInt = this.#stringToBigInt(groupId);
+    console.log("Group Hash BigInt:", groupHashBigInt);
+
+    const circuitInput = {
+      root: merkleProofInput.root,
+      identityTrapdoor: merkleProofInput.identityTrapdoor,
+      identityNullifier: merkleProofInput.identityNullifier,
+      groupHash: groupHashBigInt.toString(),
+      pathElements: merkleProofInput.pathElements,
+      pathIndices: merkleProofInput.pathIndices.map((index) => index.toString()),
     };
 
     console.log("Circuit Input:", circuitInput);
@@ -153,6 +187,18 @@ export class ZKProofGenerator {
     return circuitInput;
   }
 
+  /**   
+   * Generates the inputs for the proposal submission circuit.
+   * @param {string} mnemonic - The mnemonic phrase used to generate the identity.
+   * @param {Array<BigInt>} commitmentArray - An array of commitment values to use for the Merkle proof.
+   * @param {string} groupId - The group ID to include as context in the circuit input.
+   * @param {string} epochId - The epoch ID to include as context in the circuit input.
+   * @param {string} proposalTitle - The title of the proposal.
+   * @param {string} proposalDescription - The description of the proposal.
+   * @param {Object} proposalPayload - The payload of the proposal, which can include various parameters.
+   * @returns {Promise<Object>}
+   * An object containing the circuit input including root, identity trapdoor, identity nullifier, group hash, epoch hash, proposal title, proposal description, proposal payload, and path elements.
+   */ 
   static async generateProposalCircuitInput(
     mnemonic,
     commitmentArray,
@@ -162,15 +208,12 @@ export class ZKProofGenerator {
     proposalDescription,
     proposalPayload
   ) {
-    const seed = ZkCredential.generateSeedFromMnemonic(mnemonic);
-    const { trapdoorKey, nullifierKey } = ZkCredential.generateKeys(seed);
-    const { trapdoor, nullifier, commitment } =
-      await ZkCredential.generateIdentity(trapdoorKey, nullifierKey);
+    const merkleProofInput = await this.generateMerkleProofInput(
+      mnemonic,
+      commitmentArray
+    );
 
-    const index = commitmentArray.findIndex((leaf) => leaf === commitment);
-
-    const { root, pathElements, pathIndices } =
-      await MerkleTreeService.generateMerkleProof(index, commitmentArray);
+    console.log("Merkle Proof Input:", merkleProofInput);
 
     const groupHashBigInt = this.#stringToBigInt(groupId);
     const epochHashBigInt = this.#stringToBigInt(epochId);
@@ -190,17 +233,24 @@ export class ZKProofGenerator {
       proposalDescriptionBigInt,
       proposalPayloadBigInt
     ]));
+    console.log("Proposal Content Hash:", proposalContentHash);
+
+    const proposalContextHash = F.toObject(poseidon([
+      groupHashBigInt,
+      epochHashBigInt
+    ]));
+    console.log("Proposal Context Hash:", proposalContextHash);
 
     const circuitInput = {
-      root: root.toString(),
+      root: merkleProofInput.root,
       proposalContentHash: proposalContentHash.toString(),
-      identityTrapdoor: trapdoor.toString(),
-      identityNullifier: nullifier.toString(),
-      pathElements,
-      pathIndices: pathIndices.map((index) => index.toString()),
-      proposalTitle: proposalTitleBigInt.toString(),
-      proposalDescription: proposalDescriptionBigInt.toString(),
-      proposalPayload: proposalPayloadBigInt.toString(),
+      identityTrapdoor: merkleProofInput.identityTrapdoor,
+      identityNullifier: merkleProofInput.identityNullifier,
+      pathElements: merkleProofInput.pathElements,
+      pathIndices: merkleProofInput.pathIndices.map((index) => index.toString()),
+      proposalTitleHash: proposalTitleBigInt.toString(),
+      proposalDescriptionHash: proposalDescriptionBigInt.toString(),
+      proposalPayloadHash: proposalPayloadBigInt.toString(),
       groupHash: groupHashBigInt.toString(),
       epochHash: epochHashBigInt.toString(),
     };

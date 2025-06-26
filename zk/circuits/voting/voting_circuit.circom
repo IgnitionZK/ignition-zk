@@ -8,7 +8,7 @@ include "../membership/membership_circuit.circom";
 // Verify that a vote is valid by
 // a) checking that the voter is a member of the group that can vote
 // b) checking that the vote is not already cast for the given proposal_id within the group and epoch. (onchain check via the vote nullifier)
-// c) that the vote content is valid (e.g. vote choice, timestamp, etc.)
+// c) that the vote content is valid (e.g. vote choice, timestamp, etc.) -- TO DO 
 
 template VotingProof(treeLevels) {
 

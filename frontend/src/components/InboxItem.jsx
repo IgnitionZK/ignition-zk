@@ -2,7 +2,8 @@ import styled from "styled-components";
 import { useState } from "react";
 import CustomButton from "./CustomButton";
 import MnemonicInput from "./MnemonicInput";
-import { useVerifyMembership } from "../hooks/queries/proofs/useVerifyMembership";
+//import { useVerifyMembership } from "../hooks/queries/proofs/useVerifyMembership";
+import { useVerifyProposal } from "../hooks/queries/proofs/useVerifyProposal";
 import { useGetCommitmentArray } from "../hooks/queries/merkleTreeLeaves/useGetCommitmentArray";
 import { useInsertProof } from "../hooks/queries/proofs/useInsertProof";
 import { useGetUserGroups } from "../hooks/queries/groupMembers/useGetUserGroups";
@@ -92,10 +93,10 @@ function InboxItem({ proposal, showSubmitButton = true, isVerified = false }) {
   });
 
   const {
-    verifyMembership,
+    verifyProposal,
     isVerifying,
     error: verificationError,
-  } = useVerifyMembership();
+  } = useVerifyProposal();
 
   const { insertProof, isLoading: isInsertingProof } = useInsertProof();
 
@@ -131,14 +132,18 @@ function InboxItem({ proposal, showSubmitButton = true, isVerified = false }) {
       }
 
       // Get the proof and verification result
-      const { isValid, publicSignals } = await verifyMembership(
+      const { isValid, publicSignals } = await verifyProposal(
         commitmentArray,
         mnemonic,
-        proposal.group_id
+        proposal.group_id,
+        "some-epoch-id", //proposal.epoch_id,
+        "Proposal Title", //proposal.title,
+        "Proposal Description", //proposal.description,
+        { key: "value" } //proposal.payload
       );
 
       if (isValid) {
-        const nullifierHash = publicSignals[0]; // First value in publicSignals is the nullifier hash
+        const nullifierHash = publicSignals[1]; // Second value in publicSignals is the proposal nullifier hash
 
         await insertProof({
           proposalId: proposal.proposal_id,
