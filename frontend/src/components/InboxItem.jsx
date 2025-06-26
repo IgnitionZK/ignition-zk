@@ -136,10 +136,10 @@ function InboxItem({ proposal, showSubmitButton = true, isVerified = false }) {
         commitmentArray,
         mnemonic,
         proposal.group_id,
-        "some-epoch-id", //proposal.epoch_id,
-        "Proposal Title", //proposal.title,
-        "Proposal Description", //proposal.description,
-        { key: "value" } //proposal.payload
+        proposal.epoch_id,
+        proposal.title,
+        proposal.description,
+        proposal.payload
       );
 
       if (isValid) {
