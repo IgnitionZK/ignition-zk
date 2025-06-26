@@ -13,11 +13,11 @@ export function useUpdateProposalStatus() {
      * Mutation function to update a proposal's status
      * @param {Object} params - The parameters for updating a proposal's status
      * @param {string} params.proposalId - The ID of the proposal to update
-     * @param {string} params.status - The new status value
+     * @param {string} params.status_type - The new status value
      * @returns {Promise} A promise that resolves when the status is updated
      */
-    mutationFn: ({ proposalId, status }) =>
-      updateProposalStatus({ proposalId, status }),
+    mutationFn: ({ proposalId, status_type }) =>
+      updateProposalStatus({ proposalId, status_type }),
     onError: (err) => {
       console.log("ERROR", err);
     },

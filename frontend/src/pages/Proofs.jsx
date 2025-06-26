@@ -78,7 +78,7 @@ export default function Proofs() {
 
   // Filter active proposals and then by selected group
   const filteredProposals = proposals
-    ?.filter((proposal) => proposal.status === "active")
+    ?.filter((proposal) => proposal.status_type === "active")
     .filter((proposal) =>
       selectedGroup === "All Groups"
         ? true
