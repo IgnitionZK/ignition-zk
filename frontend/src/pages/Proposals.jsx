@@ -68,7 +68,7 @@ export default function Proposals() {
 
   // Filter active proposals and then by selected group
   const filteredProposals = proposals
-    ?.filter((proposal) => proposal.status === "active")
+    ?.filter((proposal) => proposal.status_type === "active")
     .filter((proposal) =>
       selectedGroup === "All Groups"
         ? true
@@ -113,7 +113,7 @@ export default function Proposals() {
         ) : (
           <ActivityList>
             {proposals
-              ?.filter((proposal) => proposal.status !== "active")
+              ?.filter((proposal) => proposal.status_type !== "active")
               .filter((proposal) =>
                 selectedGroup === "All Groups"
                   ? true
