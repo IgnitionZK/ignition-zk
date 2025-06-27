@@ -17,7 +17,7 @@ import "@openzeppelin/contracts/utils/Address.sol";
  * @dev Manages governance-related functions and access control.
  */
 
-contract GovernanceManager is Initializable, UUPSUpgradeable, OwnableUpgradeable {
+contract GovernanceManagerSimplified is Initializable, UUPSUpgradeable, OwnableUpgradeable {
 
 // ====================================================================================================================
 //                                                  CUSTOM ERRORS
@@ -140,6 +140,12 @@ contract GovernanceManager is Initializable, UUPSUpgradeable, OwnableUpgradeable
      * @dev Forwards a call to another contract.
      * @param data The calldata to forward.
      * @param delegateTo The address to forward the call to.
+     * example usage from the frontend:
+     * ```
+     * const mmIface = new ethers.utils.Interface(MembershipManagerABI);
+     * const data = mmIface.encodeFunctionData("setRoot", [newRoot, groupKey]);
+     * await governanceManager.forward(data);
+     * ```
      */
     function delegate(
         bytes calldata data, 

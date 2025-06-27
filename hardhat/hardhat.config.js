@@ -20,9 +20,11 @@ module.exports = {
     runOnCompile: true, // Will run automatically on compilation
     strict: true,
     only: [
-      "MembershipManager",
       "ERC721IgnitionZK",
+      "MembershipManager",
+      "ProposalManager",
       "GovernanceManager",
+      "GovernanceManagerSimplified",
       "MembershipVerifier",
       "ProposalVerifier",
     ],
