@@ -52,4 +52,7 @@ interface IMembershipManager {
     function revokeBurnerRole(address nftClone) external;
     function grantMinterRole(address nftClone, address grantTo) external;
     function grantBurnerRole(address nftClone, address grantTo) external;
+
+    // state variables
+    function groupRoots(bytes32 groupKey) external view returns (bytes32);
 }
