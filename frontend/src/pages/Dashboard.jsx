@@ -135,7 +135,13 @@ function Dashboard() {
   };
 
   // Handler to show dashboard again
-  const handleCancelCreateGroup = () => setShowCreateGroup(false);
+  const handleCancelCreateGroup = () => {
+    setShowCreateGroup(false);
+    // Invalidate and refetch user groups to show newly created group
+    queryClient.invalidateQueries(["userGroups"]);
+    // Also invalidate search groups in case user was searching
+    queryClient.invalidateQueries(["searchGroups"]);
+  };
 
   if (showCreateGroup) {
     return <CreateGroup onCancel={handleCancelCreateGroup} />;
