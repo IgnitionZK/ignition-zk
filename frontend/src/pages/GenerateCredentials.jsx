@@ -18,6 +18,8 @@ import { MerkleTreeService } from "../scripts/merkleTreeService";
 import { useInsertLeaf } from "../hooks/queries/merkleTreeLeaves/useInsertLeaf";
 import { useGetGroupMemberId } from "../hooks/queries/groupMembers/useGetGroupMemberId";
 import { useCreateMerkleTreeRoot } from "../hooks/queries/merkleTreeRoots/useCreateMerkleTreeRoot";
+// relayers
+import { useRelayerUpdateRoot } from "../hooks/relayers/useRelayerUpdateRoot";
 
 const Container = styled.div`
   min-height: 100vh;
@@ -92,6 +94,7 @@ const Note = styled.p`
  * - 12-word mnemonic phrase for account recovery
  * - Commitment insertion into Merkle tree
  * - Merkle tree root generation and updates
+ * - Blockchain root update via relayer
  */
 function GenerateCredentials() {
   const navigate = useNavigate();
@@ -106,6 +109,8 @@ function GenerateCredentials() {
   const { isLoading, groupMemberId } = useGetGroupMemberId({ groupId });
   const { createMerkleTreeRoot, isLoading: isLoadingCreateMerkleTreeRoot } =
     useCreateMerkleTreeRoot();
+  const { updateMerkleRoot, isLoading: isLoadingUpdateMerkleRoot } =
+    useRelayerUpdateRoot();
 
   /**
    * Generates new credentials and updates the Merkle tree
@@ -115,6 +120,7 @@ function GenerateCredentials() {
    * 2. Inserts the commitment into the Merkle tree
    * 3. Generates a new Merkle tree root
    * 4. Updates the Merkle tree root in the database
+   * 5. Updates the Merkle tree root on the blockchain via relayer
    */
   const handleGenerate = async () => {
     try {
@@ -136,13 +142,32 @@ function GenerateCredentials() {
         });
 
         // Create and insert new Merkle tree root
-        await createMerkleTreeRoot({
+        const newRoot = await createMerkleTreeRoot({
           groupId,
           newCommitment: result.commitment,
         });
+
+        // Get current tree version for relayer call
+        const currentTreeVersion = queryClient.getQueryData([
+          "currentMerkleTreeRootVersion",
+        ]);
+        const treeVersion = currentTreeVersion ? currentTreeVersion + 1 : 1;
+
+        // Update Merkle tree root on blockchain via relayer
+        await updateMerkleRoot({
+          treeVersion: treeVersion,
+          rootValue: newRoot,
+          groupKey: groupId,
+        });
+
+        console.log(
+          "Credentials generated and Merkle tree updated successfully"
+        );
       } catch (error) {
-        console.error("Failed to insert leaf:", error);
-        throw new Error("Failed to insert commitment into merkle tree");
+        console.error("Failed to insert leaf or update root:", error);
+        throw new Error(
+          "Failed to insert commitment into merkle tree or update blockchain root"
+        );
       }
     } catch (error) {
       console.error("Error generating credentials:", error);
@@ -213,6 +238,7 @@ function GenerateCredentials() {
                 isLoading ||
                 isLoadingInsertLeaf ||
                 isLoadingCreateMerkleTreeRoot ||
+                isLoadingUpdateMerkleRoot ||
                 !groupMemberId
               }
             >
@@ -222,6 +248,8 @@ function GenerateCredentials() {
                 ? "Inserting Commitment..."
                 : isLoadingCreateMerkleTreeRoot
                 ? "Updating Merkle Tree..."
+                : isLoadingUpdateMerkleRoot
+                ? "Updating Blockchain Root..."
                 : isLoading
                 ? "Loading..."
                 : "Generate"}
