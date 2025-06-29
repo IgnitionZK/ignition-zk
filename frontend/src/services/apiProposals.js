@@ -49,31 +49,31 @@ export async function getProposalsByGroupId({ groupId }) {
 }
 
 /**
- * Updates the status of a proposal in the database
+ * Updates the status type of a proposal in the database
  * @param {Object} params - The parameters object
  * @param {string} params.proposalId - The ID of the proposal to update
- * @param {string} params.status - The new status to set for the proposal
+ * @param {string} params.statusType - The new status type to set for the proposal
  * @returns {Promise<Object>} The updated proposal object
- * @throws {Error} If proposalId or status is not provided, or if there's a database error
+ * @throws {Error} If proposalId or statusType is not provided, or if there's a database error
  * @example
  * const updatedProposal = await updateProposalStatus({
  *   proposalId: '123',
- *   status: 'approved'
+ *   statusType: 'approved'
  * });
  */
-export async function updateProposalStatus({ proposalId, status }) {
+export async function updateProposalStatus({ proposalId, statusType }) {
   if (!proposalId) {
     throw new Error("proposalId is required");
   }
-  if (!status) {
-    throw new Error("status is required");
+  if (!statusType) {
+    throw new Error("statusType is required");
   }
 
   const { data, error } = await supabase
     .schema("ignitionzk")
     .from("proposals")
-    .update({ status })
-    .eq("id", proposalId)
+    .update({ status_type: statusType })
+    .eq("proposal_id", proposalId)
     .select()
     .single();
 

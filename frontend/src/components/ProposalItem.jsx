@@ -88,19 +88,43 @@ const VotingTime = styled.span`
   gap: 0.4rem;
 `;
 
-function ProposalItem({ proposal, showSubmitButton = true }) {
+function ProposalItem({ proposal = {}, showSubmitButton = true }) {
+  // Guard clause to handle undefined/null proposal
+  if (!proposal || typeof proposal !== "object") {
+    return (
+      <ProposalItemContainer>
+        <ProposalInfo>
+          <ProposalTitle>Invalid Proposal Data</ProposalTitle>
+          <ProposalDescription>
+            Unable to display proposal information.
+          </ProposalDescription>
+        </ProposalInfo>
+      </ProposalItemContainer>
+    );
+  }
+
   const formatDate = (dateString) => {
-    return new Date(dateString).toLocaleDateString("en-US", {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
+    if (!dateString) {
+      return "Not set";
+    }
+    try {
+      return new Date(dateString).toLocaleDateString("en-US", {
+        year: "numeric",
+        month: "short",
+        day: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+    } catch (error) {
+      return "Invalid date";
+    }
   };
 
-  const formatStatus = (status) => {
-    return status
+  const formatStatus = (statusType) => {
+    if (!statusType) {
+      return "Unknown";
+    }
+    return statusType
       .split("_")
       .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
       .join(" ");
@@ -109,15 +133,15 @@ function ProposalItem({ proposal, showSubmitButton = true }) {
   return (
     <ProposalItemContainer>
       <ProposalInfo>
-        <ProposalTitle>{proposal.title}</ProposalTitle>
-        <GroupName>{proposal.group_name}</GroupName>
-        <ProposalDescription>{proposal.description}</ProposalDescription>
+        <ProposalTitle>{proposal.title || "Untitled Proposal"}</ProposalTitle>
+        <GroupName>{proposal.group_name || "Unknown Group"}</GroupName>
+        <ProposalDescription>
+          {proposal.description || "No description available"}
+        </ProposalDescription>
         <VotingPeriod>
           <VotingTime>
-            <span>Start:</span> {formatDate(proposal.voting_start_time)}
-          </VotingTime>
-          <VotingTime>
-            <span>End:</span> {formatDate(proposal.voting_end_time)}
+            <span>Created:</span>{" "}
+            {proposal.created_at ? formatDate(proposal.created_at) : "Not set"}
           </VotingTime>
         </VotingPeriod>
       </ProposalInfo>
@@ -130,8 +154,8 @@ function ProposalItem({ proposal, showSubmitButton = true }) {
         }}
       >
         <StatusIndicator>
-          <StatusDot $status={proposal.status} />
-          {formatStatus(proposal.status)}
+          <StatusDot $status={proposal.status_type || "unknown"} />
+          {formatStatus(proposal.status_type)}
         </StatusIndicator>
         {showSubmitButton && (
           <CustomButton
