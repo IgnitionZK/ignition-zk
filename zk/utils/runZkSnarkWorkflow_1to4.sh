@@ -1,13 +1,19 @@
 #!/bin/bash
 
-export CIRCUIT_FILENAME="membership_circuit"
-export CIRCUIT_PATH="membership"
-export CONTRACT_NAME="MembershipVerifier"
+export CIRCUIT_FILENAME="proposal_circuit"
+export CIRCUIT_PATH="proposal"
+export CONTRACT_NAME="ProposalVerifier"
 export PTAU_POWER=14
+trusted_setup=false
 
 ./utils/1_compileCircuit.sh
 
-./utils/2_createTrustedSetup.sh
+if [ "$trusted_setup" = true ]; then
+    echo "Running trusted setup..."
+    ./utils/2_createTrustedSetup.sh
+else
+    echo "Skipping trusted setup..."
+fi
 
 ./utils/3_generateKeys.sh
 

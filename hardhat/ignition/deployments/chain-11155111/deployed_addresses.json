@@ -1,3 +1,4 @@
 {
-  "MembershipVerifierModule#MembershipVerifier": "0x03032Eb295D287cE69d0c9be0F75F35d916564A6"
+  "MembershipVerifierModule#MembershipVerifier": "0x03032Eb295D287cE69d0c9be0F75F35d916564A6",
+  "ProposalVerifierModule#ProposalVerifier": "0x997172817177c1Aa125a0212B2c574c965174f9E"
 }

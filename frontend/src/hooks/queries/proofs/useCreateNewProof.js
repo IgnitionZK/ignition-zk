@@ -22,23 +22,31 @@ export const useGenerateProof = () => {
    * Generates circuit input from commitment array and mnemonic
    * @param {string[]} commitmentArray - Array of commitment values
    * @param {string} mnemonic - Mnemonic phrase
-   * @param {string} externalNullifier - External nullifier value
+   * @param {string} groupId - Group ID value
    * @returns {Promise<Object>} Generated circuit input
    * @throws {Error} If circuit input generation fails
    */
   const generateCircuitInput = async (
     commitmentArray,
     mnemonic,
-    externalNullifier
+    groupId,
+    epochId,
+    proposalTitle,
+    proposalDescription,
+    proposalPayload
   ) => {
     setIsLoading(true);
     setError(null);
 
     try {
-      const input = await ZKProofGenerator.generateCircuitInput(
+      const input = await ZKProofGenerator.generateProposalCircuitInput(
         mnemonic,
         commitmentArray,
-        externalNullifier
+        groupId,
+        epochId,
+        proposalTitle,
+        proposalDescription,
+        proposalPayload
       );
       setCircuitInput(input);
       return input;
@@ -53,11 +61,11 @@ export const useGenerateProof = () => {
   /**
    * Generates a ZK proof from circuit input
    * @param {Object} circuitInput - Circuit input object
-   * @param {string} [circuitType="membership"] - Type of circuit to use
+   * @param {string} [circuitType="proposal"] - Type of circuit to use
    * @returns {Promise<Object>} Object containing proof and public signals
    * @throws {Error} If proof generation fails
    */
-  const generateProof = async (circuitInput, circuitType = "membership") => {
+  const generateProof = async (circuitInput, circuitType = "proposal") => {
     setIsLoading(true);
     setError(null);
 
@@ -80,7 +88,7 @@ export const useGenerateProof = () => {
    * Generates a complete proof from raw inputs
    * @param {string[]} commitmentArray - Array of commitment values
    * @param {string} mnemonic - Mnemonic phrase
-   * @param {string} externalNullifier - External nullifier value
+   * @param {string} groupId - Group ID value
    * @param {string} [circuitType="membership"] - Type of circuit to use
    * @returns {Promise<Object>} Object containing proof, public signals, and circuit type
    * @throws {Error} If proof generation fails
@@ -88,8 +96,12 @@ export const useGenerateProof = () => {
   const generateProofFromInput = async (
     commitmentArray,
     mnemonic,
-    externalNullifier,
-    circuitType = "membership"
+    groupId,
+    epochId,
+    proposalTitle,
+    proposalDescription,
+    proposalPayload,
+    circuitType = "proposal"
   ) => {
     setIsLoading(true);
     setError(null);
@@ -99,7 +111,11 @@ export const useGenerateProof = () => {
       const input = await generateCircuitInput(
         commitmentArray,
         mnemonic,
-        externalNullifier
+        groupId,
+        epochId,
+        proposalTitle,
+        proposalDescription,
+        proposalPayload
       );
 
       // Then generate the proof using the circuit input

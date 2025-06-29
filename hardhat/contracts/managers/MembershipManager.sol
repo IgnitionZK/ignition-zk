@@ -57,6 +57,9 @@ contract MembershipManager is Initializable, UUPSUpgradeable, OwnableUpgradeable
     error VerifierAddressCannotBeZero();
     error GovernorAddressCannotBeZero();
     error KeyCannotBeZero();
+    error AddressCannotBeZero();
+    // Authorization errors:
+    error NotAuthorizedViewer();
     
 // ====================================================================================================================
 //                                                  EVENTS
@@ -119,6 +122,27 @@ contract MembershipManager is Initializable, UUPSUpgradeable, OwnableUpgradeable
      */
     event RoleGranted(address indexed nftClone, bytes32 role, address indexed grantedTo);
 
+    /**
+     * @notice Emitted when the address of the zk-SNARK verifier contract is set.
+     * @param verifier The address of the zk-SNARK verifier contract.
+     */
+    event VerifierSet(address indexed verifier);
+    /**
+     * @notice Emitted when the address of the NFT implementation contract is set.
+     * @param nftImplementation The address of the NFT implementation contract.
+     */
+    event NftImplementationSet(address indexed nftImplementation);
+    /**
+     * @notice Emitted when the address of the proposal manager contract is set.
+     * @param proposalManager The address of the proposal manager contract.
+     */
+    event ProposalManagerSet(address indexed proposalManager);
+    /**
+     * @notice Emitted when the address of the voting manager contract is set.
+     * @param votingManager The address of the voting manager contract.
+     */
+    event VotingManagerSet(address indexed votingManager);
+
 // ====================================================================================================================
 //                                          STATE VARIABLES
 // NOTE: Once the contract is deployed do not change the order of the variables. If this contract is updated append new variables to the end of this list. 
@@ -136,6 +160,8 @@ contract MembershipManager is Initializable, UUPSUpgradeable, OwnableUpgradeable
     IMembershipVerifier private verifier;
     /// @dev The address of the NFT implementation contract used for creating new group NFTs.
     address private nftImplementation;
+    address private proposalManager;
+    address private votingManager;
 
     // Constants:
     /// @dev The maximum number of members that can be added in a single batch transaction.
@@ -161,6 +187,18 @@ contract MembershipManager is Initializable, UUPSUpgradeable, OwnableUpgradeable
     modifier nonZeroAddress(address addr) {
          if (addr == address(0)) revert MemberAddressCannotBeZero();
          _;
+    }
+    
+    /** 
+     * @dev Ensures that the caller is either the owner (governor), proposal manager, or voting manager.
+     */
+    modifier onlyAuthorized() {
+        if (msg.sender != owner() &&
+            msg.sender != proposalManager &&
+            msg.sender != votingManager) {
+            revert NotAuthorizedViewer();
+        }
+        _;
     }
 
 // ====================================================================================================================
@@ -203,11 +241,46 @@ contract MembershipManager is Initializable, UUPSUpgradeable, OwnableUpgradeable
         //governor = _governor;
         verifier = IMembershipVerifier(_verifier);
         nftImplementation = _nftImplementation;
+
+        emit VerifierSet(_verifier);
+        emit NftImplementationSet(_nftImplementation);
     }
 
 // ====================================================================================================================
 //                                       EXTERNAL STATE-CHANGING FUNCTIONS
 // ====================================================================================================================
+    /**
+     * @notice Sets the address of the zk-SNARK verifier contract.
+     * @dev Can only be called by the governor.
+     * @param _verifier The address of the new verifier contract.
+     * @custom:error VerifierAddressCannotBeZero If the provided verifier address is zero.
+     */
+    function setMembershipVerifier(address _verifier) external onlyOwner nonZeroAddress(_verifier) {
+        verifier = IMembershipVerifier(_verifier);
+        emit VerifierSet(_verifier);
+    }
+
+    /**
+     * @notice Sets the address of the proposal manager contract.
+     * @dev Can only be called by the governor.
+     * @param _proposalManager The address of the new proposal manager contract.
+     * @custom:error AddressCannotBeZero If the provided proposal manager address is zero.
+     */
+    function setProposalManager(address _proposalManager) external onlyOwner nonZeroAddress(_proposalManager) {
+        proposalManager = _proposalManager;
+        emit ProposalManagerSet(_proposalManager);
+    }
+
+    /** 
+     * @notice Sets the address of the voting manager contract.
+     * @dev Can only be called by the governor.
+     * @param _votingManager The address of the new voting manager contract.
+     * @custom:error AddressCannotBeZero If the provided voting manager address is zero.
+     */
+    function setVotingManager(address _votingManager) external onlyOwner nonZeroAddress(_votingManager) {
+        votingManager = _votingManager;
+        emit VotingManagerSet(_votingManager);
+    }
 
     /**
      * @notice Deploys a new ERC721 NFT contract instance for a given group.
@@ -408,7 +481,14 @@ contract MembershipManager is Initializable, UUPSUpgradeable, OwnableUpgradeable
      * @return The current Merkle root for the specified group. Returns bytes32(0) if no root has been set.
      * @custom:error (No custom errors thrown by this function)
      */
-    function getRoot(bytes32 groupKey) external view onlyOwner returns (bytes32){
+    function getRoot(bytes32 groupKey) 
+        external 
+        view 
+        onlyAuthorized 
+        nonZeroAddress(proposalManager) 
+        nonZeroAddress(votingManager) 
+        returns (bytes32)
+    {
         return groupRoots[groupKey];
     }
 

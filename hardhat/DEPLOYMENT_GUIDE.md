@@ -38,7 +38,7 @@ npx hardhat run scripts/deploy-step1-erc721.js --network sepolia
 2. **Replace the placeholder**: Update `NFT_IMPLEMENTATION_ADDRESS` with the address from Step 1
 3. **Run the deployment**:
    ```bash
-   npx hardhat run scripts/deploy-step2-membershipmanager.js --network sepolia
+   npx hardhat run scripts/deploy-step2-membership-proposal-manager.js --network sepolia
    ```
 
 **Save the output proxy address** (this is your **MembershipManager Proxy**) - you'll need it for Step 3.
@@ -57,7 +57,7 @@ npx hardhat run scripts/deploy-step1-erc721.js --network sepolia
 ### Step 4: Finalize Deployment & Setup Ownership
 
 1. **Update the script**: Open `scripts/deploy-step4-finalize.js`
-2. **Replace the placeholders**: Update both `MEMBERSHIP_MANAGER_ADDRESS` and `GOVERNOR_ADDRESS`
+2. **Replace the placeholders**: Update both `MEMBERSHIP_MANAGER_ADDRESS`, `GOVERNOR_ADDRESS` & `NFT_IMPLEMENTATION`
 3. **Run the finalization**:
    ```bash
    npx hardhat run scripts/deploy-step4-finalize.js --network sepolia
@@ -105,7 +105,7 @@ Owner/Relayer (EOA)
 Governor (UUPS Proxy)
     ↓ owns
 MembershipManager (UUPS Proxy)
-    ↓ uses
+    ↓ owns (is admin)
 ERC721IgnitionZK (Implementation)
 ```
 
