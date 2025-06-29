@@ -4,7 +4,7 @@ async function main() {
   console.log("🔍 Verifying NFT Clone Contract...\n");
 
   // Configuration - Update these addresses
-  const CLONE_ADDRESS = "0x6D436fB35e0b5f8AC0eF67b34A59741713F66300"; // Replace with your clone address
+  const CLONE_ADDRESS = "0x660638a6CF788b7aDf4FF015BB38426A3ca01dA5"; // Replace with your clone address
   const MEMBERSHIP_MANAGER_ADDRESS =
     "0xeE60b7b9A5016E39c37cEEDE021a0a38799ba0AE";
   const GOVERNOR_ADDRESS = "0x809B3aF634aC3F45bfDFc09Fd7887F980831DC13";

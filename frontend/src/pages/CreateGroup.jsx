@@ -269,23 +269,47 @@ export default function CreateGroup({ onCancel }) {
     if (walletAddress && memberInputs.length === 0) {
       setMemberInputs([walletAddress]);
       setTouched([false]);
+    } else if (!walletAddress && memberInputs.length > 0) {
+      // Clear member inputs if wallet is disconnected
+      setMemberInputs([]);
+      setTouched([]);
     }
   }, [walletAddress, memberInputs.length]);
 
   // Add a new empty member input row
   const handleAddMemberInput = () => {
+    if (memberInputs.length >= 30) {
+      toast.error("Maximum of 30 members allowed per group");
+      return;
+    }
     setMemberInputs((prev) => [...prev, ""]);
     setTouched((prev) => [...prev, false]);
   };
 
   // Remove a member input row by index
   const handleRemoveMemberInput = (idx) => {
+    // Prevent removing the user's own wallet address
+    if (
+      walletAddress &&
+      memberInputs[idx]?.toLowerCase() === walletAddress.toLowerCase()
+    ) {
+      toast.error("You cannot remove your own wallet address from the group");
+      return;
+    }
     setMemberInputs((prev) => prev.filter((_, i) => i !== idx));
     setTouched((prev) => prev.filter((_, i) => i !== idx));
   };
 
   // Update the value of a member input row
   const handleChangeMemberInput = (idx, value) => {
+    // Prevent editing if this is the user's wallet address
+    if (
+      walletAddress &&
+      memberInputs[idx]?.toLowerCase() === walletAddress.toLowerCase()
+    ) {
+      toast.error("You cannot edit your own wallet address");
+      return;
+    }
     setMemberInputs((prev) => prev.map((v, i) => (i === idx ? value : v)));
     setTouched((prev) => prev.map((v, i) => (i === idx ? true : v)));
   };
@@ -332,6 +356,24 @@ export default function CreateGroup({ onCancel }) {
       ? "At least one member is required"
       : null;
 
+  // Check if user's wallet address is included in the member list
+  const hasUserWalletAddress =
+    walletAddress &&
+    memberInputs.some(
+      (input) => input.toLowerCase() === walletAddress.toLowerCase()
+    );
+  const noUserWalletError =
+    formSubmitted && walletAddress && !hasUserWalletAddress
+      ? "Your wallet address must be included as a member"
+      : null;
+
+  // Check if wallet is connected
+  const isWalletConnected = !!walletAddress;
+  const walletNotConnectedError =
+    formSubmitted && !isWalletConnected
+      ? "Please connect your wallet to create a group"
+      : null;
+
   // Handle create button click - show confirmation first
   const handleCreateClick = (e) => {
     e.preventDefault();
@@ -342,6 +384,8 @@ export default function CreateGroup({ onCancel }) {
       tokenSymbol.trim() === "" ||
       hasErrors ||
       !hasAtLeastOneMember ||
+      noUserWalletError ||
+      walletNotConnectedError ||
       !user?.id
     ) {
       return;
@@ -517,6 +561,65 @@ export default function CreateGroup({ onCancel }) {
     <>
       <PageContainer>
         <PageHeader title="Create New Group" />
+
+        {/* Wallet Connection Status */}
+        <FormSection>
+          <SectionTitle>Wallet Connection Status</SectionTitle>
+          {isWalletConnected ? (
+            <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
+              <div
+                style={{
+                  width: "12px",
+                  height: "12px",
+                  borderRadius: "50%",
+                  backgroundColor: "#10b981",
+                  flexShrink: 0,
+                }}
+              />
+              <div>
+                <p style={{ color: "#10b981", fontWeight: 600, margin: 0 }}>
+                  ✅ Wallet Connected
+                </p>
+                <p
+                  style={{
+                    color: "var(--color-grey-300)",
+                    fontSize: "1.2rem",
+                    margin: "0.4rem 0 0 0",
+                  }}
+                >
+                  Address: {walletAddress}
+                </p>
+              </div>
+            </div>
+          ) : (
+            <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
+              <div
+                style={{
+                  width: "12px",
+                  height: "12px",
+                  borderRadius: "50%",
+                  backgroundColor: "#f87171",
+                  flexShrink: 0,
+                }}
+              />
+              <div>
+                <p style={{ color: "#f87171", fontWeight: 600, margin: 0 }}>
+                  ❌ Wallet Not Connected
+                </p>
+                <p
+                  style={{
+                    color: "var(--color-grey-300)",
+                    fontSize: "1.2rem",
+                    margin: "0.4rem 0 0 0",
+                  }}
+                >
+                  Please connect your wallet to proceed with group creation
+                </p>
+              </div>
+            </div>
+          )}
+        </FormSection>
+
         <FormSection>
           <SectionTitle>Please read carefully</SectionTitle>
           <p
@@ -659,16 +762,22 @@ export default function CreateGroup({ onCancel }) {
                 <Tooltip>
                   Membership is validated by NFT ownership. As the creator,
                   you'll receive a credential and be included in the group
-                  automatically.
+                  automatically. Maximum of 30 initial members allowed per
+                  group.
                 </Tooltip>
               </InfoIconWrapper>
             </SectionTitle>
             <CustomButtonIcon
               icon={FaCirclePlus}
-              tooltipText="Add member row"
+              tooltipText={
+                memberInputs.length >= 30
+                  ? "Maximum members reached"
+                  : "Add member row"
+              }
               onClick={handleAddMemberInput}
               hoverColor="#a5b4fc"
               iconProps={{ style: { fontSize: "2.2rem" } }}
+              disabled={memberInputs.length >= 30}
             />
           </SectionHeaderRow>
           <Note>
@@ -680,14 +789,14 @@ export default function CreateGroup({ onCancel }) {
             <strong style={{ color: "#a5b4fc" }}>
               Please connect your wallet if you haven't already.
             </strong>{" "}
-            You can add additional members by clicking the "+" button below.
-            Members must hold one of the ERC721 tokens to be eligible. By adding
-            their addresses here they will be granted a token. Once the group
-            has been created, added members simply log into their account and
-            connect their wallet using the address entered here. They will then
-            search for the newly created group and click the join button. They
-            will be prompted to generate their credentials to complete the
-            enrollment.
+            You can add additional members by clicking the "+" button below
+            (maximum 30 members). Members must hold one of the ERC721 tokens to
+            be eligible. By adding their addresses here they will be granted a
+            token. Once the group has been created, added members simply log
+            into their account and connect their wallet using the address
+            entered here. They will then search for the newly created group and
+            click the join button. They will be prompted to generate their
+            credentials to complete the enrollment.
           </Note>
           {noMembersError && (
             <div
@@ -699,6 +808,30 @@ export default function CreateGroup({ onCancel }) {
               }}
             >
               {noMembersError}
+            </div>
+          )}
+          {noUserWalletError && (
+            <div
+              style={{
+                color: "#f87171",
+                fontWeight: 500,
+                marginBottom: "1.2rem",
+                fontSize: "1.15rem",
+              }}
+            >
+              {noUserWalletError}
+            </div>
+          )}
+          {walletNotConnectedError && (
+            <div
+              style={{
+                color: "#f87171",
+                fontWeight: 500,
+                marginBottom: "1.2rem",
+                fontSize: "1.15rem",
+              }}
+            >
+              {walletNotConnectedError}
             </div>
           )}
           {memberInputs.length > 0 &&
@@ -716,6 +849,9 @@ export default function CreateGroup({ onCancel }) {
             )}
           {memberInputs.map((value, idx) => {
             const showError = touched[idx] && memberInputErrors[idx];
+            const isUserWallet =
+              walletAddress &&
+              value.toLowerCase() === walletAddress.toLowerCase();
             return (
               <AddMemberRow key={idx}>
                 <Input
@@ -726,14 +862,24 @@ export default function CreateGroup({ onCancel }) {
                   style={{
                     marginBottom: 0,
                     borderColor: showError ? "#f87171" : undefined,
+                    backgroundColor: isUserWallet
+                      ? "rgba(165, 180, 252, 0.1)"
+                      : undefined,
+                    cursor: isUserWallet ? "not-allowed" : undefined,
                   }}
+                  readOnly={isUserWallet}
                 />
                 <CustomButtonIcon
                   icon={FaCircleMinus}
-                  tooltipText="Remove row"
+                  tooltipText={
+                    isUserWallet
+                      ? "Cannot remove your own address"
+                      : "Remove row"
+                  }
                   onClick={() => handleRemoveMemberInput(idx)}
                   hoverColor="#f87171"
                   iconProps={{ style: { fontSize: "2.2rem" } }}
+                  disabled={isUserWallet}
                 />
                 {showError && (
                   <span
@@ -744,6 +890,18 @@ export default function CreateGroup({ onCancel }) {
                     }}
                   >
                     {memberInputErrors[idx]}
+                  </span>
+                )}
+                {isUserWallet && (
+                  <span
+                    style={{
+                      color: "#a5b4fc",
+                      fontSize: "1.1rem",
+                      marginLeft: "1rem",
+                      fontStyle: "italic",
+                    }}
+                  >
+                    Your wallet address (read-only)
                   </span>
                 )}
               </AddMemberRow>
@@ -759,6 +917,8 @@ export default function CreateGroup({ onCancel }) {
               hasErrors ||
               hasFieldErrors ||
               !hasAtLeastOneMember ||
+              noUserWalletError ||
+              walletNotConnectedError ||
               isLoading ||
               !user?.id
             }
