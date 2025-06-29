@@ -79,7 +79,11 @@ const VotingTime = styled.span`
   gap: 0.4rem;
 `;
 
-function InboxItem({ proposal, showSubmitButton = true, isVerified = false }) {
+function InboxItem({
+  proposal = {},
+  showSubmitButton = true,
+  isVerified = false,
+}) {
   const [showMnemonicInput, setShowMnemonicInput] = useState(false);
   const [hasSubmittedProof, setHasSubmittedProof] = useState(false);
   const { userGroups } = useGetUserGroups();
@@ -100,19 +104,40 @@ function InboxItem({ proposal, showSubmitButton = true, isVerified = false }) {
 
   const { insertProof, isLoading: isInsertingProof } = useInsertProof();
 
+  // Guard clause to handle undefined/null proposal
+  if (!proposal || typeof proposal !== "object") {
+    return (
+      <InboxItemContainer>
+        <InboxInfo>
+          <InboxTitle>Invalid Proposal Data</InboxTitle>
+          <InboxDescription>
+            Unable to display proposal information.
+          </InboxDescription>
+        </InboxInfo>
+      </InboxItemContainer>
+    );
+  }
+
   // Find the user's group member ID for this proposal's group
   const userGroupMemberId = userGroups?.find(
     (group) => group.group_id === proposal.group_id
   )?.group_member_id;
 
   const formatDate = (dateString) => {
-    return new Date(dateString).toLocaleDateString("en-US", {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
+    if (!dateString) {
+      return "Not set";
+    }
+    try {
+      return new Date(dateString).toLocaleDateString("en-US", {
+        year: "numeric",
+        month: "short",
+        day: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+    } catch (error) {
+      return "Invalid date";
+    }
   };
 
   const handleSubmit = () => {
@@ -162,15 +187,14 @@ function InboxItem({ proposal, showSubmitButton = true, isVerified = false }) {
     <>
       <InboxItemContainer>
         <InboxInfo>
-          <InboxTitle>{proposal.title}</InboxTitle>
-          <GroupName>{proposal.group_name}</GroupName>
-          <InboxDescription>{proposal.description}</InboxDescription>
+          <InboxTitle>{proposal.title || "Untitled Proposal"}</InboxTitle>
+          <GroupName>{proposal.group_name || "Unknown Group"}</GroupName>
+          <InboxDescription>
+            {proposal.description || "No description available"}
+          </InboxDescription>
           <VotingPeriod>
             <VotingTime>
-              <span>Start:</span> {formatDate(proposal.voting_start_time)}
-            </VotingTime>
-            <VotingTime>
-              <span>End:</span> {formatDate(proposal.voting_end_time)}
+              <span>Created:</span> {formatDate(proposal.created_at)}
             </VotingTime>
           </VotingPeriod>
         </InboxInfo>

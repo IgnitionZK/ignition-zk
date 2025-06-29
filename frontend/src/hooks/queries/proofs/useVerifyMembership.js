@@ -6,7 +6,7 @@ import { ethers } from "ethers";
 
 // ABI for the MembershipVerifier contract
 const MEMBERSHIP_VERIFIER_ABI = [
-  "function verifyProof(uint256[24] calldata _proof, uint256[2] calldata _pubSignals) public view returns (bool)",
+  "function verifyProof(uint256[24] calldata _proof, uint256[3] calldata _pubSignals) public view returns (bool)",
 ];
 
 const MEMBERSHIP_VERIFIER_ADDRESS =

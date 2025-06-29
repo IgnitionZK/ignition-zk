@@ -100,7 +100,7 @@ export async function insertERC721ContractAddress({
     .schema("ignitionzk")
     .from("groups")
     .update({ erc721_contract_address })
-    .eq("id", group_id)
+    .eq("group_id", group_id)
     .select();
 
   if (error) {
