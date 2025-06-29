@@ -38,7 +38,7 @@ npx hardhat run scripts/deploy-step1-erc721.js --network sepolia
 2. **Replace the placeholder**: Update `NFT_IMPLEMENTATION_ADDRESS` with the address from Step 1
 3. **Run the deployment**:
    ```bash
-   npx hardhat run scripts/deploy-step2-membershipmanager.js --network sepolia
+   npx hardhat run scripts/deploy-step2-membership-proposal-manager.js --network sepolia
    ```
 
 **Save the output proxy address** (this is your **MembershipManager Proxy**) - you'll need it for Step 3.

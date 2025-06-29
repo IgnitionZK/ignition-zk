@@ -52,6 +52,9 @@ interface IMembershipManager {
     function revokeBurnerRole(address nftClone) external;
     function grantMinterRole(address nftClone, address grantTo) external;
     function grantBurnerRole(address nftClone, address grantTo) external;
+    function setProposalManager(address _proposalManager) external;
+    function setMembershipVerifier(address _verifier) external;
+    function setVotingManager(address _votingManager) external;
 
     // state variables
     function groupRoots(bytes32 groupKey) external view returns (bytes32);

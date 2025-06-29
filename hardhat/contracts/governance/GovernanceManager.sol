@@ -3,6 +3,7 @@ pragma solidity ^0.8.28;
 
 // interfaces
 import "../interfaces/IMembershipManager.sol";
+import "../interfaces/IProposalManager.sol";
 
 // UUPS imports:
 import { UUPSUpgradeable } from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
@@ -25,6 +26,7 @@ contract GovernanceManager is Initializable, UUPSUpgradeable, OwnableUpgradeable
     // General errors
     error RelayerAddressCannotBeZero();
     error MembershipAddressCannotBeZero();
+    error ProposalAddressCannotBeZero();
     error NewRelayerMustBeDifferent();
 
 // ====================================================================================================================
@@ -43,6 +45,12 @@ contract GovernanceManager is Initializable, UUPSUpgradeable, OwnableUpgradeable
      */
     event MembershipManagerSet(address indexed newMembershipManager);
 
+    /**
+     * @notice Emitted when the proposal manager address is updated.
+     * @param newProposalManager The new address of the proposal manager.
+     */
+    event ProposalManagerSet(address indexed newProposalManager);
+
 // ====================================================================================================================
 //                                              STATE VARIABLES
 // NOTE: Once the contract is deployed do not change the order of the variables. If this contract is updated append new variables to the end of this list. 
@@ -52,6 +60,8 @@ contract GovernanceManager is Initializable, UUPSUpgradeable, OwnableUpgradeable
     address private relayer;
     /// @dev The address of the membership manager
     address private membershipManager;
+    /// @dev The address of the proposal manager
+    address private proposalManager;
 
 // ====================================================================================================================
 //                                                  MODIFIERS
@@ -73,23 +83,31 @@ contract GovernanceManager is Initializable, UUPSUpgradeable, OwnableUpgradeable
      * @param _initialOwner The address of the initial owner of the contract.
      * @param _relayer The address of the relayer, which must not be zero.
      * @param _membershipManager The address of the membership manager, which must not be zero.
+     * @param _proposalManager The address of the proposal manager, which must not be zero.
      * @custom:error RelayerAddressCannotBeZero If the provided relayer address is zero.
      * @custom:error MembershipAddressCannotBeZero If the provided membership manager address is zero.
+     * @custom:error ProposalAddressCannotBeZero If the provided proposal manager address is zero.
      */
     function initialize(
         address _initialOwner,
         address _relayer,
-        address _membershipManager
+        address _membershipManager,
+        address _proposalManager
     ) external initializer {
         __Ownable_init(_initialOwner);
         __UUPSUpgradeable_init();
 
         if (_relayer == address(0)) revert RelayerAddressCannotBeZero();
         if (_membershipManager == address(0)) revert MembershipAddressCannotBeZero();
+        if (_proposalManager == address(0)) revert ProposalAddressCannotBeZero();
 
         relayer = _relayer;
         membershipManager = _membershipManager;
+        proposalManager = _proposalManager;
+
         emit RelayerSet(_relayer);
+        emit MembershipManagerSet(_membershipManager);
+        emit ProposalManagerSet(_proposalManager);
     }
 
     /**
@@ -234,6 +252,41 @@ contract GovernanceManager is Initializable, UUPSUpgradeable, OwnableUpgradeable
      */
     function delegateGrantBurnerRole(address nftClone, address grantTo) external onlyRelayer {
         IMembershipManager(membershipManager).grantBurnerRole(nftClone, grantTo);
+    }
+
+    /**
+     * @notice Delegates the setProposalManager call to the membership manager.
+     * @dev Only callable by the relayer.
+     * @param _proposalManager The address of the proposal manager to set.
+     */
+    function delegateSetProposalManager(address _proposalManager) external onlyRelayer {
+        IMembershipManager(membershipManager).setProposalManager(_proposalManager);
+    }
+
+    /**
+     * @notice Delegates the setVotingManager call to the membership manager.
+     * @dev Only callable by the relayer.
+     * @param _votingManager The address of the voting manager to set.
+     */
+    function delegateSetVotingManager(address _votingManager) external onlyRelayer {
+        IMembershipManager(membershipManager).setVotingManager(_votingManager);
+    }
+
+    /**
+     * @notice Delegates the verifyProposal call to the proposal manager.
+     * @dev Only callable by the relayer.
+     * @param proof The zk-SNARK proof to verify.
+     * @param pubSignals The public signals associated with the proof.
+     * @param groupKey The unique identifier for the group.
+     * @param epochKey The unique identifier for the epoch.
+     */
+    function delegateVerifyProposal(
+        uint256[24] calldata proof,
+        uint256[4] calldata pubSignals,
+        bytes32 groupKey,
+        bytes32 epochKey
+    ) external onlyRelayer {
+        IProposalManager(proposalManager).verifyProposal(proof, pubSignals, groupKey, epochKey);
     }
 
 // ====================================================================================================================

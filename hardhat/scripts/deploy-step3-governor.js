@@ -14,11 +14,13 @@ async function main() {
 
   // Configuration - Update these addresses from previous steps
   const MEMBERSHIP_MANAGER_ADDRESS =
-    "0x26FB9f7A33A6dE076F588b516BB36627f6A668Bc"; // From Step 2
+    "0x4BcdF51851DCc7670108DBefa28c0fbafF8283a5"; // From Step 2
+  const PROPOSAL_MANAGER_ADDRESS = "0x017C80402e9A87FeF38E6B2787C81692fa20124a"; // From Step 2
   const OWNER_RELAYER = "0x5F909fd25A9F5e4f5a219318FdeD6C8124F6c1F1";
 
   console.log("📋 Configuration:");
   console.log(`👥 MembershipManager: ${MEMBERSHIP_MANAGER_ADDRESS}`);
+  console.log(`📄 ProposalManager: ${PROPOSAL_MANAGER_ADDRESS}`);
   console.log(`👤 Owner/Relayer: ${OWNER_RELAYER}`);
   console.log("");
 
@@ -34,6 +36,7 @@ async function main() {
         OWNER_RELAYER, // _initialOwner
         OWNER_RELAYER, // _relayer
         MEMBERSHIP_MANAGER_ADDRESS, // _membershipManager
+        PROPOSAL_MANAGER_ADDRESS, // _proposalManager
       ],
       {
         initializer: "initialize",

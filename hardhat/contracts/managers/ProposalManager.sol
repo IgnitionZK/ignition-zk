@@ -157,7 +157,7 @@ contract ProposalManager is Initializable, OwnableUpgradeable, UUPSUpgradeable {
      * @param _verifier The address of the new proposal verifier contract.
      * @custom:error VerifierAddressCannotBeZero If the provided verifier address is zero.
      */
-    function setVerifier(address _verifier) external onlyOwner nonZeroAddress(_verifier) {
+    function setProposalVerifier(address _verifier) external onlyOwner nonZeroAddress(_verifier) {
         verifier = IProposalVerifier(_verifier);
         emit VerifierAddressSet(_verifier);
     }
@@ -171,7 +171,7 @@ contract ProposalManager is Initializable, OwnableUpgradeable, UUPSUpgradeable {
      * @param epochKey The unique identifier for the epoch.
      * @custom:error InvalidProof If the proof is invalid.
      */
-    function verifyProof(
+    function verifyProposal(
         uint256[24] calldata proof,
         uint256[4] calldata publicSignals,
         bytes32 groupKey, 
@@ -207,6 +207,27 @@ contract ProposalManager is Initializable, OwnableUpgradeable, UUPSUpgradeable {
 
         emit ProofVerified(groupKey, epochKey, nullifier);
         emit ProposalSubmitted(contextKey, proofContentHash);
+    }
+// ====================================================================================================================
+//                                       EXTERNAL VIEW FUNCTIONS
+// ====================================================================================================================
+
+    /**
+     * @notice Returns the address of the proposal verifier contract.
+     * @dev Only callable by the owner (governor).
+     * @return address of the proposal verifier contract.
+     */
+    function getVerifier() external view onlyOwner returns (address) {
+        return address(verifier);
+    }
+
+    /**
+     * @notice Returns the address of the membership manager contract.
+     * @dev Only callable by the owner (governor).
+     * @return address of the membership manager contract.
+     */
+    function getMembershipManager() external view onlyOwner returns (address) {
+        return address(membershipManager);
     }
 
 // ====================================================================================================================

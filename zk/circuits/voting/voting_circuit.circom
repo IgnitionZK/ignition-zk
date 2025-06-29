@@ -1,3 +1,6 @@
+// !!!
+// THIS FILE IS JUST A DRAFT AND NOT READY FOR PRODUCTION USE 
+// !!!
 pragma circom 2.2.2;
 
 
@@ -49,6 +52,8 @@ template VotingProof(treeLevels) {
     voteNullifierHash.inputs[0] <== identityNullifier;
     voteNullifierHash.inputs[1] <== voteContextHash;
     voteNullifier <== voteNullifierHash.out;
+
+    // 3. Check that the vote content is valid
 
 }
 

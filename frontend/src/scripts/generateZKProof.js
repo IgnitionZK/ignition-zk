@@ -382,6 +382,7 @@ export class ZKProofGenerator {
     publicSignalsSolidity,
     contract
   ) {
+    
     try {
       const isValid = await contract.verifyProof(
         proofSolidity,

@@ -255,7 +255,7 @@ contract MembershipManager is Initializable, UUPSUpgradeable, OwnableUpgradeable
      * @param _verifier The address of the new verifier contract.
      * @custom:error VerifierAddressCannotBeZero If the provided verifier address is zero.
      */
-    function setVerifier(address _verifier) external onlyOwner nonZeroAddress(_verifier) {
+    function setMembershipVerifier(address _verifier) external onlyOwner nonZeroAddress(_verifier) {
         verifier = IMembershipVerifier(_verifier);
         emit VerifierSet(_verifier);
     }

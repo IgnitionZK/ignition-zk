@@ -3,6 +3,7 @@ import { useWalletQuery } from "../../wallet/useWalletQuery";
 import { useGenerateProof } from "./useCreateNewProof";
 import { ZKProofGenerator } from "../../../scripts/generateZKProof";
 import { ethers } from "ethers";
+import { useRelayerVerifyProposal } from "../../relayers/useRelayerVerifyProposal";
 
 // ABI for the ProposalVerifier contract
 const PROPOSAL_VERIFIER_ABI = [
@@ -25,6 +26,9 @@ export function useVerifyProposal() {
   const { address, provider } = useWalletQuery();
   const { generateProofFromInput, isLoading: isGeneratingProof } =
     useGenerateProof();
+  
+  // Hook for verifying proposal
+  const { verifyProposal: relayerVerifyProposal } = useRelayerVerifyProposal();
 
   /**
    * Verifies proposal submission using zero-knowledge proofs
@@ -89,28 +93,46 @@ export function useVerifyProposal() {
       console.log("Public Signals Solidity: ", publicSignalsSolidity);
 
       // Create contract instance
+      /*
       const contract = new ethers.Contract(
         PROPOSAL_VERIFIER_ADDRESS,
         PROPOSAL_VERIFIER_ABI,
         provider
       );
+      */
+      // Verify the proof using the relayer
+      console.log("Verifying proposal with relayer...");
+      console.log("Group ID: ", groupId);
+      console.log("Epoch ID: ", epochId);
 
-      // Use ZKProofGenerator's verifyProofOnChain method
-      const isValid = await ZKProofGenerator.verifyProofOnChain(
-        proofSolidity,
-        publicSignalsSolidity,
-        contract
-      );
-
-      console.log("On-chain Verification result: ", isValid);
-
-      return { isValid, publicSignals };
+      return await new Promise((resolve, reject) => {
+        relayerVerifyProposal(
+          {
+            proof: proofSolidity, 
+            publicSignals: publicSignalsSolidity, 
+            groupKey: groupId.toString(), // Convert to string as expected by edge function
+            epochKey: epochId.toString(), // Convert to string as expected by edge function
+          },
+          {
+            onSuccess: (data) => {
+              console.log("Relayer verification successful:", data);
+              resolve({ isValid: true, publicSignals });
+            },
+            onError: (error) => {
+              console.error("Relayer verification failed:", error);
+              reject(new Error("Relayer verification failed"));
+            },
+          }
+        );
+      });
+    
     } catch (err) {
       setError(err.message || "Failed to verify proposal");
       throw err;
     } finally {
       setIsVerifying(false);
     }
+      
   };
 
 
@@ -120,4 +142,5 @@ export function useVerifyProposal() {
     isVerifying: isVerifying || isGeneratingProof,
     error,
   };
+
 }
