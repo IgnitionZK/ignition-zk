@@ -6,12 +6,14 @@ import { ethers } from "ethers";
 import { useRelayerVerifyProposal } from "../../relayers/useRelayerVerifyProposal";
 
 // ABI for the ProposalVerifier contract
+/*
 const PROPOSAL_VERIFIER_ABI = [
-  "function verifyProof(uint256[24] calldata _proof, uint256[4] calldata _pubSignals) public view returns (bool)",
+  "function verifyProof(uint256[24] calldata _proof, uint256[5] calldata _pubSignals) public view returns (bool)",
 ];
 
 const PROPOSAL_VERIFIER_ADDRESS =
-  "0x997172817177c1Aa125a0212B2c574c965174f9E";
+  "0x7e62FEfa170ec968ab5a16284C19D0E021957E9c";
+*/
 
 /**
  * Custom hook for verifying proposal submission using zero-knowledge proofs
@@ -80,10 +82,11 @@ export function useVerifyProposal() {
 
       console.log("Proof: ", proof);
       console.log("Public Signals: ", publicSignals);
-      // publicSignals[0]: proposalContextHash
-      // publicSignals[1]: proposalNullifier
-      // publicSignals[2]: root
-      // publicSignals[3]: proposalContentHash
+      // publicSignals[0]: proposalNullifier
+      // publicSignals[1]: root
+      // publicSignals[2]: contentHash
+      // publicSignals[3]: groupHash
+      // publicSignals[4]: epochHash
       
 
       // Convert proof and public signals to Solidity calldata

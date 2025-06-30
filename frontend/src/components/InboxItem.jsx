@@ -168,7 +168,7 @@ function InboxItem({
       );
 
       if (isValid) {
-        const nullifierHash = publicSignals[1]; // Second value in publicSignals is the proposal nullifier hash
+        const nullifierHash = publicSignals[0]; // First value in publicSignals is the proposal nullifier hash
 
         await insertProof({
           proposalId: proposal.proposal_id,

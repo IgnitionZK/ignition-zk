@@ -96,7 +96,7 @@ template ProposalSubmissionProof(treeLevels) {
      * @dev This is computed using the Poseidon hash function with two inputs: groupHash and epochHash.
      * The resulting hash is used to derive the proposal nullifier.
      */
-    signal output proposalContextHash; // context(group, epoch)
+    signal proposalContextHash; // context(group, epoch)
     component contextHash = Poseidon(2);
     contextHash.inputs[0] <== groupHash;
     contextHash.inputs[1] <== epochHash;
@@ -119,5 +119,5 @@ template ProposalSubmissionProof(treeLevels) {
  * @notice main: the main component that instantiates the ProposalSubmissionProof circuit.
  * @dev It declares the public inputs and sets the tree levels for the circuit.
  */
-component main {public [root, proposalContentHash]} = ProposalSubmissionProof(10);
+component main {public [groupHash, epochHash, root, proposalContentHash]} = ProposalSubmissionProof(10);
 

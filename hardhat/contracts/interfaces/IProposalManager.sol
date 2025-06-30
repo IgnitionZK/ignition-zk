@@ -6,7 +6,7 @@ interface IProposalManager {
     function setProposalVerifier(address _verifier) external;
     function verifyProposal(
         uint256[24] calldata _proof,
-        uint256[4] calldata _pubSignals,
+        uint256[5] calldata _pubSignals,
         bytes32 _groupKey,
         bytes32 _epochKey
     ) external;

@@ -485,8 +485,6 @@ contract MembershipManager is Initializable, UUPSUpgradeable, OwnableUpgradeable
         external 
         view 
         onlyAuthorized 
-        nonZeroAddress(proposalManager) 
-        nonZeroAddress(votingManager) 
         returns (bytes32)
     {
         return groupRoots[groupKey];
@@ -529,6 +527,15 @@ contract MembershipManager is Initializable, UUPSUpgradeable, OwnableUpgradeable
      */
     function getGovernor() external view onlyOwner returns (address) {
         return owner();
+    }
+
+    /**
+     * @notice Retrieves the address of the proposal manager contract.
+     * @dev Only callable by the owner (governor).
+     * @return address of the proposal manager contract.
+     */
+    function getProposalManager() external view onlyOwner returns (address) {
+        return proposalManager;
     }
 
     /**

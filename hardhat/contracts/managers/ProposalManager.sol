@@ -10,6 +10,9 @@ import { UUPSUpgradeable } from "@openzeppelin/contracts-upgradeable/proxy/utils
 import { Initializable } from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import { OwnableUpgradeable } from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 
+// Poseidon hash function import:
+//import {PoseidonT3} from "poseidon-solidity/PoseidonT3.sol";
+
 // tracks proposal submissions and verifications (pre-vote phase)
 contract ProposalManager is Initializable, OwnableUpgradeable, UUPSUpgradeable {
 
@@ -173,15 +176,16 @@ contract ProposalManager is Initializable, OwnableUpgradeable, UUPSUpgradeable {
      */
     function verifyProposal(
         uint256[24] calldata proof,
-        uint256[4] calldata publicSignals,
+        uint256[5] calldata publicSignals,
         bytes32 groupKey, 
         bytes32 epochKey
     ) external onlyOwner nonZeroKey(groupKey) nonZeroKey(epochKey) {
 
-        bytes32 proofContentHash = bytes32(publicSignals[0]);
-        bytes32 nullifier = bytes32(publicSignals[1]);
-        bytes32 proofRoot = bytes32(publicSignals[2]);
-        bytes32 proofContextHash = bytes32(publicSignals[3]);
+        bytes32 nullifier = bytes32(publicSignals[0]);
+        bytes32 proofRoot = bytes32(publicSignals[1]);
+        bytes32 proofContentHash = bytes32(publicSignals[2]);
+        bytes32 proofGroupHash = bytes32(publicSignals[3]);
+        bytes32 proofEpochHash = bytes32(publicSignals[4]);
 
         bytes32 contextKey = _contextKey(groupKey, epochKey);
         bytes32 currentRoot = membershipManager.getRoot(groupKey);
@@ -194,7 +198,10 @@ contract ProposalManager is Initializable, OwnableUpgradeable, UUPSUpgradeable {
         if (proposalNullifiers[nullifier]) revert NullifierAlreadyUsed();
 
         // check proposalContextHash matches the one in the public signals
-        if (proofContextHash != contextKey) revert InvalidContextHash();
+        if (
+            proofGroupHash != groupKey ||
+            proofEpochHash != epochKey 
+            ) revert InvalidContextHash();
         
         // Verify the proof using the verifier contract
         bool isValid = verifier.verifyProof(proof, publicSignals);
@@ -240,7 +247,18 @@ contract ProposalManager is Initializable, OwnableUpgradeable, UUPSUpgradeable {
      * @return bytes32 The generated context key.
      */
     function _contextKey(bytes32 groupKey, bytes32 epochKey) private pure returns (bytes32) {
+        // Generate a unique context key by hashing the groupKey and epochKey together using keccak256
         return keccak256(abi.encodePacked(groupKey, epochKey));
+
+        /*
+        uint256 groupKeyInt = uint256(groupKey);
+        uint256 epochKeyInt = uint256(epochKey);
+
+        // hash them using Poseidon hash function:
+        uint256 contextKeyInt = PoseidonT3.hash([groupKeyInt, epochKeyInt]);
+        // convert the poseidon hash to bytes32
+        return bytes32(contextKeyInt);
+        */
     }
 
 

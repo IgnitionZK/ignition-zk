@@ -282,7 +282,7 @@ contract GovernanceManager is Initializable, UUPSUpgradeable, OwnableUpgradeable
      */
     function delegateVerifyProposal(
         uint256[24] calldata proof,
-        uint256[4] calldata pubSignals,
+        uint256[5] calldata pubSignals,
         bytes32 groupKey,
         bytes32 epochKey
     ) external onlyRelayer {
