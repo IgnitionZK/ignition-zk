@@ -17,7 +17,7 @@ import { OwnableUpgradeable } from "@openzeppelin/contracts-upgradeable/access/O
 import { Clones } from "@openzeppelin/contracts/proxy/Clones.sol";
 
 /**
- * @title MembershipManagerV2
+ * @title MembershipManager
  * @dev A contract to manage membership in groups using Merkle trees and zk-SNARKs.
  * It allows for initializing and updating Merkle roots, verifying proofs, managing group NFTs,
  * and adding/removing members. This contract acts as a factory for ERC721IgnitionZK NFT contracts.
@@ -57,6 +57,9 @@ contract MembershipManagerV2 is Initializable, UUPSUpgradeable, OwnableUpgradeab
     error VerifierAddressCannotBeZero();
     error GovernorAddressCannotBeZero();
     error KeyCannotBeZero();
+    error AddressCannotBeZero();
+    // Authorization errors:
+    error NotAuthorizedViewer();
     
 // ====================================================================================================================
 //                                                  EVENTS
@@ -104,6 +107,41 @@ contract MembershipManagerV2 is Initializable, UUPSUpgradeable, OwnableUpgradeab
      * @param tokenId The ID of the burned membership token.
      */
     event MemberNftBurned(bytes32 indexed groupKey, address indexed memberAddress, uint256 tokenId);
+    /**
+     * @notice Emitted when a role is revoked from the NFT clone.
+     * @param nftClone The address of the NFT contract clone from which the role was revoked.
+     * @param role The role that was revoked (e.g., MINTER_ROLE, BURNER_ROLE).
+     * @param revokedFrom The address from which the role was revoked (usually this contract).
+     */
+    event RoleRevoked(address indexed nftClone, bytes32 role, address indexed revokedFrom);
+    /**
+     * @notice Emitted when a role is granted to an address in the NFT clone.
+     * @param nftClone The address of the NFT contract clone to which the role was granted.
+     * @param role The role that was granted (e.g., MINTER_ROLE, BURNER_ROLE).
+     * @param grantedTo The address to which the role was granted.
+     */
+    event RoleGranted(address indexed nftClone, bytes32 role, address indexed grantedTo);
+
+    /**
+     * @notice Emitted when the address of the zk-SNARK verifier contract is set.
+     * @param verifier The address of the zk-SNARK verifier contract.
+     */
+    event VerifierSet(address indexed verifier);
+    /**
+     * @notice Emitted when the address of the NFT implementation contract is set.
+     * @param nftImplementation The address of the NFT implementation contract.
+     */
+    event NftImplementationSet(address indexed nftImplementation);
+    /**
+     * @notice Emitted when the address of the proposal manager contract is set.
+     * @param proposalManager The address of the proposal manager contract.
+     */
+    event ProposalManagerSet(address indexed proposalManager);
+    /**
+     * @notice Emitted when the address of the voting manager contract is set.
+     * @param votingManager The address of the voting manager contract.
+     */
+    event VotingManagerSet(address indexed votingManager);
 
 // ====================================================================================================================
 //                                          STATE VARIABLES
@@ -122,6 +160,8 @@ contract MembershipManagerV2 is Initializable, UUPSUpgradeable, OwnableUpgradeab
     IMembershipVerifier private verifier;
     /// @dev The address of the NFT implementation contract used for creating new group NFTs.
     address private nftImplementation;
+    address private proposalManager;
+    address private votingManager;
 
     // Constants:
     /// @dev The maximum number of members that can be added in a single batch transaction.
@@ -189,11 +229,24 @@ contract MembershipManagerV2 is Initializable, UUPSUpgradeable, OwnableUpgradeab
         //governor = _governor;
         verifier = IMembershipVerifier(_verifier);
         nftImplementation = _nftImplementation;
+
+        emit VerifierSet(_verifier);
+        emit NftImplementationSet(_nftImplementation);
     }
 
 // ====================================================================================================================
 //                                       EXTERNAL STATE-CHANGING FUNCTIONS
 // ====================================================================================================================
+    /**
+     * @notice Sets the address of the zk-SNARK verifier contract.
+     * @dev Can only be called by the governor.
+     * @param _verifier The address of the new verifier contract.
+     * @custom:error VerifierAddressCannotBeZero If the provided verifier address is zero.
+     */
+    function setMembershipVerifier(address _verifier) external onlyOwner nonZeroAddress(_verifier) {
+        verifier = IMembershipVerifier(_verifier);
+        emit VerifierSet(_verifier);
+    }
 
     /**
      * @notice Deploys a new ERC721 NFT contract instance for a given group.
@@ -394,7 +447,12 @@ contract MembershipManagerV2 is Initializable, UUPSUpgradeable, OwnableUpgradeab
      * @return The current Merkle root for the specified group. Returns bytes32(0) if no root has been set.
      * @custom:error (No custom errors thrown by this function)
      */
-    function getRoot(bytes32 groupKey) external view onlyOwner returns (bytes32){
+    function getRoot(bytes32 groupKey) 
+        external 
+        view 
+        onlyOwner
+        returns (bytes32)
+    {
         return groupRoots[groupKey];
     }
 
@@ -450,7 +508,6 @@ contract MembershipManagerV2 is Initializable, UUPSUpgradeable, OwnableUpgradeab
 //                                       EXTERNAL HELPER FUNCTIONS
 // ====================================================================================================================
 
-
     /** 
      * @notice Revokes the MINTER_ROLE from the specified NFT clone.
      * @param nftClone The address of the NFT contract clone from which to revoke the role.
@@ -497,6 +554,8 @@ contract MembershipManagerV2 is Initializable, UUPSUpgradeable, OwnableUpgradeab
     function _revokeRole(address nftClone, bytes32 role) private {
         IERC721IgnitionZK nft = IERC721IgnitionZK(nftClone);
         nft.revokeRole(role, address(this));
+
+        emit RoleRevoked(nftClone, role, address(this));
     }
 
     /**
@@ -508,6 +567,8 @@ contract MembershipManagerV2 is Initializable, UUPSUpgradeable, OwnableUpgradeab
     function _grantRole(address nftClone, bytes32 role, address grantTo) private {
         IERC721IgnitionZK nft = IERC721IgnitionZK(nftClone);
         nft.grantRole(role, grantTo);
+
+        emit RoleGranted(nftClone, role, grantTo);
     }
 
     /**

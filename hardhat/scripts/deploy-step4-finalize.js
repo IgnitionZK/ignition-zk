@@ -51,13 +51,6 @@ async function main() {
       GOVERNOR_ADDRESS
     );
 
-    // Skip setting proposal manager in MembershipManager since it's not necessary
-    // The ProposalManager is already properly initialized with the MembershipManager address
-    console.log(
-      "⏭️  Skipping setProposalManager call (not necessary for deployment setup)"
-    );
-    console.log("");
-
     console.log(
       "🔧 Step 4a: Transferring MembershipManager ownership to Governor..."
     );

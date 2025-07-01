@@ -188,18 +188,6 @@ contract MembershipManager is Initializable, UUPSUpgradeable, OwnableUpgradeable
          if (addr == address(0)) revert MemberAddressCannotBeZero();
          _;
     }
-    
-    /** 
-     * @dev Ensures that the caller is either the owner (governor), proposal manager, or voting manager.
-     */
-    modifier onlyAuthorized() {
-        if (msg.sender != owner() &&
-            msg.sender != proposalManager &&
-            msg.sender != votingManager) {
-            revert NotAuthorizedViewer();
-        }
-        _;
-    }
 
 // ====================================================================================================================
 //                                 CONSTRUCTOR / INITIALIZER / UPGRADE AUTHORIZATION
@@ -258,28 +246,6 @@ contract MembershipManager is Initializable, UUPSUpgradeable, OwnableUpgradeable
     function setMembershipVerifier(address _verifier) external onlyOwner nonZeroAddress(_verifier) {
         verifier = IMembershipVerifier(_verifier);
         emit VerifierSet(_verifier);
-    }
-
-    /**
-     * @notice Sets the address of the proposal manager contract.
-     * @dev Can only be called by the governor.
-     * @param _proposalManager The address of the new proposal manager contract.
-     * @custom:error AddressCannotBeZero If the provided proposal manager address is zero.
-     */
-    function setProposalManager(address _proposalManager) external onlyOwner nonZeroAddress(_proposalManager) {
-        proposalManager = _proposalManager;
-        emit ProposalManagerSet(_proposalManager);
-    }
-
-    /** 
-     * @notice Sets the address of the voting manager contract.
-     * @dev Can only be called by the governor.
-     * @param _votingManager The address of the new voting manager contract.
-     * @custom:error AddressCannotBeZero If the provided voting manager address is zero.
-     */
-    function setVotingManager(address _votingManager) external onlyOwner nonZeroAddress(_votingManager) {
-        votingManager = _votingManager;
-        emit VotingManagerSet(_votingManager);
     }
 
     /**
@@ -484,9 +450,7 @@ contract MembershipManager is Initializable, UUPSUpgradeable, OwnableUpgradeable
     function getRoot(bytes32 groupKey) 
         external 
         view 
-        onlyAuthorized 
-        nonZeroAddress(proposalManager) 
-        nonZeroAddress(votingManager) 
+        onlyOwner
         returns (bytes32)
     {
         return groupRoots[groupKey];

@@ -11,7 +11,7 @@ import { Initializable } from "@openzeppelin/contracts-upgradeable/proxy/utils/I
 import { OwnableUpgradeable } from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 
 // tracks proposal submissions and verifications (pre-vote phase)
-contract ProposalManager is Initializable, OwnableUpgradeable, UUPSUpgradeable {
+contract ProposalManagerV2 is Initializable, OwnableUpgradeable, UUPSUpgradeable {
 
 // ====================================================================================================================
 //                                                  CUSTOM ERRORS
@@ -208,14 +208,6 @@ contract ProposalManager is Initializable, OwnableUpgradeable, UUPSUpgradeable {
         return proposalNullifiers[nullifier];
     }
 
-    /**
-     * @notice Returns the content hash of a proposal submission for a given context key.
-     * @param contextKey The unique context key for the proposal, derived from groupKey and epochKey.
-     * @return bytes32 The content hash of the proposal submission.
-     */
-    function getProposalSubmission(bytes32 contextKey) external view onlyOwner returns (bytes32) {
-        return proposalSubmissions[contextKey];
-    }
 
 
 

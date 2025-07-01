@@ -132,7 +132,13 @@ contract GovernanceManager is Initializable, UUPSUpgradeable, OwnableUpgradeable
     }
 
 // ====================================================================================================================
+// ====================================================================================================================
 //                           EXTERNAL STATE-CHANGING FUNCTIONS (FORWARDED VIA GOVERNANCE)
+// ====================================================================================================================
+// ====================================================================================================================
+
+// ====================================================================================================================
+//                           1. MembershipManager Delegation Functions
 // ====================================================================================================================
 
     /**
@@ -254,30 +260,15 @@ contract GovernanceManager is Initializable, UUPSUpgradeable, OwnableUpgradeable
         IMembershipManager(membershipManager).grantBurnerRole(nftClone, grantTo);
     }
 
-    /**
-     * @notice Delegates the setProposalManager call to the membership manager.
-     * @dev Only callable by the relayer.
-     * @param _proposalManager The address of the proposal manager to set.
-     */
-    function delegateSetProposalManager(address _proposalManager) external onlyRelayer {
-        IMembershipManager(membershipManager).setProposalManager(_proposalManager);
-    }
-
-    /**
-     * @notice Delegates the setVotingManager call to the membership manager.
-     * @dev Only callable by the relayer.
-     * @param _votingManager The address of the voting manager to set.
-     */
-    function delegateSetVotingManager(address _votingManager) external onlyRelayer {
-        IMembershipManager(membershipManager).setVotingManager(_votingManager);
-    }
+// ====================================================================================================================
+//                           2. ProposalManager Delegation Functions
+// ====================================================================================================================
 
     /**
      * @notice Delegates the verifyProposal call to the proposal manager.
      * @dev Only callable by the relayer.
      * @param proof The zk-SNARK proof to verify.
      * @param pubSignals The public signals associated with the proof.
-     * @param groupKey The unique identifier for the group.
      * @param contextKey The pre-computed context hash (group, epoch).
      */
     function delegateVerifyProposal(
@@ -286,12 +277,21 @@ contract GovernanceManager is Initializable, UUPSUpgradeable, OwnableUpgradeable
         bytes32 groupKey,
         bytes32 contextKey
     ) external onlyRelayer {
-        IProposalManager(proposalManager).verifyProposal(proof, pubSignals, groupKey, contextKey);
+        bytes32 currentRoot = _getCurrentRoot(groupKey);
+        IProposalManager(proposalManager).verifyProposal(proof, pubSignals, contextKey, currentRoot);
     }
 
 // ====================================================================================================================
+// ====================================================================================================================
 //                           EXTERNAL VIEW FUNCTIONS (FORWARDED VIA GOVERNANCE)
 // ====================================================================================================================
+// ====================================================================================================================
+
+  
+// ====================================================================================================================
+//                           1. MembershipManager Delegation Functions
+// ====================================================================================================================
+
 
     /**
      * @notice Delegates the getRoot call to the membership manager.
@@ -361,6 +361,39 @@ contract GovernanceManager is Initializable, UUPSUpgradeable, OwnableUpgradeable
     }
 
 // ====================================================================================================================
+//                           2. ProposalManager Delegation Functions
+// ====================================================================================================================
+
+    /**
+     * @notice Delegates the getProposalVerifier call to the proposal manager.
+     * @dev Only callable by the relayer.
+     * @return The address of the proposal verifier contract.
+     */
+    function delegateGetProposalVerifier() external view onlyRelayer returns (address) {
+        return IProposalManager(proposalManager).getProposalVerifier();
+    }
+
+    /**
+     * @notice Delegates the getProposalNullifierStatus call to the proposal manager.
+     * @dev Only callable by the relayer.
+     * @param nullifier The nullifier to check.
+     * @return bool indicating whether the nullifier has been used.
+     */
+    function delegateGetProposalNullifierStatus(bytes32 nullifier) external view onlyRelayer returns (bool) {
+        return IProposalManager(proposalManager).getProposalNullifierStatus(nullifier);
+    }
+
+    /**
+     * @notice Delegates the getProposalSubmission call to the proposal manager.
+     * @dev Only callable by the relayer.
+     * @param contextKey The unique context key for the proposal.
+     * @return The content hash of the proposal submission.
+     */
+    function delegateGetProposalSubmission(bytes32 contextKey) external view onlyRelayer returns (bytes32) {
+        return IProposalManager(proposalManager).getProposalSubmission(contextKey);
+    }
+
+// ====================================================================================================================
 //                                   EXTERNAL VIEW FUNCTIONS (NOT FORWARDED)
 // ====================================================================================================================
 
@@ -378,6 +411,19 @@ contract GovernanceManager is Initializable, UUPSUpgradeable, OwnableUpgradeable
      */
     function getMembershipManager() external view onlyOwner returns (address) {
         return membershipManager;
+    }
+
+// ====================================================================================================================
+//                                       PRIVATE HELPER FUNCTIONS
+// ====================================================================================================================
+
+    /**
+     * @notice Gets the current Merkle root for a specific group.
+     * @param groupKey The unique identifier for the group.
+     * @return The current Merkle root for the specified group.
+     */
+    function _getCurrentRoot(bytes32 groupKey) private view returns(bytes32) {
+        return IMembershipManager(membershipManager).getRoot(groupKey);
     }
 
 }
