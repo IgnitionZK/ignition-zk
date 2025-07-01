@@ -13,8 +13,8 @@ async function main() {
 
   // Configuration
   const GOVERNANCE_MANAGER_ADDRESS =
-    "0x809B3aF634aC3F45bfDFc09Fd7887F980831DC13";
-  const GROUP_KEY = "c99731ec-8ba7-4be4-a471-eb57dab48f5d"; // Update this with your group key
+    "0xffCf3c44D2Eb747B9e3bD0252f99c9906B7500fd";
+  const GROUP_KEY = "3c5eac6f-27da-4838-9191-83bf1c6d78ef"; // Update this with your group key
 
   try {
     // Get contract instance

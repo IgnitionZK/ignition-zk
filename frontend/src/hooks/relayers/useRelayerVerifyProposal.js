@@ -1,5 +1,6 @@
 import { useMutation } from "@tanstack/react-query";
 import { supabase } from "../../services/supabase";
+import { ZKProofGenerator } from "../../scripts/generateZKProof";
 
 /**
  * Custom hook to update Merkle tree root using the Supabase edge function relayer
@@ -54,7 +55,39 @@ export function useRelayerVerifyProposal() {
         throw new Error("groupKey is required");
       }
       if (!epochKey) {
-        throw new Error("groupKey is required");
+        throw new Error("epochKey is required");
+      }
+
+      // LOG: Data received by relayer hook
+      console.log("[FRONTEND/useRelayerVerifyProposal] Data received:", {
+        proof,
+        publicSignals,
+        groupKey,
+        epochKey,
+      });
+
+      // Compute the context_key using Poseidon hash (groupKey, epochKey)
+      let contextKey;
+      try {
+        contextKey = await ZKProofGenerator.computeContextKey(
+          groupKey.toString(),
+          epochKey.toString()
+        );
+
+        console.log(
+          "[FRONTEND/useRelayerVerifyProposal] Computed context_key:",
+          {
+            groupKey: groupKey.toString(),
+            epochKey: epochKey.toString(),
+            contextKey,
+          }
+        );
+      } catch (error) {
+        console.error(
+          "[FRONTEND/useRelayerVerifyProposal] Error computing context_key:",
+          error
+        );
+        throw new Error(`Failed to compute context_key: ${error.message}`);
       }
 
       // Call the Supabase edge function
@@ -62,15 +95,22 @@ export function useRelayerVerifyProposal() {
         "relayer-verify-proposal",
         {
           body: {
-            proof: proof.map((item) => item.toString()), // Convert to string as expected by edge function
-            public_signals: publicSignals.map((item) => item.toString()), // Convert to string as expected by edge function
-            group_key: groupKey.toString(), // Convert to string as expected by edge function
-            epoch_key: epochKey.toString(), // Convert to string as expected by edge function
+            proof: proof.map((item) => item.toString()),
+            public_signals: publicSignals.map((item) => item.toString()),
+            group_key: groupKey.toString(),
+            context_key: contextKey, // Send the pre-computed context_key
           },
           headers: {
             Authorization: `Bearer ${session.access_token}`,
           },
         }
+      );
+
+      // LOG: Response from edge function
+      console.log(
+        "[FRONTEND/useRelayerVerifyProposal] Edge function response:",
+        data,
+        error
       );
 
       if (error) {

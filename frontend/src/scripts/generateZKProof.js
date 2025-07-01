@@ -3,9 +3,9 @@ import { ZkCredential } from "./generateCredentials-browser-safe.js";
 import { MerkleTreeService } from "./merkleTreeService.js";
 import { keccak256, toUtf8Bytes } from "ethers";
 import * as circomlibjs from "circomlibjs";
+import * as ethers from "ethers";
 
 export class ZKProofGenerator {
-
   // Membership circuit paths
   static #MEMBERSHIP_WASM_PATH = "/membership_circuit/membership_circuit.wasm";
   static #MEMBERSHIP_ZKEY_PATH =
@@ -25,7 +25,7 @@ export class ZKProofGenerator {
 
   // Field modulus for the ZK circuits
   static FIELD_MODULUS = BigInt(
-  "21888242871839275222246405745257275088548364400416034343698204186575808495617"
+    "21888242871839275222246405745257275088548364400416034343698204186575808495617"
   );
   // Poseidon instance for hashing
   static #poseidonInstance;
@@ -51,16 +51,16 @@ export class ZKProofGenerator {
   }
 
   /**
-     * Gets or initializes the Poseidon hash instance.
-     * @private
-     * @returns {Promise<Object>} The Poseidon hash instance
-     */
-    static async #getPoseidon() {
-      if (!this.#poseidonInstance) {
-        this.#poseidonInstance = await circomlibjs.buildPoseidon();
-      }
-      return this.#poseidonInstance;
+   * Gets or initializes the Poseidon hash instance.
+   * @private
+   * @returns {Promise<Object>} The Poseidon hash instance
+   */
+  static async #getPoseidon() {
+    if (!this.#poseidonInstance) {
+      this.#poseidonInstance = await circomlibjs.buildPoseidon();
     }
+    return this.#poseidonInstance;
+  }
 
   /**
    * Converts a file to an ArrayBuffer.
@@ -121,10 +121,7 @@ export class ZKProofGenerator {
    * @param {Array<BigInt>} commitmentArray - An array of commitment values to use for the Merkle proof.
    * @returns {Promise<Object>} An object containing the circuit input including root, identity trapdoor, identity nullifier, path elements, and path indices.
    */
-  static async generateMerkleProofInput(
-    mnemonic,
-    commitmentArray
-  ) {
+  static async generateMerkleProofInput(mnemonic, commitmentArray) {
     console.log("Generating Merkle proof input...");
     const seed = ZkCredential.generateSeedFromMnemonic(mnemonic);
     console.log("Seed generated from mnemonic:", seed);
@@ -144,7 +141,7 @@ export class ZKProofGenerator {
     console.log("Merkle Root:", root);
     console.log("Path Elements:", pathElements);
     console.log("Path Indices:", pathIndices);
-    
+
     return {
       root: root.toString(),
       identityTrapdoor: trapdoor.toString(),
@@ -153,7 +150,7 @@ export class ZKProofGenerator {
       pathIndices: pathIndices.map((index) => index.toString()),
     };
   }
-  
+
   /**
    * Generates the inputs for the Membership circuit for a given mnemonic and commitment array.
    * @param {string} mnemonic - The mnemonic phrase used to generate the identity.
@@ -179,7 +176,9 @@ export class ZKProofGenerator {
       identityNullifier: merkleProofInput.identityNullifier,
       groupHash: groupHashBigInt.toString(),
       pathElements: merkleProofInput.pathElements,
-      pathIndices: merkleProofInput.pathIndices.map((index) => index.toString()),
+      pathIndices: merkleProofInput.pathIndices.map((index) =>
+        index.toString()
+      ),
     };
 
     console.log("Circuit Input:", circuitInput);
@@ -187,7 +186,7 @@ export class ZKProofGenerator {
     return circuitInput;
   }
 
-  /**   
+  /**
    * Generates the inputs for the proposal submission circuit.
    * @param {string} mnemonic - The mnemonic phrase used to generate the identity.
    * @param {Array<BigInt>} commitmentArray - An array of commitment values to use for the Merkle proof.
@@ -198,7 +197,7 @@ export class ZKProofGenerator {
    * @param {Object} proposalPayload - The payload of the proposal, which can include various parameters.
    * @returns {Promise<Object>}
    * An object containing the circuit input including root, identity trapdoor, identity nullifier, group hash, epoch hash, proposal title, proposal description, proposal payload, and path elements.
-   */ 
+   */
   static async generateProposalCircuitInput(
     mnemonic,
     commitmentArray,
@@ -219,7 +218,9 @@ export class ZKProofGenerator {
     const epochHashBigInt = this.#stringToBigInt(epochId);
     const proposalTitleBigInt = this.#stringToBigInt(proposalTitle);
     const proposalDescriptionBigInt = this.#stringToBigInt(proposalDescription);
-    const proposalPayloadBigInt = this.#stringToBigInt(this.#deterministicStringify(proposalPayload));
+    const proposalPayloadBigInt = this.#stringToBigInt(
+      this.#deterministicStringify(proposalPayload)
+    );
     console.log("Group Hash BigInt:", groupHashBigInt);
     console.log("Epoch Hash BigInt:", epochHashBigInt);
     console.log("Proposal Title BigInt:", proposalTitleBigInt);
@@ -228,17 +229,18 @@ export class ZKProofGenerator {
 
     const poseidon = await this.#getPoseidon();
     const F = poseidon.F;
-    const proposalContentHash = F.toObject(poseidon([
-      proposalTitleBigInt,
-      proposalDescriptionBigInt,
-      proposalPayloadBigInt
-    ]));
+    const proposalContentHash = F.toObject(
+      poseidon([
+        proposalTitleBigInt,
+        proposalDescriptionBigInt,
+        proposalPayloadBigInt,
+      ])
+    );
     console.log("Proposal Content Hash:", proposalContentHash);
 
-    const proposalContextHash = F.toObject(poseidon([
-      groupHashBigInt,
-      epochHashBigInt
-    ]));
+    const proposalContextHash = F.toObject(
+      poseidon([groupHashBigInt, epochHashBigInt])
+    );
     console.log("Proposal Context Hash:", proposalContextHash);
 
     const circuitInput = {
@@ -247,7 +249,9 @@ export class ZKProofGenerator {
       identityTrapdoor: merkleProofInput.identityTrapdoor,
       identityNullifier: merkleProofInput.identityNullifier,
       pathElements: merkleProofInput.pathElements,
-      pathIndices: merkleProofInput.pathIndices.map((index) => index.toString()),
+      pathIndices: merkleProofInput.pathIndices.map((index) =>
+        index.toString()
+      ),
       proposalTitleHash: proposalTitleBigInt.toString(),
       proposalDescriptionHash: proposalDescriptionBigInt.toString(),
       proposalPayloadHash: proposalPayloadBigInt.toString(),
@@ -259,7 +263,6 @@ export class ZKProofGenerator {
 
     return circuitInput;
   }
-
 
   /**
    * Generates a zero-knowledge proof for the specified circuit input.
@@ -382,7 +385,6 @@ export class ZKProofGenerator {
     publicSignalsSolidity,
     contract
   ) {
-    
     try {
       const isValid = await contract.verifyProof(
         proofSolidity,
@@ -393,5 +395,26 @@ export class ZKProofGenerator {
       console.error("Error verifying proof on-chain:", error);
       throw error;
     }
+  }
+
+  /**
+   * Computes the context key using Poseidon hash from groupKey and epochKey.
+   * This is used for proposal verification to create the context hash.
+   * @param {string} groupKey - The group key string.
+   * @param {string} epochKey - The epoch key string.
+   * @returns {Promise<string>} The computed context key as a hex string.
+   */
+  static async computeContextKey(groupKey, epochKey) {
+    const groupHashBigInt = this.#stringToBigInt(groupKey);
+    const epochHashBigInt = this.#stringToBigInt(epochKey);
+
+    const poseidon = await this.#getPoseidon();
+    const F = poseidon.F;
+    const contextHashBigInt = F.toObject(
+      poseidon([groupHashBigInt, epochHashBigInt])
+    );
+
+    // Convert to hex string for better compatibility with ethers.js
+    return ethers.toBeHex(contextHashBigInt);
   }
 }

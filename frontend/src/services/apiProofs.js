@@ -7,6 +7,7 @@ import { supabase } from "./supabase";
  * @param {string} params.groupId - The ID of the group this proof belongs to
  * @param {string} params.groupMemberId - The ID of the group member who created this proof
  * @param {string} params.nullifierHash - The nullifier hash of the proof
+ * @param {string} [params.circuitType="proposal"] - The type of circuit used (e.g., "proposal", "voting", "membership")
  * @returns {Promise<Object>} The inserted proof record
  * @throws {Error} If any required parameter is missing or if the database operation fails
  */
@@ -15,7 +16,16 @@ export async function insertProof({
   groupId,
   groupMemberId,
   nullifierHash,
+  circuitType = "proposal",
 }) {
+  console.log("🔍 insertProof called with parameters:", {
+    proposalId,
+    groupId,
+    groupMemberId,
+    nullifierHash,
+    circuitType,
+  });
+
   if (!proposalId) {
     throw new Error("proposalId is required");
   }
@@ -29,24 +39,46 @@ export async function insertProof({
     throw new Error("nullifierHash is required");
   }
 
+  // Map circuit types to their corresponding UUIDs
+  const circuitIdMap = {
+    proposal: "a1a0a504-e3aa-4e5d-bb9f-bbd98aefbd52",
+    voting: "voting-circuit-uuid-here", // TODO: Add actual UUID when available
+    membership: "membership-circuit-uuid-here", // TODO: Add actual UUID when available
+  };
+
+  const circuitId = circuitIdMap[circuitType];
+  if (!circuitId) {
+    throw new Error(`Unknown circuit type: ${circuitType}`);
+  }
+
+  const insertData = {
+    proposal_id: proposalId,
+    circuit_id: circuitId,
+    group_id: groupId,
+    circuit_type: circuitType,
+    group_member_id: groupMemberId,
+    nullifier_hash: nullifierHash,
+    is_verified: true,
+  };
+
+  console.log("📝 insertProof - Data to be inserted:", insertData);
+  console.log("🔗 insertProof - Circuit ID mapped:", circuitId);
+
   const { data, error } = await supabase
     .schema("ignitionzk")
     .from("proofs")
-    .insert({
-      proposal_id: proposalId,
-      circuit_type: "voting",
-      group_id: groupId,
-      group_member_id: groupMemberId,
-      nullifier_hash: nullifierHash,
-      is_verified: true,
-    })
+    .insert(insertData)
     .select()
     .single();
 
+  console.log("✅ insertProof - Supabase response:", { data, error });
+
   if (error) {
+    console.error("❌ insertProof - Database error:", error);
     throw new Error(error.message);
   }
 
+  console.log("🎉 insertProof - Successfully inserted proof:", data);
   return data;
 }
 
