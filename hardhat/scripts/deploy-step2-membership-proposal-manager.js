@@ -90,8 +90,7 @@ async function main() {
       ProposalManager,
       [
         PROPOSAL_VERIFIER_ADDRESS,
-        GOVERNOR_PLACEHOLDER,
-        membershipManagerAddress,
+        GOVERNOR_PLACEHOLDER
       ],
       {
         initializer: "initialize",

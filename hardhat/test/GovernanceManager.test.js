@@ -1,6 +1,7 @@
 const { ethers, upgrades, keccak256 , toUtf8Bytes, HashZero} = require("hardhat");
 const { expect } = require("chai");
 const { anyUint, anyValue } = require("@nomicfoundation/hardhat-chai-matchers/withArgs");
+const { Conversions } = require("./utils");
 
 describe("GovernanceManager", function () {
     let MembershipManager;
@@ -37,20 +38,18 @@ describe("GovernanceManager", function () {
     let validProof;
     let validPublicSignals;
 
-    // Convert UUID to group key with prime field modulus
-    const FIELD_MODULUS = 21888242871839275222246405745257275088548364400416034343698204186575808495617n;
-
-    /**
-     * Convert a UUID to a group key with prime field modulus.
-     * @param {string} uuid - The UUID to convert.
-     * @returns {string} - The 32-byte hex string representation of the group key.
-     */
-    function uuidToGroupKey(uuid) {
-        const hash = ethers.keccak256(ethers.toUtf8Bytes(uuid));
-        // Convert the hash to a BigInt and reduce it modulo the prime field
-        const reduced = BigInt(hash) % FIELD_MODULUS;
-        return ethers.toBeHex(reduced, 32); // Return as a 32-byte hex string
-    }
+    let validPropGroupId;
+    let validPropEpochId;
+    let validPropGroupKey;
+    let validPropEpochKey;
+    let validPropContextKey;
+    let validPropRoot;
+    let validPropProof;
+    let validPropPublicSignals;
+    let ProofPropContextHash;
+    let ProofProposalNullifier;
+    let ProofPropRoot;
+    let ProofContentHash;
 
     // RUN ONCE BEFORE ALL TESTS
     before(async function () {
@@ -65,6 +64,10 @@ describe("GovernanceManager", function () {
         MembershipVerifier = await ethers.getContractFactory("MembershipVerifier");
         // Get Contract Factory for NFT implementation
         NFTImplementation = await ethers.getContractFactory("ERC721IgnitionZK");
+        // Get Contract Factory for ProposalVerifier
+        ProposalVerifier = await ethers.getContractFactory("ProposalVerifier");
+        // Get Contract Factory for ProposalManager
+        ProposalManager = await ethers.getContractFactory("ProposalManager");
         // Get Contract Factory for GovernanceManager
         GovernanceManager = await ethers.getContractFactory("GovernanceManager");
         
@@ -79,7 +82,7 @@ describe("GovernanceManager", function () {
         // Deploy the NFT implementation minimal proxy (Clones EIP‑1167) contract
         nftImplementation = await NFTImplementation.deploy();
         await nftImplementation.waitForDeployment();
-      
+        
         // Deploy the MembershipMannager UUPS Proxy (ERC‑1967) contract
         membershipManager = await upgrades.deployProxy(
             MembershipManager, 
@@ -94,14 +97,33 @@ describe("GovernanceManager", function () {
             }
         );
         await membershipManager.waitForDeployment();
-     
+        
+        // Deploy the ProposalVerifier contract
+        proposalVerifier = await ProposalVerifier.deploy();
+        await proposalVerifier.waitForDeployment();
+        
+        // Deploy the ProposalManager UUPS Proxy (ERC‑1967) contract
+        proposalManager = await upgrades.deployProxy(
+            ProposalManager, 
+            [
+                proposalVerifier.target, // _proposalVerifier
+                deployerAddress, // _initialOwner
+            ],
+            {
+                initializer: "initialize",
+                kind: "uups"
+            }
+        );
+        await proposalManager.waitForDeployment();
+        
         // Deploy the Governance UUPS Proxy (ERC‑1967) contract
         governanceManager = await upgrades.deployProxy(
             GovernanceManager, 
             [
                 deployerAddress,  // _initialOwner
                 relayerAddress, // _relayer
-                membershipManager.target // _membershipManager
+                membershipManager.target, // _membershipManager
+                proposalManager.target, // _proposalManager
             ],
             {
                 initializer: "initialize",
@@ -112,17 +134,20 @@ describe("GovernanceManager", function () {
        
         // Transfer ownership of MembershipManager to GovernanceManager
         await membershipManager.transferOwnership(governanceManager.target);
+
+        // Tranfer ownership of ProposalManager to GovernanceManager
+        await proposalManager.transferOwnership(governanceManager.target);
      
         groupId = '123e4567-e89b-12d3-a456-426614174000'; // Example UUID
-        groupKey = uuidToGroupKey(groupId);
-        rootHash = ethers.keccak256(ethers.toUtf8Bytes("rootHash"));
-        rootHash2 = ethers.keccak256(ethers.toUtf8Bytes("newRootHash"));  
+        groupKey = Conversions.stringToBytes32(groupId);
+        rootHash = Conversions.stringToBytes32("rootHash");
+        rootHash2 = Conversions.stringToBytes32("newRootHash");
         nftName = "Test Group NFT";
         nftSymbol = "TGNFT";  
         nftName2 = "Test Group NFT 2";
         nftSymbol2 = "TGNFT2";  
 
-        // invalid proof inputs:
+        // invalid Membership proof inputs:
         invalidProof = [
             1, 2, 3, 4, 5, 6,
             7, 8, 9, 10, 11, 12,
@@ -130,19 +155,34 @@ describe("GovernanceManager", function () {
             19, 20, 21, 22, 23, 24
         ];
         invalidPublicSignals = [
-            ethers.keccak256(ethers.toUtf8Bytes("nullifier")),
-            ethers.keccak256(ethers.toUtf8Bytes("rootHash")),
+            Conversions.stringToBytes32("nullifier"),
+            Conversions.stringToBytes32("rootHash"),
             groupKey
         ];
 
-        //valid proof inputs:
+        //valid Membership proof inputs:
         validUuid = 'bf56d8b4-618e-4bfe-a2b8-0ebeb9c06d2f';
-        validGroupKey = uuidToGroupKey(validUuid);
+        validGroupKey = Conversions.stringToBytes32(validUuid);
         validProof = [12723661512181512564133082958539708051764952847649598922160420109792300741443n, 15144361789550256843213075442927675468301954095924989815572321543713978227405n, 20270241392072168651438981133015416857602620598228701171817367774149618707468n, 4877456838660641332552184869109646996849294253004601609722208324042182098323n, 7261302575944315335843096330984291989534135790958415582300303855324013463434n, 17059939722681569876256023347311823572921555744783998865164128382959626172145n, 7449812983458737162776414980469547753644179222330696758981954226362759896882n, 10641421991359777901645242057672314113508631588884595909434388382237270021042n, 8876545890956321689446937191990903233582151554274653346292321937218277735584n, 3232224451609947834030577364646852979186824344325814820658751382295022002609n, 15964517761502927109299580134898520178176602897264081752509669515597702971814n, 21327182056006907161993883660696141865439046282159120725544845334922879278512n, 5361424725479157736413749383892726192053575425379500041241859501321251694476n, 17176015431443966048798739122305704455241223246261369322520892889973458270759n, 6472703655794652942567937422607903202651431634440030267562054789208020802048n, 17853559276152903276580215583902666950583551268253317580804436259152081841595n, 2478953388483023827812125619291476215465981049997786458697965607114959329747n, 13141686118219066901415421631920655181647708375873492850896836919877162647752n, 11411653162361138979989496693359129693880302138759332371037625874759743592395n, 7313684787946033708167892955359776119332991829670241610649748716029130490962n, 8730455425146887748876442529024890142752884755295966778983612828082865721439n, 7770269715349474167628620377544317787776637453366262357647343096731021446733n, 1840877294611034491185769928004348947501764941250083195301027481432841028883n, 15488884326484369161640536983044185418987833369312485600337930258641160429544n]
         validPublicSignals = [14625843210609328628808221693020936775910419632505608599170019946391716016853n, 21284411868483133640015840002243641200058418874841859199644495183871744595557n, 20347671511505755995800787811739622923322848038570576685329506851648789567890n]
         validPublicNullifier = ethers.toBeHex(validPublicSignals[0], 32);
         validRoot = ethers.toBeHex(validPublicSignals[1], 32);
         validExternalNullifier = ethers.toBeHex(validPublicSignals[2], 32);
+
+        // valid proposal proof inputs:
+        validPropGroupId = '97dca094-bdd7-419b-a91a-5ea1f2aa0537';
+        validPropEpochId = '2935f80b-9cbd-4000-8342-476b97148ee7';
+        validPropGroupKey = Conversions.stringToBytes32(validPropGroupId);
+        validPropEpochKey = Conversions.stringToBytes32(validPropEpochId);
+        validPropContextKey = await Conversions.computeContextKey(validPropGroupId, validPropEpochId);
+        validPropRoot = ethers.toBeHex(12886375653922554679898676191015074420004311699425387307536167956555820652530n);
+        validPropProof =  [21324237216059067856001326008772402094911947511781008238699193212067506059989n, 2864945365585520580736445144193166667326617123191518303094327819055881893898n, 9465494702140843923161382740269992595504500424060825556224998583474537660180n, 16030498518445137856991221074247654384343749586559714739092600138780412645932n, 13206405049855604729091182801886236353027936746167389593413006162046950936130n, 4048180889747018366596516152682952495036411690853460926059538542586053452269n, 12609570602713816352353876541250421869933566683310145723520331357194292610763n, 7230708155655109188106883860486515119339867121429646046968379650376224850635n, 10422160017288146940026661823861144153069562258697813729447351579113292282332n, 19224572988623427900696980611184826575794205115052705819015127040433839387340n, 5464458218254524957773989784775535143151978126599232326359107991462941009341n, 17466015331361201857470101198136594356860417506221180269276007831559430608536n, 104111675735261926963102685527169626976556205102093081135657122263364031072n, 9647909420810049351150150731868472034940891632806970684008044685699041691902n, 5517304425124738952479655672080171447245708475489731074753736114408015336376n, 3992323730999170742568732932045647379760079477966357347131073234751644727731n, 21584736187497331654923350559507029513407311458396545387156833371106030587174n, 13124016152208354295720478942441341704945400125661605774849977175789656556849n, 94371825887095281395457359605641036224334013945154747165660946136508967536n, 20181668522149303921765270504092927578505186714381356313094322561091892021144n, 2428657391978333859718446390862958247155977941182284203839625529708575207306n, 11530011789437837834442028418577495349735102949773935147946044166578468073553n, 2820924891891396715015254206148811560495416088414132819592239590142857455122n, 11400422769785768671708829126366377902307285817944352534175654791039801233298n]
+        validPropPublicSignals = [1783858561640217141101142531165136293815429284532457890755617800207039425768n, 7386565541285461939014061068084680752417332123732607638853227510160241742544n, 12886375653922554679898676191015074420004311699425387307536167956555820652530n, 1086211582699940520437986923287385710360225269413071107044506549724688350225n]
+        ProofPropContextHash = ethers.toBeHex(validPropPublicSignals[0], 32);
+        ProofProposalNullifier = ethers.toBeHex(validPropPublicSignals[1], 32);
+        ProofPropRoot = ethers.toBeHex(validPropPublicSignals[2], 32);
+        ProofPropContentHash = ethers.toBeHex(validPropPublicSignals[3], 32);
+ 
     });
 
     it("deployment: should deploy contracts correctly", async function () {
@@ -567,6 +607,20 @@ describe("GovernanceManager", function () {
             );
     });
 
+    it("delegateVerifyProposal: should allow the relayer to verify a proposal, emit event store correct nullifier and content hash", async function () {
+        await governanceManager.connect(relayer).delegateDeployGroupNft(validPropGroupKey, nftName, nftSymbol);
+        await governanceManager.connect(relayer).delegateInitRoot(validPropRoot, validPropGroupKey);
+        const tx = await governanceManager.connect(relayer).delegateVerifyProposal(validPropProof, validPropPublicSignals, validPropGroupKey, validPropContextKey);
+        await expect(tx)    
+            .to.emit(
+                proposalManager, 
+                "ProofVerified"
+            ).withArgs(ProofPropContextHash, ProofProposalNullifier, ProofPropContentHash);
+        expect(await governanceManager.connect(relayer).delegateGetProposalNullifierStatus(ProofProposalNullifier)).to.equal(true);
+        expect(await governanceManager.connect(relayer).delegateGetProposalSubmission(validPropContextKey)).to.equal(ProofPropContentHash);
+
+    });
+
     it("getRelayer: should allow the owner (deployer) to get the relayer address", async function () {
         const addr = await governanceManager.connect(deployer).getRelayer();
         expect(addr).to.equal(relayerAddress);
@@ -594,4 +648,4 @@ describe("GovernanceManager", function () {
     });
 
 
-});
+})
