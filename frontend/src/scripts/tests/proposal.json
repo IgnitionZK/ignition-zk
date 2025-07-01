@@ -1,19 +1,19 @@
 {
-    "title": "Proposal for New Feature",
-    "description": "This proposal outlines a new feature that aims to enhance user experience by introducing a customizable dashboard.",
-    "metadata": {
-        "createdBy": "ZKcommitment",
-        "encryptedContactInfo": "ciphertextOfContactInfo - encrypted with the DAO's or client side ephemeral public key",
-        "createdAt": "2023-10-01T12:00:00Z"
-    },
-    "payload": {
-        "targetContract": "0xGovernanceContractAddress",
-        "targetFunction": "executeProposal", 
-        "targetAction": "delegateDistributeGrant",
-        "value": "0",
-        "calldata": {
-            "recipient": "0xabcdefabcdefabcdefabcdefabcdefabcdefabcd",
-            "amount": "1000000000000000000"
-        }
+  "title": "Proposal for New Feature",
+  "description": "This proposal outlines a new feature that aims to enhance user experience by introducing a customizable dashboard.",
+  "metadata": {
+    "createdBy": "ZKcommitment",
+    "encryptedContactInfo": "ciphertextOfContactInfo - encrypted with the DAO's or client side ephemeral public key",
+    "createdAt": "2023-10-01T12:00:00Z"
+  },
+  "payload": {
+    "targetContract": "0xGovernanceContractAddress",
+    "targetFunction": "executeProposal",
+    "targetAction": "delegateDistributeGrant",
+    "value": "0",
+    "calldata": {
+      "recipient": "0xabcdefabcdefabcdefabcdefabcdefabcdefabcd",
+      "amount": "1000000000000000000"
     }
+  }
 }

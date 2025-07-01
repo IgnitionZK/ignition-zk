@@ -14,10 +14,9 @@ async function main() {
 
   // Configuration - Update these addresses from previous steps
   const MEMBERSHIP_MANAGER_ADDRESS =
-    "0x4BcdF51851DCc7670108DBefa28c0fbafF8283a5"; // From Step 2
-  const PROPOSAL_MANAGER_ADDRESS =
-    "0x017C80402e9A87FeF38E6B2787C81692fa20124a"; // From Step 2
-  const GOVERNOR_ADDRESS = "0x50A35F8f50c7EC8180CCe922cd1BE46118AA48A2"; // From Step 3
+    "0x869e6c17bd30B6C32Fe02dA4D0FE7269bB4bA464"; // From Step 2
+  const PROPOSAL_MANAGER_ADDRESS = "0x9d23eB551EE1325B88Bbc5e4311AE71874892755"; // From Step 2
+  const GOVERNOR_ADDRESS = "0xffCf3c44D2Eb747B9e3bD0252f99c9906B7500fd"; // From Step 3
   const OWNER_RELAYER = "0x5F909fd25A9F5e4f5a219318FdeD6C8124F6c1F1";
   const NFT_IMPLEMENTATION = "0x8EdE77A2676F9A35D49923e25e4ADfaFCa9F1Ccf"; // From Step 1
 
@@ -47,20 +46,20 @@ async function main() {
       "ProposalManager",
       PROPOSAL_MANAGER_ADDRESS
     );
-    const governor = await ethers.getContractAt("GovernanceManager", GOVERNOR_ADDRESS);
-
-
-    // Set proposal manager address in MembershipManager
-    console.log("🔧 Step 4a: Setting ProposalManager in MembershipManager...");
-    const setProposalManagerTx = await membershipManager.setProposalManager(
-      PROPOSAL_MANAGER_ADDRESS
+    const governor = await ethers.getContractAt(
+      "GovernanceManager",
+      GOVERNOR_ADDRESS
     );
-    await setProposalManagerTx.wait();
 
-    console.log("✅ ProposalManager set in MembershipManager!");
+    // Skip setting proposal manager in MembershipManager since it's not necessary
+    // The ProposalManager is already properly initialized with the MembershipManager address
+    console.log(
+      "⏭️  Skipping setProposalManager call (not necessary for deployment setup)"
+    );
+    console.log("");
 
     console.log(
-      "🔧 Step 4b: Transferring MembershipManager ownership to Governor..."
+      "🔧 Step 4a: Transferring MembershipManager ownership to Governor..."
     );
     // Transfer MembershipManager ownership to Governor
     const transferTx = await membershipManager.transferOwnership(
@@ -72,7 +71,9 @@ async function main() {
     console.log("✅ MembershipManager ownership transferred to Governor!");
 
     // Transfer ownership of ProposalManager to Governor
-    console.log("🔧 Step 4c: Transferring ProposalManager ownership to Governor...");
+    console.log(
+      "🔧 Step 4b: Transferring ProposalManager ownership to Governor..."
+    );
     const transferProposalManagerTx = await proposalManager.transferOwnership(
       GOVERNOR_ADDRESS
     );
@@ -80,7 +81,7 @@ async function main() {
     await transferProposalManagerTx.wait();
     console.log("✅ ProposalManager ownership transferred to Governor!");
 
-    console.log("\n🔧 Step 4d: Verifying setup...");
+    console.log("\n🔧 Step 4c: Verifying setup...");
     // Verify ownership
     const membershipManagerOwner = await membershipManager.owner();
     const proposalManagerOwner = await proposalManager.owner();

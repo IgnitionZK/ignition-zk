@@ -18,14 +18,22 @@ export function useInsertProof() {
      * @param {string} params.groupId - The ID of the group
      * @param {string} params.groupMemberId - The ID of the group member
      * @param {string} params.nullifierHash - The nullifier hash
+     * @param {string} [params.circuitType="proposal"] - The type of circuit used
      * @returns {Promise} A promise that resolves when the proof is inserted
      */
-    mutationFn: ({ proposalId, groupId, groupMemberId, nullifierHash }) =>
+    mutationFn: ({
+      proposalId,
+      groupId,
+      groupMemberId,
+      nullifierHash,
+      circuitType = "proposal",
+    }) =>
       insertProof({
         proposalId,
         groupId,
         groupMemberId,
         nullifierHash,
+        circuitType,
       }),
     onSuccess: () => {
       // Invalidate and refetch proofs queries

@@ -175,6 +175,7 @@ function InboxItem({
           groupId: proposal.group_id,
           groupMemberId: userGroupMemberId,
           nullifierHash,
+          circuitType: "proposal",
         });
         setHasSubmittedProof(true);
       }

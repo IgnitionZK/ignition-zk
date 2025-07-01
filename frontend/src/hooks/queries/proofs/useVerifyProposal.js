@@ -2,7 +2,6 @@ import { useState } from "react";
 import { useWalletQuery } from "../../wallet/useWalletQuery";
 import { useGenerateProof } from "./useCreateNewProof";
 import { ZKProofGenerator } from "../../../scripts/generateZKProof";
-import { ethers } from "ethers";
 import { useRelayerVerifyProposal } from "../../relayers/useRelayerVerifyProposal";
 
 // ABI for the ProposalVerifier contract
@@ -10,8 +9,7 @@ const PROPOSAL_VERIFIER_ABI = [
   "function verifyProof(uint256[24] calldata _proof, uint256[4] calldata _pubSignals) public view returns (bool)",
 ];
 
-const PROPOSAL_VERIFIER_ADDRESS =
-  "0x997172817177c1Aa125a0212B2c574c965174f9E";
+const PROPOSAL_VERIFIER_ADDRESS = "0x997172817177c1Aa125a0212B2c574c965174f9E";
 
 /**
  * Custom hook for verifying proposal submission using zero-knowledge proofs
@@ -26,7 +24,7 @@ export function useVerifyProposal() {
   const { address, provider } = useWalletQuery();
   const { generateProofFromInput, isLoading: isGeneratingProof } =
     useGenerateProof();
-  
+
   // Hook for verifying proposal
   const { verifyProposal: relayerVerifyProposal } = useRelayerVerifyProposal();
 
@@ -51,6 +49,17 @@ export function useVerifyProposal() {
     proposalDescription,
     proposalPayload
   ) => {
+    // LOG: Input to proof generation
+    console.log("[FRONTEND/useVerifyProposal] Inputs:", {
+      commitmentArray,
+      mnemonic,
+      groupId,
+      epochId,
+      proposalTitle,
+      proposalDescription,
+      proposalPayload,
+    });
+
     if (!address || !provider) {
       throw new Error("Wallet not connected");
     }
@@ -78,19 +87,39 @@ export function useVerifyProposal() {
         proposalPayload
       );
 
-      console.log("Proof: ", proof);
-      console.log("Public Signals: ", publicSignals);
+      // LOG: Proof and public signals after generation
+      console.log("[FRONTEND/useVerifyProposal] Proof generated:", proof);
+      console.log(
+        "[FRONTEND/useVerifyProposal] Public signals generated:",
+        publicSignals
+      );
+
       // publicSignals[0]: proposalContextHash
       // publicSignals[1]: proposalNullifier
       // publicSignals[2]: root
       // publicSignals[3]: proposalContentHash
-      
 
       // Convert proof and public signals to Solidity calldata
       const { proofSolidity, publicSignalsSolidity } =
         await ZKProofGenerator.generateSolidityCalldata(proof, publicSignals);
-      console.log("Proof Solidity: ", proofSolidity);
-      console.log("Public Signals Solidity: ", publicSignalsSolidity);
+
+      // LOG: Solidity calldata
+      console.log(
+        "[FRONTEND/useVerifyProposal] Proof Solidity:",
+        proofSolidity
+      );
+      console.log(
+        "[FRONTEND/useVerifyProposal] Public Signals Solidity:",
+        publicSignalsSolidity
+      );
+
+      // LOG: Data sent to relayer
+      console.log("[FRONTEND/useVerifyProposal] Data sent to relayer:", {
+        proof: proofSolidity,
+        publicSignals: publicSignalsSolidity,
+        groupKey: groupId.toString(),
+        epochKey: epochId.toString(),
+      });
 
       // Create contract instance
       /*
@@ -108,8 +137,8 @@ export function useVerifyProposal() {
       return await new Promise((resolve, reject) => {
         relayerVerifyProposal(
           {
-            proof: proofSolidity, 
-            publicSignals: publicSignalsSolidity, 
+            proof: proofSolidity,
+            publicSignals: publicSignalsSolidity,
             groupKey: groupId.toString(), // Convert to string as expected by edge function
             epochKey: epochId.toString(), // Convert to string as expected by edge function
           },
@@ -125,22 +154,17 @@ export function useVerifyProposal() {
           }
         );
       });
-    
     } catch (err) {
       setError(err.message || "Failed to verify proposal");
       throw err;
     } finally {
       setIsVerifying(false);
     }
-      
   };
-
-
 
   return {
     verifyProposal,
     isVerifying: isVerifying || isGeneratingProof,
     error,
   };
-
 }

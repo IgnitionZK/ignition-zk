@@ -278,15 +278,15 @@ contract GovernanceManager is Initializable, UUPSUpgradeable, OwnableUpgradeable
      * @param proof The zk-SNARK proof to verify.
      * @param pubSignals The public signals associated with the proof.
      * @param groupKey The unique identifier for the group.
-     * @param epochKey The unique identifier for the epoch.
+     * @param contextKey The pre-computed context hash (group, epoch).
      */
     function delegateVerifyProposal(
         uint256[24] calldata proof,
         uint256[4] calldata pubSignals,
         bytes32 groupKey,
-        bytes32 epochKey
+        bytes32 contextKey
     ) external onlyRelayer {
-        IProposalManager(proposalManager).verifyProposal(proof, pubSignals, groupKey, epochKey);
+        IProposalManager(proposalManager).verifyProposal(proof, pubSignals, groupKey, contextKey);
     }
 
 // ====================================================================================================================

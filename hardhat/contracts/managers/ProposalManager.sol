@@ -21,7 +21,7 @@ contract ProposalManager is Initializable, OwnableUpgradeable, UUPSUpgradeable {
     error RootNotYetInitialized();
 
     // Proof errors:
-    error InvalidProof(bytes32 groupKey, bytes32 epochKey, bytes32 nullifier);
+    error InvalidProof(bytes32 groupKey, bytes32 contextKey, bytes32 nullifier);
     error NullifierAlreadyUsed();
     error InvalidContextHash();
     error InvalidContentHash();
@@ -38,10 +38,10 @@ contract ProposalManager is Initializable, OwnableUpgradeable, UUPSUpgradeable {
     /**
      * @notice Emitted when a proof is successfully verified.
      * @param groupKey The unique identifier for the group.
-     * @param epochKey The unique identifier for the epoch.
+     * @param contextKey The context hash for the proposal.
      * @param nullifier The nullifier associated with the proof.
      */
-    event ProofVerified(bytes32 indexed groupKey, bytes32 indexed epochKey, bytes32 indexed nullifier);
+    event ProofVerified(bytes32 indexed groupKey, bytes32 indexed contextKey, bytes32 indexed nullifier);
     /**
      * @notice Emitted when a proposal is submitted.
      * @param contextKey The unique context key for the proposal, derived from groupKey and epochKey.
@@ -168,22 +168,21 @@ contract ProposalManager is Initializable, OwnableUpgradeable, UUPSUpgradeable {
      * @param proof The zk-SNARK proof to verify.
      * @param publicSignals The public signals associated with the proof.
      * @param groupKey The unique identifier for the group.
-     * @param epochKey The unique identifier for the epoch.
+     * @param contextKey The pre-computed context hash (group, epoch).
      * @custom:error InvalidProof If the proof is invalid.
      */
     function verifyProposal(
         uint256[24] calldata proof,
         uint256[4] calldata publicSignals,
-        bytes32 groupKey, 
-        bytes32 epochKey
-    ) external onlyOwner nonZeroKey(groupKey) nonZeroKey(epochKey) {
+        bytes32 groupKey,
+        bytes32 contextKey
+    ) external onlyOwner nonZeroKey(groupKey) nonZeroKey(contextKey) {
 
-        bytes32 proofContentHash = bytes32(publicSignals[0]);
+        bytes32 proofContextHash = bytes32(publicSignals[0]);
         bytes32 nullifier = bytes32(publicSignals[1]);
         bytes32 proofRoot = bytes32(publicSignals[2]);
-        bytes32 proofContextHash = bytes32(publicSignals[3]);
+        bytes32 proofContentHash = bytes32(publicSignals[3]);
 
-        bytes32 contextKey = _contextKey(groupKey, epochKey);
         bytes32 currentRoot = membershipManager.getRoot(groupKey);
 
         // check proofRoot matches currentRoot from MembershipManager
@@ -199,13 +198,13 @@ contract ProposalManager is Initializable, OwnableUpgradeable, UUPSUpgradeable {
         // Verify the proof using the verifier contract
         bool isValid = verifier.verifyProof(proof, publicSignals);
         if (!isValid) {
-            revert InvalidProof(groupKey, epochKey, nullifier);
+            revert InvalidProof(groupKey, contextKey, nullifier);
         }
         // If all checks pass, mark the nullifier as used and store the proposal submission
         proposalNullifiers[nullifier] = true;
         proposalSubmissions[contextKey] = proofContentHash;
 
-        emit ProofVerified(groupKey, epochKey, nullifier);
+        emit ProofVerified(groupKey, contextKey, nullifier);
         emit ProposalSubmitted(contextKey, proofContentHash);
     }
 // ====================================================================================================================
@@ -229,19 +228,5 @@ contract ProposalManager is Initializable, OwnableUpgradeable, UUPSUpgradeable {
     function getMembershipManager() external view onlyOwner returns (address) {
         return address(membershipManager);
     }
-
-// ====================================================================================================================
-//                                       PRIVATE HELPER FUNCTIONS
-// ====================================================================================================================
-    /**
-     * @notice Generates a unique context key based on the group key and epoch key.
-     * @param groupKey The unique identifier for the group.
-     * @param epochKey The unique identifier for the epoch.
-     * @return bytes32 The generated context key.
-     */
-    function _contextKey(bytes32 groupKey, bytes32 epochKey) private pure returns (bytes32) {
-        return keccak256(abi.encodePacked(groupKey, epochKey));
-    }
-
 
 }

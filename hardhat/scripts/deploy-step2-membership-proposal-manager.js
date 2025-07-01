@@ -15,8 +15,10 @@ async function main() {
   // Configuration - Update these addresses from previous steps
   const NFT_IMPLEMENTATION_ADDRESS =
     "0x8EdE77A2676F9A35D49923e25e4ADfaFCa9F1Ccf"; // From Step 1
-  const MEMBERSHIP_VERIFIER_ADDRESS = "0x03032Eb295D287cE69d0c9be0F75F35d916564A6"; // From hardhat ignition deploy
-  const PROPOSAL_VERIFIER_ADDRESS = "0x997172817177c1Aa125a0212B2c574c965174f9E"; // From hardhat ignition deploy
+  const MEMBERSHIP_VERIFIER_ADDRESS =
+    "0x03032Eb295D287cE69d0c9be0F75F35d916564A6"; // From hardhat ignition deploy
+  const PROPOSAL_VERIFIER_ADDRESS =
+    "0x997172817177c1Aa125a0212B2c574c965174f9E"; // From hardhat ignition deploy
   const GOVERNOR_PLACEHOLDER = "0x5F909fd25A9F5e4f5a219318FdeD6C8124F6c1F1";
 
   console.log("📋 Configuration:");
@@ -46,7 +48,11 @@ async function main() {
 
     const membershipManager = await upgrades.deployProxy(
       MembershipManager,
-      [MEMBERSHIP_VERIFIER_ADDRESS, GOVERNOR_PLACEHOLDER, NFT_IMPLEMENTATION_ADDRESS],
+      [
+        MEMBERSHIP_VERIFIER_ADDRESS,
+        GOVERNOR_PLACEHOLDER,
+        NFT_IMPLEMENTATION_ADDRESS,
+      ],
       {
         initializer: "initialize",
         kind: "uups",
@@ -64,14 +70,12 @@ async function main() {
     await membershipManager.waitForDeployment();
     const membershipManagerAddress = await membershipManager.getAddress();
 
-     // Deploy ProposalManager as UUPS proxy
+    // Deploy ProposalManager as UUPS proxy
 
     console.log("📦 Deploying ProposalManager as UUPS proxy...");
     console.log("⏳ This may take a few minutes...");
 
-    const ProposalManager = await ethers.getContractFactory(
-      "ProposalManager"
-    );
+    const ProposalManager = await ethers.getContractFactory("ProposalManager");
 
     // Get current gas price
     const currGasPrice = await ethers.provider.getFeeData();
@@ -84,7 +88,11 @@ async function main() {
 
     const proposalManager = await upgrades.deployProxy(
       ProposalManager,
-      [PROPOSAL_VERIFIER_ADDRESS, GOVERNOR_PLACEHOLDER, membershipManagerAddress],
+      [
+        PROPOSAL_VERIFIER_ADDRESS,
+        GOVERNOR_PLACEHOLDER,
+        membershipManagerAddress,
+      ],
       {
         initializer: "initialize",
         kind: "uups",
