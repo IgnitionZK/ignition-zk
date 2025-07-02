@@ -18,6 +18,7 @@ import { MerkleTreeService } from "../scripts/merkleTreeService";
 import { useInsertLeaf } from "../hooks/queries/merkleTreeLeaves/useInsertLeaf";
 import { useGetGroupMemberId } from "../hooks/queries/groupMembers/useGetGroupMemberId";
 import { useCreateMerkleTreeRoot } from "../hooks/queries/merkleTreeRoots/useCreateMerkleTreeRoot";
+import { useGetActiveMerkleTreeRoot } from "../hooks/queries/merkleTreeRoots/useGetActiveMerkleTreeRoot";
 // relayers
 import { useRelayerUpdateRoot } from "../hooks/relayers/useRelayerUpdateRoot";
 
@@ -111,6 +112,8 @@ function GenerateCredentials() {
     useCreateMerkleTreeRoot();
   const { updateMerkleRoot, isLoading: isLoadingUpdateMerkleRoot } =
     useRelayerUpdateRoot();
+  const { data: activeRoot, isLoading: isLoadingActiveRoot } =
+    useGetActiveMerkleTreeRoot({ groupId });
 
   /**
    * Generates new credentials and updates the Merkle tree
@@ -142,16 +145,12 @@ function GenerateCredentials() {
         });
 
         // Create and insert new Merkle tree root
-        const newRoot = await createMerkleTreeRoot({
+        const { root: newRoot, treeVersion } = await createMerkleTreeRoot({
           groupId,
           newCommitment: result.commitment,
         });
 
-        // Get current tree version for relayer call
-        const currentTreeVersion = queryClient.getQueryData([
-          "currentMerkleTreeRootVersion",
-        ]);
-        const treeVersion = currentTreeVersion ? currentTreeVersion + 1 : 1;
+        console.log(`Using tree_version: ${treeVersion} for relayer call`);
 
         // Update Merkle tree root on blockchain via relayer
         await updateMerkleRoot({
@@ -239,6 +238,7 @@ function GenerateCredentials() {
                 isLoadingInsertLeaf ||
                 isLoadingCreateMerkleTreeRoot ||
                 isLoadingUpdateMerkleRoot ||
+                isLoadingActiveRoot ||
                 !groupMemberId
               }
             >

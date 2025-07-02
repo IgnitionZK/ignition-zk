@@ -33,14 +33,17 @@ export const useCreateMerkleTreeRoot = () => {
       "currentMerkleTreeRootVersion",
     ]);
 
+    // Calculate the tree version
+    const treeVersion = currentTreeVersion ? currentTreeVersion + 1 : 1;
+
     // Insert the new Merkle tree root
     await insertNewMerkleTreeRoot({
       groupId,
       rootHash: root,
-      treeVersion: currentTreeVersion ? currentTreeVersion + 1 : 1,
+      treeVersion: treeVersion,
     });
 
-    return root;
+    return { root, treeVersion };
   };
 
   return {

@@ -14,9 +14,9 @@ async function main() {
 
   // Configuration - Update these addresses from previous steps
   const MEMBERSHIP_MANAGER_ADDRESS =
-    "0x869e6c17bd30B6C32Fe02dA4D0FE7269bB4bA464"; // From Step 2
-  const PROPOSAL_MANAGER_ADDRESS = "0x9d23eB551EE1325B88Bbc5e4311AE71874892755"; // From Step 2
-  const GOVERNOR_ADDRESS = "0xffCf3c44D2Eb747B9e3bD0252f99c9906B7500fd"; // From Step 3
+    "0x6c318efd89167e2e41a2eb6d7ba95a19Ff940E9C"; // From Step 2
+  const PROPOSAL_MANAGER_ADDRESS = "0xFaE6fB40D61ff061AE3d5223747f4Dd5b0037d0E"; // From Step 2
+  const GOVERNOR_ADDRESS = "0xf97C58b540427b0319982fbcDfc1242fDaa14c3F"; // From Step 3
   const OWNER_RELAYER = "0x5F909fd25A9F5e4f5a219318FdeD6C8124F6c1F1";
   const NFT_IMPLEMENTATION = "0x8EdE77A2676F9A35D49923e25e4ADfaFCa9F1Ccf"; // From Step 1
 
@@ -27,12 +27,13 @@ async function main() {
   console.log(`👤 Owner/Relayer: ${OWNER_RELAYER}`);
   console.log("");
 
+  // Validation check - ensure addresses are not zero addresses
   if (
-    MEMBERSHIP_MANAGER_ADDRESS === "REPLACE_WITH_STEP2_ADDRESS" ||
-    PROPOSAL_MANAGER_ADDRESS === "REPLACE_WITH_STEP2_ADDRESS" ||
-    GOVERNOR_ADDRESS === "REPLACE_WITH_STEP3_ADDRESS"
+    MEMBERSHIP_MANAGER_ADDRESS === ethers.ZeroAddress ||
+    PROPOSAL_MANAGER_ADDRESS === ethers.ZeroAddress ||
+    GOVERNOR_ADDRESS === ethers.ZeroAddress
   ) {
-    console.error("❌ Please update the addresses from previous steps!");
+    console.error("❌ Please ensure all addresses are properly set!");
     process.exit(1);
   }
 
