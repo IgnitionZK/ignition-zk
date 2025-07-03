@@ -19,13 +19,6 @@ const PageContainer = styled.div`
   padding: 0 2rem;
 `;
 
-const Content = styled.div`
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 2rem;
-`;
-
 const ProofHeader = styled.div`
   display: flex;
   justify-content: space-between;
