@@ -88,21 +88,14 @@ function InboxItem({
   const [hasSubmittedProof, setHasSubmittedProof] = useState(false);
   const { userGroups } = useGetUserGroups();
 
-  const {
-    isLoading: isLoadingCommitments,
-    commitmentArray,
-    error: commitmentError,
-  } = useGetCommitmentArray({
-    groupId: proposal.group_id,
-  });
+  const { isLoading: isLoadingCommitments, commitmentArray } =
+    useGetCommitmentArray({
+      groupId: proposal.group_id,
+    });
 
-  const {
-    verifyProposal,
-    isVerifying,
-    error: verificationError,
-  } = useVerifyProposal();
+  const { verifyProposal, isVerifying } = useVerifyProposal();
 
-  const { insertProof, isLoading: isInsertingProof } = useInsertProof();
+  const { insertProof } = useInsertProof();
 
   // Guard clause to handle undefined/null proposal
   if (!proposal || typeof proposal !== "object") {
