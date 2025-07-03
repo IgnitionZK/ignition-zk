@@ -7,7 +7,7 @@ import { supabase } from "./supabase";
  * @param {string} params.groupId - The ID of the group this proof belongs to
  * @param {string} params.groupMemberId - The ID of the group member who created this proof
  * @param {string} params.nullifierHash - The nullifier hash of the proof
- * @param {string} [params.circuitType="proposal"] - The type of circuit used (e.g., "proposal", "voting", "membership")
+ * @param {string} params.circuitType - The type of circuit used (e.g., "proposal", "voting", "membership")
  * @returns {Promise<Object>} The inserted proof record
  * @throws {Error} If any required parameter is missing or if the database operation fails
  */
@@ -16,7 +16,7 @@ export async function insertProof({
   groupId,
   groupMemberId,
   nullifierHash,
-  circuitType = "proposal",
+  circuitType,
 }) {
   console.log("🔍 insertProof called with parameters:", {
     proposalId,
@@ -38,12 +38,15 @@ export async function insertProof({
   if (!nullifierHash) {
     throw new Error("nullifierHash is required");
   }
+  if (!circuitType) {
+    throw new Error("circuitType is required");
+  }
 
   // Map circuit types to their corresponding UUIDs
   const circuitIdMap = {
     proposal: "a1a0a504-e3aa-4e5d-bb9f-bbd98aefbd52",
-    voting: "voting-circuit-uuid-here", // TODO: Add actual UUID when available
-    membership: "membership-circuit-uuid-here", // TODO: Add actual UUID when available
+    voting: "4cf28644-3d5c-4a09-b96d-d3138503ee7d",
+    membership: "898fa405-69e5-4615-8da4-63b13a2b0012",
   };
 
   const circuitId = circuitIdMap[circuitType];

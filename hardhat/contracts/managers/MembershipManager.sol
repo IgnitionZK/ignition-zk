@@ -392,12 +392,12 @@ contract MembershipManager is Initializable, UUPSUpgradeable, OwnableUpgradeable
 
     /**
      * @notice Adds multiple members to a specific group in a single transaction.
-     * @dev Only the governor can call this. Iterates and calls `addMember` for each address.
+     * @dev Only the governor can call this. Iterates and calls `mintNftToMember` for each address.
      * @param memberAddresses An array of addresses of members to add.
      * @param groupKey The identifier of the group.
      * @custom:error NoMembersProvided If the `memberAddresses` array is empty.
      * @custom:error MemberBatchTooLarge If the number of members exceeds `MAX_MEMBERS_BATCH`.
-     * @custom:error (Propagates errors from `addMember`)
+     * @custom:error (Propagates errors from `mintNftToMember`)
      */
     function mintNftToMembers(
         address[] calldata memberAddresses, 

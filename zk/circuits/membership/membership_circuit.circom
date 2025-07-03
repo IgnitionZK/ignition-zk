@@ -7,13 +7,13 @@ include "../../circomlib/circuits/comparators.circom";
 
 /**
  * @title MembershipProof
- * @notice Verifies that an address belongs to a group represented by a Merkle tree, without revealing the address itself.
+ * @notice Verifies that an member's identity belongs to a group represented by a Merkle tree, without revealing the member's identity itself.
  * @dev Utilizes a Merkle proof to check that the computed Merkle root matches a known Merkle root. 
  * @dev Uses circomlib's Poseidon hash function for Merkle tree operations.
  */
 
 /**
- * @notice Creates a tenplate that computes a Merkle proof for a tree with given treeLevels (layers).
+ * @notice Creates a template that computes a Merkle proof for a tree with given treeLevels (layers).
  * @dev A tree with 16 leaves has log2(16) = 4 layers.
  */
 template MembershipProof(treeLevels) {
@@ -177,7 +177,7 @@ template MembershipProof(treeLevels) {
     isMember <== checkEquality.out;
 
     /**
-     * @notice Adds a contraint to the isMember flag.
+     * @notice Adds a constraint to the isMember flag.
      * @dev isMember has to be equal to 1 (i.e., the leaf has to be a valid member).
      * @dev without this constraint the circuit will only output 0 or 1 without enforcing either value.
      */
