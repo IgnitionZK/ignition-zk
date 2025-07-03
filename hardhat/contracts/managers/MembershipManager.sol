@@ -47,15 +47,12 @@ contract MembershipManager is Initializable, UUPSUpgradeable, OwnableUpgradeable
     error NullifierAlreadyUsed();
     error InvalidGroupKey();
     // Member errors:
-    error MemberAddressCannotBeZero();
     error MemberAlreadyHasToken();
     error MemberDoesNotHaveToken();
     error MemberBatchTooLarge();
     error NoMembersProvided();
     error MemberMustBeEOA();
     // General errors:
-    error VerifierAddressCannotBeZero();
-    error GovernorAddressCannotBeZero();
     error KeyCannotBeZero();
     error AddressCannotBeZero();
     // Authorization errors:
@@ -185,7 +182,7 @@ contract MembershipManager is Initializable, UUPSUpgradeable, OwnableUpgradeable
      * @param addr The address to check.
      */
     modifier nonZeroAddress(address addr) {
-         if (addr == address(0)) revert MemberAddressCannotBeZero();
+         if (addr == address(0)) revert AddressCannotBeZero();
          _;
     }
 
@@ -208,28 +205,32 @@ contract MembershipManager is Initializable, UUPSUpgradeable, OwnableUpgradeable
      * @notice Initializes the MembershipManager contract.
      * @dev This function replaces the constructor for upgradeable contracts and is called once
      * after the proxy is deployed. It sets the initial verifier and governor.
+     * @dev The governor is set as the owner of this contract, allowing it to manage upgrades and configurations.
+     * @dev The NFT implementation address is checked to ensure it supports the ERC721 interface.
      * @param _verifier The address of the zk-SNARK verifier contract.
      * @param _governor The address of the governor (DAO) contract.
-     * @custom:error VerifierAddressCannotBeZero If the provided verifier address is zero.
-     * @custom:error GovernorAddressCannotBeZero If the provided governor address is zero.
+     * @param _nftImplementation The address of the NFT implementation contract to be used for group NFTs.
+     * @custom:error AddressCannotBeZero If any of the provided addresses are zero.
+     * @custom:error NftMustBeERC721 If the provided NFT implementation does not support the ERC721 interface.
      */
-    function initialize(
+    function initialize
+    (
         address _verifier, 
         address _governor, 
         address _nftImplementation
-    ) external initializer {
-        // this makes the MembershipManager owner == governor so that only the governor can update the MembershipManager logic
+    ) 
+        external 
+        initializer 
+        nonZeroAddress(_verifier) 
+        nonZeroAddress(_governor) 
+        nonZeroAddress(_nftImplementation) 
+    {
         __Ownable_init(_governor);
         __UUPSUpgradeable_init();
-        if (_verifier == address(0)) revert VerifierAddressCannotBeZero();
-        if (_governor == address(0)) revert GovernorAddressCannotBeZero();
-        if (_nftImplementation == address(0)) revert NftAddressCannotBeZero();
+      
         if (!IERC165(_nftImplementation).supportsInterface(type(IERC721).interfaceId)) revert NftMustBeERC721();
-
-        //governor = _governor;
         verifier = IMembershipVerifier(_verifier);
         nftImplementation = _nftImplementation;
-
         emit VerifierSet(_verifier);
         emit NftImplementationSet(_nftImplementation);
     }
@@ -241,7 +242,7 @@ contract MembershipManager is Initializable, UUPSUpgradeable, OwnableUpgradeable
      * @notice Sets the address of the zk-SNARK verifier contract.
      * @dev Can only be called by the governor.
      * @param _verifier The address of the new verifier contract.
-     * @custom:error VerifierAddressCannotBeZero If the provided verifier address is zero.
+     * @custom:error AddressCannotBeZero If the provided verifier address is zero.
      */
     function setMembershipVerifier(address _verifier) external onlyOwner nonZeroAddress(_verifier) {
         verifier = IMembershipVerifier(_verifier);
@@ -249,19 +250,26 @@ contract MembershipManager is Initializable, UUPSUpgradeable, OwnableUpgradeable
     }
 
     /**
-     * @notice Deploys a new ERC721 NFT contract instance for a given group.
-     * @dev Only the governor can call this. The newly deployed NFT contract's owner is set to the governor.
+     * @notice Deploys a new ERC721 NFT Clone for a specific group.
+     * @dev Uses the Clones library to create a deterministic clone of the NFT implementation.
+     * @dev The newly deployed NFT Clone's owner is set to the MembershipManager.
+     * @dev Only the governor can call this function. 
      * @param groupKey The unique identifier for the group.
      * @param name The desired name for the new ERC721 collection.
      * @param symbol The desired symbol for the new ERC721 collection.
-     * @return newNftAddress The address of the newly deployed NFT contract.
      * @custom:error GroupNftAlreadySet If an NFT contract has already been deployed for this group key.
+     * @custom:error KeyCannotBeZero If the provided group key is zero.
      */
     function deployGroupNft(
         bytes32 groupKey,
         string calldata name, 
         string calldata symbol
-        ) external onlyOwner nonZeroKey(groupKey) returns (address) {
+    ) 
+        external 
+        onlyOwner 
+        nonZeroKey(groupKey) 
+        returns (address) 
+    {
         if (groupNftAddresses[groupKey] != address(0)) revert GroupNftAlreadySet();
 
         bytes32 salt = groupKey;
@@ -278,7 +286,6 @@ contract MembershipManager is Initializable, UUPSUpgradeable, OwnableUpgradeable
             symbol
         );
         groupNftAddresses[groupKey] = clone;
-
         emit GroupNftDeployed(groupKey, clone, name, symbol);
         return clone;
     }
@@ -286,12 +293,23 @@ contract MembershipManager is Initializable, UUPSUpgradeable, OwnableUpgradeable
     /**
      * @notice Initializes the first Merkle root for a specific group.
      * @dev Can only be called once per `groupKey` by the governor.
+     * @dev This function ensures that the group NFT has been set before initializing the root.
      * @param initialRoot The initial Merkle root to set.
      * @param groupKey The unique identifier for the group.
      * @custom:error RootAlreadyInitialized If a root for the given group key has already been set.
      * @custom:error RootCannotBeZero If the provided initial root is zero.
+     * @custom:error KeyCannotBeZero If the provided group key is zero.
+     * @custom:error GroupNftNotSet If no NFT contract has been deployed for the specified group key.
      */
-    function initRoot(bytes32 initialRoot, bytes32 groupKey) external onlyOwner nonZeroKey(groupKey) {
+    function initRoot
+    (
+        bytes32 initialRoot, 
+        bytes32 groupKey
+    ) 
+        external 
+        onlyOwner 
+        nonZeroKey(groupKey) 
+    {
         bytes32 currentRoot = groupRoots[groupKey];
         _mustHaveSetGroupNft(groupKey);
         if (currentRoot != bytes32(0)) revert RootAlreadyInitialized();
@@ -309,8 +327,18 @@ contract MembershipManager is Initializable, UUPSUpgradeable, OwnableUpgradeable
      * @custom:error RootNotYetInitialized If no root has been set for the group yet.
      * @custom:error RootCannotBeZero If the new root is zero.
      * @custom:error NewRootMustBeDifferent If the new root is identical to the current root.
+     * @custom:error KeyCannotBeZero If the provided group key is zero.
+     * @custom:error GroupNftNotSet If no NFT contract has been deployed for the specified group key.
      */
-    function setRoot(bytes32 newRoot, bytes32 groupKey) external onlyOwner nonZeroKey(groupKey) {
+    function setRoot
+    (
+        bytes32 newRoot, 
+        bytes32 groupKey
+    ) 
+        external 
+        onlyOwner
+        nonZeroKey(groupKey) 
+    {
         bytes32 currentRoot = groupRoots[groupKey];
         _mustHaveSetGroupNft(groupKey);
 
@@ -332,12 +360,19 @@ contract MembershipManager is Initializable, UUPSUpgradeable, OwnableUpgradeable
      * @custom:error InvalidMerkleRoot If the proof's root does not match the group's current root.
      * @custom:error NullifierAlreadyUsed If the nullifier has already been consumed.
      * @custom:error InvalidProof If the zk-SNARK proof itself is invalid.
+     * @custom:error InvalidGroupKey If the external nullifier does not match the group key.
+     * @custom:error KeyCannotBeZero If the provided group key is zero.
      */
-    function verifyProof(
+    function verifyProof
+    (
         uint256[24] calldata proof, 
         uint256[3] calldata publicSignals,
         bytes32 groupKey
-        ) external onlyOwner nonZeroKey(groupKey) {
+    ) 
+        external 
+        onlyOwner 
+        nonZeroKey(groupKey) 
+    {
         bytes32 proofRoot = bytes32(publicSignals[1]);
         bytes32 nullifier = bytes32(publicSignals[0]);
         bytes32 externalNullifier = bytes32(publicSignals[2]);
@@ -359,20 +394,29 @@ contract MembershipManager is Initializable, UUPSUpgradeable, OwnableUpgradeable
 
     /** 
      * @notice Adds a new member to a specific group by minting an ERC721 token.
-     * @dev Only the governor can call this. Ensures only one token per member per group.
+     * @dev Only the governor can call this function. 
+     * @dev Ensures that the member address is not zero, does not already hold a token for this group,
+     * and is an externally owned account (EOA).
+     * @dev The function mints a new token for the member using the group's NFT contract.
+     * @dev Emits an event upon successful minting of the membership token.
      * @param memberAddress The address of the member to add.
      * @param groupKey The identifier of the group.
      * @custom:error GroupNftNotSet If no NFT contract is deployed for the specified group.
-     * @custom:error MemberAddressCannotBeZero If the member address is zero.
+     * @custom:error AddressCannotBeZero If the member address is zero.
      * @custom:error MemberAlreadyHasToken If the member already holds a token for this group.
      * @custom:error MemberMustBeEOA If the member address is a contract address (and not an EOA).
      * @custom:error MintingFailed If the `safeMint` call to the NFT contract fails.
      */
-    function mintNftToMember(
+    function mintNftToMember
+    (
         address memberAddress, 
         bytes32 groupKey
-        ) public onlyOwner nonZeroKey(groupKey) nonZeroAddress(memberAddress) {
-
+    ) 
+        public 
+        onlyOwner 
+        nonZeroKey(groupKey) 
+        nonZeroAddress(memberAddress) 
+    {
         address groupNftAddress = _mustHaveSetGroupNft(groupKey);
         if (memberAddress.code.length != 0) revert MemberMustBeEOA();
 
@@ -381,7 +425,6 @@ contract MembershipManager is Initializable, UUPSUpgradeable, OwnableUpgradeable
         if (memberBalance > 0) revert MemberAlreadyHasToken();
 
         uint256 mintedTokenId;
-  
         try nft.safeMint(memberAddress) returns (uint256 _tokenId) {
             mintedTokenId = _tokenId;
             emit MemberNftMinted(groupKey, memberAddress, mintedTokenId);
@@ -392,19 +435,25 @@ contract MembershipManager is Initializable, UUPSUpgradeable, OwnableUpgradeable
 
     /**
      * @notice Adds multiple members to a specific group in a single transaction.
-     * @dev Only the governor can call this. Iterates and calls `mintNftToMember` for each address.
+     * @dev Only the governor can call this function. 
+     * @dev Iterates and calls `mintNftToMember` for each address.
      * @param memberAddresses An array of addresses of members to add.
      * @param groupKey The identifier of the group.
      * @custom:error NoMembersProvided If the `memberAddresses` array is empty.
      * @custom:error MemberBatchTooLarge If the number of members exceeds `MAX_MEMBERS_BATCH`.
      * @custom:error (Propagates errors from `mintNftToMember`)
+     * @custom:error KeyCannotBeZero If the provided group key is zero.
      */
-    function mintNftToMembers(
+    function mintNftToMembers
+    (
         address[] calldata memberAddresses, 
         bytes32 groupKey
-        ) public onlyOwner nonZeroKey(groupKey) {
+    ) 
+        public 
+        onlyOwner 
+        nonZeroKey(groupKey) 
+    {
         uint256 memberCount = memberAddresses.length;
-
         if (memberCount == 0) revert NoMembersProvided();
         if (memberCount > MAX_MEMBERS_BATCH) revert MemberBatchTooLarge();
 
@@ -415,17 +464,26 @@ contract MembershipManager is Initializable, UUPSUpgradeable, OwnableUpgradeable
 
     /**
      * @notice Removes a member from a specific group by burning their membership token.
-     * @dev Only the governor can call this.
+     * @dev Only the governor can call this function.
      * @param memberAddress The address of the member to remove.
      * @param groupKey The identifier of the group.
+     * @custom:error KeyCannotBeZero If the provided group key is zero.
+     * @custom:error AddressCannotBeZero If the member address is zero.
+     * @custom:error GroupNftNotSet If no NFT contract is deployed for the specified group.
      * @custom:error MemberAddressCannotBeZero If the member address is zero.
      * @custom:error GroupNftNotSet If no NFT contract is deployed for the specified group.
      * @custom:error MemberDoesNotHaveToken If the member does not hold a token for this group.
      */
-    function burnMemberNft(
+    function burnMemberNft
+    (
         address memberAddress, 
         bytes32 groupKey
-        ) external onlyOwner nonZeroKey(groupKey) nonZeroAddress(memberAddress) {
+    ) 
+        external 
+        onlyOwner 
+        nonZeroKey(groupKey) 
+        nonZeroAddress(memberAddress) 
+    {
         address groupNftAddress = _mustHaveSetGroupNft(groupKey);
         IERC721IgnitionZK nft = IERC721IgnitionZK(groupNftAddress);
         uint256 memberBalance = nft.balanceOf(memberAddress);
@@ -468,7 +526,8 @@ contract MembershipManager is Initializable, UUPSUpgradeable, OwnableUpgradeable
 
     /**
      * @notice Retrieves the nullifier status for a specific group and nullifier.
-     * @dev Only callable by the owner (governor). Returns true if the nullifier has been used.
+     * @dev Only callable by the owner (governor). 
+     * @dev Returns true if the nullifier has been used.
      * @param groupKey The unique identifier for the group.
      * @param nullifier The nullifier to check.
      * @return bool indicating whether the nullifier has been used.
@@ -484,15 +543,6 @@ contract MembershipManager is Initializable, UUPSUpgradeable, OwnableUpgradeable
      */
     function getVerifier() external view onlyOwner returns (address) {
         return address(verifier);
-    }
-
-    /**
-     * @notice Retrieves the address of the governor contract.
-     * @dev Only callable by the owner (governor).
-     * @return The address of the governor contract.
-     */
-    function getGovernor() external view onlyOwner returns (address) {
-        return owner();
     }
 
     /**
@@ -520,6 +570,7 @@ contract MembershipManager is Initializable, UUPSUpgradeable, OwnableUpgradeable
     /** 
      * @notice Revokes the MINTER_ROLE from the specified NFT clone.
      * @param nftClone The address of the NFT contract clone from which to revoke the role.
+     * @custom:error AddressCannotBeZero If the provided NFT clone address is zero.
      */
     function revokeMinterRole(address nftClone) external onlyOwner nonZeroAddress(nftClone) {
         _revokeRole(nftClone, IERC721IgnitionZK(nftClone).MINTER_ROLE());
@@ -528,6 +579,7 @@ contract MembershipManager is Initializable, UUPSUpgradeable, OwnableUpgradeable
     /** 
      * @notice Revokes the BURNER_ROLE from the specified NFT clone.
      * @param nftClone The address of the NFT contract clone from which to revoke the role.
+     * @custom:error AddressCannotBeZero If the provided NFT clone address is zero.
      */
     function revokeBurnerRole(address nftClone) external onlyOwner nonZeroAddress(nftClone) {
         _revokeRole(nftClone, IERC721IgnitionZK(nftClone).BURNER_ROLE());
@@ -537,6 +589,7 @@ contract MembershipManager is Initializable, UUPSUpgradeable, OwnableUpgradeable
      * @notice Grants the MINTER_ROLE to the specified address in the NFT clone.
      * @param nftClone The address of the NFT contract clone to which to grant the role.
      * @param grantTo The address to which to grant the role.
+     * @custom:error AddressCannotBeZero If the provided NFT clone or grantTo address is zero.
      */
     function grantMinterRole(address nftClone, address grantTo) external onlyOwner nonZeroAddress(nftClone) nonZeroAddress(grantTo) {
         _grantRole(nftClone, IERC721IgnitionZK(nftClone).MINTER_ROLE(), grantTo);
@@ -546,6 +599,7 @@ contract MembershipManager is Initializable, UUPSUpgradeable, OwnableUpgradeable
      * @notice Grants the BURNER_ROLE to the specified address in the NFT clone.
      * @param nftClone The address of the NFT contract clone to which to grant the role.
      * @param grantTo The address to which to grant the role.
+     * @custom:error AddressCannotBeZero If the provided NFT clone or grantTo address is zero.
      */
     function grantBurnerRole(address nftClone, address grantTo) external onlyOwner nonZeroAddress(nftClone) nonZeroAddress(grantTo) {
         _grantRole(nftClone, IERC721IgnitionZK(nftClone).BURNER_ROLE(), grantTo);
@@ -563,7 +617,6 @@ contract MembershipManager is Initializable, UUPSUpgradeable, OwnableUpgradeable
     function _revokeRole(address nftClone, bytes32 role) private {
         IERC721IgnitionZK nft = IERC721IgnitionZK(nftClone);
         nft.revokeRole(role, address(this));
-
         emit RoleRevoked(nftClone, role, address(this));
     }
 
@@ -576,7 +629,6 @@ contract MembershipManager is Initializable, UUPSUpgradeable, OwnableUpgradeable
     function _grantRole(address nftClone, bytes32 role, address grantTo) private {
         IERC721IgnitionZK nft = IERC721IgnitionZK(nftClone);
         nft.grantRole(role, grantTo);
-
         emit RoleGranted(nftClone, role, grantTo);
     }
 

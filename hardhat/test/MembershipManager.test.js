@@ -339,7 +339,7 @@ describe("MembershipManager", function () {
             membershipManager.connect(governor).mintNftToMember(ethers.ZeroAddress, groupKey)
         ).to.be.revertedWithCustomError(
             MembershipManager,
-            "MemberAddressCannotBeZero"
+            "AddressCannotBeZero"
         );
     });
 
@@ -461,7 +461,7 @@ describe("MembershipManager", function () {
         await membershipManager.connect(governor).deployGroupNft(groupKey, nftName, nftSymbol);
         await expect(membershipManager.connect(governor).mintNftToMember(ethers.ZeroAddress, groupKey)).to.be.revertedWithCustomError(
             MembershipManager,
-            "MemberAddressCannotBeZero"
+            "AddressCannotBeZero"
         );
     });
 

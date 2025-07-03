@@ -24,7 +24,6 @@ module.exports = {
       "MembershipManager",
       "ProposalManager",
       "GovernanceManager",
-      "GovernanceManagerSimplified",
       "MembershipVerifier",
       "ProposalVerifier",
     ],

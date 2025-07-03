@@ -543,19 +543,6 @@ describe("GovernanceManager", function () {
             );
     });
 
-    it("delegateGetGovernor: should allow the relayer to get the address of the governor", async function () {
-        const governorAddress = await governanceManager.connect(relayer).delegateGetGovernor();
-        expect(governorAddress).to.equal(governanceManager.target);
-    });
-
-    it("delegateGetGovernor: should not allow a non-relayer to get the address of the governor", async function () {
-        await expect(governanceManager.connect(deployer).delegateGetGovernor())
-            .to.be.revertedWithCustomError(
-                governanceManager, 
-                "OnlyRelayerAllowed"
-            );
-    });
-
     it("delegateGetNftImplementation: should allow the relayer to get the address of the NFT implementation", async function () {
         const nftImplementationAddress = await governanceManager.connect(relayer).delegateGetNftImplementation();
         expect(nftImplementationAddress).to.equal(nftImplementation.target);
