@@ -92,26 +92,6 @@ const AddMemberRow = styled.div`
   margin-bottom: 1.2rem;
 `;
 
-const MemberList = styled.ul`
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  margin-top: 0.8rem;
-  margin-bottom: 1.6rem;
-`;
-
-const MemberItem = styled.li`
-  color: var(--color-grey-200);
-  font-size: 1.2rem;
-  background: rgba(165, 180, 252, 0.07);
-  border-radius: 0.6rem;
-  padding: 0.6rem 1.2rem;
-  margin-bottom: 0.4rem;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-`;
-
 const Note = styled.p`
   font-size: 1.1rem;
   color: var(--color-grey-400);

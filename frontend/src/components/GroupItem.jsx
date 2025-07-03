@@ -1,10 +1,11 @@
-import { useNavigate } from "react-router-dom";
+import { useState } from "react";
 import { RiDeleteBack2Fill } from "react-icons/ri";
 import { useQueryClient } from "@tanstack/react-query";
 import styled from "styled-components";
 // components
 import MiniSpinner from "./MiniSpinner";
 import CustomButtonIcon from "./CustomButtonIcon";
+import GenerateCredentialsOverlay from "./GenerateCredentialsOverlay";
 // hooks
 import { useCheckCommitment } from "../hooks/queries/groupMembers/useCheckCommitment";
 import { useGetActiveMerkleTreeRoot } from "../hooks/queries/merkleTreeRoots/useGetActiveMerkleTreeRoot";
@@ -74,9 +75,9 @@ const GenerateButton = styled.button`
  * Allows users to generate credentials if they haven't committed yet, and provides the ability to leave the group.
  */
 function GroupItem({ group, groupMemberId, groupId }) {
-  const navigate = useNavigate();
+  const [showGenerateCredentials, setShowGenerateCredentials] = useState(false);
   const queryClient = useQueryClient();
-  const { hasCommitment, isLoading, error } = useCheckCommitment({
+  const { hasCommitment, isLoading } = useCheckCommitment({
     groupMemberId,
   });
   const { data: currentTreeRoot } = useGetActiveMerkleTreeRoot({ groupId });
@@ -88,32 +89,41 @@ function GroupItem({ group, groupMemberId, groupId }) {
       ["currentMerkleTreeRootVersion"],
       currentTreeRoot?.tree_version
     );
-    navigate(`/dashboard/generate-credentials`);
+    setShowGenerateCredentials(true);
   };
 
   return (
-    <GroupItemContainer>
-      <GroupInfo>
-        <GroupName>{group.name}</GroupName>
-        <ContractAddress>{group.erc721_contract_address}</ContractAddress>
-      </GroupInfo>
-      <GroupActions>
-        {isLoading ? (
-          <MiniSpinner />
-        ) : (
-          !hasCommitment && (
-            <GenerateButton onClick={handleGenerateCredentials}>
-              Generate Credentials
-            </GenerateButton>
-          )
-        )}
-        <CustomButtonIcon
-          tooltipText="Leave group"
-          icon={RiDeleteBack2Fill}
-          hoverColor="var(--color-red-500)"
+    <>
+      <GroupItemContainer>
+        <GroupInfo>
+          <GroupName>{group.name}</GroupName>
+          <ContractAddress>{group.erc721_contract_address}</ContractAddress>
+        </GroupInfo>
+        <GroupActions>
+          {isLoading ? (
+            <MiniSpinner />
+          ) : (
+            !hasCommitment && (
+              <GenerateButton onClick={handleGenerateCredentials}>
+                Generate Credentials
+              </GenerateButton>
+            )
+          )}
+          <CustomButtonIcon
+            tooltipText="Leave group"
+            icon={RiDeleteBack2Fill}
+            hoverColor="var(--color-red-500)"
+          />
+        </GroupActions>
+      </GroupItemContainer>
+
+      {showGenerateCredentials && (
+        <GenerateCredentialsOverlay
+          group={group}
+          onClose={() => setShowGenerateCredentials(false)}
         />
-      </GroupActions>
-    </GroupItemContainer>
+      )}
+    </>
   );
 }
 

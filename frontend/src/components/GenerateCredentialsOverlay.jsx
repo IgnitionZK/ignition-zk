@@ -1,0 +1,319 @@
+import React, { useState } from "react";
+import styled from "styled-components";
+
+//components
+import MnemonicDisplay from "./MnemonicDisplay";
+import CustomButton from "./CustomButton";
+// scripts
+import { ZkCredential } from "../scripts/generateCredentials-browser-safe";
+// queries
+import { useInsertLeaf } from "../hooks/queries/merkleTreeLeaves/useInsertLeaf";
+import { useGetGroupMemberId } from "../hooks/queries/groupMembers/useGetGroupMemberId";
+import { useCreateMerkleTreeRoot } from "../hooks/queries/merkleTreeRoots/useCreateMerkleTreeRoot";
+// relayers
+import { useRelayerUpdateRoot } from "../hooks/relayers/useRelayerUpdateRoot";
+
+const Overlay = styled.div`
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+`;
+
+const Modal = styled.div`
+  background: #232328;
+  border-radius: 12px;
+  padding: 32px 24px 24px 24px;
+  min-width: 340px;
+  max-width: 700px;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+`;
+
+const Title = styled.h2`
+  color: #a5b4fc;
+  font-size: 2.2rem;
+  font-weight: 700;
+  margin-bottom: 8px;
+  text-align: center;
+`;
+
+const Description = styled.p`
+  color: #fff;
+  font-size: 1.6rem;
+  max-width: 600px;
+  text-align: center;
+  margin-bottom: 24px;
+`;
+
+const Attention = styled.div`
+  background: none;
+  color: #ef4444;
+  font-size: 2.4rem;
+  font-weight: 700;
+  margin-bottom: 12px;
+  text-align: center;
+`;
+
+const AttentionBox = styled.div`
+  background: none;
+  color: #fff;
+  font-size: 1.3rem;
+  max-width: 600px;
+  margin: 0 auto 24px auto;
+  text-align: left;
+  padding: 0;
+  ul {
+    margin: 0;
+    padding-left: 28px;
+    list-style: disc;
+  }
+  li {
+    margin-bottom: 10px;
+  }
+`;
+
+const ButtonWrapper = styled.div`
+  display: flex;
+  justify-content: center;
+  gap: 1.2rem;
+  margin: 24px 0 16px 0;
+`;
+
+const Note = styled.p`
+  color: #b3b3b3;
+  font-size: 1.2rem;
+  text-align: center;
+  margin-top: 16px;
+`;
+
+const GroupInfo = styled.div`
+  background: rgba(165, 180, 252, 0.1);
+  padding: 1.6rem;
+  border-radius: 0.8rem;
+  border: 1px solid rgba(165, 180, 252, 0.2);
+  margin-bottom: 2.4rem;
+  width: 100%;
+`;
+
+const GroupName = styled.h3`
+  color: #fff;
+  font-size: 1.8rem;
+  font-weight: 500;
+  margin-bottom: 0.8rem;
+`;
+
+const ContractAddress = styled.p`
+  color: var(--color-grey-300);
+  font-size: 1.4rem;
+  font-family: monospace;
+`;
+
+/**
+ * A modal component that handles the generation of user credentials including:
+ * - 12-word mnemonic phrase for account recovery
+ * - Commitment insertion into Merkle tree
+ * - Merkle tree root generation and updates
+ * - Blockchain root update via relayer
+ */
+function GenerateCredentialsOverlay({ group, onClose }) {
+  const [credentials, setCredentials] = useState(null);
+  const [isGenerating, setIsGenerating] = useState(false);
+
+  const groupId = group?.group_id;
+
+  const { insertLeaf, isLoading: isLoadingInsertLeaf } = useInsertLeaf();
+  const { isLoading, groupMemberId } = useGetGroupMemberId({ groupId });
+  const { createMerkleTreeRoot, isLoading: isLoadingCreateMerkleTreeRoot } =
+    useCreateMerkleTreeRoot();
+  const { updateMerkleRoot, isLoading: isLoadingUpdateMerkleRoot } =
+    useRelayerUpdateRoot();
+
+  /**
+   * Generates new credentials and updates the Merkle tree
+   *
+   * This function:
+   * 1. Generates a new 12-word mnemonic and commitment
+   * 2. Inserts the commitment into the Merkle tree
+   * 3. Generates a new Merkle tree root
+   * 4. Updates the Merkle tree root in the database
+   * 5. Updates the Merkle tree root on the blockchain via relayer
+   */
+  const handleGenerate = async () => {
+    try {
+      setIsGenerating(true);
+      const result = await ZkCredential.generateCredentials(128);
+      setCredentials(result);
+
+      // Insert the commitment into the merkle tree
+      if (!groupMemberId) {
+        console.error("No group member ID available");
+        throw new Error("Group member ID is required to insert commitment");
+      }
+
+      try {
+        await insertLeaf({
+          groupMemberId: groupMemberId,
+          commitment: result.commitment.toString(),
+          groupId: groupId,
+        });
+
+        // Create and insert new Merkle tree root
+        const { root: newRoot, treeVersion } = await createMerkleTreeRoot({
+          groupId,
+          newCommitment: result.commitment,
+        });
+
+        console.log(`Using tree_version: ${treeVersion} for relayer call`);
+
+        // Update Merkle tree root on blockchain via relayer
+        await updateMerkleRoot({
+          treeVersion: treeVersion,
+          rootValue: newRoot,
+          groupKey: groupId,
+        });
+
+        console.log(
+          "Credentials generated and Merkle tree updated successfully"
+        );
+      } catch (error) {
+        console.error("Failed to insert leaf or update root:", error);
+        throw new Error(
+          "Failed to insert commitment into merkle tree or update blockchain root"
+        );
+      }
+    } catch (error) {
+      console.error("Error generating credentials:", error);
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  /**
+   * Handles the closing of the mnemonic display
+   *
+   * Clears the credentials state and calls the onClose callback
+   */
+  const handleCloseMnemonic = () => {
+    setCredentials(null);
+    onClose();
+  };
+
+  return (
+    <Overlay>
+      <Modal>
+        {credentials && credentials.mnemonic ? (
+          <MnemonicDisplay
+            mnemonic={credentials.mnemonic}
+            onClose={handleCloseMnemonic}
+          />
+        ) : (
+          <>
+            <Title>Step 1: Generate Your Credentials</Title>
+            <Description>
+              The unique 12-word mnemonic is the master key to your secret
+              identity. It allows you to restore access to your account and is
+              used for generating anonymous proposals, voting, and membership.
+            </Description>
+
+            <GroupInfo>
+              <GroupName>{group?.name}</GroupName>
+              <ContractAddress>
+                {group?.erc721_contract_address}
+              </ContractAddress>
+            </GroupInfo>
+
+            <Attention>Attention</Attention>
+            <AttentionBox>
+              <ul>
+                <li>
+                  Click "Generate" to create your secret 12-word mnemonic
+                  phrase.
+                </li>
+                <li>
+                  This phrase is your private key and your proof of identity.
+                </li>
+                <li>
+                  <b>NEVER</b> share this phrase with anyone. If someone has it,
+                  they will have full control over your account.
+                </li>
+                <li>
+                  Do <b>NOT</b> store it digitally: Avoid screenshots, email,
+                  cloud services (like Google Drive, Dropbox, iCloud), or text
+                  messages.
+                </li>
+                <li>
+                  Write it down immediately and keep it in a safe, physical
+                  location.
+                </li>
+                <li>
+                  If you lose this phrase, your access cannot be recovered.
+                </li>
+              </ul>
+            </AttentionBox>
+
+            <ButtonWrapper>
+              <CustomButton
+                backgroundColor="#A5B4FC"
+                hoverColor="#818cf8"
+                textColor="#232328"
+                size="large"
+                onClick={handleGenerate}
+                disabled={
+                  isGenerating ||
+                  isLoading ||
+                  isLoadingInsertLeaf ||
+                  isLoadingCreateMerkleTreeRoot ||
+                  isLoadingUpdateMerkleRoot ||
+                  !groupMemberId
+                }
+              >
+                {isGenerating
+                  ? "Generating..."
+                  : isLoadingInsertLeaf
+                  ? "Inserting Commitment..."
+                  : isLoadingCreateMerkleTreeRoot
+                  ? "Updating Merkle Tree..."
+                  : isLoadingUpdateMerkleRoot
+                  ? "Updating Blockchain Root..."
+                  : isLoading
+                  ? "Loading..."
+                  : "Generate"}
+              </CustomButton>
+              <CustomButton
+                backgroundColor="#f87171"
+                hoverColor="#ef4444"
+                textColor="#fff"
+                size="large"
+                onClick={onClose}
+                style={{ minWidth: 120 }}
+              >
+                Cancel
+              </CustomButton>
+            </ButtonWrapper>
+
+            <Note>
+              <i>
+                {!groupMemberId && !isLoading
+                  ? "Please wait while we prepare your credentials..."
+                  : "Upon clicking 'Generate', your 12-word mnemonic will be displayed for you to securely record."}
+              </i>
+            </Note>
+          </>
+        )}
+      </Modal>
+    </Overlay>
+  );
+}
+
+export default GenerateCredentialsOverlay;
