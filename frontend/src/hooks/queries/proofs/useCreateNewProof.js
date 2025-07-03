@@ -61,11 +61,11 @@ export const useGenerateProof = () => {
   /**
    * Generates a ZK proof from circuit input
    * @param {Object} circuitInput - Circuit input object
-   * @param {string} [circuitType="proposal"] - Type of circuit to use
+   * @param {string} circuitType - Type of circuit to use
    * @returns {Promise<Object>} Object containing proof and public signals
    * @throws {Error} If proof generation fails
    */
-  const generateProof = async (circuitInput, circuitType = "proposal") => {
+  const generateProof = async (circuitInput, circuitType) => {
     setIsLoading(true);
     setError(null);
 
@@ -89,7 +89,11 @@ export const useGenerateProof = () => {
    * @param {string[]} commitmentArray - Array of commitment values
    * @param {string} mnemonic - Mnemonic phrase
    * @param {string} groupId - Group ID value
-   * @param {string} [circuitType="membership"] - Type of circuit to use
+   * @param {string} epochId - Epoch ID value
+   * @param {string} proposalTitle - Title of the proposal
+   * @param {string} proposalDescription - Description of the proposal
+   * @param {string} proposalPayload - Payload of the proposal
+   * @param {string} circuitType - Type of circuit to use
    * @returns {Promise<Object>} Object containing proof, public signals, and circuit type
    * @throws {Error} If proof generation fails
    */
@@ -101,7 +105,7 @@ export const useGenerateProof = () => {
     proposalTitle,
     proposalDescription,
     proposalPayload,
-    circuitType = "proposal"
+    circuitType
   ) => {
     setIsLoading(true);
     setError(null);

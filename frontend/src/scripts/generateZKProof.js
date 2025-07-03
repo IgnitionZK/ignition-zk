@@ -267,10 +267,10 @@ export class ZKProofGenerator {
   /**
    * Generates a zero-knowledge proof for the specified circuit input.
    * @param {Object} circuitInput - The input data for the circuit.
-   * @param {string} [circuitType="membership"] - The type of circuit to use (e.g., "membership", "voting", "proposal").
+   * @param {string} circuitType - The type of circuit to use (e.g., "membership", "voting", "proposal").
    * @returns {Promise<Object>} An object containing the generated proof and public signals.
    */
-  static async generateProof(circuitInput, circuitType = "membership") {
+  static async generateProof(circuitInput, circuitType) {
     let wasm, zkey;
 
     if (circuitType == "membership") {
@@ -316,14 +316,10 @@ export class ZKProofGenerator {
    * Verifies a zero-knowledge proof off-chain using the provided verification key.
    * @param {Object} proof - The proof object to verify.
    * @param {Array} publicSignals - The public signals associated with the proof.
-   * @param {string} [circuitType="membership"] - The type of circuit used for the proof (e.g., "membership", "voting", "proposal").
+   * @param {string} circuitType - The type of circuit used for the proof (e.g., "membership", "voting", "proposal").
    * @returns {Promise<boolean>} A promise that resolves to true if the proof is valid, false otherwise.
    */
-  static async verifyProofOffChain(
-    proof,
-    publicSignals,
-    circuitType = "membership"
-  ) {
+  static async verifyProofOffChain(proof, publicSignals, circuitType) {
     let vkey;
     if (circuitType == "membership") {
       vkey = await this.#parseVKey(this.#MEMBERSHIP_VKEY_PATH);

@@ -84,7 +84,8 @@ export function useVerifyProposal() {
         epochId,
         proposalTitle,
         proposalDescription,
-        proposalPayload
+        proposalPayload,
+        "proposal"
       );
 
       // LOG: Proof and public signals after generation
