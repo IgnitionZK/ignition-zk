@@ -48,18 +48,41 @@ const ErrorMessage = styled.p`
 
 /**
  * Renders a search result item for a group, displaying group information and handling group joining functionality.
- * The component checks for ERC721 token ownership and allows users to join groups if they own the required token.
+ * The component now shows a "Check Eligibility" button initially, and only performs ERC721 checks on demand.
  */
 function SearchResultItemComponent({ group, onJoinSuccess }) {
   const queryClient = useQueryClient();
   const { address, isLoading: isWalletLoading } = useWalletQuery();
+  const [hasCheckedEligibility, setHasCheckedEligibility] = useState(false);
+  const [isJoining, setIsJoining] = useState(false);
+  const [error, setError] = useState(null);
+
+  // Only check ownership if user has clicked "Check Eligibility"
   const {
     isOwner,
     isChecking,
     error: ownershipError,
-  } = useERC721Ownership(group.erc721_contract_address);
-  const [isJoining, setIsJoining] = useState(false);
-  const [error, setError] = useState(null);
+    checkOwnership,
+  } = useERC721Ownership(
+    group.erc721_contract_address,
+    hasCheckedEligibility // Only enable the hook when eligibility check is requested
+  );
+
+  const handleCheckEligibility = async () => {
+    if (!address) {
+      setError("Please connect your wallet first");
+      return;
+    }
+
+    setHasCheckedEligibility(true);
+    setError(null);
+
+    try {
+      await checkOwnership();
+    } catch (err) {
+      setError(err.message);
+    }
+  };
 
   const handleJoin = async () => {
     if (!address) {
@@ -109,12 +132,33 @@ function SearchResultItemComponent({ group, onJoinSuccess }) {
           <ContractAddress>{group.erc721_contract_address}</ContractAddress>
         </GroupInfo>
         <ErrorMessage>
-          Please connect your wallet with the address that owns the ERC721 token
+          Please connect your wallet to check eligibility
         </ErrorMessage>
       </SearchResultItem>
     );
   }
 
+  // Show "Check Eligibility" button if eligibility hasn't been checked yet
+  if (!hasCheckedEligibility) {
+    return (
+      <SearchResultItem>
+        <GroupInfo>
+          <GroupName>{group.name}</GroupName>
+          <ContractAddress>{group.erc721_contract_address}</ContractAddress>
+        </GroupInfo>
+        <CustomButton
+          backgroundColor="#A5B4FC"
+          hoverColor="#818cf8"
+          textColor="#232328"
+          onClick={handleCheckEligibility}
+        >
+          Check Eligibility
+        </CustomButton>
+      </SearchResultItem>
+    );
+  }
+
+  // Show loading state while checking eligibility
   if (isChecking) {
     return (
       <SearchResultItem>
@@ -127,6 +171,7 @@ function SearchResultItemComponent({ group, onJoinSuccess }) {
     );
   }
 
+  // Show error if eligibility check failed
   if (ownershipError) {
     return (
       <SearchResultItem>
@@ -139,6 +184,7 @@ function SearchResultItemComponent({ group, onJoinSuccess }) {
     );
   }
 
+  // Show join button or not eligible message based on ownership check
   return (
     <SearchResultItem>
       <GroupInfo>
