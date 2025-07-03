@@ -2,10 +2,12 @@ import { useState } from "react";
 import { RiDeleteBack2Fill } from "react-icons/ri";
 import { useQueryClient } from "@tanstack/react-query";
 import styled from "styled-components";
+import { toast } from "react-hot-toast";
 // components
 import MiniSpinner from "./MiniSpinner";
 import CustomButtonIcon from "./CustomButtonIcon";
 import GenerateCredentialsOverlay from "./GenerateCredentialsOverlay";
+import ConfirmationModal from "./ConfirmationModal";
 // hooks
 import { useCheckCommitment } from "../hooks/queries/groupMembers/useCheckCommitment";
 import { useGetActiveMerkleTreeRoot } from "../hooks/queries/merkleTreeRoots/useGetActiveMerkleTreeRoot";
@@ -76,13 +78,19 @@ const GenerateButton = styled.button`
  */
 function GroupItem({ group, groupMemberId, groupId }) {
   const [showGenerateCredentials, setShowGenerateCredentials] = useState(false);
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
   const queryClient = useQueryClient();
   const { hasCommitment, isLoading } = useCheckCommitment({
     groupMemberId,
   });
   const { data: currentTreeRoot } = useGetActiveMerkleTreeRoot({ groupId });
 
-  const handleGenerateCredentials = () => {
+  const handleGenerateCredentialsClick = () => {
+    setShowConfirmModal(true);
+  };
+
+  const handleConfirmGenerateCredentials = () => {
+    setShowConfirmModal(false);
     queryClient.setQueryData(["currentGroupId"], groupId);
     queryClient.setQueryData("currentRootId", currentTreeRoot?.root_id);
     queryClient.setQueryData(
@@ -90,6 +98,20 @@ function GroupItem({ group, groupMemberId, groupId }) {
       currentTreeRoot?.tree_version
     );
     setShowGenerateCredentials(true);
+  };
+
+  const handleCancelGenerateCredentials = () => {
+    setShowConfirmModal(false);
+  };
+
+  const handleCredentialsGenerated = () => {
+    setShowGenerateCredentials(false);
+    // Invalidate the commitment query to refresh the hasCommitment status
+    queryClient.invalidateQueries({
+      queryKey: ["hasCommitment", groupMemberId],
+    });
+    // Show success message
+    toast.success(`Credentials generated successfully for ${group.name}!`);
   };
 
   return (
@@ -104,7 +126,7 @@ function GroupItem({ group, groupMemberId, groupId }) {
             <MiniSpinner />
           ) : (
             !hasCommitment && (
-              <GenerateButton onClick={handleGenerateCredentials}>
+              <GenerateButton onClick={handleGenerateCredentialsClick}>
                 Generate Credentials
               </GenerateButton>
             )
@@ -120,9 +142,23 @@ function GroupItem({ group, groupMemberId, groupId }) {
       {showGenerateCredentials && (
         <GenerateCredentialsOverlay
           group={group}
-          onClose={() => setShowGenerateCredentials(false)}
+          onClose={handleCredentialsGenerated}
         />
       )}
+
+      <ConfirmationModal
+        isOpen={showConfirmModal}
+        title="Generate Credentials"
+        message={`Are you sure you want to generate credentials for the group "${group.name}"? This will create a new 12-word mnemonic phrase that you must securely store.`}
+        confirmText="Generate"
+        cancelText="Cancel"
+        confirmButtonColor="#a5b4fc"
+        confirmButtonHoverColor="#818cf8"
+        cancelButtonColor="var(--color-grey-600)"
+        cancelButtonHoverColor="var(--color-grey-500)"
+        onConfirm={handleConfirmGenerateCredentials}
+        onCancel={handleCancelGenerateCredentials}
+      />
     </>
   );
 }

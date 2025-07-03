@@ -7,6 +7,7 @@ import PageHeader from "../components/PageHeader";
 import CustomButton from "../components/CustomButton";
 import CustomButtonIcon from "../components/CustomButtonIcon";
 import Spinner from "../components/Spinner";
+import ConfirmationModalComponent from "../components/ConfirmationModal";
 
 // hooks
 import { useInsertNewGroup } from "../hooks/queries/groups/useInsertNewGroup";
@@ -141,54 +142,6 @@ const Tooltip = styled.div`
   transition: all 0.2s ease-in-out;
   z-index: 10;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
-`;
-
-// Confirmation Modal Styles
-const ModalOverlay = styled.div`
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100vw;
-  height: 100vh;
-  background: rgba(0, 0, 0, 0.7);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-`;
-
-const ConfirmationModal = styled.div`
-  background: #232328;
-  border-radius: 12px;
-  padding: 32px 24px 24px 24px;
-  min-width: 400px;
-  max-width: 500px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-`;
-
-const ModalTitle = styled.h2`
-  color: #a5b4fc;
-  font-size: 2.2rem;
-  font-weight: 700;
-  margin-bottom: 16px;
-  text-align: center;
-`;
-
-const ModalMessage = styled.p`
-  color: #fff;
-  font-size: 1.4rem;
-  margin-bottom: 24px;
-  text-align: center;
-  line-height: 1.5;
-`;
-
-const ModalButtons = styled.div`
-  display: flex;
-  gap: 12px;
-  justify-content: center;
 `;
 
 // Loading Overlay Styles
@@ -383,8 +336,6 @@ export default function CreateGroup({ onCancel }) {
 
   // Handle confirmation modal actions
   const handleConfirmAction = () => {
-    setShowConfirmModal(false);
-
     if (confirmAction === "create") {
       setShowLoadingOverlay(true);
       handleCreateGroup();
@@ -397,33 +348,6 @@ export default function CreateGroup({ onCancel }) {
     setShowConfirmModal(false);
     setConfirmAction(null);
   };
-
-  // Handle clicking outside the modal to close it
-  const handleModalOverlayClick = (e) => {
-    if (e.target === e.currentTarget) {
-      handleCancelModal();
-    }
-  };
-
-  // Handle keyboard events for modal
-  useEffect(() => {
-    const handleKeyDown = (e) => {
-      if (showConfirmModal && e.key === "Escape") {
-        handleCancelModal();
-      }
-    };
-
-    if (showConfirmModal) {
-      document.addEventListener("keydown", handleKeyDown);
-      // Prevent body scroll when modal is open
-      document.body.style.overflow = "hidden";
-    }
-
-    return () => {
-      document.removeEventListener("keydown", handleKeyDown);
-      document.body.style.overflow = "unset";
-    };
-  }, [showConfirmModal]);
 
   // Handle the actual group creation
   const handleCreateGroup = () => {
@@ -919,42 +843,29 @@ export default function CreateGroup({ onCancel }) {
       </PageContainer>
 
       {/* Confirmation Modal */}
-      {showConfirmModal && (
-        <ModalOverlay onClick={handleModalOverlayClick}>
-          <ConfirmationModal>
-            <ModalTitle>
-              {confirmAction === "create"
-                ? "Confirm Group Creation"
-                : "Confirm Cancellation"}
-            </ModalTitle>
-            <ModalMessage>
-              {confirmAction === "create"
-                ? `Are you sure you want to create the group "${groupName}"? This action will deploy an ERC721 contract and cannot be undone.`
-                : "Are you sure you want to cancel? All entered data will be lost."}
-            </ModalMessage>
-            <ModalButtons>
-              <CustomButton
-                backgroundColor={
-                  confirmAction === "create" ? "#a5b4fc" : "#f87171"
-                }
-                textColor="#232328"
-                hoverColor={confirmAction === "create" ? "#818cf8" : "#ef4444"}
-                onClick={handleConfirmAction}
-              >
-                {confirmAction === "create" ? "Create Group" : "Confirm"}
-              </CustomButton>
-              <CustomButton
-                backgroundColor="var(--color-grey-600)"
-                textColor="#fff"
-                hoverColor="var(--color-grey-500)"
-                onClick={handleCancelModal}
-              >
-                Back
-              </CustomButton>
-            </ModalButtons>
-          </ConfirmationModal>
-        </ModalOverlay>
-      )}
+      <ConfirmationModalComponent
+        isOpen={showConfirmModal}
+        title={
+          confirmAction === "create"
+            ? "Confirm Group Creation"
+            : "Confirm Cancellation"
+        }
+        message={
+          confirmAction === "create"
+            ? `Are you sure you want to create the group "${groupName}"? This action will deploy an ERC721 contract and cannot be undone.`
+            : "Are you sure you want to cancel? All entered data will be lost."
+        }
+        confirmText={confirmAction === "create" ? "Create Group" : "Confirm"}
+        cancelText="Back"
+        confirmButtonColor={confirmAction === "create" ? "#a5b4fc" : "#f87171"}
+        confirmButtonHoverColor={
+          confirmAction === "create" ? "#818cf8" : "#ef4444"
+        }
+        cancelButtonColor="var(--color-grey-600)"
+        cancelButtonHoverColor="var(--color-grey-500)"
+        onConfirm={handleConfirmAction}
+        onCancel={handleCancelModal}
+      />
 
       {/* Loading Overlay */}
       {showLoadingOverlay && (

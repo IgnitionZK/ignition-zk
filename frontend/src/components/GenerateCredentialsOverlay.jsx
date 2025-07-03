@@ -1,9 +1,11 @@
 import React, { useState } from "react";
 import styled from "styled-components";
+import { toast } from "react-hot-toast";
 
 //components
 import MnemonicDisplay from "./MnemonicDisplay";
 import CustomButton from "./CustomButton";
+import ConfirmationModal from "./ConfirmationModal";
 // scripts
 import { ZkCredential } from "../scripts/generateCredentials-browser-safe";
 // queries
@@ -129,6 +131,9 @@ const ContractAddress = styled.p`
 function GenerateCredentialsOverlay({ group, onClose }) {
   const [credentials, setCredentials] = useState(null);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [showGenerateConfirmModal, setShowGenerateConfirmModal] =
+    useState(false);
+  const [showCancelConfirmModal, setShowCancelConfirmModal] = useState(false);
 
   const groupId = group?.group_id;
 
@@ -138,6 +143,13 @@ function GenerateCredentialsOverlay({ group, onClose }) {
     useCreateMerkleTreeRoot();
   const { updateMerkleRoot, isLoading: isLoadingUpdateMerkleRoot } =
     useRelayerUpdateRoot();
+
+  /**
+   * Shows the generate confirmation modal
+   */
+  const handleGenerateClick = () => {
+    setShowGenerateConfirmModal(true);
+  };
 
   /**
    * Generates new credentials and updates the Merkle tree
@@ -194,6 +206,7 @@ function GenerateCredentialsOverlay({ group, onClose }) {
       }
     } catch (error) {
       console.error("Error generating credentials:", error);
+      toast.error("Failed to generate credentials. Please try again.");
     } finally {
       setIsGenerating(false);
     }
@@ -206,6 +219,29 @@ function GenerateCredentialsOverlay({ group, onClose }) {
    */
   const handleCloseMnemonic = () => {
     setCredentials(null);
+    onClose();
+  };
+
+  /**
+   * Shows the cancel confirmation modal
+   */
+  const handleCancelClick = () => {
+    setShowCancelConfirmModal(true);
+  };
+
+  /**
+   * Handles the actual generation after confirmation
+   */
+  const handleConfirmGenerate = async () => {
+    setShowGenerateConfirmModal(false);
+    await handleGenerate();
+  };
+
+  /**
+   * Handles the actual cancellation after confirmation
+   */
+  const handleConfirmCancel = () => {
+    setShowCancelConfirmModal(false);
     onClose();
   };
 
@@ -268,7 +304,7 @@ function GenerateCredentialsOverlay({ group, onClose }) {
                 hoverColor="#818cf8"
                 textColor="#232328"
                 size="large"
-                onClick={handleGenerate}
+                onClick={handleGenerateClick}
                 disabled={
                   isGenerating ||
                   isLoading ||
@@ -295,7 +331,7 @@ function GenerateCredentialsOverlay({ group, onClose }) {
                 hoverColor="#ef4444"
                 textColor="#fff"
                 size="large"
-                onClick={onClose}
+                onClick={handleCancelClick}
                 style={{ minWidth: 120 }}
               >
                 Cancel
@@ -312,6 +348,36 @@ function GenerateCredentialsOverlay({ group, onClose }) {
           </>
         )}
       </Modal>
+
+      {/* Confirmation Modal for Generate */}
+      <ConfirmationModal
+        isOpen={showGenerateConfirmModal}
+        title="Generate Credentials"
+        message="Are you sure you want to generate your credentials? This will create a new 12-word mnemonic phrase that you must securely store. This action cannot be undone."
+        confirmText="Generate"
+        cancelText="Cancel"
+        confirmButtonColor="#a5b4fc"
+        confirmButtonHoverColor="#818cf8"
+        cancelButtonColor="var(--color-grey-600)"
+        cancelButtonHoverColor="var(--color-grey-500)"
+        onConfirm={handleConfirmGenerate}
+        onCancel={() => setShowGenerateConfirmModal(false)}
+      />
+
+      {/* Confirmation Modal for Cancel */}
+      <ConfirmationModal
+        isOpen={showCancelConfirmModal}
+        title="Cancel Credential Generation"
+        message="Are you sure you want to cancel? You will need to generate credentials later to participate in group activities."
+        confirmText="Cancel Generation"
+        cancelText="Continue"
+        confirmButtonColor="#f87171"
+        confirmButtonHoverColor="#ef4444"
+        cancelButtonColor="var(--color-grey-600)"
+        cancelButtonHoverColor="var(--color-grey-500)"
+        onConfirm={handleConfirmCancel}
+        onCancel={() => setShowCancelConfirmModal(false)}
+      />
     </Overlay>
   );
 }
