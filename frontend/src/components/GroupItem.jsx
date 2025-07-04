@@ -103,14 +103,18 @@ function GroupItem({ group, groupMemberId, groupId }) {
     setShowConfirmModal(false);
   };
 
-  const handleCredentialsGenerated = () => {
+  const handleCredentialsGenerated = (success = false) => {
     setShowGenerateCredentials(false);
-    // Invalidate the commitment query to refresh the hasCommitment status
-    queryClient.invalidateQueries({
-      queryKey: ["hasCommitment", groupMemberId],
-    });
-    // Show success message
-    toast.success(`Credentials generated successfully for ${group.name}!`);
+
+    if (success) {
+      // Invalidate the commitment query to refresh the hasCommitment status
+      queryClient.invalidateQueries({
+        queryKey: ["hasCommitment", groupMemberId],
+      });
+      // Show success message only when credentials were actually generated
+      toast.success(`Credentials generated successfully for ${group.name}!`);
+    }
+    // If success is false, user cancelled - no action needed
   };
 
   return (

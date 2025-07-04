@@ -53,6 +53,8 @@ export function useRelayerUpdateRoot() {
         throw new Error("groupKey is required");
       }
 
+      console.log("Initiating blockchain transaction...");
+
       // Call the Supabase edge function
       const { data, error } = await supabase.functions.invoke(
         "relayer-update-root",
@@ -107,7 +109,17 @@ export function useRelayerUpdateRoot() {
         throw new Error(errorMessage);
       }
 
-      console.log("Edge function response:", data);
+      console.log("Blockchain transaction completed:", data);
+
+      // Check if the response includes block number (indicating confirmation)
+      if (data.blockNumber) {
+        console.log(`Transaction confirmed in block ${data.blockNumber}`);
+      } else {
+        console.warn(
+          "Transaction response does not include block number - may not be confirmed"
+        );
+      }
+
       return data;
     },
   });
@@ -115,18 +127,22 @@ export function useRelayerUpdateRoot() {
   const updateMerkleRoot = (params, callbacks = {}) => {
     const { onSuccess, onError } = callbacks;
 
-    return updateMerkleRootMutation.mutate(params, {
-      onSuccess: (data) => {
-        if (onSuccess) {
-          onSuccess(data);
-        }
-      },
-      onError: (error) => {
-        console.error("Merkle root update failed:", error);
-        if (onError) {
-          onError(error);
-        }
-      },
+    return new Promise((resolve, reject) => {
+      updateMerkleRootMutation.mutate(params, {
+        onSuccess: (data) => {
+          if (onSuccess) {
+            onSuccess(data);
+          }
+          resolve(data);
+        },
+        onError: (error) => {
+          console.error("Merkle root update failed:", error);
+          if (onError) {
+            onError(error);
+          }
+          reject(error);
+        },
+      });
     });
   };
 
