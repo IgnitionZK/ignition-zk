@@ -14,7 +14,9 @@ import {IERC721} from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 * @title ERC721IgnitionZK
 * @dev An ERC721 contract with additional functionalities for IgnitionZK.
 * This contract allows for minting tokens and revoking membership by burning tokens.
-* It is owned by a governor who can manage the membership tokens.
+* It restricts transfers and approvals to prevent unauthorized actions.
+* The contract uses AccessControl for role management, allowing specific roles to mint and burn tokens.
+* The contract is designed to be upgradeable and follows the OpenZeppelin standards.
 */
 contract ERC721IgnitionZK is Initializable, ContextUpgradeable, ERC721Upgradeable, ERC721EnumerableUpgradeable, ERC721BurnableUpgradeable, AccessControlUpgradeable {
     
