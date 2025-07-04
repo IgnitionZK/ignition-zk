@@ -1,6 +1,13 @@
 import * as circomlibjs from "circomlibjs";
 import { IMT } from "@zk-kit/imt";
 
+/**
+ * @class MerkleTreeService
+ * A service for creating and managing Merkle trees using Poseidon hash function.
+ * It provides methods to create a Merkle tree from hashed leaves and generate Merkle proofs.
+ * The tree depth is fixed at 10, and it uses a binary tree structure (arity of 2).
+ * The zero element is set to BigInt(0).
+ */
 export class MerkleTreeService {
   static #TREE_DEPTH = 10;
   static #ZERO_ELEMENT = BigInt(0);

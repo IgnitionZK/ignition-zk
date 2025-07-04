@@ -9,6 +9,12 @@ import { keccak256, toUtf8Bytes } from "ethers";
  * This class provides methods for generating mnemonic seeds, cryptographic keys,
  * and zero-knowledge credentials for identity management.
  */
+/** 
+ * @class ZkCredential
+ * @description This class encapsulates methods for generating zero-knowledge credentials,
+ * including mnemonic seed generation, key derivation, and identity creation.
+ * It uses cryptographic primitives such as SHA-256, HKDF, and Poseidon hashing.
+ */
 export class ZkCredential {
   static #ENC = new TextEncoder();
   static #FIELD_PRIME =
