@@ -1,11 +1,12 @@
-import styled from "styled-components";
+import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { useERC721Ownership } from "../hooks/wallet/useERC721Ownership";
-import { useWalletQuery } from "../hooks/wallet/useWalletQuery";
-import { insertGroupMember } from "../services/apiGroupMembers";
+import styled from "styled-components";
 import CustomButton from "./CustomButton";
 import MiniSpinner from "./MiniSpinner";
-import { useState } from "react";
+import ConfirmationModal from "./ConfirmationModal";
+import { useWalletQuery } from "../hooks/wallet/useWalletQuery";
+import { useERC721Ownership } from "../hooks/wallet/useERC721Ownership";
+import { insertGroupMember } from "../services/apiGroupMembers";
 
 const SearchResultItem = styled.li`
   background-color: rgba(165, 180, 252, 0.1);
@@ -56,6 +57,7 @@ function SearchResultItemComponent({ group, onJoinSuccess }) {
   const [hasCheckedEligibility, setHasCheckedEligibility] = useState(false);
   const [isJoining, setIsJoining] = useState(false);
   const [error, setError] = useState(null);
+  const [showJoinConfirm, setShowJoinConfirm] = useState(false);
 
   // Only check ownership if user has clicked "Check Eligibility"
   const {
@@ -85,6 +87,12 @@ function SearchResultItemComponent({ group, onJoinSuccess }) {
   };
 
   const handleJoin = async () => {
+    setShowJoinConfirm(true);
+  };
+
+  const handleConfirmJoin = async () => {
+    setShowJoinConfirm(false);
+
     if (!address) {
       setError("Please connect your wallet first");
       return;
@@ -110,6 +118,10 @@ function SearchResultItemComponent({ group, onJoinSuccess }) {
     } finally {
       setIsJoining(false);
     }
+  };
+
+  const handleCancelJoin = () => {
+    setShowJoinConfirm(false);
   };
 
   if (isWalletLoading) {
@@ -186,28 +198,44 @@ function SearchResultItemComponent({ group, onJoinSuccess }) {
 
   // Show join button or not eligible message based on ownership check
   return (
-    <SearchResultItem>
-      <GroupInfo>
-        <GroupName>{group.name}</GroupName>
-        <ContractAddress>{group.erc721_contract_address}</ContractAddress>
-      </GroupInfo>
-      {isOwner ? (
-        <CustomButton
-          backgroundColor="#A5B4FC"
-          hoverColor="#818cf8"
-          textColor="#232328"
-          onClick={handleJoin}
-          disabled={isJoining}
-        >
-          {isJoining ? "Joining..." : "Join"}
-        </CustomButton>
-      ) : (
-        <ErrorMessage>
-          You don't own any tokens from this collection
-        </ErrorMessage>
-      )}
-      {error && <ErrorMessage>{error}</ErrorMessage>}
-    </SearchResultItem>
+    <>
+      <SearchResultItem>
+        <GroupInfo>
+          <GroupName>{group.name}</GroupName>
+          <ContractAddress>{group.erc721_contract_address}</ContractAddress>
+        </GroupInfo>
+        {isOwner ? (
+          <CustomButton
+            backgroundColor="#A5B4FC"
+            hoverColor="#818cf8"
+            textColor="#232328"
+            onClick={handleJoin}
+            disabled={isJoining}
+          >
+            {isJoining ? "Joining..." : "Join"}
+          </CustomButton>
+        ) : (
+          <ErrorMessage>
+            You don't own any tokens from this collection
+          </ErrorMessage>
+        )}
+        {error && <ErrorMessage>{error}</ErrorMessage>}
+      </SearchResultItem>
+
+      <ConfirmationModal
+        isOpen={showJoinConfirm}
+        title="Join Group"
+        message={`Are you sure you want to join the group "${group.name}"? You will be added as a member and can participate in group activities.`}
+        confirmText="Join"
+        cancelText="Cancel"
+        confirmButtonColor="#A5B4FC"
+        confirmButtonHoverColor="#818cf8"
+        cancelButtonColor="var(--color-grey-600)"
+        cancelButtonHoverColor="var(--color-grey-500)"
+        onConfirm={handleConfirmJoin}
+        onCancel={handleCancelJoin}
+      />
+    </>
   );
 }
 

@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { RiDeleteBack2Fill } from "react-icons/ri";
 import { useQueryClient } from "@tanstack/react-query";
 import styled from "styled-components";
 import { toast } from "react-hot-toast";
@@ -131,11 +130,6 @@ function GroupItem({ group, groupMemberId, groupId }) {
               </GenerateButton>
             )
           )}
-          <CustomButtonIcon
-            tooltipText="Leave group"
-            icon={RiDeleteBack2Fill}
-            hoverColor="var(--color-red-500)"
-          />
         </GroupActions>
       </GroupItemContainer>
 
