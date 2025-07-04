@@ -20,13 +20,6 @@ const PageContainer = styled.div`
   padding: 0 2rem;
 `;
 
-const Content = styled.div`
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 2rem;
-`;
-
 const ProofHeader = styled.div`
   display: flex;
   justify-content: space-between;
@@ -63,11 +56,7 @@ export default function Proofs() {
   const { isLoading, proposals, error } = useGetProposalsByGroupId(userGroups);
   const groupMemberIds =
     userGroups?.map((group) => group.group_member_id) || [];
-  const {
-    isLoading: isLoading2,
-    proofs,
-    error: err,
-  } = useGetProofsByGroupMemberId(groupMemberIds);
+  const { proofs } = useGetProofsByGroupMemberId(groupMemberIds);
 
   const [selectedGroup, setSelectedGroup] = useState("All Groups");
 

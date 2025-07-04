@@ -8,7 +8,7 @@ import { insertLeaf as insertLeafApi } from "../../../services/apiMerkleTreeLeav
  * @property {boolean} isLoading - Boolean indicating if the mutation is in progress
  */
 export function useInsertLeaf() {
-  const { mutate: insertLeaf, isLoading } = useMutation({
+  const { mutate, isLoading } = useMutation({
     /**
      * Mutation function to insert a leaf into the Merkle tree
      * @param {Object} params - The parameters for inserting a leaf
@@ -23,6 +23,19 @@ export function useInsertLeaf() {
       console.log("ERROR", err);
     },
   });
+
+  const insertLeaf = (params) => {
+    return new Promise((resolve, reject) => {
+      mutate(params, {
+        onSuccess: (data) => {
+          resolve(data);
+        },
+        onError: (error) => {
+          reject(error);
+        },
+      });
+    });
+  };
 
   return { insertLeaf, isLoading };
 }

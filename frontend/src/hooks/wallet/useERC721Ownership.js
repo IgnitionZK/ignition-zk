@@ -9,6 +9,7 @@ const ERC721_ABI = ["function balanceOf(address owner) view returns (uint256)"];
  * A React hook that checks if the connected wallet owns any tokens from a specified ERC721 contract.
  *
  * @param {string} contractAddress - The address of the ERC721 contract to check ownership against
+ * @param {boolean} enabled - Whether to automatically check ownership (default: true)
  * @returns {Object} An object containing ownership status and related information
  * @property {boolean} isOwner - Whether the connected wallet owns any tokens from the contract
  * @property {boolean} isChecking - Whether the ownership check is currently in progress
@@ -16,9 +17,9 @@ const ERC721_ABI = ["function balanceOf(address owner) view returns (uint256)"];
  * @property {Function} checkOwnership - Function to manually trigger an ownership check
  *
  * @example
- * const { isOwner, isChecking, error, checkOwnership } = useERC721Ownership("0x123...");
+ * const { isOwner, isChecking, error, checkOwnership } = useERC721Ownership("0x123...", true);
  */
-export function useERC721Ownership(contractAddress) {
+export function useERC721Ownership(contractAddress, enabled = true) {
   const { provider, address, isLoading: isWalletLoading } = useWalletQuery();
   const [isChecking, setIsChecking] = useState(false);
   const [error, setError] = useState(null);
@@ -56,7 +57,8 @@ export function useERC721Ownership(contractAddress) {
     let timeoutId;
 
     const checkWithDebounce = async () => {
-      if (!contractAddress || !address || isWalletLoading) return;
+      // Only run if enabled and we have the required data
+      if (!enabled || !contractAddress || !address || isWalletLoading) return;
 
       // Clear any existing timeout
       if (timeoutId) {
@@ -79,7 +81,7 @@ export function useERC721Ownership(contractAddress) {
         clearTimeout(timeoutId);
       }
     };
-  }, [checkOwnership, contractAddress, address, isWalletLoading]);
+  }, [checkOwnership, contractAddress, address, isWalletLoading, enabled]);
 
   return {
     isOwner,

@@ -2,6 +2,7 @@ import styled from "styled-components";
 import { useState } from "react";
 import CustomButton from "./CustomButton";
 import MnemonicInput from "./MnemonicInput";
+import ConfirmationModal from "./ConfirmationModal";
 //import { useVerifyMembership } from "../hooks/queries/proofs/useVerifyMembership";
 import { useVerifyProposal } from "../hooks/queries/proofs/useVerifyProposal";
 import { useGetCommitmentArray } from "../hooks/queries/merkleTreeLeaves/useGetCommitmentArray";
@@ -86,23 +87,17 @@ function InboxItem({
 }) {
   const [showMnemonicInput, setShowMnemonicInput] = useState(false);
   const [hasSubmittedProof, setHasSubmittedProof] = useState(false);
+  const [showSubmitConfirm, setShowSubmitConfirm] = useState(false);
   const { userGroups } = useGetUserGroups();
 
-  const {
-    isLoading: isLoadingCommitments,
-    commitmentArray,
-    error: commitmentError,
-  } = useGetCommitmentArray({
-    groupId: proposal.group_id,
-  });
+  const { isLoading: isLoadingCommitments, commitmentArray } =
+    useGetCommitmentArray({
+      groupId: proposal.group_id,
+    });
 
-  const {
-    verifyProposal,
-    isVerifying,
-    error: verificationError,
-  } = useVerifyProposal();
+  const { verifyProposal, isVerifying } = useVerifyProposal();
 
-  const { insertProof, isLoading: isInsertingProof } = useInsertProof();
+  const { insertProof } = useInsertProof();
 
   // Guard clause to handle undefined/null proposal
   if (!proposal || typeof proposal !== "object") {
@@ -141,7 +136,16 @@ function InboxItem({
   };
 
   const handleSubmit = () => {
+    setShowSubmitConfirm(true);
+  };
+
+  const handleConfirmSubmit = () => {
+    setShowSubmitConfirm(false);
     setShowMnemonicInput(true);
+  };
+
+  const handleCancelSubmit = () => {
+    setShowSubmitConfirm(false);
   };
 
   const handleSubmitMnemonic = async (mnemonic) => {
@@ -246,6 +250,22 @@ function InboxItem({
           onSubmit={handleSubmitMnemonic}
         />
       )}
+
+      <ConfirmationModal
+        isOpen={showSubmitConfirm}
+        title="Submit Proof"
+        message={`Are you sure you want to submit a zero-knowledge proof for the proposal "${
+          proposal.title || "Untitled Proposal"
+        }"? This action will verify your membership and submit your vote anonymously.`}
+        confirmText="Submit"
+        cancelText="Cancel"
+        confirmButtonColor="#a5b4fc"
+        confirmButtonHoverColor="#818cf8"
+        cancelButtonColor="var(--color-grey-600)"
+        cancelButtonHoverColor="var(--color-grey-500)"
+        onConfirm={handleConfirmSubmit}
+        onCancel={handleCancelSubmit}
+      />
     </>
   );
 }

@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import styled from "styled-components";
 import CustomButton from "./CustomButton";
+import ConfirmationModal from "./ConfirmationModal";
 
 const Overlay = styled.div`
   position: fixed;
@@ -128,6 +129,7 @@ const Input = styled.input`
  */
 function MnemonicInput({ proposal, onClose, onSubmit }) {
   const [words, setWords] = useState(Array(12).fill(""));
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
 
   const handleWordChange = (index, value) => {
     const newWords = [...words];
@@ -136,8 +138,17 @@ function MnemonicInput({ proposal, onClose, onSubmit }) {
   };
 
   const handleSubmit = () => {
+    setShowConfirmModal(true);
+  };
+
+  const handleConfirmSubmit = () => {
+    setShowConfirmModal(false);
     const mnemonic = words.map((word) => word.trim()).join(" ");
     onSubmit(mnemonic);
+  };
+
+  const handleCancelSubmit = () => {
+    setShowConfirmModal(false);
   };
 
   // Check if all words are filled
@@ -148,79 +159,97 @@ function MnemonicInput({ proposal, onClose, onSubmit }) {
   const secondColumn = words.slice(6, 12);
 
   return (
-    <Overlay>
-      <Modal>
-        <Title>Enter Mnemonic Phrase</Title>
-        <Subtitle>Please enter your 12-word mnemonic phrase</Subtitle>
+    <>
+      <Overlay>
+        <Modal>
+          <Title>Enter Mnemonic Phrase</Title>
+          <Subtitle>Please enter your 12-word mnemonic phrase</Subtitle>
 
-        <ProposalInfo>
-          <ProposalTitle>{proposal.title}</ProposalTitle>
-          <GroupName>{proposal.group_name}</GroupName>
-          <ProposalDescription>{proposal.description}</ProposalDescription>
-        </ProposalInfo>
+          <ProposalInfo>
+            <ProposalTitle>{proposal.title}</ProposalTitle>
+            <GroupName>{proposal.group_name}</GroupName>
+            <ProposalDescription>{proposal.description}</ProposalDescription>
+          </ProposalInfo>
 
-        <MnemonicGrid>
-          <Column>
-            {firstColumn.map((word, index) => (
-              <WordInput key={index}>
-                <WordIndex>{index + 1}</WordIndex>
-                <Input
-                  type="text"
-                  value={word}
-                  onChange={(e) => handleWordChange(index, e.target.value)}
-                  placeholder={`Word ${index + 1}`}
-                  autoComplete="off"
-                  autoCorrect="off"
-                  autoCapitalize="off"
-                  spellCheck="false"
-                />
-              </WordInput>
-            ))}
-          </Column>
-          <Column>
-            {secondColumn.map((word, index) => (
-              <WordInput key={index + 6}>
-                <WordIndex>{index + 7}</WordIndex>
-                <Input
-                  type="text"
-                  value={word}
-                  onChange={(e) => handleWordChange(index + 6, e.target.value)}
-                  placeholder={`Word ${index + 7}`}
-                  autoComplete="off"
-                  autoCorrect="off"
-                  autoCapitalize="off"
-                  spellCheck="false"
-                />
-              </WordInput>
-            ))}
-          </Column>
-        </MnemonicGrid>
+          <MnemonicGrid>
+            <Column>
+              {firstColumn.map((word, index) => (
+                <WordInput key={index}>
+                  <WordIndex>{index + 1}</WordIndex>
+                  <Input
+                    type="text"
+                    value={word}
+                    onChange={(e) => handleWordChange(index, e.target.value)}
+                    placeholder={`Word ${index + 1}`}
+                    autoComplete="off"
+                    autoCorrect="off"
+                    autoCapitalize="off"
+                    spellCheck="false"
+                  />
+                </WordInput>
+              ))}
+            </Column>
+            <Column>
+              {secondColumn.map((word, index) => (
+                <WordInput key={index + 6}>
+                  <WordIndex>{index + 7}</WordIndex>
+                  <Input
+                    type="text"
+                    value={word}
+                    onChange={(e) =>
+                      handleWordChange(index + 6, e.target.value)
+                    }
+                    placeholder={`Word ${index + 7}`}
+                    autoComplete="off"
+                    autoCorrect="off"
+                    autoCapitalize="off"
+                    spellCheck="false"
+                  />
+                </WordInput>
+              ))}
+            </Column>
+          </MnemonicGrid>
 
-        <div style={{ display: "flex", gap: "1.2rem" }}>
-          <CustomButton
-            backgroundColor="#a5b4fc"
-            hoverColor="#818cf8"
-            textColor="#232328"
-            size="large"
-            onClick={handleSubmit}
-            style={{ minWidth: 120 }}
-            disabled={!areAllWordsFilled}
-          >
-            Confirm
-          </CustomButton>
-          <CustomButton
-            backgroundColor="#f87171"
-            hoverColor="#ef4444"
-            textColor="#fff"
-            size="large"
-            onClick={onClose}
-            style={{ minWidth: 120 }}
-          >
-            Cancel
-          </CustomButton>
-        </div>
-      </Modal>
-    </Overlay>
+          <div style={{ display: "flex", gap: "1.2rem" }}>
+            <CustomButton
+              backgroundColor="#a5b4fc"
+              hoverColor="#818cf8"
+              textColor="#232328"
+              size="large"
+              onClick={handleSubmit}
+              style={{ minWidth: 120 }}
+              disabled={!areAllWordsFilled}
+            >
+              Confirm
+            </CustomButton>
+            <CustomButton
+              backgroundColor="#f87171"
+              hoverColor="#ef4444"
+              textColor="#fff"
+              size="large"
+              onClick={onClose}
+              style={{ minWidth: 120 }}
+            >
+              Cancel
+            </CustomButton>
+          </div>
+        </Modal>
+      </Overlay>
+
+      <ConfirmationModal
+        isOpen={showConfirmModal}
+        title="Submit Mnemonic"
+        message={`Are you sure you want to submit your mnemonic phrase for the proposal "${proposal.title}"? This will submit your proof. Make sure you have entered the correct 12-word phrase.`}
+        confirmText="Submit"
+        cancelText="Cancel"
+        confirmButtonColor="#a5b4fc"
+        confirmButtonHoverColor="#818cf8"
+        cancelButtonColor="var(--color-grey-600)"
+        cancelButtonHoverColor="var(--color-grey-500)"
+        onConfirm={handleConfirmSubmit}
+        onCancel={handleCancelSubmit}
+      />
+    </>
   );
 }
 

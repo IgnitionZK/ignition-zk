@@ -51,8 +51,22 @@ export function useInsertMerkleTreeRoot() {
     },
   });
 
+  const insertNewMerkleTreeRoot = (params) => {
+    return new Promise((resolve, reject) => {
+      mutate(params, {
+        onSuccess: (data) => {
+          resolve(data);
+        },
+        onError: (error) => {
+          reject(error);
+        },
+      });
+    });
+  };
+
   return {
     mutate,
+    insertNewMerkleTreeRoot,
     isLoading,
     error,
   };

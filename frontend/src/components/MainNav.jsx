@@ -1,6 +1,8 @@
 import { NavLink } from "react-router-dom";
 import styled from "styled-components";
+import { useState } from "react";
 import { useLogout } from "../hooks/queries/authentication/useLogout";
+import ConfirmationModal from "./ConfirmationModal";
 
 const NavList = styled.ul`
   display: flex;
@@ -100,41 +102,71 @@ const LogoutContainer = styled.div`
  */
 function MainNav() {
   const { logout, isPending } = useLogout();
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+
+  const handleLogoutClick = () => {
+    setShowLogoutConfirm(true);
+  };
+
+  const handleConfirmLogout = () => {
+    setShowLogoutConfirm(false);
+    logout();
+  };
+
+  const handleCancelLogout = () => {
+    setShowLogoutConfirm(false);
+  };
 
   return (
-    <NavContainer>
-      <NavList>
-        <li>
-          <StyledNavLink to="." end>
-            <span>Home</span>
-          </StyledNavLink>
-        </li>
-        <li>
-          <StyledNavLink to="inbox" end>
-            <span>Inbox</span>
-          </StyledNavLink>
-        </li>
-        <li>
-          <StyledNavLink to="proposals" end>
-            <span>Proposals</span>
-          </StyledNavLink>
-        </li>
-        <li>
-          <StyledNavLink to="settings" end>
-            <span>Settings</span>
-          </StyledNavLink>
-        </li>
-      </NavList>
-      <LogoutContainer>
+    <>
+      <NavContainer>
         <NavList>
           <li>
-            <CustomButton onClick={logout} disabled={isPending}>
-              {isPending ? "Logging out..." : "Logout"}
-            </CustomButton>
+            <StyledNavLink to="." end>
+              <span>Home</span>
+            </StyledNavLink>
+          </li>
+          <li>
+            <StyledNavLink to="inbox" end>
+              <span>Inbox</span>
+            </StyledNavLink>
+          </li>
+          <li>
+            <StyledNavLink to="proposals" end>
+              <span>Proposals</span>
+            </StyledNavLink>
+          </li>
+          <li>
+            <StyledNavLink to="settings" end>
+              <span>Settings</span>
+            </StyledNavLink>
           </li>
         </NavList>
-      </LogoutContainer>
-    </NavContainer>
+        <LogoutContainer>
+          <NavList>
+            <li>
+              <CustomButton onClick={handleLogoutClick} disabled={isPending}>
+                {isPending ? "Logging out..." : "Logout"}
+              </CustomButton>
+            </li>
+          </NavList>
+        </LogoutContainer>
+      </NavContainer>
+
+      <ConfirmationModal
+        isOpen={showLogoutConfirm}
+        title="Confirm Logout"
+        message="Are you sure you want to logout? You will need to log in again to access your account."
+        confirmText="Logout"
+        cancelText="Cancel"
+        confirmButtonColor="var(--color-red-300)"
+        confirmButtonHoverColor="var(--color-red-400)"
+        cancelButtonColor="var(--color-grey-600)"
+        cancelButtonHoverColor="var(--color-grey-500)"
+        onConfirm={handleConfirmLogout}
+        onCancel={handleCancelLogout}
+      />
+    </>
   );
 }
 

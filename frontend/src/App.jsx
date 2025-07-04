@@ -11,7 +11,6 @@ import { Toaster } from "react-hot-toast";
 
 // Pages
 import Homepage from "./pages/Homepage";
-import GenerateCredentials from "./pages/GenerateCredentials";
 import Login from "./pages/Login";
 import DashboardLayout from "./pages/DashboardLayout";
 import Dashboard from "./pages/Dashboard";
@@ -58,10 +57,6 @@ const router = createBrowserRouter([
           {
             index: true,
             element: <Dashboard />,
-          },
-          {
-            path: "generate-credentials",
-            element: <GenerateCredentials />,
           },
           {
             path: "inbox",
