@@ -5,6 +5,13 @@ import { keccak256, toUtf8Bytes } from "ethers";
 import * as circomlibjs from "circomlibjs";
 import * as ethers from "ethers";
 
+/**
+ * @class ZKProofGenerator
+ * @description This class provides methods to generate zero-knowledge proofs for various circuits,
+ * including membership, voting, and proposal circuits.
+ * It handles the generation of circuit inputs, proof generation, and verification both on-chain and off-chain.
+ * It uses the snarkjs library for proof generation and verification, and circomlibjs for cryptographic operations.
+ */
 export class ZKProofGenerator {
   // Membership circuit paths
   static #MEMBERSHIP_WASM_PATH = "/membership_circuit/membership_circuit.wasm";
