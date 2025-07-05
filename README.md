@@ -87,13 +87,27 @@ This layer provides the foundational smart contract architecture, ensuring the f
 
 ![Phase1](frontend/src/assets/DAOMembership.png)
 
-#### DAO creation
-1. DAO Initiation
-2. DAO NFT deployment
-3. DAO Member invitations
-4. Member ZK credential generation
+#### 1. DAO Initiation
 
-#### Membership Management
+A DAO is initiated when a ERC721 contract with the DAO's name and token symbol is deployed. This is achieved through a minimal proxy EIP-1167  contract: a main, immutable ERC721 contract is deployed (implementation contract) which acts like a contract factory for all subsequent clones. 
+
+Implementation Contract: [ERC721IgnitionZK](hardhat/contracts/token/ERC721IgnitionZK.sol)
+
+#### Key Features:
+* Using OpenZeppelin's AccessControl library for explicit role-based access for minting and burning tokens:
+    * `default_admin_role`, `minter_role`, `burner_role`: granted to Membership Manager
+    * gated access to role trasfers via delegated functions only callable by the Governance Manager
+* ERC721 Token name and symbol defined by the user in the UI
+
+
+#### 2. DAO NFT deployment
+#### 3. DAO Member invitations
+#### 4. Member ZK credential generation
+#### 5. Merkle Tree creation 
+#### 6. Off-Chain & On-Chain storage
+#### 7. Member verification methodology
+
+
 ### **Phase 2:** Proposal Submissions
 ### **Phase 3:** Voting
 ### **Phase 4:** Proposal Execution
