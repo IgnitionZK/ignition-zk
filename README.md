@@ -5,7 +5,22 @@
 # A ZKP-Governed Modular Upgradeable Treasury Framework 
 ## For High-Impact Closed-Group DAOs
 
-### Summary 
+### Table of Contents
+* [Summary](#summary)
+* [IngitionZK Components](#ignitionzk-components)
+    * [Layer A: ZK Engine](#layer-a-zk-engine)
+        * [ZK Circuit Components](#zk-circuit-components)
+        * [ZK Off-Chain Tooling](#zk-off-chain-tooling)
+    * [Layer B: Core On-Chain Infrastructure](#layer-b-core-on-chain-infrastructure)
+* [IgnitionZK Lifecycle](#ignitionzk-lifecycle)
+    * [Phase 1: DAO Formation and Membership](#phase-1-dao-formation-and-membership)
+        * [Step 1.1 DAO Initiation](#step-11-dao-initiation)
+        * [Step 1.2 ERC721 Membership NFTs](#step-12-erc721-membership-nfts)
+        * [Step 1.3 Member ZK Credential Generation](#step-13-member-zk-credential-generation)
+        * [Step 1.4 Merkle Tree Creation](#step-14-merkle-tree-creation)
+        * [Step 1.5 Member Verification](#step-14-member-verification)
+
+## Summary 
 
 **IgnitionZK** is a fully modular, UUPS-upgradeable, ZK-native DAO framework tailored to small-to-medium closed-group DAOs. It enables:
 
@@ -22,7 +37,7 @@
 ![IgnitionZK Summary](frontend/src/assets/topleveldiagram.png)
 
 
-## Layer A: ZK Engine (Circuits & Tooling)
+## Layer A: ZK Engine
 
 This layer forms the cryptographic core of IgnitionZK, enabling privacy-preserving and verifiable interactions through Zero-Knowledge Proofs (ZKPs) and associated off-chain tooling. It's designed to ensure confidential operations while maintaining trustless integrity within the DAO.
 
@@ -32,7 +47,7 @@ This layer forms the cryptographic core of IgnitionZK, enabling privacy-preservi
 * **Comprehensive Off-Chain Tooling:** Provides essential utilities for ZK identity management, Merkle root generation and storage, and the generation of ZKP circuit proofs.
 * **Secure Identity Management:** ZK identities are managed via mnemonic seeds, HKDF, Poseidon hashing, and Merkle Trees, ensuring robust and private member authentication.
 
-### ZK Circuit Components:
+### ZK Circuit Components
 
 The Circom circuits are the mathematical backbone of IgnitionZK's privacy logic. They empower DAO members to submit and vote on proposals confidentially, ensuring uniqueness and integrity through cryptographic commitments and nullifiers without revealing sensitive details.
 
@@ -43,7 +58,7 @@ The Circom circuits are the mathematical backbone of IgnitionZK's privacy logic.
 | [Voting](zk/circuits/voting/voting_circuit.circom) | Confidential voting by verified DAO members, with content validation & deduplication. | Per-DAO, Per-EPOCH, Per-PROPOSAL | Membership Proof | <ul><li>Membership inputs</ul> | ... | ... | Unique `voting nullifier` |
 
 
-### ZK Off-Chain Tooling:
+### ZK Off-Chain Tooling
 
 A dedicated set of off-chain scripts and utilities orchestrates the entire ZKP lifecycle. These tools facilitate the secure creation of ZK identities (generating identity trapdoors and nullifiers), the dynamic construction and storage of Merkle Trees, and the efficient generation of proofs for all integrated ZK circuits.
 
@@ -83,11 +98,11 @@ This layer provides the foundational smart contract architecture, ensuring the f
 
 
 # IgnitionZK Lifecycle
-### **Phase 1:** DAO creation & Membership Management
+### Phase 1: DAO Formation and Membership
 
 ![Phase1](frontend/src/assets/DAOMembership.png)
 
-#### Step 1.1 DAO Initiation via ERC721 contract deployment
+#### Step 1.1 DAO Initiation
 
 A DAO is initiated when a ERC721 contract with the DAO's name and token symbol is deployed. This is achieved through a minimal proxy EIP-1167  contract: a main, immutable ERC721 contract is deployed (implementation contract) which acts like a contract factory for all subsequent clones. 
 
@@ -108,7 +123,7 @@ Implementation Contract: [ERC721IgnitionZK](hardhat/contracts/token/ERC721Igniti
     * **Off-chain:** in `ignitionzk.groups`
     * **On-chain:** in `MembershipManager`'s `groupNftAddresses` mapping.
 
-#### Step 1.2 ERC721 membership NFTs
+#### Step 1.2 ERC721 Membership NFTs
 
 The appointed administrator of a new DAO group extends invitations to the initial cohort of members through the UI. This immediately prompts the minting of ERC721 membership NFTs from the DAO's dedicated contract. Each minted NFT serves as verifiable proof of their valid group membership.
 
@@ -124,7 +139,7 @@ The appointed administrator of a new DAO group extends invitations to the initia
 * The MembershipManager mints a new ERC721 membership NFT directly to each invited member's wallet.
 * These new DAO members are recorded via anonymized `group_member_id`s **off-chain** within ` ignitionzk.group_members`; there is **no on-chain storage** of individual member addresses or IDs.
 
-#### Step 1.3 Member ZK credential generation
+#### Step 1.3 Member ZK Credential Generation
 
 Only members actively holding one of the DAO's valid membership NFTs are eligible to proceed with generating their Zero-Knowledge credentials for private interactions within the DAO.
 
@@ -145,8 +160,8 @@ The cryptographic steps involved in securely generating a unique Zero-Knowledge 
 * Upon clicking "Generate Credentials," the member is securely presented with their newly generated mnemonic phrase.
 * The member's newly formed identity commitment is then stored off-chain in `ignitionzk.merkle_tree_leaves` (this commitment later contributes to the Merkle tree root on-chain).
 
-#### Step 1.4 Merkle Tree creation 
-#### Step 1.5 Member verification methodology
+#### Step 1.4 Merkle Tree Creation 
+#### Step 1.5 Member Verification
 
 
 ### **Phase 2:** Proposal Submissions
