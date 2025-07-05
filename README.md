@@ -87,7 +87,7 @@ This layer provides the foundational smart contract architecture, ensuring the f
 
 ![Phase1](frontend/src/assets/DAOMembership.png)
 
-#### 1. DAO Initiation
+#### Step 1.1 DAO Initiation via ERC721 contract deployment
 
 A DAO is initiated when a ERC721 contract with the DAO's name and token symbol is deployed. This is achieved through a minimal proxy EIP-1167  contract: a main, immutable ERC721 contract is deployed (implementation contract) which acts like a contract factory for all subsequent clones. 
 
@@ -99,10 +99,38 @@ Implementation Contract: [ERC721IgnitionZK](hardhat/contracts/token/ERC721Igniti
     * gated access to role trasfers via delegated functions only callable by the Governance Manager
 * ERC721 Token name and symbol defined by the user in the UI
 
+#### Data Flow:
 
-#### 2. DAO NFT deployment
-#### 3. DAO Member invitations
+* User enters new DAO's data on the UI.
+* Relayer calls `GovernanceManager.delegateDeployGroupNft`.
+* `GovernanceManager` function calls `MembershipManager.deployGroupNft(bytes32 groupKey, string calldata name, string calldata symbol)`.
+* New DAO NFT address is saved:
+    * **Off-chain:** in `ignitionzk.groups`
+    * **On-chain:** in `MembershipManager`'s `groupNftAddresses` mapping.
+
+#### Step 1.2 ERC721 membership NFTs
+
+The appointed administrator of a new DAO group extends invitations to the initial cohort of members through the UI. This immediately prompts the minting of ERC721 membership NFTs from the DAO's dedicated contract. Each minted NFT serves as verifiable proof of their valid group membership.
+
+#### Key Features:
+* **Soulbound:** Membership NFTs are intentionally non-transferable, ensuring that DAO participation is exclusively tied to the individual's verified identity and eligibility within the real-world group.
+* **Burnable:** When a member's affiliation with the real-world group ceases, their active DAO participation is terminated through the burning of their corresponding membership NFT.
+
+#### Data Flow:
+
+* DAO Administrator enters members' addresses on the UI
+* Relayer calls `GovernanceManager.delegateMintNftToMember`
+* `GovernanceManager` function calls `MembershipManager.mintNftToMember`
+* The MembershipManager mints a new ERC721 membership NFT directly to each invited member's wallet.
+* These new DAO members are recorded via anonymized `group_member_id`s **off-chain** within ` ignitionzk.group_members`; there is **no on-chain storage** of individual member addresses or IDs.
+
 #### 4. Member ZK credential generation
+
+Only members actively holding one of the DAO's valid membership NFTs are eligible to proceed with generating their Zero-Knowledge credentials for private interactions within the DAO.
+
+#### Key Features:
+* 
+
 #### 5. Merkle Tree creation 
 #### 6. Off-Chain & On-Chain storage
 #### 7. Member verification methodology
