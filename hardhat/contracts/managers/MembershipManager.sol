@@ -55,8 +55,6 @@ contract MembershipManager is Initializable, UUPSUpgradeable, OwnableUpgradeable
     // General errors:
     error KeyCannotBeZero();
     error AddressCannotBeZero();
-    // Authorization errors:
-    error NotAuthorizedViewer();
     
 // ====================================================================================================================
 //                                                  EVENTS
@@ -132,11 +130,13 @@ contract MembershipManager is Initializable, UUPSUpgradeable, OwnableUpgradeable
     /**
      * @notice Emitted when the address of the proposal manager contract is set.
      * @param proposalManager The address of the proposal manager contract.
+     * @dev Reserved for future use.
      */
     event ProposalManagerSet(address indexed proposalManager);
     /**
      * @notice Emitted when the address of the voting manager contract is set.
      * @param votingManager The address of the voting manager contract.
+     * @dev Reserved for future use.
      */
     event VotingManagerSet(address indexed votingManager);
 
@@ -157,7 +157,9 @@ contract MembershipManager is Initializable, UUPSUpgradeable, OwnableUpgradeable
     IMembershipVerifier private verifier;
     /// @dev The address of the NFT implementation contract used for creating new group NFTs.
     address private nftImplementation;
+    /// @dev The address of the proposal manager contract (reserved for future use).
     address private proposalManager;
+    /// @dev The address of the voting manager contract (reserved for future use).
     address private votingManager;
 
     // Constants:
@@ -470,8 +472,6 @@ contract MembershipManager is Initializable, UUPSUpgradeable, OwnableUpgradeable
      * @custom:error KeyCannotBeZero If the provided group key is zero.
      * @custom:error AddressCannotBeZero If the member address is zero.
      * @custom:error GroupNftNotSet If no NFT contract is deployed for the specified group.
-     * @custom:error MemberAddressCannotBeZero If the member address is zero.
-     * @custom:error GroupNftNotSet If no NFT contract is deployed for the specified group.
      * @custom:error MemberDoesNotHaveToken If the member does not hold a token for this group.
      */
     function burnMemberNft
@@ -503,7 +503,6 @@ contract MembershipManager is Initializable, UUPSUpgradeable, OwnableUpgradeable
      * @dev Only callable by the owner (governor). Returns the stored root for the given group key.
      * @param groupKey The unique identifier for the group.
      * @return The current Merkle root for the specified group. Returns bytes32(0) if no root has been set.
-     * @custom:error (No custom errors thrown by this function)
      */
     function getRoot(bytes32 groupKey) 
         external 
@@ -519,6 +518,7 @@ contract MembershipManager is Initializable, UUPSUpgradeable, OwnableUpgradeable
      * @dev Only callable by the owner (governor). Returns the NFT contract address for the given group key.
      * @param groupKey The unique identifier for the group.
      * @return address of the ERC721 NFT contract associated with the specified group key.
+     * @custom:error KeyCannotBeZero If the provided group key is zero.
      */
     function getGroupNftAddress(bytes32 groupKey) external view onlyOwner nonZeroKey(groupKey) returns (address) {
         return groupNftAddresses[groupKey];
@@ -555,6 +555,15 @@ contract MembershipManager is Initializable, UUPSUpgradeable, OwnableUpgradeable
     }
 
     /**
+     * @notice Retrieves the address of the governor contract.
+     * @dev Only callable by the owner (governor).
+     * @return address of the governor contract.
+     */
+    function getGovernor() external view onlyOwner returns (address) {
+        return owner();
+    }
+
+    /**
      * @notice Retrieves the maximum number of members that can be added in a single batch transaction.
      * @dev Only callable by the owner (governor).
      * @return The maximum batch size for member additions.
@@ -569,6 +578,7 @@ contract MembershipManager is Initializable, UUPSUpgradeable, OwnableUpgradeable
 
     /** 
      * @notice Revokes the MINTER_ROLE from the specified NFT clone.
+     * @dev Only callable by the owner (governor).
      * @param nftClone The address of the NFT contract clone from which to revoke the role.
      * @custom:error AddressCannotBeZero If the provided NFT clone address is zero.
      */
@@ -578,6 +588,7 @@ contract MembershipManager is Initializable, UUPSUpgradeable, OwnableUpgradeable
 
     /** 
      * @notice Revokes the BURNER_ROLE from the specified NFT clone.
+     * @dev Only callable by the owner (governor).
      * @param nftClone The address of the NFT contract clone from which to revoke the role.
      * @custom:error AddressCannotBeZero If the provided NFT clone address is zero.
      */
@@ -587,6 +598,7 @@ contract MembershipManager is Initializable, UUPSUpgradeable, OwnableUpgradeable
 
     /**
      * @notice Grants the MINTER_ROLE to the specified address in the NFT clone.
+     * @dev Only callable by the owner (governor).
      * @param nftClone The address of the NFT contract clone to which to grant the role.
      * @param grantTo The address to which to grant the role.
      * @custom:error AddressCannotBeZero If the provided NFT clone or grantTo address is zero.
@@ -597,6 +609,7 @@ contract MembershipManager is Initializable, UUPSUpgradeable, OwnableUpgradeable
 
     /**
      * @notice Grants the BURNER_ROLE to the specified address in the NFT clone.
+     * @dev Only callable by the owner (governor).
      * @param nftClone The address of the NFT contract clone to which to grant the role.
      * @param grantTo The address to which to grant the role.
      * @custom:error AddressCannotBeZero If the provided NFT clone or grantTo address is zero.

@@ -1,8 +1,6 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import {
-  insertMerkleTreeRoot,
-  updateMerkleTreeRootActiveStatus,
-} from "../../../services/apiMerkleTreeRoots";
+import { insertMerkleTreeRoot } from "../../../services/apiMerkleTreeRoots";
+import { useToggleMerkleTreeRootActive } from "./useToggleMerkleTreeRootActive";
 
 /**
  * Custom hook for inserting a new Merkle tree root and managing its active status.
@@ -16,26 +14,21 @@ import {
  */
 export function useInsertMerkleTreeRoot() {
   const queryClient = useQueryClient();
+  const { toggleRootActive, isLoading: isLoadingToggle } =
+    useToggleMerkleTreeRootActive();
 
-  const { mutate, isLoading, error } = useMutation({
+  const {
+    mutate,
+    isLoading: isLoadingInsert,
+    error,
+  } = useMutation({
     mutationFn: ({ groupId, rootHash, treeVersion }) =>
       insertMerkleTreeRoot({ groupId, rootHash, treeVersion }),
     onSuccess: async (newRoot, variables) => {
-      // Get the current root ID from the cache
-      const currentRootId = queryClient.getQueryData("currentRootId");
-
-      // If there's a current root, deactivate it
-      if (currentRootId) {
-        await updateMerkleTreeRootActiveStatus({
-          rootId: currentRootId,
-          isActive: false,
-        });
-      }
-
-      // Set the new root as active
-      await updateMerkleTreeRootActiveStatus({
-        rootId: newRoot.root_id,
-        isActive: true,
+      // Use the new atomic toggle function instead of sequential updates
+      await toggleRootActive({
+        groupId: variables.groupId,
+        newRootId: newRoot.root_id,
       });
 
       // Update the current tree version in the cache
@@ -43,11 +36,6 @@ export function useInsertMerkleTreeRoot() {
         ["currentMerkleTreeRootVersion"],
         variables.treeVersion
       );
-
-      // Invalidate and refetch the active merkle tree root query
-      queryClient.invalidateQueries({
-        queryKey: ["merkleTreeRoot", "active", variables.groupId],
-      });
     },
   });
 
@@ -67,7 +55,7 @@ export function useInsertMerkleTreeRoot() {
   return {
     mutate,
     insertNewMerkleTreeRoot,
-    isLoading,
+    isLoading: isLoadingInsert || isLoadingToggle,
     error,
   };
 }
