@@ -69,13 +69,13 @@ This layer provides the foundational smart contract architecture, ensuring the f
 
 | Smart Contract | Function | Type | Stores | Responsibilities | Owner |
 |---|---|---|---|---|---|
-| [Membership Manager](hardhat/contracts/managers/MembershipManager.sol) | ZK Engine | UUPS-1822 | <ul><li>Merkle roots</ul>| <ul><li>Deploy Group NFTs<li>Manage DAO members</ul> | Governance Mgr
-| [Proposal Manager](hardhat/contracts/managers/ProposalManager.sol)  | ZK Engine | UUPS-1822 | <ul><li>Proposal Nullifiers<li>Content Hash</ul> | <ul><li>Verify proposal submissions</ul> | Governance Mgr
-| [Voting Manager](hardhat/contracts/managers/VotingManager.sol) | ZK Engine | UUPS-1822 | <ul><li>Vote Nullifiers<li>Content Hash</ul> | <ul><li>Verify vote validity</ul> | Governance Mgr
+| [Membership Manager](hardhat/contracts/managers/MembershipManager.sol) | ZK Engine | UUPS ERC-1967 | <ul><li>Merkle roots</ul>| <ul><li>Deploy Group NFTs<li>Manage DAO members</ul> | Governance Mgr
+| [Proposal Manager](hardhat/contracts/managers/ProposalManager.sol)  | ZK Engine | UUPS ERC-1967 | <ul><li>Proposal Nullifiers<li>Content Hash</ul> | <ul><li>Verify proposal submissions</ul> | Governance Mgr
+| [Voting Manager](hardhat/contracts/managers/VotingManager.sol) | ZK Engine | UUPS ERC-1967 | <ul><li>Vote Nullifiers<li>Content Hash</ul> | <ul><li>Verify vote validity</ul> | Governance Mgr
 | [Proposal Verifier](hardhat/contracts/verifiers/ProposalVerifier.sol) |  ZK Engine | Immutable | | <ul><li>Verify proposal proofs (via PM)</ul> | Unrestricted
 | [Voting Verifier](hardhat/contracts/verifiers/VotingVerifier.sol) | ZK Engine | Immutable | | <ul><li>Verify voting proofs (via VM)</ul> | Unrestricted
-| [ERC721IgnitionZK](hardhat/contracts/token/ERC721IgnitionZK.sol) | NFT Factory  | Clone-1167 | | <ul><li>Deploy NFT Clones for DAOs</ul> | Membership Mgr
-| [Governance Manager](hardhat/contracts/governance/GovernanceManager.sol)  | Governance | UUPS-1822 |.. | <ul><li>Delegate calls to Managers</ul> | Multi-sig
+| [ERC721IgnitionZK](hardhat/contracts/token/ERC721IgnitionZK.sol) | NFT Factory  | Clone EIP-1167 | | <ul><li>Deploy NFT Clones for DAOs</ul> | Membership Mgr
+| [Governance Manager](hardhat/contracts/governance/GovernanceManager.sol)  | Governance | UUPS ERC-1967 |.. | <ul><li>Delegate calls to Managers</ul> | Multi-sig
 | Treasury Manager | Treasury | ... | ... | ... | Governance Mgr
 | Grant Module | Funding Module | ... | ... | ... | Governance Mgr
 | Quadratic Funding Module | Funding Module | ... | ... | ... | Governance Mgr
@@ -83,17 +83,21 @@ This layer provides the foundational smart contract architecture, ensuring the f
 
 
 # IgnitionZK Lifecycle
-### DAO creation & Membership Management
+### **Phase 1:** DAO creation & Membership Management
 
 ![Phase1](frontend/src/assets/DAOMembership.png)
 
-### DAO creation
+#### DAO creation
 1. DAO Initiation
 2. DAO NFT deployment
 3. DAO Member invitations
 4. Member ZK credential generation
 
-### Membership Management
+#### Membership Management
+### **Phase 2:** Proposal Submissions
+### **Phase 3:** Voting
+### **Phase 4:** Proposal Execution
+
 
 
 
