@@ -90,3 +90,27 @@ export async function updateMerkleTreeRootActiveStatus({ rootId, isActive }) {
 
   return data;
 }
+
+/**
+ * Atomically toggles the active status of Merkle tree roots for a group.
+ * Deactivates all current active roots and activates the specified new root.
+ * @param {Object} params - The parameters object
+ * @param {string} params.groupId - The ID of the group
+ * @param {string} params.newRootId - The ID of the new root to activate
+ * @returns {Promise<void>} Promise that resolves when the operation is complete
+ * @throws {Error} If required parameters are missing or if there's a database error
+ */
+export async function toggleMerkleTreeRootActive({ groupId, newRootId }) {
+  if (!groupId || !newRootId) {
+    throw new Error("groupId and newRootId are required");
+  }
+
+  const { error } = await supabase.rpc("toggle_merkle_root_active", {
+    p_group_id: groupId,
+    p_new_root_id: newRootId,
+  });
+
+  if (error) {
+    throw new Error(error.message);
+  }
+}

@@ -9,6 +9,12 @@ interface IMembershipManager {
     event GroupNftDeployed(bytes32 indexed groupKey, address indexed nftAddress, string name, string symbol);
     event MemberNftMinted(bytes32 indexed groupKey, address indexed memberAddress, uint256 tokenId);
     event MemberNftBurned(bytes32 indexed groupKey, address indexed memberAddress, uint256 tokenId);
+    event RoleRevoked(address indexed nftClone, bytes32 role, address indexed revokedFrom);
+    event RoleGranted(address indexed nftClone, bytes32 role, address indexed grantedTo);
+    event VerifierSet(address indexed verifier);
+    event NftImplementationSet(address indexed nftImplementation);
+    event ProposalManagerSet(address indexed proposalManager);
+    event VotingManagerSet(address indexed votingManager);
 
     // Custom errors
     error RootCannotBeZero();
@@ -32,6 +38,8 @@ interface IMembershipManager {
     error VerifierAddressCannotBeZero();
     error GovernorAddressCannotBeZero();
     error KeyCannotBeZero();
+    error AddressCannotBeZero();
+    error InvalidGroupKey();
 
     // Functions
     function initRoot(bytes32 initialRoot, bytes32 groupKey) external;
