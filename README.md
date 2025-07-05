@@ -124,16 +124,30 @@ The appointed administrator of a new DAO group extends invitations to the initia
 * The MembershipManager mints a new ERC721 membership NFT directly to each invited member's wallet.
 * These new DAO members are recorded via anonymized `group_member_id`s **off-chain** within ` ignitionzk.group_members`; there is **no on-chain storage** of individual member addresses or IDs.
 
-#### 4. Member ZK credential generation
+#### Step 1.3 Member ZK credential generation
 
 Only members actively holding one of the DAO's valid membership NFTs are eligible to proceed with generating their Zero-Knowledge credentials for private interactions within the DAO.
 
-#### Key Features:
-* 
+#### Key Methodology
+*Main Script: [generateCredentials.js](frontend/src/scripts/generateCredentials.js)*
 
-#### 5. Merkle Tree creation 
-#### 6. Off-Chain & On-Chain storage
-#### 7. Member verification methodology
+The cryptographic steps involved in securely generating a unique Zero-Knowledge identity for each DAO member are as follows:
+* **Mnemonic phrase generation:** A random 12-word mnemonic phrase is generated from 128 bits of entropy, serving as the foundational secret.
+* **Seed derivation:** A cryptographic seed is securely derived from this mnemonic phrase.
+* **Identity key derivation:** Using HKDF (HMAC-based Key Derivation Function) with the mnemonic seed, the essential trapdoor and nullifier keys are deterministically derived.
+* **Final identity components:** The ultimate identity trapdoor and identity nullifier values are then computed via the SNARK-friendly Poseidon hash function.
+* **Identity commmitment:** The final public identity commitment is calculated as a Poseidon hash of these two private components: `commitment = Poseidon(trapdoor, nullifier)` 
+#### Data Flow:
+
+* An eligible DAO member logs into their personal dashboard.
+* The member searches for and selects the specific DAO for which they are eligible to generate ZK credentials.
+* The chosen DAO group is added to their personal dashboard, and the member is prompted to generate their credentials.
+* Upon clicking "Generate Credentials," the member is securely presented with their newly generated mnemonic phrase.
+* The member's newly formed identity commitment is then stored off-chain in `ignitionzk.merkle_tree_leaves` (this commitment later contributes to the Merkle tree root on-chain).
+
+#### Step 1.4 Merkle Tree creation 
+#### Step 1.5 Off-Chain & On-Chain storage
+#### Step 1.6 Member verification methodology
 
 
 ### **Phase 2:** Proposal Submissions
