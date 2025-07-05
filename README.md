@@ -146,8 +146,7 @@ The cryptographic steps involved in securely generating a unique Zero-Knowledge 
 * The member's newly formed identity commitment is then stored off-chain in `ignitionzk.merkle_tree_leaves` (this commitment later contributes to the Merkle tree root on-chain).
 
 #### Step 1.4 Merkle Tree creation 
-#### Step 1.5 Off-Chain & On-Chain storage
-#### Step 1.6 Member verification methodology
+#### Step 1.5 Member verification methodology
 
 
 ### **Phase 2:** Proposal Submissions
