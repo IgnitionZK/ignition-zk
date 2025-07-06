@@ -3,7 +3,7 @@
 </p>
 
 <h1 align="center" style="font-weight: 700; font-size: 3rem; font-family: 'Segoe UI', sans-serif; margin: 0;">
-  IgnitionZK Treasury Framework
+  IgnitionZK
 </h1>
 
 <h3 align="center" style="font-weight: 400; font-size: 1.25rem; color: #666; font-style: italic; margin-top: 0.5rem;">
@@ -11,7 +11,7 @@
 </h3>
 
 <h2 align="center" style="font-weight: 500; font-size: 1.75rem; letter-spacing: 0.05em; margin-top: 1rem;">
-  ZK-Governed · Modular · Upgradeable
+  ZK-Governed · Modular · Upgradeable Treasury
 </h2>
 
 
@@ -127,7 +127,7 @@ This layer provides the foundational smart contract architecture, ensuring the f
 # IgnitionZK Lifecycle
 ### Phase 1: DAO Formation and Membership
 
-![Phase1](frontend/src/assets/DAOMembership.png)
+![DAO formation & membership](frontend/src/assets/Phase1_final.png)
 
 #### Step 1.1 DAO Initiation
 
@@ -248,8 +248,21 @@ Following the generation of a new member's identity commitment, the DAO's Merkle
 
 #### Step 1.5 Member Verification
 
-Whenever a DAO member wants to perform an action (proposal submission or voting on an existing proposal), they need to provide a proof that they are eligible to perform that action and that the action itself is valid.
+When a DAO member wants to perform an action, like submitting or voting on a proposal, they first need to prove they're an eligible member. This membership verification is a critical, integrated step within both the proposal submission and voting processes.
 
+<details>
+<summary>
+    <strong>Methodology</strong>
+</summary>
+
+1. **Mnemonic input:** The user starts by securely entering their mnemonic phrase.
+2. **ZK Credential Derivation:** From this mnemonic, we deterministically derive their identity trapdoor, a nullifier, and their final commitment. These are their essential ZK credentials.
+3. **Merkle Tree Check:** We then check if the derived identity commitment exists as a leaf in the DAO's Merkle Tree. If it does, we pinpoint its exact position within the tree.
+4. **Membership Proof Generation:** Using this known position, we generate a Merkle Proof of membership. This proof includes all the necessary sibling leaves (known as path elements) and their left/right positions (path indices) along the path from the user's leaf all the way up to the Merkle root.
+5. **Proof Assembly:** The complete input for this Membership Proof consists of the identity trapdoor, identity nullifier, the expected Merkle root, the path elements, the path indices, and a DAO identifier to provide context.
+6. **Validation by Membership Manager:** Finally, this assembled proof is sent to the Membership Manager. The manager then verifies the proof, confirming that the user is indeed a legitimate DAO member before allowing them to proceed with their action.
+
+</details>
 
 ### **Phase 2:** Proposal Submissions
 ### **Phase 3:** Voting
