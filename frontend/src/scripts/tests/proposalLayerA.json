@@ -1,8 +1,13 @@
+// Layer A Proposal JSON Schema
+// This JSON file represents the minimal outline of a funding proposal
+// Its contents will be hashed and stored on the blockchain
+
 {
   "title": "Proposal for New Feature",
-  "description": "This proposal outlines a new feature that aims to enhance user experience by introducing a customizable dashboard.",
+  "summary": "This proposal outlines a new feature that aims to enhance user experience by introducing a customizable dashboard.",
+  "budget": "10000000000000000000",  // 10 ETH in wei
+  "fundingTranches": 3,
   "metadata": {
-    "createdBy": "ZKcommitment",
     "encryptedContactInfo": "ciphertextOfContactInfo - encrypted with the DAO's or client side ephemeral public key",
     "createdAt": "2023-10-01T12:00:00Z"
   },
