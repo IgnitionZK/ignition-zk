@@ -313,15 +313,6 @@ contract GovernanceManager is Initializable, UUPSUpgradeable, OwnableUpgradeable
     }
 
     /**
-     * @notice Delegates the getGovernor call to the membership manager.
-     * @dev Only callable by the relayer.
-     * @return The address of the governor contract.
-     */
-    function delegateGetGovernor() external view onlyRelayer returns (address) {
-        return IMembershipManager(membershipManager).getGovernor();
-    }
-
-    /**
      * @notice Delegates the getNftImplementation call to the membership manager.
      * @dev Only callable by the relayer.
      * @return The address of the NFT implementation contract.

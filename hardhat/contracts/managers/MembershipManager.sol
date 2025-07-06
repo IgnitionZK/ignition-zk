@@ -555,15 +555,6 @@ contract MembershipManager is Initializable, UUPSUpgradeable, OwnableUpgradeable
     }
 
     /**
-     * @notice Retrieves the address of the governor contract.
-     * @dev Only callable by the owner (governor).
-     * @return address of the governor contract.
-     */
-    function getGovernor() external view onlyOwner returns (address) {
-        return owner();
-    }
-
-    /**
      * @notice Retrieves the maximum number of members that can be added in a single batch transaction.
      * @dev Only callable by the owner (governor).
      * @return The maximum batch size for member additions.
