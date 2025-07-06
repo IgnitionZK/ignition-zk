@@ -50,7 +50,6 @@ interface IMembershipManager {
     function getGroupNftAddress(bytes32 groupKey) external view returns (address);
     function getNullifierStatus(bytes32 groupKey, bytes32 nullifier) external view returns (bool);
     function getVerifier() external view returns (address);
-    function getGovernor() external view returns (address);
     function getNftImplementation() external view returns (address);
     function getMaxMembersBatch() external view returns (uint256);
     function mintNftToMember(address memberAddress, bytes32 groupKey) external;
