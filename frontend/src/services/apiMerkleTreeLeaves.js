@@ -10,19 +10,28 @@ import { supabase } from "./supabase";
  * @throws {Error} If there is an error during the database operation
  */
 export async function insertLeaf({ groupMemberId, commitment, groupId }) {
-  if (!groupMemberId | !commitment | !groupId) {
+  if (!groupMemberId || !commitment || !groupId) {
     throw new Error("groupMemberId, commitment and groupId are required.");
   }
+
+  const insertData = {
+    group_member_id: groupMemberId,
+    commitment_value: commitment,
+    group_id: groupId,
+    is_active: true,
+  };
+
+  console.log("📝 insertLeaf - Data to be inserted:", insertData);
 
   const { data, error } = await supabase
     .schema("ignitionzk")
     .from("merkle_tree_leaves")
-    .insert({
-      group_member_id: groupMemberId,
-      commitment_value: commitment,
-      group_id: groupId,
-    });
-  if (error) throw new Error(error.message);
+    .insert(insertData);
+
+  if (error) {
+    console.error("❌ insertLeaf - Database error:", error);
+    throw new Error(error.message);
+  }
 
   return data;
 }
