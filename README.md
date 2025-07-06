@@ -127,7 +127,7 @@ This layer provides the foundational smart contract architecture, ensuring the f
 # IgnitionZK Lifecycle
 ### Phase 1: DAO Formation and Membership
 
-![DAO formation & membership](frontend/src/assets/Phase1_final.png)
+![DAO formation & membership](frontend/src/assets/Phase1.png)
 
 #### Step 1.1 DAO Initiation
 
