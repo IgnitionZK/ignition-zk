@@ -185,7 +185,6 @@ function GenerateCredentialsOverlay({ group, onClose }) {
 
       // Step 1: Generate credentials (local computation)
       const result = await ZkCredential.generateCredentials(128);
-      setCredentials(result);
 
       if (!groupMemberId) {
         console.error("No group member ID available");
@@ -230,6 +229,9 @@ function GenerateCredentialsOverlay({ group, onClose }) {
           "Blockchain update succeeded but commitment insertion failed. Please contact support."
         );
       }
+
+      // Only set credentials after all operations are complete
+      setCredentials(result);
     } catch (error) {
       console.error("Error generating credentials:", error);
 
