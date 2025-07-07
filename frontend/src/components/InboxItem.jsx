@@ -3,6 +3,7 @@ import { useState } from "react";
 import CustomButton from "./CustomButton";
 import MnemonicInput from "./MnemonicInput";
 import ConfirmationModal from "./ConfirmationModal";
+import Spinner from "./Spinner";
 //import { useVerifyMembership } from "../hooks/queries/proofs/useVerifyMembership";
 import { useVerifyProposal } from "../hooks/queries/proofs/useVerifyProposal";
 import { useGetCommitmentArray } from "../hooks/queries/merkleTreeLeaves/useGetCommitmentArray";
@@ -80,6 +81,28 @@ const VotingTime = styled.span`
   gap: 0.4rem;
 `;
 
+// Loading Overlay Styles
+const LoadingOverlay = styled.div`
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.8);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 1001;
+`;
+
+const LoadingText = styled.p`
+  color: #fff;
+  font-size: 1.8rem;
+  margin-top: 16px;
+  text-align: center;
+`;
+
 function InboxItem({
   proposal = {},
   showSubmitButton = true,
@@ -88,6 +111,7 @@ function InboxItem({
   const [showMnemonicInput, setShowMnemonicInput] = useState(false);
   const [hasSubmittedProof, setHasSubmittedProof] = useState(false);
   const [showSubmitConfirm, setShowSubmitConfirm] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const { userGroups } = useGetUserGroups();
 
   const { isLoading: isLoadingCommitments, commitmentArray } =
@@ -150,6 +174,7 @@ function InboxItem({
 
   const handleSubmitMnemonic = async (mnemonic) => {
     setShowMnemonicInput(false);
+    setIsSubmitting(true);
 
     try {
       if (!commitmentArray) {
@@ -185,6 +210,8 @@ function InboxItem({
       }
     } catch (error) {
       console.error("Error submitting proof:", error);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -230,12 +257,15 @@ function InboxItem({
                 minWidth: "auto",
               }}
               disabled={
-                isLoadingCommitments || isVerifying || hasSubmittedProof
+                isLoadingCommitments ||
+                isVerifying ||
+                hasSubmittedProof ||
+                isSubmitting
               }
             >
               {isLoadingCommitments
                 ? "Loading..."
-                : isVerifying
+                : isVerifying || isSubmitting
                 ? "Verifying..."
                 : "Submit"}
             </CustomButton>
@@ -266,6 +296,23 @@ function InboxItem({
         onConfirm={handleConfirmSubmit}
         onCancel={handleCancelSubmit}
       />
+
+      {/* Loading Overlay */}
+      {isSubmitting && (
+        <LoadingOverlay>
+          <Spinner />
+          <LoadingText>Submitting proof...</LoadingText>
+          <LoadingText
+            style={{
+              fontSize: "1.4rem",
+              marginTop: "0.8rem",
+              color: "var(--color-grey-300)",
+            }}
+          >
+            This may take several minutes.
+          </LoadingText>
+        </LoadingOverlay>
+      )}
     </>
   );
 }
