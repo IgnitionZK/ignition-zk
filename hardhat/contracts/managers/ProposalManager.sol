@@ -159,7 +159,8 @@ contract ProposalManager is Initializable, OwnableUpgradeable, UUPSUpgradeable, 
 
     
     /**
-     * @inheritdoc IProposalManager
+     * @dev This function can only be called by the contract owner (governor).
+     * @custom:error AddressCannotBeZero If the provided verifier address is zero.
      */
     function setProposalVerifier(address _verifier) external onlyOwner nonZeroAddress(_verifier) {
         verifier = IProposalVerifier(_verifier);
@@ -167,7 +168,13 @@ contract ProposalManager is Initializable, OwnableUpgradeable, UUPSUpgradeable, 
     }
 
     /**
-     * @inheritdoc IProposalManager
+     * @dev This function can only be called by the contract owner (governor).
+     * @custom:error InvalidProof If the proof is invalid.
+     * @custom:error NullifierAlreadyUsed If the nullifier has already been used.
+     * @custom:error InvalidContextHash If the context hash does not match the expected value.
+     * @custom:error InvalidMerkleRoot If the provided Merkle root does not match the expected root.
+     * @custom:error RootNotYetInitialized If the Merkle root has not been initialized for the group.
+     * @custom:error KeyCannotBeZero If the provided context key is zero.
      */
     function verifyProposal(
         uint256[24] calldata proof,
@@ -208,21 +215,21 @@ contract ProposalManager is Initializable, OwnableUpgradeable, UUPSUpgradeable, 
 // ====================================================================================================================
 
     /**
-     * @inheritdoc IProposalManager
+     * @dev Only callable by the owner (governor).
      */
     function getProposalVerifier() external view onlyOwner returns (address) {
         return address(verifier);
     }
 
     /**
-     * @inheritdoc IProposalManager
+     * @dev Only callable by the owner (governor).
      */
     function getProposalNullifierStatus(bytes32 nullifier) external view onlyOwner returns (bool) {
         return proposalNullifiers[nullifier];
     }
 
     /**
-     * @inheritdoc IProposalManager
+     * @dev Only callable by the owner (governor).
      */
     function getProposalSubmission(bytes32 contextKey) external view onlyOwner returns (bytes32) {
         return proposalSubmissions[contextKey];

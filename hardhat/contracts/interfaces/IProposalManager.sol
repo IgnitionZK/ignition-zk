@@ -9,25 +9,16 @@ interface IProposalManager {
 
     /**
      * @notice Sets the address of the proposal verifier contract.
-     * @dev This function can only be called by the contract owner (governor).
      * @param _verifier The address of the new proposal verifier contract.
-     * @custom:error AddressCannotBeZero If the provided verifier address is zero.
      */
     function setProposalVerifier(address _verifier) external;
 
     /**
      * @notice Verifies a zk-SNARK proof for a proposal submission.
-     * @dev This function can only be called by the contract owner (governor).
      * @param proof The zk-SNARK proof to verify.
      * @param publicSignals The public signals associated with the proof.
      * @param contextKey The pre-computed context hash (group, epoch).
      * @param currentRoot The current Merkle root from the MembershipManager contract.
-     * @custom:error InvalidProof If the proof is invalid.
-     * @custom:error NullifierAlreadyUsed If the nullifier has already been used.
-     * @custom:error InvalidContextHash If the context hash does not match the expected value.
-     * @custom:error InvalidMerkleRoot If the provided Merkle root does not match the expected root.
-     * @custom:error RootNotYetInitialized If the Merkle root has not been initialized for the group.
-     * @custom:error KeyCannotBeZero If the provided context key is zero.
      */
     function verifyProposal(
         uint256[24] calldata proof,
@@ -42,7 +33,6 @@ interface IProposalManager {
      
      /**
      * @notice Returns the address of the proposal verifier contract.
-     * @dev Only callable by the owner (governor).
      * @return address of the proposal verifier contract.
      */
     function getProposalVerifier() external view returns (address);
