@@ -2,6 +2,7 @@
 pragma solidity ^0.8.28;
 
 // interfaces imports:
+import {IProposalManager} from "../interfaces/IProposalManager.sol";
 import {IProposalVerifier} from "../interfaces/IProposalVerifier.sol";
 import {IMembershipManager} from "../interfaces/IMembershipManager.sol";
 
@@ -11,30 +12,54 @@ import { Initializable } from "@openzeppelin/contracts-upgradeable/proxy/utils/I
 import { OwnableUpgradeable } from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 
 // tracks proposal submissions and verifications (pre-vote phase)
-contract ProposalManager is Initializable, OwnableUpgradeable, UUPSUpgradeable {
+contract ProposalManager is Initializable, OwnableUpgradeable, UUPSUpgradeable, IProposalManager {
 
 // ====================================================================================================================
 //                                                  CUSTOM ERRORS
 // ====================================================================================================================
-     // Merkle Root errors:
+    
+    // ====================================================================================================
+    // MERKLE ROOT ERRORS
+    // ====================================================================================================
+
+    /// @notice Thrown if the provided Merkle root does not match the expected root.
     error InvalidMerkleRoot();
+
+    /// @notice Thrown if a Merkle root has not been initialized for a group.
     error RootNotYetInitialized();
 
-    // Proof errors:
+    // ====================================================================================================
+    // PROOF ERRORS
+    // ====================================================================================================
+    
+    /// @notice Thrown if the zk-SNARK proof is invalid.
+    /// @param contextKey The unique context key for the proposal, derived from groupKey and epochKey.
+    /// @param nullifier The nullifier associated with the proof.
     error InvalidProof(bytes32 contextKey, bytes32 nullifier);
+    
+    /// @notice Thrown if the nullifier has already been used.
     error NullifierAlreadyUsed();
+    
+    /// @notice Thrown if the context hash does not match the expected value.
     error InvalidContextHash();
+
+    /// @notice Thrown if the content hash of the proposal does not match the expected value.
     error InvalidContentHash();
-    // General errors:
-    error VerifierAddressCannotBeZero();
-    error GovernorAddressCannotBeZero();
+    
+    // ====================================================================================================
+    // GENERAL ERRORS
+    // ====================================================================================================
+
+    /// @notice Thrown if the provided address is zero.
     error AddressCannotBeZero();
 
+    /// @notice Thrown if the provided key (groupKey or contextKey) is zero.
     error KeyCannotBeZero();
 
 // ====================================================================================================================
 //                                                  EVENTS
 // ====================================================================================================================
+    
     /**
      * @notice Emitted when a proof is successfully verified.
      * @param contextKey The unique context key for the proposal, derived from groupKey and epochKey.
@@ -42,6 +67,7 @@ contract ProposalManager is Initializable, OwnableUpgradeable, UUPSUpgradeable {
      * @param contentHash The hash of the proposal content.
      */
     event ProofVerified(bytes32 indexed contextKey, bytes32 indexed nullifier, bytes32 indexed contentHash);
+    
     /**
      * @notice Emitted when the verifier address is set.
      * @param verifierAddress The address of the new verifier contract.
@@ -54,22 +80,17 @@ contract ProposalManager is Initializable, OwnableUpgradeable, UUPSUpgradeable {
 // ====================================================================================================================
 
     // Mappings:
+
+    /// @dev Maps proposal nullifiers to their status (true if the proposal is already submitted / active).
     mapping(bytes32 => bool) private proposalNullifiers; // proposalNullifier => true if the proposal is already submitted / active
+    
+    /// @dev Maps context keys (groupKey + epochKey) to proposal content hashes.
     mapping(bytes32 => bytes32) private proposalSubmissions; // contextKey => contentHash
 
-    // is a struct necessayry here?
-    // If we want to store more information about the proposal submission, we can use a struct
-    // For now, we only store the content hash of the proposal submission.
-    /* 
-    struct ProposalSubmissions {
-        bytes32 contentHash; // hash of the proposal content
-        bool isDeleted; // true if the proposal is deleted
-    }
-
-    mapping(bytes32 => ProposalSubmissions) private proposalSubmissionsMap; // contextKey => ProposalSubmissions
-    */
-
+    // Addresses:
+    /// @dev The address of the proposal verifier contract.
     IProposalVerifier private verifier;
+
 // ====================================================================================================================
 //                                                  MODIFIERS
 // ====================================================================================================================
@@ -113,18 +134,20 @@ contract ProposalManager is Initializable, OwnableUpgradeable, UUPSUpgradeable {
      * after the proxy is deployed. It sets the initial verifier and governor.
      * @param _verifier The address of the zk-SNARK verifier contract.
      * @param _governor The address of the governor (DAO) contract.
-     * @custom:error VerifierAddressCannotBeZero If the provided verifier address is zero.
-     * @custom:error GovernorAddressCannotBeZero If the provided governor address is zero.
+     * @custom:error AddressCannotBeZero If the provided verifier or governor address is zero.
      */
     function initialize(
         address _verifier, 
         address _governor
-    ) external initializer {
+    ) 
+        external 
+        initializer 
+        nonZeroAddress(_verifier) 
+        nonZeroAddress(_governor) 
+    {
         // this makes the MembershipManager owner == governor so that only the governor can update the MembershipManager logic
         __Ownable_init(_governor);
         __UUPSUpgradeable_init();
-        if (_verifier == address(0)) revert VerifierAddressCannotBeZero();
-        if (_governor == address(0)) revert GovernorAddressCannotBeZero();
 
         verifier = IProposalVerifier(_verifier);
         emit VerifierAddressSet(_verifier);
@@ -134,11 +157,9 @@ contract ProposalManager is Initializable, OwnableUpgradeable, UUPSUpgradeable {
 //                                       EXTERNAL STATE-CHANGING FUNCTIONS
 // ====================================================================================================================
 
+    
     /**
-     * @notice Sets the address of the proposal verifier contract.
-     * @dev This function can only be called by the contract owner (governor).
-     * @param _verifier The address of the new proposal verifier contract.
-     * @custom:error VerifierAddressCannotBeZero If the provided verifier address is zero.
+     * @inheritdoc IProposalManager
      */
     function setProposalVerifier(address _verifier) external onlyOwner nonZeroAddress(_verifier) {
         verifier = IProposalVerifier(_verifier);
@@ -146,12 +167,7 @@ contract ProposalManager is Initializable, OwnableUpgradeable, UUPSUpgradeable {
     }
 
     /**
-     * @notice Verifies a zk-SNARK proof for a proposal submission.
-     * @dev This function can only be called by the contract owner (governor).
-     * @param proof The zk-SNARK proof to verify.
-     * @param publicSignals The public signals associated with the proof.
-     * @param contextKey The pre-computed context hash (group, epoch).
-     * @custom:error InvalidProof If the proof is invalid.
+     * @inheritdoc IProposalManager
      */
     function verifyProposal(
         uint256[24] calldata proof,
@@ -186,32 +202,27 @@ contract ProposalManager is Initializable, OwnableUpgradeable, UUPSUpgradeable {
 
         emit ProofVerified(contextKey, nullifier, proofContentHash);
     }
+
 // ====================================================================================================================
 //                                       EXTERNAL VIEW FUNCTIONS
 // ====================================================================================================================
 
     /**
-     * @notice Returns the address of the proposal verifier contract.
-     * @dev Only callable by the owner (governor).
-     * @return address of the proposal verifier contract.
+     * @inheritdoc IProposalManager
      */
     function getProposalVerifier() external view onlyOwner returns (address) {
         return address(verifier);
     }
 
     /**
-     * @notice Returns the nullifier status for a given nullifier.
-     * @param nullifier The nullifier to check.
-     * @return bool indicating whether the nullifier has been used.
+     * @inheritdoc IProposalManager
      */
     function getProposalNullifierStatus(bytes32 nullifier) external view onlyOwner returns (bool) {
         return proposalNullifiers[nullifier];
     }
 
     /**
-     * @notice Returns the content hash of a proposal submission for a given context key.
-     * @param contextKey The unique context key for the proposal, derived from groupKey and epochKey.
-     * @return bytes32 The content hash of the proposal submission.
+     * @inheritdoc IProposalManager
      */
     function getProposalSubmission(bytes32 contextKey) external view onlyOwner returns (bytes32) {
         return proposalSubmissions[contextKey];

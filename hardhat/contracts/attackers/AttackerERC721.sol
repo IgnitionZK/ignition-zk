@@ -2,11 +2,8 @@
 pragma solidity ^0.8.28;
 
 import "../managers/MembershipManager.sol";
-import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
-
-interface IMembershipManager {
-    function mintNftToMember(address memberAddress, bytes32 groupKey) external;
-}
+import { IMembershipManager } from "../interfaces/IMembershipManager.sol";
+import { ERC721 } from "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 
 contract AttackerERC721 is ERC721 {
 
