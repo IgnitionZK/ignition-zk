@@ -12,7 +12,9 @@ import { OwnableUpgradeable } from "@openzeppelin/contracts-upgradeable/access/O
 
 /**
  * @title GovernanceManager
- * @dev Manages governance-related functions and access control.
+ * @notice This contract manages governance-related functions and access control for the IgnitionZK protocol.
+ * It allows for delegation of membership management and proposal verification tasks to designated relayers.
+ * The contract is upgradeable and follows the UUPS pattern, ensuring that governance can adapt to future requirements.
  */
 
 contract GovernanceManager is Initializable, UUPSUpgradeable, OwnableUpgradeable {
@@ -21,12 +23,27 @@ contract GovernanceManager is Initializable, UUPSUpgradeable, OwnableUpgradeable
 //                                                  CUSTOM ERRORS
 // ====================================================================================================================
 
-    // Authorization errors:
+    // ====================================================================================================
+    // AUTHORIZATION ERRORS
+    // ====================================================================================================
+
+    /// @notice Thrown if a function is called by an address that is not the designated relayer.
     error OnlyRelayerAllowed();
-    // General errors
+
+    // ====================================================================================================
+    // GENERAL ERRORS
+    // ====================================================================================================
+
+    /// @notice Thrown if the relayer address is zero.
     error RelayerAddressCannotBeZero();
+
+    /// @notice Thrown if the membership manager address is zero.
     error MembershipAddressCannotBeZero();
+
+    /// @notice Thrown if the proposal manager address is zero.
     error ProposalAddressCannotBeZero();
+
+    /// @notice Thrown if the new relayer address is the same as the current one.
     error NewRelayerMustBeDifferent();
 
 // ====================================================================================================================
@@ -58,8 +75,10 @@ contract GovernanceManager is Initializable, UUPSUpgradeable, OwnableUpgradeable
 
     /// @dev The address of the designated relayer, authorized to update roots and verify proofs.
     address private relayer;
+    
     /// @dev The address of the membership manager
     address private membershipManager;
+    
     /// @dev The address of the proposal manager
     address private proposalManager;
 
@@ -137,9 +156,9 @@ contract GovernanceManager is Initializable, UUPSUpgradeable, OwnableUpgradeable
 // ====================================================================================================================
 // ====================================================================================================================
 
-// ====================================================================================================================
-//                           1. MembershipManager Delegation Functions
-// ====================================================================================================================
+    // ================================================================================================================
+    // 1. MembershipManager Delegation Functions
+    // ================================================================================================================
 
     /**
      * @notice Sets a new membership manager address.
@@ -260,9 +279,9 @@ contract GovernanceManager is Initializable, UUPSUpgradeable, OwnableUpgradeable
         IMembershipManager(membershipManager).grantBurnerRole(nftClone, grantTo);
     }
 
-// ====================================================================================================================
-//                           2. ProposalManager Delegation Functions
-// ====================================================================================================================
+    // ================================================================================================================
+    // 2. ProposalManager Delegation Functions
+    // ================================================================================================================
 
     /**
      * @notice Delegates the verifyProposal call to the proposal manager.
@@ -288,10 +307,9 @@ contract GovernanceManager is Initializable, UUPSUpgradeable, OwnableUpgradeable
 // ====================================================================================================================
 
   
-// ====================================================================================================================
-//                           1. MembershipManager Delegation Functions
-// ====================================================================================================================
-
+    // ================================================================================================================
+    // 1. MembershipManager Delegation Functions
+    // ================================================================================================================
 
     /**
      * @notice Delegates the getRoot call to the membership manager.
@@ -351,9 +369,9 @@ contract GovernanceManager is Initializable, UUPSUpgradeable, OwnableUpgradeable
         return IMembershipManager(membershipManager).getNullifierStatus(groupKey, nullifier);
     }
 
-// ====================================================================================================================
-//                           2. ProposalManager Delegation Functions
-// ====================================================================================================================
+    // ================================================================================================================
+    // 2. ProposalManager Delegation Functions
+    // ================================================================================================================
 
     /**
      * @notice Delegates the getProposalVerifier call to the proposal manager.
@@ -409,7 +427,7 @@ contract GovernanceManager is Initializable, UUPSUpgradeable, OwnableUpgradeable
 // ====================================================================================================================
 
     /**
-     * @notice Gets the current Merkle root for a specific group.
+     * @dev Gets the current Merkle root for a specific group.
      * @param groupKey The unique identifier for the group.
      * @return The current Merkle root for the specified group.
      */
