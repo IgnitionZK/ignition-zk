@@ -3,6 +3,7 @@ require("@openzeppelin/hardhat-upgrades");
 require("@nomicfoundation/hardhat-ignition"); 
 require("hardhat-contract-sizer");
 require("dotenv").config();
+require('hardhat-docgen');
 
 /** @type import('hardhat/config').HardhatUserConfig */
 module.exports = {
@@ -13,6 +14,11 @@ module.exports = {
       //viaIR: true,                                   // ▶ 5‑10 % size drop
       // metadata: { bytecodeHash: "none" }             // saves ±120 bytes
     },
+  },
+  docgen: {
+    path: './docs', // Output directory for generated docs
+    clear: true,   // Clear previous docs before generating new ones
+    runOnCompile: false, // Don't run automatically on every compile
   },
   contractSizer: {
     alphaSort: true,

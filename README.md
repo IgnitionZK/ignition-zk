@@ -1,18 +1,20 @@
 <p align="center">
-  <img src="frontend/src/assets/logo.png" alt="IgnitionZK Logo" width="120" style="margin-bottom: 1rem;" />
+  <img src="frontend/src/assets/logo-transparent-bg.png" alt="IgnitionZK Logo" width="120" style="margin-bottom: 1rem;" />
 </p>
 
 <h1 align="center" style="font-weight: 700; font-size: 3rem; font-family: 'Segoe UI', sans-serif; margin: 0;">
   IgnitionZK
 </h1>
 
-<h3 align="center" style="font-weight: 400; font-size: 1.25rem; color: #666; font-style: italic; margin-top: 0.5rem;">
-  For high-impact DAOs with trustless, closed-group control
-</h3>
-
 <h2 align="center" style="font-weight: 500; font-size: 1.75rem; letter-spacing: 0.05em; margin-top: 1rem;">
   ZK-Governed · Modular · Upgradeable Treasury
 </h2>
+
+<h3 align="center" style="font-weight: 400; font-size: 1.25rem; color: #666; margin-top: 0.5rem;">
+  For High-Impact Closed-Group DAOs
+</h3>
+
+---
 
 
 * [Introducing IgnitionZK](#introducing-ignitionzk)

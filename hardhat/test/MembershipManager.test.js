@@ -73,7 +73,7 @@ describe("MembershipManager", function () {
             }
         );
         await membershipManager.waitForDeployment();
-
+        
         groupId = '123e4567-e89b-12d3-a456-426614174000'; // Example UUID
         groupKey = Conversions.stringToBytes32(groupId);
         rootHash = Conversions.stringToBytes32("rootHash");
@@ -111,6 +111,7 @@ describe("MembershipManager", function () {
     });
 
     // TEST CASES
+
     it("deployment: should deploy NFTImplementation, MembershipManager, MembershipVerifier and AttackerERC721 contracts", async function () {
         expect(membershipManager.target).to.be.properAddress;
         expect(membershipVerifier.target).to.be.properAddress;
