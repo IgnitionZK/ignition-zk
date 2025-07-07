@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="frontend/src/assets/logo.png" alt="IgnitionZK Logo" width="120" style="margin-bottom: 1rem;" />
+  <img src="frontend/src/assets/logo-transparent-bg.png" alt="IgnitionZK Logo" width="120" style="margin-bottom: 1rem;" />
 </p>
 
 <h1 align="center" style="font-weight: 700; font-size: 3rem; font-family: 'Segoe UI', sans-serif; margin: 0;">
