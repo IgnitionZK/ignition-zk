@@ -32,14 +32,23 @@ contract ProposalManager is Initializable, OwnableUpgradeable, UUPSUpgradeable, 
     // PROOF ERRORS
     // ====================================================================================================
     
-    /// @notice Thrown if the zk-SNARK proof is invalid.
+    /// @notice Thrown if the zk-SNARK proposal submission proof is invalid.
     /// @param contextKey The unique context key for the proposal, derived from groupKey and epochKey.
-    /// @param nullifier The nullifier associated with the proof.
-    error InvalidProof(bytes32 contextKey, bytes32 nullifier);
-    
-    /// @notice Thrown if the nullifier has already been used.
-    error NullifierAlreadyUsed();
-    
+    /// @param submissionNullifier The submission nullifier associated with the proof.
+    error InvalidSubmissionProof(bytes32 contextKey, bytes32 submissionNullifier);
+
+    /// @notice Thrown if the zk-SNARK proposal claim proof is invalid.
+    /// @param contextKey The unique context key for the proposal, derived from groupKey and epochKey.
+    /// @param claimNullifier The claim nullifier associated with the proof.
+    /// @param submissionNullifier The submission nullifier associated with the proof.
+    error InvalidClaimProof(bytes32 contextKey, bytes32 claimNullifier, bytes32 submissionNullifier);
+
+    /// @notice Thrown if the submission nullifier has already been used.
+    error SubmissionNullifierAlreadyUsed();
+
+    /// @notice Thrown if the claim nullifier has already been used.
+    error ClaimNullifierAlreadyUsed();
+
     /// @notice Thrown if the context hash does not match the expected value.
     error InvalidContextHash();
 
@@ -63,33 +72,48 @@ contract ProposalManager is Initializable, OwnableUpgradeable, UUPSUpgradeable, 
     /**
      * @notice Emitted when a proof is successfully verified.
      * @param contextKey The unique context key for the proposal, derived from groupKey and epochKey.
-     * @param nullifier The nullifier associated with the proof.
+     * @param submissionNullifier The submission nullifier associated with the proof.
      * @param contentHash The hash of the proposal content.
      */
-    event ProofVerified(bytes32 indexed contextKey, bytes32 indexed nullifier, bytes32 indexed contentHash);
+    event SubmissionVerified(bytes32 indexed contextKey, bytes32 indexed submissionNullifier, bytes32 indexed contentHash);
     
     /**
-     * @notice Emitted when the verifier address is set.
-     * @param verifierAddress The address of the new verifier contract.
+     * @notice Emitted when a proposal claim is successfully verified.
+     * @param contextKey The unique context key for the proposal, derived from groupKey and epochKey.
+     * @param claimNullifier The claim nullifier associated with the proof.
+     * @param submissionNullifier The submission nullifier associated with the proof.
      */
-    event VerifierAddressSet(address indexed verifierAddress);
+    event ClaimVerified(bytes32 indexed contextKey, bytes32 indexed claimNullifier, bytes32 indexed submissionNullifier);
+    
+    /**
+     * @notice Emitted when the proposal submission verifier address is set.
+     * @param _submissionVerifier The address of the new proposal submission verifier contract.
+     */
+    event SubmissionVerifierAddressSet(address indexed _submissionVerifier);
 
+    /**
+     * @notice Emitted when the claim verifier address is set.
+     * @param _claimVerifier The address of the new claim verifier contract.
+     */
+    event ClaimVerifierAddressSet(address indexed _claimVerifier);
+    
 // ====================================================================================================================
 //                                          STATE VARIABLES
 // NOTE: Once the contract is deployed do not change the order of the variables. If this contract is updated append new variables to the end of this list. 
 // ====================================================================================================================
-
-    // Mappings:
-
-    /// @dev Maps proposal nullifiers to their status (true if the proposal is already submitted / active).
-    mapping(bytes32 => bool) private proposalNullifiers; // proposalNullifier => true if the proposal is already submitted / active
     
-    /// @dev Maps context keys (groupKey + epochKey) to proposal content hashes.
-    mapping(bytes32 => bytes32) private proposalSubmissions; // contextKey => contentHash
+    /// @dev The mapping of proposal submissions nullifiers. Key: submissionNullifier => true if the submission nullifier has been used
+    mapping(bytes32 => bool) private submissionNullifiers; 
+    
+    /// @dev The mapping of proposal claim nullifiers. Key: claimNullifier => true if the claim nullifier has been used
+    mapping(bytes32 => bool) private claimNullifiers; 
 
     // Addresses:
-    /// @dev The address of the proposal verifier contract.
-    IProposalVerifier private verifier;
+    /// @dev The address of the proposal submission verifier contract.
+    IProposalVerifier private submissionVerifier;
+
+    /// @dev The address of the proposal claim verifier contract.
+    IProposalClaimVerifier private claimVerifier;
 
 // ====================================================================================================================
 //                                                  MODIFIERS
@@ -137,20 +161,23 @@ contract ProposalManager is Initializable, OwnableUpgradeable, UUPSUpgradeable, 
      * @custom:error AddressCannotBeZero If the provided verifier or governor address is zero.
      */
     function initialize(
-        address _verifier, 
-        address _governor
+        address _governor,
+        address _submissionVerifier, 
+        address _claimVerifier
     ) 
         external 
         initializer 
-        nonZeroAddress(_verifier) 
         nonZeroAddress(_governor) 
+        nonZeroAddress(_submissionVerifier) 
+        nonZeroAddress(_claimVerifier)
     {
-        // this makes the MembershipManager owner == governor so that only the governor can update the MembershipManager logic
         __Ownable_init(_governor);
         __UUPSUpgradeable_init();
 
-        verifier = IProposalVerifier(_verifier);
-        emit VerifierAddressSet(_verifier);
+        submissionVerifier = IProposalVerifier(_submissionVerifier);
+        claimVerifier = IProposalClaimVerifier(_claimVerifier);
+        emit SubmissionVerifierAddressSet(_submissionVerifier);
+        emit ClaimVerifierAddressSet(_claimVerifier);
     }
 
 // ====================================================================================================================
@@ -162,9 +189,18 @@ contract ProposalManager is Initializable, OwnableUpgradeable, UUPSUpgradeable, 
      * @dev This function can only be called by the contract owner (governor).
      * @custom:error AddressCannotBeZero If the provided verifier address is zero.
      */
-    function setProposalVerifier(address _verifier) external onlyOwner nonZeroAddress(_verifier) {
-        verifier = IProposalVerifier(_verifier);
-        emit VerifierAddressSet(_verifier);
+    function setProposalSubmissionVerifier(address _submissionVerifier) external onlyOwner nonZeroAddress(_submissionVerifier) {
+        submissionVerifier = IProposalSubmissionVerifier(_submissionVerifier);
+        emit SubmissionVerifierAddressSet(_submissionVerifier);
+    }
+
+    /**
+     * @dev This function can only be called by the contract owner (governor).
+     * @custom:error AddressCannotBeZero If the provided verifier address is zero.
+     */
+    function setProposalClaimVerifier(address _claimVerifier) external onlyOwner nonZeroAddress(_claimVerifier) {
+        claimVerifier = IProposalClaimVerifier(_claimVerifier);
+        emit ClaimVerifierAddressSet(_claimVerifier);
     }
 
     /**
@@ -184,7 +220,7 @@ contract ProposalManager is Initializable, OwnableUpgradeable, UUPSUpgradeable, 
     ) external onlyOwner nonZeroKey(contextKey) {
 
         bytes32 proofContextHash = bytes32(publicSignals[0]);
-        bytes32 nullifier = bytes32(publicSignals[1]);
+        bytes32 proofSubmissionNullifier = bytes32(publicSignals[1]);
         bytes32 proofRoot = bytes32(publicSignals[2]);
         bytes32 proofContentHash = bytes32(publicSignals[3]);
 
@@ -193,39 +229,76 @@ contract ProposalManager is Initializable, OwnableUpgradeable, UUPSUpgradeable, 
         if (proofRoot != currentRoot) revert InvalidMerkleRoot();
 
         // Check if the proposal is already submitted
-        if (proposalNullifiers[nullifier]) revert NullifierAlreadyUsed();
+        if (submissionNullifiers[proofSubmissionNullifier]) revert NullifierAlreadyUsed();
 
         // check proposalContextHash matches the one in the public signals
         if (proofContextHash != contextKey) revert InvalidContextHash();
         
         // Verify the proof using the verifier contract
-        bool isValid = verifier.verifyProof(proof, publicSignals);
-        if (!isValid) {
-            revert InvalidProof(contextKey, nullifier);
+        bool isValidSubmission = submissionVerifier.verifyProof(proof, publicSignals);
+        if (!isValidSubmission) {
+            revert InvalidSubmissionProof(contextKey, proofSubmissionNullifier);
         }
-        // If all checks pass, mark the nullifier as used and store the proposal submission
-        proposalNullifiers[nullifier] = true;
-        proposalSubmissions[contextKey] = proofContentHash;
+        // If all checks pass, mark the nullifier as used:
+        submissionNullifiers[proofSubmissionNullifier] = true;
 
-        emit ProofVerified(contextKey, nullifier, proofContentHash);
+        emit SubmissionVerified(contextKey, proofSubmissionNullifier, proofContentHash);
     }
 
-// ====================================================================================================================
-//                                       EXTERNAL VIEW FUNCTIONS
-// ====================================================================================================================
+    function verifyProposalClaim(
+        uint256[24] calldata proof,
+        uint256[2] calldata publicSignals,
+        bytes32 contextKey
+    ) external onlyOwner nonZeroKey(contextKey) {
+
+        bytes32 ProofClaimNullifier = bytes32(publicSignals[0]);
+        bytes32 ProofSubmissionNullifier = bytes32(publicSignals[1]);
+        bytes32 ProofProposalContextHash = bytes32(publicSignals[2]);
+
+        // Check if the proposal has been submitted
+        if(!submissionNullifiers[ProofSubmissionNullifier]) revert ProposalHasNotBeenSubmitted();
+
+        // Check if the claim nullifier has already been used
+        if(claimNullifiers[ProofClaimNullifier]) revert ProposalHasAlreadyBeenClaimed();
+
+        // Check if the context hash matches the one in the public signals
+        if(ProofProposalContextHash != contextKey) revert InvalidContextHash();
+
+        bool isValidClaim = claimVerifier.verifyProof(proof, publicSignals);
+        if(!isValidClaim) {
+            revert InvalidClaimProof(contextKey, ProofClaimNullifier, ProofSubmissionNullifier);
+        }
+
+        claimNullifiers[ProofClaimNullifier] = true;
+        emit ClaimVerified(contextKey, ProofClaimNullifier, ProofSubmissionNullifier);
+    }
 
     /**
      * @dev Only callable by the owner (governor).
      */
-    function getProposalVerifier() external view onlyOwner returns (address) {
-        return address(verifier);
+    function getProposalSubmissionVerifier() external view onlyOwner returns (address) {
+        return address(submissionVerifier);
+    }
+
+     /**
+     * @dev Only callable by the owner (governor).
+     */
+    function getProposalClaimVerifier() external view onlyOwner returns (address) {
+        return address(claimVerifier);
     }
 
     /**
      * @dev Only callable by the owner (governor).
      */
-    function getProposalNullifierStatus(bytes32 nullifier) external view onlyOwner returns (bool) {
-        return proposalNullifiers[nullifier];
+    function getSubmissionNullifierStatus(bytes32 nullifier) external view onlyOwner returns (bool) {
+        return submissionNullifiers[nullifier];
+    }
+
+     /**
+     * @dev Only callable by the owner (governor).
+     */
+    function getClaimNullifierStatus(bytes32 nullifier) external view onlyOwner returns (bool) {
+        return claimNullifiers[nullifier];
     }
 
     /**
@@ -234,7 +307,5 @@ contract ProposalManager is Initializable, OwnableUpgradeable, UUPSUpgradeable, 
     function getProposalSubmission(bytes32 contextKey) external view onlyOwner returns (bytes32) {
         return proposalSubmissions[contextKey];
     }
-
-
 
 }
