@@ -22,7 +22,7 @@ interface IProposalManager {
      */
     function verifyProposal(
         uint256[24] calldata proof,
-        uint256[4] calldata publicSignals,
+        uint256[5] calldata publicSignals,
         bytes32 contextKey, 
         bytes32 currentRoot
     ) external;

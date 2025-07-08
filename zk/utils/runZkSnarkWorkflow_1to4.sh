@@ -1,8 +1,8 @@
 #!/bin/bash
 
-export CIRCUIT_FILENAME="proposal_circuit"
-export CIRCUIT_PATH="proposal"
-export CONTRACT_NAME="ProposalVerifier"
+export CIRCUIT_FILENAME="proposal_claim_circuit"
+export CIRCUIT_PATH="proposal-claim"
+export CONTRACT_NAME="ProposalClaimVerifier"
 export PTAU_POWER=14
 trusted_setup=false
 
