@@ -45,15 +45,19 @@ template ProposalSubmissionProof(treeLevels) {
      * @notice proposalTitleHash: the hash of the proposal title.
      * @notice proposalDescriptionHash: the hash of the proposal description.
      * @notice proposalPayloadHash: the hash of the proposal payload.
+     * @notice proposalMetadataHash: the hash of the proposal metadata.
+     * @notice proposalFundingHash: the hash of the proposal funding.
      * @dev These values are used to compute the proposal content hash.
      */
     signal input proposalTitleHash;
     signal input proposalDescriptionHash;
     signal input proposalPayloadHash;
+    signal input proposalMetadataHash; 
+    signal input proposalFundingHash;
 
     /**
-     * @notice groupHash: the hash of the group context, which is used to derive the proposal nullifier.
-     * @notice epochHash: the hash of the epoch context, which is used to derive the proposal nullifier.
+     * @notice groupHash: the hash of the group context, which is used to derive the proposal submission nullifier.
+     * @notice epochHash: the hash of the epoch context, which is used to derive the proposal submission nullifier.
      */
     signal input groupHash; // context(group)
     signal input epochHash; // context(epoch)
@@ -71,22 +75,23 @@ template ProposalSubmissionProof(treeLevels) {
     member.pathElements <== pathElements;
     member.pathIndices <== pathIndices;
 
-    // the following may not be needed
     //signal output membershipNullifier;
     //membershipNullifier <== member.publicNullifier;
 
     /**
-     * @notice computedProposalContentHash: the hash of the proposal content, computed from the title, description, and payload hashes.
-     * @dev This is done using the Poseidon hash function with three inputs: title, description, and payload hashes.
+     * @notice computedProposalContentHash: the hash of the proposal content, computed from the title, description, funding, metadata and payload hashes.
+     * @dev This is done using the Poseidon hash function with five inputs: title, description, funding, metadata, and payload hashes.
      * The computed hash is then compared to the provided proposalContentHash.
-     * @dev This ensures that the proposal content is valid and matches the expected hash.
+     * This ensures that the proposal content is valid and matches the expected hash.
      */
 
     signal computedProposalContentHash;
-    component contentHash = Poseidon(3);
+    component contentHash = Poseidon(5);
     contentHash.inputs[0] <== proposalTitleHash;
     contentHash.inputs[1] <== proposalDescriptionHash;
-    contentHash.inputs[2] <== proposalPayloadHash;
+    contentHash.inputs[2] <== proposalFundingHash; 
+    contentHash.inputs[3] <== proposalMetadataHash; 
+    contentHash.inputs[4] <== proposalPayloadHash;
     computedProposalContentHash <== contentHash.out;
 
     computedProposalContentHash === proposalContentHash;
@@ -103,16 +108,29 @@ template ProposalSubmissionProof(treeLevels) {
     proposalContextHash <== contextHash.out;
 
     /**
-     * @notice proposalNullifier: the final nullifier that is computed from the proposalContextHash and proposalContentHash.
+     * @notice proposalSubmissionNullifier: the final nullifier that is computed from the proposalContextHash and proposalContentHash.
      * @dev This is done using the Poseidon hash function with two inputs: proposalContextHash and proposalContentHash.
      * The resulting hash is used to ensure that the proposal is unique within the context of the group and epoch.
-     * @dev This prevents duplicate proposals from being submitted for the same group and epoch.
+     * This prevents duplicate proposals from being submitted for the same group and epoch.
      */
-    signal output proposalNullifier;
-    component proposalNullifierHash = Poseidon(2);
-    proposalNullifierHash.inputs[0] <== proposalContextHash;
-    proposalNullifierHash.inputs[1] <== computedProposalContentHash;
-    proposalNullifier <== proposalNullifierHash.out;
+    signal output proposalSubmissionNullifier;
+    component proposalSubmissionNullifierHash = Poseidon(2);
+    proposalSubmissionNullifierHash.inputs[0] <== proposalContextHash;
+    proposalSubmissionNullifierHash.inputs[1] <== computedProposalContentHash;
+    proposalSubmissionNullifier <== proposalSubmissionNullifierHash.out;
+
+    /**
+     * @notice proposalClaimNullifier: the nullifier that is used to ensure that once accepted a proposal can only be claimed once.
+     * @dev This is computed using the Poseidon hash function with three inputs: identityTrapdoor, identityNullifier, and proposalSubmissionNullifier.
+     * It ensures that the proposal can only be claimed by the identity that submitted it, and prevents double claiming.
+     * It connects the identity with the unique proposal submission nullifier. It therefore encapsulates identity + content + context
+     */
+    signal output proposalClaimNullifier; 
+    component proposalClaimHash = Poseidon(3);
+    proposalClaimHash.inputs[0] <== identityTrapdoor;   
+    proposalClaimHash.inputs[1] <== identityNullifier;
+    proposalClaimHash.inputs[2] <== proposalSubmissionNullifier; 
+    proposalClaimNullifier <== proposalClaimHash.out;
 }
 
 /**

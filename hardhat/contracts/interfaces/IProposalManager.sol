@@ -8,10 +8,16 @@ interface IProposalManager {
 // ====================================================================================================================
 
     /**
-     * @notice Sets the address of the proposal verifier contract.
-     * @param _verifier The address of the new proposal verifier contract.
+     * @notice Sets the address of the proposal submission verifier contract.
+     * @param _submissionVerifier The address of the new proposal submission verifier contract.
      */
-    function setProposalVerifier(address _verifier) external;
+    function setProposalSubmissionVerifier(address _submissionVerifier) external;
+
+    /**
+     * @notice Sets the address of the proposal claim verifier contract.
+     * @param _claimVerifier The address of the new proposal claim verifier contract.
+     */
+    function setProposalClaimVerifier(address _claimVerifier) external;
 
     /**
      * @notice Verifies a zk-SNARK proof for a proposal submission.
@@ -27,30 +33,47 @@ interface IProposalManager {
         bytes32 currentRoot
     ) external;
 
+    /**
+     * @notice Verifies a zk-SNARK proof for a proposal claim.
+     * @param proof The zk-SNARK proof to verify.
+     * @param publicSignals The public signals associated with the proof.
+     * @param contextKey The pre-computed context hash (group, epoch).
+     */
+    function verifyProposalClaim(
+        uint256[24] calldata proof,
+        uint256[4] calldata publicSignals,
+        bytes32 contextKey
+    ) external;
+
 // ====================================================================================================================
 //                                       EXTERNAL VIEW FUNCTIONS
 // ====================================================================================================================
      
-     /**
-     * @notice Returns the address of the proposal verifier contract.
-     * @return address of the proposal verifier contract.
+    /**
+     * @notice Returns the address of the proposal submission verifier contract.
+     * @return address of the proposal submission verifier contract.
      */
-    function getProposalVerifier() external view returns (address);
+    function getProposalSubmissionVerifier() external view returns (address);
 
     /**
-     * @notice Returns the nullifier status for a given nullifier.
-     * @param nullifier The nullifier to check.
-     * @return bool indicating whether the nullifier has been used.
+     * @notice Returns the address of the proposal claim verifier contract.
+     * @return address of the proposal claim verifier contract.
      */
-    function getProposalNullifierStatus(bytes32 nullifier) external view returns (bool);
+    function getProposalClaimVerifier() external view returns (address);
 
     /**
-     * @notice Returns the content hash of a proposal submission for a given context key.
-     * @param contextKey The unique context key for the proposal, derived from groupKey and epochKey.
-     * @return bytes32 The content hash of the proposal submission.
+     * @notice Returns the submission nullifier status for a given nullifier.
+     * @param nullifier The submission nullifier to check.
+     * @return bool indicating whether the submission nullifier has been used.
      */
-    function getProposalSubmission(bytes32 contextKey) external view returns (bytes32);
-    
+    function getSubmissionNullifierStatus(bytes32 nullifier) external view returns (bool);
+
+    /**
+     * @notice Returns the claim nullifier status for a given nullifier.
+     * @param nullifier The claim nullifier to check.
+     * @return bool indicating whether the claim nullifier has been used.
+     */
+    function getClaimNullifierStatus(bytes32 nullifier) external view returns (bool);
     
 
 }
