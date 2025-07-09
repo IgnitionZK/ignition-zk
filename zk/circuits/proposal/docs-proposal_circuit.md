@@ -6,7 +6,7 @@ The Proposal Circuit is a zero-knowledge proof system implemented in Circom that
 
 ## Circuit Description
 
-The ProposalSubmissionProof circuit implements a privacy-preserving proposal submission system that combines membership verification with proposal content validation. The circuit takes a user's secret credentials, proposal content hashes, group and epoch context, and a Merkle proof path to verify both membership and proposal validity without revealing the user's identity or the full proposal content. The system uses the Poseidon hash function for all cryptographic operations and generates unique proposal nullifiers to prevent duplicate submissions.
+The ProposalSubmissionProof circuit implements a privacy-preserving proposal submission system that combines membership verification with proposal content validation. The circuit takes a user's secret credentials, proposal content hashes (including funding and metadata), group and epoch context, and a Merkle proof path to verify both membership and proposal validity without revealing the user's identity or the full proposal content. The system uses the Poseidon hash function for all cryptographic operations and generates unique proposal nullifiers to prevent duplicate submissions.
 
 ## Circuit Template Structure
 
@@ -35,6 +35,8 @@ template ProposalSubmissionProof(treeLevels)
 - **`proposalTitleHash`** (field element): Hash of the proposal title
 - **`proposalDescriptionHash`** (field element): Hash of the proposal description
 - **`proposalPayloadHash`** (field element): Hash of the proposal payload
+- **`proposalFundingHash`** (field element): Hash of the proposal funding information
+- **`proposalMetadataHash`** (field element): Hash of the proposal metadata information
 - **`groupHash`** (field element): Hash of the group context for nullifier generation
 - **`epochHash`** (field element): Hash of the epoch context for nullifier generation
 
@@ -43,7 +45,8 @@ template ProposalSubmissionProof(treeLevels)
 ### Public Outputs
 
 - **`proposalContextHash`** (field element): Computed hash of group and epoch context
-- **`proposalNullifier`** (field element): Unique nullifier derived from context and content hashes
+- **`proposalSubmissionNullifier`** (field element): Unique nullifier derived from context and content hashes
+- **`proposalClaimNullifier`** (field element): Unique nullifier for proposal claiming (prevents double-claiming)
 
 ## Step-by-Step Circuit Flow
 
@@ -70,10 +73,12 @@ member.pathIndices <== pathIndices;
 
 ```circom
 signal computedProposalContentHash;
-component contentHash = Poseidon(3);
+component contentHash = Poseidon(5);
 contentHash.inputs[0] <== proposalTitleHash;
 contentHash.inputs[1] <== proposalDescriptionHash;
-contentHash.inputs[2] <== proposalPayloadHash;
+contentHash.inputs[2] <== proposalFundingHash;
+contentHash.inputs[3] <== proposalMetadataHash;
+contentHash.inputs[4] <== proposalPayloadHash;
 computedProposalContentHash <== contentHash.out;
 ```
 
@@ -82,6 +87,8 @@ computedProposalContentHash <== contentHash.out;
 
 - Input: `proposalTitleHash` (field element)
 - Input: `proposalDescriptionHash` (field element)
+- Input: `proposalFundingHash` (field element)
+- Input: `proposalMetadataHash` (field element)
 - Input: `proposalPayloadHash` (field element)
 - Output: `computedProposalContentHash` (field element) via Poseidon hash
 
@@ -111,14 +118,14 @@ proposalContextHash <== contextHash.out;
 - Input: `epochHash` (field element)
 - Output: `proposalContextHash` (field element) via Poseidon hash
 
-### 5. Proposal Nullifier Generation
+### 5. Proposal Submission Nullifier Generation
 
 ```circom
-signal output proposalNullifier;
-component proposalNullifierHash = Poseidon(2);
-proposalNullifierHash.inputs[0] <== proposalContextHash;
-proposalNullifierHash.inputs[1] <== computedProposalContentHash;
-proposalNullifier <== proposalNullifierHash.out;
+signal output proposalSubmissionNullifier;
+component proposalSubmissionNullifierHash = Poseidon(2);
+proposalSubmissionNullifierHash.inputs[0] <== proposalContextHash;
+proposalSubmissionNullifierHash.inputs[1] <== computedProposalContentHash;
+proposalSubmissionNullifier <== proposalSubmissionNullifierHash.out;
 ```
 
 **Purpose**: Creates a unique nullifier to prevent duplicate proposal submissions
@@ -126,7 +133,26 @@ proposalNullifier <== proposalNullifierHash.out;
 
 - Input: `proposalContextHash` (field element)
 - Input: `computedProposalContentHash` (field element)
-- Output: `proposalNullifier` (field element) via Poseidon hash
+- Output: `proposalSubmissionNullifier` (field element) via Poseidon hash
+
+### 6. Proposal Claim Nullifier Generation
+
+```circom
+signal output proposalClaimNullifier;
+component proposalClaimHash = Poseidon(3);
+proposalClaimHash.inputs[0] <== identityTrapdoor;
+proposalClaimHash.inputs[1] <== identityNullifier;
+proposalClaimHash.inputs[2] <== proposalSubmissionNullifier;
+proposalClaimNullifier <== proposalClaimHash.out;
+```
+
+**Purpose**: Creates a unique nullifier to prevent double-claiming of accepted proposals
+**Data Flow**:
+
+- Input: `identityTrapdoor` (field element)
+- Input: `identityNullifier` (field element)
+- Input: `proposalSubmissionNullifier` (field element)
+- Output: `proposalClaimNullifier` (field element) via Poseidon hash
 
 ## Data Type Summary
 
@@ -144,25 +170,29 @@ proposalNullifier <== proposalNullifierHash.out;
 ### Component Instances
 
 - `member`: MembershipProof component instance
-- `contentHash`: Poseidon(3) component for content hashing
+- `contentHash`: Poseidon(5) component for content hashing
 - `contextHash`: Poseidon(2) component for context hashing
-- `proposalNullifierHash`: Poseidon(2) component for nullifier generation
+- `proposalSubmissionNullifierHash`: Poseidon(2) component for submission nullifier generation
+- `proposalClaimHash`: Poseidon(3) component for claim nullifier generation
 
 ## Security Features
 
 1. **Privacy**: User's identity and proposal content details are never revealed
 2. **Membership Verification**: Only valid group members can submit proposals
-3. **Content Integrity**: Proposal content is cryptographically bound to the proof
-4. **Non-reusability**: Proposal nullifier prevents duplicate submissions
-5. **Context-specific**: Nullifiers are tied to specific group and epoch contexts
-6. **Unforgeability**: Only valid proposals with correct content hashes can generate proofs
+3. **Content Integrity**: Proposal content (including funding and metadata) is cryptographically bound to the proof
+4. **Non-reusability**: Proposal submission nullifier prevents duplicate submissions
+5. **Claim Protection**: Proposal claim nullifier prevents double-claiming of accepted proposals
+6. **Context-specific**: Nullifiers are tied to specific group and epoch contexts
+7. **Unforgeability**: Only valid proposals with correct content hashes can generate proofs
 
 ## Usage Notes
 
 - The circuit template requires instantiation with a specific tree depth matching the membership tree
 - All Merkle proof paths must be padded to the specified tree level
-- Proposal content must be pre-hashed before submission (title, description, payload)
+- Proposal content must be pre-hashed before submission (title, description, funding, metadata, payload)
 - The circuit enforces both membership and content validity through constraint satisfaction
-- Public nullifier enables efficient proposal deduplication and verification
+- Public submission nullifier enables efficient proposal deduplication and verification
+- Public claim nullifier enables efficient claim verification and prevents double-claiming
 - Context hashing allows for epoch-based proposal management
 - The membership nullifier is computed but not exposed, maintaining privacy while enabling internal tracking
+- Funding and metadata information is now included in the content hash computation for enhanced proposal integrity

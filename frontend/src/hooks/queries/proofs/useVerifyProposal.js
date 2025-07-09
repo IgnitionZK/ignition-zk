@@ -6,7 +6,7 @@ import { useRelayerVerifyProposal } from "../../relayers/useRelayerVerifyProposa
 
 // ABI for the ProposalVerifier contract
 const PROPOSAL_VERIFIER_ABI = [
-  "function verifyProof(uint256[24] calldata _proof, uint256[4] calldata _pubSignals) public view returns (bool)",
+  "function verifyProof(uint256[24] calldata _proof, uint256[5] calldata _pubSignals) public view returns (bool)",
 ];
 
 const PROPOSAL_VERIFIER_ADDRESS = "0x997172817177c1Aa125a0212B2c574c965174f9E";
@@ -37,6 +37,8 @@ export function useVerifyProposal() {
    * @param {string} proposalTitle - Title of the proposal
    * @param {string} proposalDescription - Description of the proposal
    * @param {string} proposalPayload - Payload of the proposal
+   * @param {Object} proposalFunding - Funding information for the proposal
+   * @param {Object} proposalMetadata - Metadata information for the proposal
    * @returns {Promise<{isValid: boolean, publicSignals: Array<number>}>} Object containing verification result and public signals
    * @throws {Error} If wallet is not connected or verification fails
    */
@@ -47,7 +49,9 @@ export function useVerifyProposal() {
     epochId,
     proposalTitle,
     proposalDescription,
-    proposalPayload
+    proposalPayload,
+    proposalFunding = {},
+    proposalMetadata = {}
   ) => {
     // LOG: Input to proof generation
     console.log("[FRONTEND/useVerifyProposal] Inputs:", {
@@ -58,6 +62,8 @@ export function useVerifyProposal() {
       proposalTitle,
       proposalDescription,
       proposalPayload,
+      proposalFunding,
+      proposalMetadata,
     });
 
     if (!address || !provider) {
@@ -71,6 +77,8 @@ export function useVerifyProposal() {
     console.log("Proposal Title: ", proposalTitle);
     console.log("Proposal Description: ", proposalDescription);
     console.log("Proposal Payload: ", proposalPayload);
+    console.log("Proposal Funding: ", proposalFunding);
+    console.log("Proposal Metadata: ", proposalMetadata);
 
     setIsVerifying(true);
     setError(null);
@@ -85,6 +93,8 @@ export function useVerifyProposal() {
         proposalTitle,
         proposalDescription,
         proposalPayload,
+        proposalFunding,
+        proposalMetadata,
         "proposal"
       );
 
@@ -96,9 +106,10 @@ export function useVerifyProposal() {
       );
 
       // publicSignals[0]: proposalContextHash
-      // publicSignals[1]: proposalNullifier
-      // publicSignals[2]: root
-      // publicSignals[3]: proposalContentHash
+      // publicSignals[1]: proposalSubmissionNullifier (renamed from proposalNullifier)
+      // publicSignals[2]: proposalClaimNullifier (new)
+      // publicSignals[3]: root
+      // publicSignals[4]: proposalContentHash
 
       // Convert proof and public signals to Solidity calldata
       const { proofSolidity, publicSignalsSolidity } =

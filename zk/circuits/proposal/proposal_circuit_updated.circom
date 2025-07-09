@@ -51,6 +51,7 @@ template ProposalSubmissionProof(treeLevels) {
     signal input proposalDescriptionHash;
     signal input proposalPayloadHash;
     signal input proposalMetadataHash; 
+    signal input proposalFundingHash;
 
     /**
      * @notice groupHash: the hash of the group context, which is used to derive the proposal nullifier.

@@ -23,6 +23,12 @@ export const useGenerateProof = () => {
    * @param {string[]} commitmentArray - Array of commitment values
    * @param {string} mnemonic - Mnemonic phrase
    * @param {string} groupId - Group ID value
+   * @param {string} epochId - Epoch ID value
+   * @param {string} proposalTitle - Title of the proposal
+   * @param {string} proposalDescription - Description of the proposal
+   * @param {Object} proposalPayload - Payload of the proposal
+   * @param {Object} proposalFunding - Funding information for the proposal
+   * @param {Object} proposalMetadata - Metadata information for the proposal
    * @returns {Promise<Object>} Generated circuit input
    * @throws {Error} If circuit input generation fails
    */
@@ -33,7 +39,9 @@ export const useGenerateProof = () => {
     epochId,
     proposalTitle,
     proposalDescription,
-    proposalPayload
+    proposalPayload,
+    proposalFunding = {},
+    proposalMetadata = {}
   ) => {
     setIsLoading(true);
     setError(null);
@@ -46,7 +54,9 @@ export const useGenerateProof = () => {
         epochId,
         proposalTitle,
         proposalDescription,
-        proposalPayload
+        proposalPayload,
+        proposalFunding,
+        proposalMetadata
       );
       setCircuitInput(input);
       return input;
@@ -93,6 +103,8 @@ export const useGenerateProof = () => {
    * @param {string} proposalTitle - Title of the proposal
    * @param {string} proposalDescription - Description of the proposal
    * @param {string} proposalPayload - Payload of the proposal
+   * @param {Object} proposalFunding - Funding information for the proposal
+   * @param {Object} proposalMetadata - Metadata information for the proposal
    * @param {string} circuitType - Type of circuit to use
    * @returns {Promise<Object>} Object containing proof, public signals, and circuit type
    * @throws {Error} If proof generation fails
@@ -105,6 +117,8 @@ export const useGenerateProof = () => {
     proposalTitle,
     proposalDescription,
     proposalPayload,
+    proposalFunding = {},
+    proposalMetadata = {},
     circuitType
   ) => {
     setIsLoading(true);
@@ -119,7 +133,9 @@ export const useGenerateProof = () => {
         epochId,
         proposalTitle,
         proposalDescription,
-        proposalPayload
+        proposalPayload,
+        proposalFunding,
+        proposalMetadata
       );
 
       // Then generate the proof using the circuit input

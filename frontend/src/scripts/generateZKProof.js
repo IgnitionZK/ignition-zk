@@ -26,9 +26,20 @@ export class ZKProofGenerator {
   static #VOTING_VKEY_PATH = "";
 
   // Proposal circuit paths
-  static #PROPOSAL_WASM_PATH = "/proposal_circuit/proposal_circuit.wasm";
-  static #PROPOSAL_ZKEY_PATH = "/proposal_circuit/proposal_circuit_final.zkey";
-  static #PROPOSAL_VKEY_PATH = "/proposal_circuit/proposal_circuit_key.json";
+  static #PROPOSAL_WASM_PATH =
+    "/proposal_circuit/proposal_circuit_updated.wasm";
+  static #PROPOSAL_ZKEY_PATH =
+    "/proposal_circuit/proposal_circuit_updated_final.zkey";
+  static #PROPOSAL_VKEY_PATH =
+    "/proposal_circuit/proposal_circuit_updated_key.json";
+
+  // Proposal claim circuit paths
+  static #PROPOSAL_CLAIM_WASM_PATH =
+    "/proposal_claim_circuit/proposal_claim_circuit.wasm";
+  static #PROPOSAL_CLAIM_ZKEY_PATH =
+    "/proposal_claim_circuit/proposal_claim_circuit_final.zkey";
+  static #PROPOSAL_CLAIM_VKEY_PATH =
+    "/proposal_claim_circuit/proposal_claim_circuit_key.json";
 
   // Field modulus for the ZK circuits
   static FIELD_MODULUS = BigInt(
@@ -202,8 +213,10 @@ export class ZKProofGenerator {
    * @param {string} proposalTitle - The title of the proposal.
    * @param {string} proposalDescription - The description of the proposal.
    * @param {Object} proposalPayload - The payload of the proposal, which can include various parameters.
+   * @param {Object} proposalFunding - The funding information for the proposal.
+   * @param {Object} proposalMetadata - The metadata information for the proposal.
    * @returns {Promise<Object>}
-   * An object containing the circuit input including root, identity trapdoor, identity nullifier, group hash, epoch hash, proposal title, proposal description, proposal payload, and path elements.
+   * An object containing the circuit input including root, identity trapdoor, identity nullifier, group hash, epoch hash, proposal title, proposal description, proposal payload, proposal funding, proposal metadata, and path elements.
    */
   static async generateProposalCircuitInput(
     mnemonic,
@@ -212,7 +225,9 @@ export class ZKProofGenerator {
     epochId,
     proposalTitle,
     proposalDescription,
-    proposalPayload
+    proposalPayload,
+    proposalFunding = {},
+    proposalMetadata = {}
   ) {
     const merkleProofInput = await this.generateMerkleProofInput(
       mnemonic,
@@ -228,11 +243,20 @@ export class ZKProofGenerator {
     const proposalPayloadBigInt = this.#stringToBigInt(
       this.#deterministicStringify(proposalPayload)
     );
+    const proposalFundingBigInt = this.#stringToBigInt(
+      this.#deterministicStringify(proposalFunding)
+    );
+    const proposalMetadataBigInt = this.#stringToBigInt(
+      this.#deterministicStringify(proposalMetadata)
+    );
+
     console.log("Group Hash BigInt:", groupHashBigInt);
     console.log("Epoch Hash BigInt:", epochHashBigInt);
     console.log("Proposal Title BigInt:", proposalTitleBigInt);
     console.log("Proposal Description BigInt:", proposalDescriptionBigInt);
     console.log("Proposal Payload BigInt:", proposalPayloadBigInt);
+    console.log("Proposal Funding BigInt:", proposalFundingBigInt);
+    console.log("Proposal Metadata BigInt:", proposalMetadataBigInt);
 
     const poseidon = await this.#getPoseidon();
     const F = poseidon.F;
@@ -240,6 +264,8 @@ export class ZKProofGenerator {
       poseidon([
         proposalTitleBigInt,
         proposalDescriptionBigInt,
+        proposalFundingBigInt,
+        proposalMetadataBigInt,
         proposalPayloadBigInt,
       ])
     );
@@ -262,6 +288,8 @@ export class ZKProofGenerator {
       proposalTitleHash: proposalTitleBigInt.toString(),
       proposalDescriptionHash: proposalDescriptionBigInt.toString(),
       proposalPayloadHash: proposalPayloadBigInt.toString(),
+      proposalFundingHash: proposalFundingBigInt.toString(),
+      proposalMetadataHash: proposalMetadataBigInt.toString(),
       groupHash: groupHashBigInt.toString(),
       epochHash: epochHashBigInt.toString(),
     };
@@ -289,6 +317,9 @@ export class ZKProofGenerator {
     } else if (circuitType == "proposal") {
       wasm = this.#PROPOSAL_WASM_PATH;
       zkey = this.#PROPOSAL_ZKEY_PATH;
+    } else if (circuitType == "proposal-claim") {
+      wasm = this.#PROPOSAL_CLAIM_WASM_PATH;
+      zkey = this.#PROPOSAL_CLAIM_ZKEY_PATH;
     }
 
     try {
@@ -334,6 +365,8 @@ export class ZKProofGenerator {
       vkey = await this.#parseVKey(this.#VOTING_VKEY_PATH);
     } else if (circuitType == "proposal") {
       vkey = await this.#parseVKey(this.#PROPOSAL_VKEY_PATH);
+    } else if (circuitType == "proposal-claim") {
+      vkey = await this.#parseVKey(this.#PROPOSAL_CLAIM_VKEY_PATH);
     }
 
     try {

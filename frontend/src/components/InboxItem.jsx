@@ -193,11 +193,13 @@ function InboxItem({
         proposal.epoch_id,
         proposal.title,
         proposal.description,
-        proposal.payload
+        proposal.payload,
+        proposal.funding || {},
+        proposal.metadata || {}
       );
 
       if (isValid) {
-        const nullifierHash = publicSignals[1]; // Second value in publicSignals is the proposal nullifier hash
+        const nullifierHash = publicSignals[1]; // Second value in publicSignals is the proposal submission nullifier hash
 
         await insertProof({
           proposalId: proposal.proposal_id,
