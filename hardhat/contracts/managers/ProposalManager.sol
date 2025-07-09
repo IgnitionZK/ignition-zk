@@ -229,8 +229,9 @@ contract ProposalManager is Initializable, OwnableUpgradeable, UUPSUpgradeable, 
 
         bytes32 proofContextHash = bytes32(publicSignals[0]);
         bytes32 proofSubmissionNullifier = bytes32(publicSignals[1]);
-        bytes32 proofRoot = bytes32(publicSignals[2]);
-        bytes32 proofContentHash = bytes32(publicSignals[3]);
+        bytes32 proofClaimNullifier = bytes32(publicSignals[2]);
+        bytes32 proofRoot = bytes32(publicSignals[3]);
+        bytes32 proofContentHash = bytes32(publicSignals[4]);
 
         // check proofRoot matches currentRoot from MembershipManager
         if (currentRoot == bytes32(0)) revert RootNotYetInitialized();

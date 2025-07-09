@@ -1,0 +1,49 @@
+[profile.default]
+# ==============================================================================
+# COMPILER SETTINGS
+# ==============================================================================
+solc_version = "0.8.28"
+optimizer = true
+optimizer_runs = 100000
+# bytecode_hash = "none" # Default is "ipfs"
+
+# ==============================================================================
+# PATHS
+# ==============================================================================
+
+# Path to Solidity source files relative to the foundry.toml file
+src = "../hardhat/contracts/"
+
+# Path to the test files
+test = "test"
+
+# Path to dependencies
+libs = ["lib"]
+
+# Output directory for compiled contracts
+out = "out"
+
+# Cache directory for compiled contracts
+cache_path = "cache"
+
+# ==============================================================================
+# REMAPPINGS
+# ==============================================================================
+
+remappings = [
+    "@openzeppelin/contracts=lib/openzeppelin-contracts/contracts",
+    "@openzeppelin/contracts-upgradeable=lib/openzeppelin-contracts-upgradeable/contracts",
+    "hardhat-contracts/=../hardhat/contracts/"
+    #"managers/=../hardhat/contracts/managers/",
+    #"interfaces/=../hardhat/contracts/interfaces/",
+    #"mocks/= ./mocks/",
+]
+
+# ==============================================================================
+# OPTIONAL SETTINGS
+# ==============================================================================
+
+# Verbosity of the test output (0 = silent, 1 = error, 2 = warn, 3 = info, 4 = debug, 5 = trace)
+verbosity = 3
+
+# See more config options https://github.com/foundry-rs/foundry/blob/master/crates/config/README.md#all-options

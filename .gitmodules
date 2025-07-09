@@ -1,3 +1,9 @@
 [submodule "zk/circomlib"]
 	path = zk/circomlib
 	url = https://github.com/iden3/circomlib.git
+[submodule "foundry/lib/openzeppelin-contracts"]
+	path = foundry/lib/openzeppelin-contracts
+	url = https://github.com/openzeppelin/openzeppelin-contracts
+[submodule "foundry/lib/openzeppelin-contracts-upgradeable"]
+	path = foundry/lib/openzeppelin-contracts-upgradeable
+	url = https://github.com/OpenZeppelin/openzeppelin-contracts-upgradeable
