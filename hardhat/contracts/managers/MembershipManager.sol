@@ -203,8 +203,9 @@ contract MembershipManager is Initializable, UUPSUpgradeable, OwnableUpgradeable
     /// @dev Maps a unique group key to its current Merkle root.
     mapping(bytes32 => bytes32) private groupRoots; 
     
-    /// @dev Maps a group key to a mapping of nullifiers, tracking used nullifiers for that group.
-    mapping(bytes32 => mapping(bytes32 => bool)) private groupNullifiers;
+    /// @dev Maps a nullifier to its status
+    /// NOT USED! DELETE THIS LATER
+    mapping(bytes32 => bool) private groupNullifiers;
     
     /// @dev Maps a group key to the address of its associated ERC721 NFT contract.
     mapping(bytes32 => address) private groupNftAddresses; 
@@ -410,6 +411,7 @@ contract MembershipManager is Initializable, UUPSUpgradeable, OwnableUpgradeable
      * @custom:error InvalidGroupKey If the group key provided in the public signals does not match the expected group key.
      * @custom:error KeyCannotBeZero If the provided group key is zero.
      */
+     /*
     function verifyProof
     (
         uint256[24] calldata proof, 
@@ -427,7 +429,7 @@ contract MembershipManager is Initializable, UUPSUpgradeable, OwnableUpgradeable
 
         if (currentRoot == bytes32(0)) revert RootNotYetInitialized();
         if (currentRoot != proofRoot) revert InvalidMerkleRoot();
-        if (groupNullifiers[groupKey][nullifier]) revert NullifierAlreadyUsed();
+        if (groupNullifiers[nullifier]) revert NullifierAlreadyUsed();
         if (proofGroupKey != groupKey) revert InvalidGroupKey();
 
         bool isValid = verifier.verifyProof(proof, publicSignals);
@@ -435,9 +437,10 @@ contract MembershipManager is Initializable, UUPSUpgradeable, OwnableUpgradeable
             revert InvalidProof(groupKey, nullifier);
         }
 
-        groupNullifiers[groupKey][nullifier] = true;
+        groupNullifiers[nullifier] = true;
         emit ProofVerified(groupKey, nullifier);
     }
+    */
 
     /**
      * @dev Only the governor can call this function. Ensures that the member address is not zero, does not already hold a token for this group,
@@ -553,9 +556,9 @@ contract MembershipManager is Initializable, UUPSUpgradeable, OwnableUpgradeable
      * @dev Only callable by the owner (governor). 
      * Returns true if the nullifier has been used.
      */
-    function getNullifierStatus(bytes32 groupKey, bytes32 nullifier) external view onlyOwner returns (bool) {
-        return groupNullifiers[groupKey][nullifier];
-    }
+    // function getNullifierStatus(bytes32 nullifier) external view onlyOwner returns (bool) {
+    //    return groupNullifiers[nullifier];
+    // }
 
     /**
      * @dev Only callable by the owner (governor).

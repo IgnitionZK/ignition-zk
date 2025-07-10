@@ -4,6 +4,7 @@ pragma solidity ^0.8.28;
 // interfaces imports:
 import {IProposalManager} from "../interfaces/IProposalManager.sol";
 import {IProposalVerifier} from "../interfaces/IProposalVerifier.sol";
+import {IProposalClaimVerifier} from "../interfaces/IProposalClaimVerifier.sol";
 import {IMembershipManager} from "../interfaces/IMembershipManager.sol";
 
 // UUPS imports:
@@ -54,6 +55,12 @@ contract ProposalManager is Initializable, OwnableUpgradeable, UUPSUpgradeable, 
 
     /// @notice Thrown if the content hash of the proposal does not match the expected value.
     error InvalidContentHash();
+
+    /// @notice Thrown if the proposal has not been submitted yet.
+    error ProposalHasNotBeenSubmitted();
+
+    // @notice Thrown if the proposal has already been claimed.
+    error ProposalHasAlreadyBeenClaimed();
     
     // ====================================================================================================
     // GENERAL ERRORS
@@ -156,8 +163,9 @@ contract ProposalManager is Initializable, OwnableUpgradeable, UUPSUpgradeable, 
      * @notice Initializes the MembershipManager contract.
      * @dev This function replaces the constructor for upgradeable contracts and is called once
      * after the proxy is deployed. It sets the initial verifier and governor.
-     * @param _verifier The address of the zk-SNARK verifier contract.
      * @param _governor The address of the governor (DAO) contract.
+     * @param _submissionVerifier The address of the proposal submission verifier contract.
+     * @param _claimVerifier The address of the proposal claim verifier contract.
      * @custom:error AddressCannotBeZero If the provided verifier or governor address is zero.
      */
     function initialize(
@@ -190,7 +198,7 @@ contract ProposalManager is Initializable, OwnableUpgradeable, UUPSUpgradeable, 
      * @custom:error AddressCannotBeZero If the provided verifier address is zero.
      */
     function setProposalSubmissionVerifier(address _submissionVerifier) external onlyOwner nonZeroAddress(_submissionVerifier) {
-        submissionVerifier = IProposalSubmissionVerifier(_submissionVerifier);
+        submissionVerifier = IProposalVerifier(_submissionVerifier);
         emit SubmissionVerifierAddressSet(_submissionVerifier);
     }
 
@@ -206,7 +214,7 @@ contract ProposalManager is Initializable, OwnableUpgradeable, UUPSUpgradeable, 
     /**
      * @dev This function can only be called by the contract owner (governor).
      * @custom:error InvalidProof If the proof is invalid.
-     * @custom:error NullifierAlreadyUsed If the nullifier has already been used.
+     * @custom:error SubmissionNullifierAlreadyUsed If the nullifier has already been used.
      * @custom:error InvalidContextHash If the context hash does not match the expected value.
      * @custom:error InvalidMerkleRoot If the provided Merkle root does not match the expected root.
      * @custom:error RootNotYetInitialized If the Merkle root has not been initialized for the group.
@@ -214,22 +222,23 @@ contract ProposalManager is Initializable, OwnableUpgradeable, UUPSUpgradeable, 
      */
     function verifyProposal(
         uint256[24] calldata proof,
-        uint256[4] calldata publicSignals,
+        uint256[5] calldata publicSignals,
         bytes32 contextKey,
         bytes32 currentRoot
     ) external onlyOwner nonZeroKey(contextKey) {
 
         bytes32 proofContextHash = bytes32(publicSignals[0]);
         bytes32 proofSubmissionNullifier = bytes32(publicSignals[1]);
-        bytes32 proofRoot = bytes32(publicSignals[2]);
-        bytes32 proofContentHash = bytes32(publicSignals[3]);
+        bytes32 proofClaimNullifier = bytes32(publicSignals[2]);
+        bytes32 proofRoot = bytes32(publicSignals[3]);
+        bytes32 proofContentHash = bytes32(publicSignals[4]);
 
         // check proofRoot matches currentRoot from MembershipManager
         if (currentRoot == bytes32(0)) revert RootNotYetInitialized();
         if (proofRoot != currentRoot) revert InvalidMerkleRoot();
 
         // Check if the proposal is already submitted
-        if (submissionNullifiers[proofSubmissionNullifier]) revert NullifierAlreadyUsed();
+        if (submissionNullifiers[proofSubmissionNullifier]) revert SubmissionNullifierAlreadyUsed();
 
         // check proposalContextHash matches the one in the public signals
         if (proofContextHash != contextKey) revert InvalidContextHash();
@@ -247,7 +256,7 @@ contract ProposalManager is Initializable, OwnableUpgradeable, UUPSUpgradeable, 
 
     function verifyProposalClaim(
         uint256[24] calldata proof,
-        uint256[2] calldata publicSignals,
+        uint256[4] calldata publicSignals,
         bytes32 contextKey
     ) external onlyOwner nonZeroKey(contextKey) {
 
@@ -299,13 +308,6 @@ contract ProposalManager is Initializable, OwnableUpgradeable, UUPSUpgradeable, 
      */
     function getClaimNullifierStatus(bytes32 nullifier) external view onlyOwner returns (bool) {
         return claimNullifiers[nullifier];
-    }
-
-    /**
-     * @dev Only callable by the owner (governor).
-     */
-    function getProposalSubmission(bytes32 contextKey) external view onlyOwner returns (bytes32) {
-        return proposalSubmissions[contextKey];
     }
 
 }

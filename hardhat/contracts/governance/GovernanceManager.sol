@@ -187,6 +187,7 @@ contract GovernanceManager is Initializable, UUPSUpgradeable, OwnableUpgradeable
      * @param publicSignals The public signals associated with the proof.
      * @param groupKey The unique identifier for the group.
      */
+     /*
     function delegateVerifyProof(
         uint256[24] calldata proof,
         uint256[3] calldata publicSignals,
@@ -194,6 +195,7 @@ contract GovernanceManager is Initializable, UUPSUpgradeable, OwnableUpgradeable
     ) external onlyRelayer {
         IMembershipManager(membershipManager).verifyProof(proof, publicSignals, groupKey);
     }
+    */
 
     /**
      * @notice Delegates the deployGroupNft call to the membership manager.
@@ -365,42 +367,53 @@ contract GovernanceManager is Initializable, UUPSUpgradeable, OwnableUpgradeable
      * @param nullifier The nullifier to check.
      * @return bool indicating whether the nullifier has been used.
      */
+     /*
     function delegateGetNullifierStatus(bytes32 groupKey, bytes32 nullifier) external view onlyRelayer returns (bool) {
         return IMembershipManager(membershipManager).getNullifierStatus(groupKey, nullifier);
     }
+    */
 
     // ================================================================================================================
     // 2. ProposalManager Delegation Functions
     // ================================================================================================================
 
     /**
-     * @notice Delegates the getProposalVerifier call to the proposal manager.
+     * @notice Delegates the getProposalSubmissionVerifier call to the proposal manager.
      * @dev Only callable by the relayer.
-     * @return The address of the proposal verifier contract.
+     * @return The address of the proposal submission verifier contract.
      */
-    function delegateGetProposalVerifier() external view onlyRelayer returns (address) {
-        return IProposalManager(proposalManager).getProposalVerifier();
+    function delegateGetProposalSubmissionVerifier() external view onlyRelayer returns (address) {
+        return IProposalManager(proposalManager).getProposalSubmissionVerifier();
     }
 
     /**
-     * @notice Delegates the getProposalNullifierStatus call to the proposal manager.
+     * @notice Delegates the getProposalClaimVerifier call to the proposal manager.
      * @dev Only callable by the relayer.
-     * @param nullifier The nullifier to check.
-     * @return bool indicating whether the nullifier has been used.
+     * @return The address of the proposal claim verifier contract.
      */
-    function delegateGetProposalNullifierStatus(bytes32 nullifier) external view onlyRelayer returns (bool) {
-        return IProposalManager(proposalManager).getProposalNullifierStatus(nullifier);
+    function delegateGetProposalClaimVerifier() external view onlyRelayer returns (address) {
+        return IProposalManager(proposalManager).getProposalClaimVerifier();
     }
 
     /**
-     * @notice Delegates the getProposalSubmission call to the proposal manager.
+     * @notice Delegates the getSubmissionNullifierStatus call to the proposal manager.
      * @dev Only callable by the relayer.
-     * @param contextKey The unique context key for the proposal.
-     * @return The content hash of the proposal submission.
+     * @param nullifier The submission nullifier to check.
+     * @return bool indicating whether the submission nullifier has been used.
      */
-    function delegateGetProposalSubmission(bytes32 contextKey) external view onlyRelayer returns (bytes32) {
-        return IProposalManager(proposalManager).getProposalSubmission(contextKey);
+    function delegateGetSubmissionNullifierStatus(bytes32 nullifier) external view onlyRelayer returns (bool) {
+        return IProposalManager(proposalManager).getSubmissionNullifierStatus(nullifier);
     }
+
+    /**
+     * @notice Delegates the getClaimNullifierStatus call to the proposal manager.
+     * @dev Only callable by the relayer.
+     * @param nullifier The claim nullifier to check.
+     * @return bool indicating whether the claim nullifier has been used.
+     */
+    function delegateGetClaimNullifierStatus(bytes32 nullifier) external view onlyRelayer returns (bool) {
+        return IProposalManager(proposalManager).getClaimNullifierStatus(nullifier);
+    }   
 
 // ====================================================================================================================
 //                                   EXTERNAL VIEW FUNCTIONS (NOT FORWARDED)

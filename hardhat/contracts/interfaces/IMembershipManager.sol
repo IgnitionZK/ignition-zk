@@ -34,14 +34,6 @@ interface IMembershipManager {
      */
     function setRoot(bytes32 newRoot, bytes32 groupKey) external;
     
-    /**
-     * @notice Verifies a zk-SNARK proof against a group's current Merkle root and marks the nullifier as used.
-     * @param proof The zk-SNARK proof data.
-     * @param publicSignals The public signals associated with the proof, including root and nullifier.
-     * @param groupKey The unique identifier for the group to verify against.
-     */
-    function verifyProof(uint256[24] calldata proof, uint256[3] calldata publicSignals, bytes32 groupKey) external;
-    
     /** 
      * @notice Adds a new member to a specific group by minting an ERC721 token.
      * @param memberAddress The address of the member to add.
@@ -80,14 +72,6 @@ interface IMembershipManager {
      * @return address of the ERC721 NFT contract associated with the specified group key.
      */
     function getGroupNftAddress(bytes32 groupKey) external view returns (address);
-
-     /**
-     * @notice Retrieves the nullifier status for a specific group and nullifier.
-     * @param groupKey The unique identifier for the group.
-     * @param nullifier The nullifier to check.
-     * @return bool indicating whether the nullifier has been used.
-     */
-    function getNullifierStatus(bytes32 groupKey, bytes32 nullifier) external view returns (bool);
 
     /**
      * @notice Retrieves the address of the zk-SNARK verifier contract.

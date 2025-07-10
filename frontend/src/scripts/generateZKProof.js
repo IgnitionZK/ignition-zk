@@ -27,11 +27,11 @@ export class ZKProofGenerator {
 
   // Proposal circuit paths
   static #PROPOSAL_WASM_PATH =
-    "/proposal_circuit/proposal_circuit_updated.wasm";
+    "/proposal_circuit/proposal_circuit.wasm";
   static #PROPOSAL_ZKEY_PATH =
-    "/proposal_circuit/proposal_circuit_updated_final.zkey";
+    "/proposal_circuit/proposal_circuit_final.zkey";
   static #PROPOSAL_VKEY_PATH =
-    "/proposal_circuit/proposal_circuit_updated_key.json";
+    "/proposal_circuit/proposal_circuit_key.json";
 
   // Proposal claim circuit paths
   static #PROPOSAL_CLAIM_WASM_PATH =
