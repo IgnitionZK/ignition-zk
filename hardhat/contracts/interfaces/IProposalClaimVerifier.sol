@@ -10,6 +10,6 @@ interface IProposalClaimVerifier {
      */
     function verifyProof(
         uint256[24] calldata _proof,
-        uint256[4] calldata _pubSignals
+        uint256[3] calldata _pubSignals
     ) external view returns (bool);
 } 

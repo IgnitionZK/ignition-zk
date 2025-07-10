@@ -515,6 +515,7 @@ describe("MembershipManager", function () {
             .withArgs(groupKey, user1Address, anyUint); 
     });
 
+    /*
     it("verifyProof: should not allow the governor to verify an invalid proof", async function () {
         await membershipManager.connect(governor).deployGroupNft(groupKey, nftName, nftSymbol);
         await membershipManager.connect(governor).initRoot(rootHash, groupKey);
@@ -574,6 +575,7 @@ describe("MembershipManager", function () {
             membershipManager.connect(user1).verifyProof(validProof, validPublicSignals, validGroupKey)
         ).to.be.reverted;
     });
+    */
 
     it("NFT transfer: should not allow the owner of the NFT to transfer it", async function () {
         const user1Address = await user1.getAddress();

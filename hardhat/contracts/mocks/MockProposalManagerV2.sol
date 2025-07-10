@@ -13,7 +13,7 @@ import { Initializable } from "@openzeppelin/contracts-upgradeable/proxy/utils/I
 import { OwnableUpgradeable } from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 
 // tracks proposal submissions and verifications (pre-vote phase)
-contract ProposalManager is Initializable, OwnableUpgradeable, UUPSUpgradeable, IProposalManager {
+contract MockProposalManagerV2 is Initializable, OwnableUpgradeable, UUPSUpgradeable, IProposalManager {
 
 // ====================================================================================================================
 //                                                  CUSTOM ERRORS
@@ -308,6 +308,10 @@ contract ProposalManager is Initializable, OwnableUpgradeable, UUPSUpgradeable, 
      */
     function getClaimNullifierStatus(bytes32 nullifier) external view onlyOwner returns (bool) {
         return claimNullifiers[nullifier];
+    }
+
+    function dummy() external pure returns (string memory) {
+        return "This is a dummy function";
     }
 
 }

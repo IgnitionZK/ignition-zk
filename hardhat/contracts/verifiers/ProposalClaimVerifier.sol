@@ -40,25 +40,25 @@ contract ProposalClaimVerifier {
     
     // Verification Key data
     uint32 constant n         = 1024;
-    uint16 constant nPublic   = 4;
-    uint16 constant nLagrange = 4;
+    uint16 constant nPublic   = 3;
+    uint16 constant nLagrange = 3;
     
-    uint256 constant Qmx  = 3804778789896479255504148242574518884821598508275532165649216991393392085317;
-    uint256 constant Qmy  = 280695861080985259610189375053613239543943203004342611561762114425369707844;
-    uint256 constant Qlx  = 5907880855899325115773365151987555395652072202516331605634702848008890688327;
-    uint256 constant Qly  = 2044016867390022396581792649907370671410263410390830316349026285144384977479;
-    uint256 constant Qrx  = 13285067311786947917773917463986243649827525698022323067322554053426035158273;
-    uint256 constant Qry  = 9213398100655543644370425122602278559826130696463123361757613542429344575740;
-    uint256 constant Qox  = 19995466033994286599842113201662110123757451226922619839818316844110867069087;
-    uint256 constant Qoy  = 16579974543822007785067298196354557121582648221526266456718983352620970318723;
-    uint256 constant Qcx  = 4596498403973009979755107357288950351251417429574984934636997763764883751949;
-    uint256 constant Qcy  = 2020772871732311714156969856491738961099260500654355092145341338145661476852;
-    uint256 constant S1x  = 13254324098922248974412907546482296159118902903566074464453260993585275342034;
-    uint256 constant S1y  = 16286101624846987019733256825648601575123517853854912828504848984621987028648;
-    uint256 constant S2x  = 13586120478960470861260651783518679693301252919436617816694409246910548320321;
-    uint256 constant S2y  = 12318023396447135879870205503661931381937776018760143753265740314459905110009;
-    uint256 constant S3x  = 8599496503112712804353874952971125915093739945747912747959711749085454708430;
-    uint256 constant S3y  = 13243108351424221645932296423481311484093521675030491401817427148141499175498;
+    uint256 constant Qmx  = 6657088102241927743565097260934146984051373183096402342245965839103458239211;
+    uint256 constant Qmy  = 15248363801493873592035604642236678057952379896920649953131244378086092522510;
+    uint256 constant Qlx  = 2587692517236627692639887495451261911497870238131000569597328736703167277044;
+    uint256 constant Qly  = 12188819688394719151286024073086850382913815601722912441514416299285344102704;
+    uint256 constant Qrx  = 1490518743025629460559125388483288366066117904609287749895960601785640538179;
+    uint256 constant Qry  = 16345209124082868294310688594521754527911365974583040601713975166585614119146;
+    uint256 constant Qox  = 11073392029905316548218823105913861503468539091684410379522456566916209877333;
+    uint256 constant Qoy  = 17884996467252189463657673200631293873275460049271289067157993818054878891358;
+    uint256 constant Qcx  = 12597197786051950820036895979354216957843138314350269634268942464690408052802;
+    uint256 constant Qcy  = 16495812727239958844911676681762146735136672486979334701011892299199601052112;
+    uint256 constant S1x  = 7657036563189124288136248634505479133258976978918915183284300100165742322776;
+    uint256 constant S1y  = 17586006119919898875794536594335806029253756512374172477981983074322312077818;
+    uint256 constant S2x  = 620749504974778820574225014923027209515594829715764606364429552431473392566;
+    uint256 constant S2y  = 20453450456243923582095553483827705030619752941090346370249860130975507966857;
+    uint256 constant S3x  = 2199750550700033592117979760679755176845161868753954722193640910496539512386;
+    uint256 constant S3y  = 13377347226619621334082803257807935073195261075511846869592207202817349375041;
     uint256 constant k1   = 2;
     uint256 constant k2   = 3;
     uint256 constant X2x1 = 12162926275010107821417086553760861934065845606081231188020364549341243249980;
@@ -118,13 +118,11 @@ contract ProposalClaimVerifier {
     
     uint16 constant pEval_l3 = 864;
     
-    uint16 constant pEval_l4 = 896;
     
     
-    
-    uint16 constant lastMem = 928;
+    uint16 constant lastMem = 896;
 
-    function verifyProof(uint256[24] calldata _proof, uint256[4] calldata _pubSignals) public view returns (bool) {
+    function verifyProof(uint256[24] calldata _proof, uint256[3] calldata _pubSignals) public view returns (bool) {
         assembly {
             /////////
             // Computes the inverse using the extended euclidean algorithm
@@ -243,16 +241,14 @@ contract ProposalClaimVerifier {
                 
                 mstore(add(mIn, 576), calldataload(add(pPublic, 64)))
                 
-                mstore(add(mIn, 608), calldataload(add(pPublic, 96)))
+                mstore(add(mIn, 608 ), calldataload(pA))
+                mstore(add(mIn, 640 ), calldataload(add(pA, 32)))
+                mstore(add(mIn, 672 ), calldataload(pB))
+                mstore(add(mIn, 704 ), calldataload(add(pB, 32)))
+                mstore(add(mIn, 736 ), calldataload(pC))
+                mstore(add(mIn, 768 ), calldataload(add(pC, 32)))
                 
-                mstore(add(mIn, 640 ), calldataload(pA))
-                mstore(add(mIn, 672 ), calldataload(add(pA, 32)))
-                mstore(add(mIn, 704 ), calldataload(pB))
-                mstore(add(mIn, 736 ), calldataload(add(pB, 32)))
-                mstore(add(mIn, 768 ), calldataload(pC))
-                mstore(add(mIn, 800 ), calldataload(add(pC, 32)))
-                
-                beta := mod(keccak256(mIn, 832), q) 
+                beta := mod(keccak256(mIn, 800), q) 
                 mstore(add(pMem, pBeta), beta)
 
                 // challenges.gamma
@@ -406,30 +402,9 @@ contract ProposalClaimVerifier {
                     )
                 )
                 
-                w := mulmod(w, w1, q)
                 
                 
-                mstore(
-                    add(pMem, pEval_l4), 
-                    mulmod(
-                        n, 
-                        mod(
-                            add(
-                                sub(
-                                    mload(add(pMem, pXi)), 
-                                    w
-                                ), 
-                                q
-                            ),
-                            q
-                        ), 
-                        q
-                    )
-                )
-                
-                
-                
-                inverseArray(add(pMem, pZhInv), 5 )
+                inverseArray(add(pMem, pZhInv), 4 )
                 
                 let zh := mload(add(pMem, pZh))
                 w := 1
@@ -473,24 +448,6 @@ contract ProposalClaimVerifier {
                         w,
                         mulmod(
                             mload(add(pMem, pEval_l3)),
-                            zh,
-                            q
-                        ),
-                        q
-                    )
-                )
-                
-                
-                w := mulmod(w, w1, q)
-                
-                
-                
-                mstore(
-                    add(pMem, pEval_l4), 
-                    mulmod(
-                        w,
-                        mulmod(
-                            mload(add(pMem, pEval_l4)),
                             zh,
                             q
                         ),
@@ -545,21 +502,6 @@ contract ProposalClaimVerifier {
                             mulmod(
                                 mload(add(pMem, pEval_l3)),
                                 calldataload(add(pPub, 64)),
-                                q
-                            )
-                        ),
-                        q
-                    ),
-                    q
-                )
-                 
-                pl := mod(
-                    add(
-                        sub(
-                            pl,  
-                            mulmod(
-                                mload(add(pMem, pEval_l4)),
-                                calldataload(add(pPub, 96)),
                                 q
                             )
                         ),

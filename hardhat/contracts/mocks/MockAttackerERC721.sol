@@ -5,7 +5,7 @@ import "../managers/MembershipManager.sol";
 import { IMembershipManager } from "../interfaces/IMembershipManager.sol";
 import { ERC721 } from "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 
-contract AttackerERC721 is ERC721 {
+contract MockAttackerERC721 is ERC721 {
 
     event AttackSuccessful(address indexed memberAddress, bytes32 groupKey);
 
