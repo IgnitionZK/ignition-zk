@@ -31,7 +31,7 @@ template ProposalClaimProof() {
      * @dev This value is used to verify the uniqueness of the claim.
      * The claim nullifier is computed as the Poseidon hash of the identity trapdoor, identity nullifier, and proposal submission nullifier.
      */
-    signal output computedClaimNullifier;
+    signal computedClaimNullifier;
     component claimNullifierHasher = Poseidon(3);
     claimNullifierHasher.inputs[0] <== identityTrapdoor;
     claimNullifierHasher.inputs[1] <== identityNullifier;

@@ -41,7 +41,7 @@ interface IProposalManager {
      */
     function verifyProposalClaim(
         uint256[24] calldata proof,
-        uint256[4] calldata publicSignals,
+        uint256[3] calldata publicSignals,
         bytes32 contextKey
     ) external;
 
