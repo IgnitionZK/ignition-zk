@@ -408,6 +408,62 @@ describe("ProposalManager", function () {
             .to.be.revertedWithCustomError(proposalManager, "OwnableUnauthorizedAccount");
     });
 
+    it(`FUNCTION: setProposalSubmissionVerifier
+        TESTING: custom error: AddressCannotBeZero
+        EXPECTED: should not allow the governor to set the proposal submission verifier to the zero address`, async function () {
+        await expect(proposalManager.connect(governor).setProposalSubmissionVerifier(ethers.ZeroAddress))
+            .to.be.revertedWithCustomError(proposalManager, "AddressCannotBeZero");
+    });
+
+    it(`FUNCTION: setProposalSubmissionVerifier
+        TESTING: onlyOwner authorization (success)
+        EXPECTED: should allow the governor to set the proposal submission verifier`, async function () {
+        await proposalManager.connect(governor).setProposalSubmissionVerifier(mockProposalVerifier.target);
+        expect(await proposalManager.connect(governor).getProposalSubmissionVerifier()).to.equal(mockProposalVerifier.target);
+    });
+
+    it(`FUNCTION: setProposalSubmissionVerifier
+        TESTING: onlyOwner authorization (failure)
+        EXPECTED: should not allow non-governor to set the proposal submission verifier`, async function () {
+        await expect(proposalManager.connect(user1).setProposalSubmissionVerifier(mockProposalVerifier.target))
+            .to.be.revertedWithCustomError(proposalManager, "OwnableUnauthorizedAccount");
+    });
+
+    it(`FUNCTION: setProposalSubmissionVerifier
+        TESTING: onlyOwner authorization (failure)
+        EXPECTED: should not allow non-governor to set the proposal submission verifier`, async function () {
+        await expect(proposalManager.connect(user1).setProposalSubmissionVerifier(mockProposalVerifier.target))
+            .to.be.revertedWithCustomError(proposalManager, "OwnableUnauthorizedAccount");
+    });
+
+    it(`FUNCTION: setProposalSubmissionVerifier
+        TESTING:
+        EXPECTED: should not allow the governor to set the submission verifier to an address not implementing the IProposalVerifier interface`, async function () {
+
+        console.log("TO DO:")
+    });
+
+    it(`FUNCTION: setProposalClaimVerifier
+        TESTING: custom error: AddressCannotBeZero
+        EXPECTED: should not allow the governor to set the proposal claim verifier to the zero address`, async function () {
+        await expect(proposalManager.connect(governor).setProposalClaimVerifier(ethers.ZeroAddress))
+            .to.be.revertedWithCustomError(proposalManager, "AddressCannotBeZero");
+    });
+
+    it(`FUNCTION: setProposalClaimVerifier
+        TESTING: onlyOwner authorization (success)
+        EXPECTED: should allow the governor to set the proposal claim verifier`, async function () {
+        await proposalManager.connect(governor).setProposalClaimVerifier(mockProposalClaimVerifier.target);
+        expect(await proposalManager.connect(governor).getProposalClaimVerifier()).to.equal(mockProposalClaimVerifier.target);
+    });
+
+    it(`FUNCTION: setProposalClaimVerifier
+        TESTING: onlyOwner authorization (failure)
+        EXPECTED: should not allow non-governor to set the proposal claim verifier`, async function () {
+        await expect(proposalManager.connect(user1).setProposalClaimVerifier(mockProposalClaimVerifier.target))
+            .to.be.revertedWithCustomError(proposalManager, "OwnableUnauthorizedAccount");
+    });
+
     it(`FUNCTION: getProposalClaimVerifier
         TESTING: onlyOwner authorization (success)
         EXPECTED: should allow the governor to view the address of the proposal claim verifier contract`, async function () {
