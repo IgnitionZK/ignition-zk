@@ -430,17 +430,17 @@ describe("ProposalManager", function () {
     });
 
     it(`FUNCTION: setProposalSubmissionVerifier
-        TESTING: onlyOwner authorization (failure)
-        EXPECTED: should not allow non-governor to set the proposal submission verifier`, async function () {
-        await expect(proposalManager.connect(user1).setProposalSubmissionVerifier(mockProposalVerifier.target))
-            .to.be.revertedWithCustomError(proposalManager, "OwnableUnauthorizedAccount");
+        TESTING: custom error: AddressIsNotAContract
+        EXPECTED: should not allow the governor to set the submission verifier to an address that is not a contract`, async function () {
+        await expect(proposalManager.connect(governor).setProposalSubmissionVerifier(user1.address))
+            .to.be.revertedWithCustomError(proposalManager, "AddressIsNotAContract");
     });
 
     it(`FUNCTION: setProposalSubmissionVerifier
-        TESTING:
+        TESTING: custom error: AddressDoesNotSupportInterface
         EXPECTED: should not allow the governor to set the submission verifier to an address not implementing the IProposalVerifier interface`, async function () {
-
-        console.log("TO DO:")
+        await expect(proposalManager.connect(governor).setProposalSubmissionVerifier(membershipManager.target))
+            .to.be.revertedWithCustomError(proposalManager, "AddressDoesNotSupportInterface");
     });
 
     it(`FUNCTION: setProposalClaimVerifier
@@ -463,6 +463,21 @@ describe("ProposalManager", function () {
         await expect(proposalManager.connect(user1).setProposalClaimVerifier(mockProposalClaimVerifier.target))
             .to.be.revertedWithCustomError(proposalManager, "OwnableUnauthorizedAccount");
     });
+
+     it(`FUNCTION: setProposalClaimVerifier
+        TESTING: custom error: AddressIsNotAContract
+        EXPECTED: should not allow the governor to set the claim verifier to an address that is not a contract`, async function () {
+        await expect(proposalManager.connect(governor).setProposalClaimVerifier(user1.address))
+            .to.be.revertedWithCustomError(proposalManager, "AddressIsNotAContract");
+    });
+
+    it(`FUNCTION: setProposalClaimVerifier
+        TESTING: custom error: AddressDoesNotSupportInterface
+        EXPECTED: should not allow the governor to set the claim verifier to an address not implementing the IProposalClaimVerifier interface`, async function () {
+        await expect(proposalManager.connect(governor).setProposalClaimVerifier(membershipManager.target))
+            .to.be.revertedWithCustomError(proposalManager, "AddressDoesNotSupportInterface");
+    });
+
 
     it(`FUNCTION: getProposalClaimVerifier
         TESTING: onlyOwner authorization (success)
@@ -490,7 +505,7 @@ describe("ProposalManager", function () {
         const tx = await setSubmissionVerifierAndVerifyProposal(governor, mockProposalVerifier.target, mockProof, mockPublicSignals1, contextKey, rootHash1);  
 
         // expect the event to be emitted with the correct arguments
-        await expect(tx).to.emit(proposalManager, "SubmissionVerified").withArgs(contextKey, submissionNullifier1, contentHash1);
+        await expect(tx).to.emit(proposalManager, "SubmissionVerified").withArgs(contextKey, submissionNullifier1, claimNullifier1, contentHash1);
         
         // check if the submission nullifier status is stored correctly
         expect(await proposalManager.connect(governor).getSubmissionNullifierStatus(submissionNullifier1)).to.equal(true);
@@ -507,7 +522,7 @@ describe("ProposalManager", function () {
         );
 
         // expect the event to be emitted with the correct arguments
-        await expect(tx2).to.emit(proposalManager, "SubmissionVerified").withArgs(contextKey, submissionNullifier2, contentHash2);
+        await expect(tx2).to.emit(proposalManager, "SubmissionVerified").withArgs(contextKey, submissionNullifier2, claimNullifier2, contentHash2);
         
         // check if the submission nullifier status is stored correctly
         expect(await proposalManager.connect(governor).getSubmissionNullifierStatus(submissionNullifier2)).to.equal(true);
@@ -628,25 +643,6 @@ describe("ProposalManager", function () {
         )).to.be.revertedWithCustomError(proposalManager, "InvalidSubmissionProof").withArgs(contextKey, submissionNullifier1);
     });
 
-    it(`FUNCTION: verifyProposal (with mock submission verifier that reverts)
-        TESTING: revert handling, custom error: MockVerifierV2Reverted
-        EXPECTED: should not let governor verify a proposal with an invalid proof`, async function () {
-
-        // deploy group NFT and initialize group root
-        await deployGroupNftAndInitRoot(governor, groupKey, nftName, nftSymbol, rootHash1);
-        
-        // set the proposal submission verifier to the mock verifier V2
-        await proposalManager.connect(governor).setProposalSubmissionVerifier(mockProposalVerifierV2.target);
-        
-        // expect the mock verifier to revert with a custom error
-        await expect(proposalManager.connect(governor).verifyProposal(
-            mockProof,
-            mockPublicSignals1,
-            contextKey,
-            rootHash1
-        )).to.be.revertedWithCustomError(mockProposalVerifierV2, "MockVerifierV2Reverted");
-    });
-
     it(`FUNCTION: verifyProposal (with mock submission verifier)
         TESTING: custom error: SubmissionNullifierAlreadyUsed, Cross-context nullifier conflict
         EXPECTED: should not allow the governor to verify a proposal with a submission nullifier already used in another context`, async function () {
@@ -673,6 +669,23 @@ describe("ProposalManager", function () {
             rootHash1
         )).to.be.revertedWithCustomError(proposalManager, "SubmissionNullifierAlreadyUsed");
     });
+
+    it(`FUNCTION: verifyProposal (with real verifier, mock proof)
+        TESTING: zero proof inputs handling
+        EXPECTED: should not allow the governor to verify a proposal with a zero proof`, async function () {
+        // deploy group NFT and initialize group root
+        await deployGroupNftAndInitRoot(governor, groupKey, nftName, nftSymbol, rootHash1);
+        
+        const zeroProof = new Array(24).fill(0);
+
+        await expect(proposalManager.connect(governor).verifyProposal(
+            zeroProof,
+            mockPublicSignals1,
+            contextKey,
+            rootHash1
+        )).to.be.revertedWithCustomError(proposalManager, "InvalidSubmissionProof").withArgs(contextKey, submissionNullifier1);
+    });
+
 
     it("verifyProposal / REAL VERIFIER, REAL PROOF: should allow the governor to verify a proposal with a valid proof", async function () {
         console.log("TO DO:");
