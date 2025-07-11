@@ -13,9 +13,9 @@ template ProposalClaimProof() {
      * @notice proposalSubmissionNullifier: the proposal submission nullifier (content + context hashes).
      * @notice proposalContextHash: the public proposal context hash (group + epoch).
      */
-    signal input proposalClaimNullifier; // The public proposal claim hash
-    signal input proposalSubmissionNullifier;    // The proposal submission nullifier (content + context hashes)
-    signal input proposalContextHash; // The public proposal context hash (group + epoch)
+    signal input proposalClaimNullifier; 
+    signal input proposalSubmissionNullifier;    
+    signal input proposalContextHash; 
 
     // Private Inputs
     /**

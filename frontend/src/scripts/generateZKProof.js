@@ -299,6 +299,54 @@ export class ZKProofGenerator {
     return circuitInput;
   }
 
+  
+  static async generateProposalClaimCircuitInput(
+    mnemonic,
+    commitmentArray,
+    groupId,
+    epochId,
+    proposalClaimHash,
+    proposalSubmissionHash
+  ) {
+    console.log("Generating Proposal Claim Circuit Input...");
+    const merkleProofInput = await this.generateMerkleProofInput(
+      mnemonic,
+      commitmentArray
+    );
+
+    console.log("Identity Trapdoor:", merkleProofInput.identityTrapdoor);
+    console.log("Identity Nullifier:", merkleProofInput.identityNullifier);
+
+    const groupHashBigInt = this.#stringToBigInt(groupId);
+    const epochHashBigInt = this.#stringToBigInt(epochId);
+    console.log("Group Hash BigInt:", groupHashBigInt);
+    console.log("Epoch Hash BigInt:", epochHashBigInt);
+
+    const proposalClaimHashBigInt = this.#stringToBigInt(proposalClaimHash);
+    const proposalSubmissionHashBigInt = this.#stringToBigInt(proposalSubmissionHash);
+    console.log("Proposal Claim Hash BigInt:", proposalClaimHashBigInt);
+    console.log("Proposal Submission Hash BigInt:", proposalSubmissionHashBigInt);
+    
+    const poseidon = await this.#getPoseidon();
+    const F = poseidon.F;
+    
+    const proposalContextHash = F.toObject(
+      poseidon([groupHashBigInt, epochHashBigInt])
+    );
+    console.log("Proposal Context Hash:", proposalContextHash);
+
+    const circuitInput = {
+      proposalClaimHash: proposalClaimHashBigInt.toString(),
+      proposalSubmissionHash: proposalSubmissionHashBigInt.toString(),
+      proposalContextHash: proposalContextHash.toString(),
+      identityTrapdoor: merkleProofInput.identityTrapdoor,
+      identityNullifier: merkleProofInput.identityNullifier
+    };
+    console.log("Circuit Input for Proposal Claim:", circuitInput);
+
+    return circuitInput;
+  }
+
   /**
    * Generates a zero-knowledge proof for the specified circuit input.
    * @param {Object} circuitInput - The input data for the circuit.
