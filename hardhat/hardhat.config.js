@@ -33,7 +33,12 @@ module.exports = {
       "MembershipVerifier",
       "ProposalVerifier",
     ],
-    except: ["MembershipManagerV2", "GovernanceManagerV2"],
+    except: [
+      "MockMembershipManagerV2", 
+      "MockGovernanceManagerV2", 
+      "MockProposalManagerV2" , 
+      "MockProposalVerifier",
+      "MockProposalVerifierV2"],
   },
   networks: {
     sepolia: {
