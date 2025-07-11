@@ -1,10 +1,10 @@
 import { supabase } from "./supabase";
 
 /**
- * Retrieves proposals by group ID(s) from the database
+ * Retrieves proposals by group ID(s) from the database using an RPC function
  * @param {Object} params - The parameters object
  * @param {string|string[]} params.groupId - Single group ID or array of group IDs to fetch proposals for
- * @returns {Promise<Array<Object>|null>} Array of proposal objects with group names, or null if no proposals found
+ * @returns {Promise<Array<Object>|null>} Array of proposal objects with group names and status types, or null if no proposals found
  * @throws {Error} If groupId is not provided or if there's a database error
  * @example
  * // Get proposals for a single group
@@ -23,29 +23,21 @@ export async function getProposalsByGroupId({ groupId }) {
 
   const { data, error } = await supabase
     .schema("ignitionzk")
-    .from("proposals")
-    .select(
-      `
-      *,
-      groups (
-        name
-      )
-    `
-    )
-    .in("group_id", groupIds);
+    .rpc("get_proposals_with_details", {
+      p_group_ids: groupIds,
+    }); // Call the RPC function with explicit schema
 
   if (error) {
     if (error.code === "PGRST116") {
+      // This error code typically means "no rows found", so return null
       return null;
     }
     throw new Error(error.message);
   }
 
-  // Transform the data to include group name directly in the proposal object
-  return data.map((proposal) => ({
-    ...proposal,
-    group_name: proposal.groups.name,
-  }));
+  // The RPC function already returns the data in the desired format,
+  // so no further transformation is needed here for group_name or status_type.
+  return data;
 }
 
 /**
