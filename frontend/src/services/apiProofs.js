@@ -47,6 +47,7 @@ export async function insertProof({
     proposal: "a1a0a504-e3aa-4e5d-bb9f-bbd98aefbd52",
     voting: "4cf28644-3d5c-4a09-b96d-d3138503ee7d",
     membership: "898fa405-69e5-4615-8da4-63b13a2b0012",
+    claim: "587c8dfa-5566-4458-ab96-c439542343c9",
   };
 
   const circuitId = circuitIdMap[circuitType];
@@ -58,7 +59,6 @@ export async function insertProof({
     proposal_id: proposalId,
     circuit_id: circuitId,
     group_id: groupId,
-    circuit_type: circuitType,
     group_member_id: groupMemberId,
     nullifier_hash: nullifierHash,
     is_verified: true,
