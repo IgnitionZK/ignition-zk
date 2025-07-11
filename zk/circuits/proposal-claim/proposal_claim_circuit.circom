@@ -9,13 +9,12 @@ include "../../circomlib/circuits/poseidon.circom";
 template ProposalClaimProof() {
     // Public Inputs
     /**
-     * @notice the public proposal claim hash, which is used to verify the uniqueness of the claim.
+     * @notice proposalClaimNullifier: the public proposal claim hash, which is used to verify the uniqueness of the claim.
      * @notice proposalSubmissionNullifier: the proposal submission nullifier (content + context hashes).
      * @notice proposalContextHash: the public proposal context hash (group + epoch).
-     * @dev These values are fetched from the DB and are used to verify the claim.
      */
     signal input proposalClaimNullifier; 
-    signal input proposalSubmissionNullifier;   
+    signal input proposalSubmissionNullifier;    
     signal input proposalContextHash; 
 
     // Private Inputs
@@ -26,34 +25,6 @@ template ProposalClaimProof() {
      */
     signal input identityNullifier;
     signal input identityTrapdoor;
-
-    /**
-     * @notice groupHash: the hash of the group context, which is used to derive the proposal context hash.
-     * @notice epochHash: the hash of the epoch context, which is used to derive the proposal context hash.
-     * @dev These values are fetched from the frontend. 
-     * They correspond to the hashed values of the group and epoch for the proposal the claim is being made on.
-     *
-     */
-    signal input groupHash;
-    signal input epochHash; 
-
-    /**
-     * @notice computedProposalContextHash: the computed proposal context hash, which is derived from the group and epoch hashes.
-     * @dev This value is used to verify the uniqueness of the proposal context.
-     * The proposal context hash is computed as the Poseidon hash of the group and epoch hashes.
-     * The proposal context hash is used to ensure that the claim is made for the correct proposal
-     */
-    signal computedProposalContextHash;
-    component proposalContextHasher = Poseidon(2);
-    proposalContextHasher.inputs[0] <== groupHash;
-    proposalContextHasher.inputs[1] <== epochHash;
-    computedProposalContextHash <== proposalContextHasher.out;
-
-    /**
-     * @notice The computed proposal context hash must match the public proposal context hash.
-     * @dev This ensures that the claim is made for the correct proposal context.
-     */
-    computedProposalContextHash === proposalContextHash;
 
     /**
      * @notice computedClaimNullifier: the computed claim nullifier, which is derived from the identity trapdoor, identity nullifier, and proposal submission nullifier.

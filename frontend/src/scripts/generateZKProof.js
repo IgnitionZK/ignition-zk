@@ -305,10 +305,8 @@ export class ZKProofGenerator {
     commitmentArray,
     groupId,
     epochId,
-    proposalClaimHashDB,
-    proposalSubmissionHashDB,
-    groupHashDB,
-    epochHashDB
+    proposalClaimHash,
+    proposalSubmissionHash
   ) {
     console.log("Generating Proposal Claim Circuit Input...");
     const merkleProofInput = await this.generateMerkleProofInput(
@@ -325,12 +323,8 @@ export class ZKProofGenerator {
     console.log("Group Hash BigInt:", groupHashBigInt);
     console.log("Epoch Hash BigInt:", epochHashBigInt);
 
-    
-    const groupHashDBBigInt = this.#stringToBigInt(groupIdDB);
-    const epochHashDBBigInt = this.#stringToBigInt(epochIdDB);
-
-    const proposalClaimHashBigInt = this.#stringToBigInt(proposalClaimHashDB);
-    const proposalSubmissionHashBigInt = this.#stringToBigInt(proposalSubmissionHashDB);
+    const proposalClaimHashBigInt = this.#stringToBigInt(proposalClaimHash);
+    const proposalSubmissionHashBigInt = this.#stringToBigInt(proposalSubmissionHash);
     console.log("Proposal Claim Hash BigInt:", proposalClaimHashBigInt);
     console.log("Proposal Submission Hash BigInt:", proposalSubmissionHashBigInt);
     
@@ -338,7 +332,7 @@ export class ZKProofGenerator {
     const F = poseidon.F;
     
     const proposalContextHash = F.toObject(
-      poseidon([groupHashDBBigInt, epochHashDBBigInt])
+      poseidon([groupHashBigInt, epochHashBigInt])
     );
     console.log("Proposal Context Hash:", proposalContextHash);
 
@@ -347,9 +341,7 @@ export class ZKProofGenerator {
       proposalSubmissionHash: proposalSubmissionHashBigInt.toString(),
       proposalContextHash: proposalContextHash.toString(),
       identityTrapdoor: merkleProofInput.identityTrapdoor,
-      identityNullifier: merkleProofInput.identityNullifier, 
-      groupHash: groupHashBigInt.toString(),
-      epochHash: epochHashBigInt.toString()
+      identityNullifier: merkleProofInput.identityNullifier
     };
     console.log("Circuit Input for Proposal Claim:", circuitInput);
 
