@@ -314,10 +314,9 @@ export class ZKProofGenerator {
       commitmentArray
     );
 
-    const { identityTrapdoor, identityNullifier } = merkleProofInput;
-    console.log("Identity Trapdoor:", identityTrapdoor);
-    console.log("Identity Nullifier:", identityNullifier);
-   
+    console.log("Identity Trapdoor:", merkleProofInput.identityTrapdoor);
+    console.log("Identity Nullifier:", merkleProofInput.identityNullifier);
+
     const groupHashBigInt = this.#stringToBigInt(groupId);
     const epochHashBigInt = this.#stringToBigInt(epochId);
     console.log("Group Hash BigInt:", groupHashBigInt);
