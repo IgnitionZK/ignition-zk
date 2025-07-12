@@ -12,8 +12,6 @@ describe("ProposalManager", function () {
     let proposalManager;
     
     // Verifiers
-    let MembershipVerifier;
-    let membershipVerifier;
     let ProposalVerifier;
     let proposalVerifier;
     let ProposalClaimVerifier;
@@ -75,11 +73,11 @@ describe("ProposalManager", function () {
     let realGroupKey;
     let realEpochKey;
     let realContextKey;
-    let realProposalContextHash;
-    let realProposalNullifier;
-    let realContentHash;
-    let realRoot;
-    let realProof;
+    let ProofContextHash;
+    let ProofSubmissionNullifier;
+    let ProofClaimNullifier;
+    let ProofContentHash;
+    let ProofRoot;
     let realPublicSignals;
 
 
@@ -89,8 +87,6 @@ describe("ProposalManager", function () {
 
         // Get Contract Factory for MembershipManager
         MembershipManager = await ethers.getContractFactory("MembershipManager");  
-        // Get Contract Factory for MembershipManagerVerifier
-        MembershipVerifier = await ethers.getContractFactory("MembershipVerifier");
 
         // Get Contract Factory for NFT implementation
         NFTImplementation = await ethers.getContractFactory("ERC721IgnitionZK");
@@ -168,7 +164,7 @@ describe("ProposalManager", function () {
             contextKey
         ];
 
-        //real proof inputs:
+        // Real submission proof inputs (CHANGE VALUES)
         realGroupId = '97dca094-bdd7-419b-a91a-5ea1f2aa0537';
         realEpochId = '2935f80b-9cbd-4000-8342-476b97148ee7';
         realGroupKey = Conversions.stringToBytes32(realGroupId);
@@ -183,13 +179,12 @@ describe("ProposalManager", function () {
         ProofRoot = ethers.toBeHex(realPublicSignals[3], 32);
         ProofContentHash = ethers.toBeHex(realPublicSignals[4], 32);
 
+        // Real claim proof inputs (ADD VALUES)
+
     });
 
     // RUN BEFORE EACH TEST
     beforeEach(async function () {
-        // Deploy MembershipVerifier contract
-        membershipVerifier = await MembershipVerifier.deploy();
-        await membershipVerifier.waitForDeployment();
 
         // Deploy the NFT implementation minimal proxy (Clones EIP‑1167) contract
         nftImplementation = await NFTImplementation.deploy();
@@ -199,7 +194,6 @@ describe("ProposalManager", function () {
         membershipManager = await upgrades.deployProxy(
             MembershipManager, 
             [
-                membershipVerifier.target, 
                 await governor.getAddress(),
                 nftImplementation.target
             ],
@@ -281,7 +275,6 @@ describe("ProposalManager", function () {
         EXPECTED: should deploy Membership Verifier, MembershipManager, ProposalVerifier, ProposalClaimVerifier, ProposalManager contracts`, async function () {
         expect(await membershipManager.target).to.be.properAddress;
         expect(await proposalManager.target).to.be.properAddress;
-        expect(await membershipVerifier.target).to.be.properAddress;
         expect(await proposalVerifier.target).to.be.properAddress;
         expect(await proposalClaimVerifier.target).to.be.properAddress;
         expect(await nftImplementation.target).to.be.properAddress;
