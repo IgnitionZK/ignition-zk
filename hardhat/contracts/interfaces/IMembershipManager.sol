@@ -6,11 +6,6 @@ interface IMembershipManager {
 // ====================================================================================================================
 //                                       EXTERNAL STATE-CHANGING FUNCTIONS
 // ====================================================================================================================
-    /**
-     * @notice Sets the address of the zk-SNARK verifier contract.
-     * @param _verifier The address of the new verifier contract.
-     */
-    function setMembershipVerifier(address _verifier) external;
 
     /**
      * @notice Deploys a new ERC721 NFT Clone for a specific group.
@@ -72,12 +67,6 @@ interface IMembershipManager {
      * @return address of the ERC721 NFT contract associated with the specified group key.
      */
     function getGroupNftAddress(bytes32 groupKey) external view returns (address);
-
-    /**
-     * @notice Retrieves the address of the zk-SNARK verifier contract.
-     * @return The address of the verifier contract.
-     */
-    function getVerifier() external view returns (address);
 
     /**
      * @notice Retrieves the address of the NFT implementation contract.

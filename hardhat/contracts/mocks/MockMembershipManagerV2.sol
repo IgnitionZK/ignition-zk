@@ -2,7 +2,6 @@
 pragma solidity ^0.8.28;
 
 // Interfaces:
-import { IMembershipVerifier } from "../interfaces/IMembershipVerifier.sol";
 import { IERC721IgnitionZK } from "../interfaces/IERC721IgnitionZK.sol";
 import { IERC165 } from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 import { IERC721 } from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
@@ -19,9 +18,9 @@ import { Clones } from "@openzeppelin/contracts/proxy/Clones.sol";
 /**
  * @title MembershipManager
  * @notice This contract serves as the central hub for managing group memberships, utilizing a
- * zk-SNARK verifier for privacy-preserving proof verification and dedicated ERC721 NFTs for membership tokens.
+ * dedicated ERC721 NFTs for membership tokens.
  * It is designed to be upgradeable via the UUPS proxy pattern by the governor.
- * @dev A contract to manage membership in groups using Merkle trees and zk-SNARKs.
+ * @dev A contract to manage membership in groups using Merkle trees.
  * It allows for initializing and updating Merkle roots, verifying proofs, managing group NFTs,
  * and adding/removing members. This contract acts as a factory for ERC721IgnitionZK NFT contracts.
  */
@@ -179,12 +178,6 @@ contract MockMembershipManagerV2 is Initializable, UUPSUpgradeable, OwnableUpgra
      * @param grantedTo The address to which the role was granted.
      */
     event RoleGranted(address indexed nftClone, bytes32 role, address indexed grantedTo);
-
-    /**
-     * @notice Emitted when the address of the zk-SNARK verifier contract is set.
-     * @param verifier The address of the zk-SNARK verifier contract.
-     */
-    event VerifierSet(address indexed verifier);
     
     /**
      * @notice Emitted when the address of the NFT implementation contract is set.
@@ -213,9 +206,6 @@ contract MockMembershipManagerV2 is Initializable, UUPSUpgradeable, OwnableUpgra
     // ====================================================================================================
     // ADDRESSES
     // ====================================================================================================
-
-    /// @dev The address of the zk-SNARK verifier contract.
-    IMembershipVerifier private verifier;
     
     /// @dev The address of the NFT implementation contract used for creating new group NFTs.
     address private nftImplementation;
@@ -267,10 +257,9 @@ contract MockMembershipManagerV2 is Initializable, UUPSUpgradeable, OwnableUpgra
     /**
      * @notice Initializes the MembershipManager contract.
      * @dev This function replaces the constructor for upgradeable contracts and is called once
-     * after the proxy is deployed. It sets the initial verifier and governor.
+     * after the proxy is deployed. It sets the governor.
      * @dev The governor is set as the owner of this contract, allowing it to manage upgrades and configurations.
      * @dev The NFT implementation address is checked to ensure it supports the ERC721 interface.
-     * @param _verifier The address of the zk-SNARK verifier contract.
      * @param _governor The address of the governor (DAO) contract.
      * @param _nftImplementation The address of the NFT implementation contract to be used for group NFTs.
      * @custom:error AddressCannotBeZero If any of the provided addresses are zero.
@@ -278,13 +267,11 @@ contract MockMembershipManagerV2 is Initializable, UUPSUpgradeable, OwnableUpgra
      */
     function initialize
     (
-        address _verifier, 
         address _governor, 
         address _nftImplementation
     ) 
         external 
         initializer 
-        nonZeroAddress(_verifier) 
         nonZeroAddress(_governor) 
         nonZeroAddress(_nftImplementation) 
     {
@@ -292,24 +279,13 @@ contract MockMembershipManagerV2 is Initializable, UUPSUpgradeable, OwnableUpgra
         __UUPSUpgradeable_init();
       
         if (!IERC165(_nftImplementation).supportsInterface(type(IERC721).interfaceId)) revert NftMustBeERC721();
-        verifier = IMembershipVerifier(_verifier);
         nftImplementation = _nftImplementation;
-        emit VerifierSet(_verifier);
         emit NftImplementationSet(_nftImplementation);
     }
 
 // ====================================================================================================================
 //                                       EXTERNAL STATE-CHANGING FUNCTIONS
 // ====================================================================================================================
-    
-    /**
-     * @dev Can only be called by the governor.
-     * @custom:error AddressCannotBeZero If the provided verifier address is zero.
-     */
-    function setMembershipVerifier(address _verifier) external onlyOwner nonZeroAddress(_verifier) {
-        verifier = IMembershipVerifier(_verifier);
-        emit VerifierSet(_verifier);
-    }
 
     /**
      * @dev Uses the Clones library to create a deterministic clone of the NFT implementation.
@@ -401,46 +377,6 @@ contract MockMembershipManagerV2 is Initializable, UUPSUpgradeable, OwnableUpgra
         groupRoots[groupKey] = newRoot;
         emit RootSet(groupKey, currentRoot, newRoot);
     }
-
-    /**
-     * @dev Can only be called by the governor. Prevents double-spending by checking nullifier usage.
-     * @custom:error RootNotYetInitialized If no root has been set for the group yet.
-     * @custom:error InvalidMerkleRoot If the proof's root does not match the group's current root.
-     * @custom:error NullifierAlreadyUsed If the nullifier has already been consumed.
-     * @custom:error InvalidProof If the zk-SNARK proof itself is invalid.
-     * @custom:error InvalidGroupKey If the group key provided in the public signals does not match the expected group key.
-     * @custom:error KeyCannotBeZero If the provided group key is zero.
-     */
-     /*
-    function verifyProof
-    (
-        uint256[24] calldata proof, 
-        uint256[3] calldata publicSignals,
-        bytes32 groupKey
-    ) 
-        external 
-        onlyOwner 
-        nonZeroKey(groupKey) 
-    {
-        bytes32 proofRoot = bytes32(publicSignals[1]);
-        bytes32 nullifier = bytes32(publicSignals[0]);
-        bytes32 proofGroupKey = bytes32(publicSignals[2]);
-        bytes32 currentRoot = groupRoots[groupKey];
-
-        if (currentRoot == bytes32(0)) revert RootNotYetInitialized();
-        if (currentRoot != proofRoot) revert InvalidMerkleRoot();
-        if (groupNullifiers[nullifier]) revert NullifierAlreadyUsed();
-        if (proofGroupKey != groupKey) revert InvalidGroupKey();
-
-        bool isValid = verifier.verifyProof(proof, publicSignals);
-        if (!isValid) {
-            revert InvalidProof(groupKey, nullifier);
-        }
-
-        groupNullifiers[nullifier] = true;
-        emit ProofVerified(groupKey, nullifier);
-    }
-    */
 
     /**
      * @dev Only the governor can call this function. Ensures that the member address is not zero, does not already hold a token for this group,
@@ -553,21 +489,6 @@ contract MockMembershipManagerV2 is Initializable, UUPSUpgradeable, OwnableUpgra
     }
 
     /**
-     * @dev Only callable by the owner (governor). 
-     * Returns true if the nullifier has been used.
-     */
-    // function getNullifierStatus(bytes32 nullifier) external view onlyOwner returns (bool) {
-    //    return groupNullifiers[nullifier];
-    // }
-
-    /**
-     * @dev Only callable by the owner (governor).
-     */
-    function getVerifier() external view onlyOwner returns (address) {
-        return address(verifier);
-    }
-
-    /**
      * @dev Only callable by the owner (governor).
      */
     function getNftImplementation() external view onlyOwner returns (address) {
@@ -655,10 +576,8 @@ contract MockMembershipManagerV2 is Initializable, UUPSUpgradeable, OwnableUpgra
         return nftAddress;
     }
 
-    function _dummy() external pure returns (string memory) {
+    function dummy() external pure returns (string memory) {
         return "This is a dummy function.";
     }
-
-
 
 }

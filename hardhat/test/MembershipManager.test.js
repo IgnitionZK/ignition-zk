@@ -9,10 +9,6 @@ describe("MembershipManager", function () {
     let MembershipManager;
     let membershipManager;
 
-    // Verifiers
-    let MembershipVerifier;
-    let membershipVerifier;
-
     // NFT Implementation
     let NFTImplementation;
     let nftImplementation;
@@ -42,9 +38,6 @@ describe("MembershipManager", function () {
 
         // Get Contract Factory for MembershipManager
         MembershipManager = await ethers.getContractFactory("MembershipManager");  
-    
-        // Get Contract Factory for MembershipManagerVerifier
-        MembershipVerifier = await ethers.getContractFactory("MembershipVerifier");
         
         // Get Contract Factory for NFT implementation
         NFTImplementation = await ethers.getContractFactory("ERC721IgnitionZK");
@@ -90,9 +83,6 @@ describe("MembershipManager", function () {
 
     // RUN BEFORE EACH TEST
     beforeEach(async function () {
-        // Deploy MembershipVerifier contract
-        membershipVerifier = await MembershipVerifier.deploy();
-        await membershipVerifier.waitForDeployment();
         
         // Deploy the NFT implementation minimal proxy (Clones EIP‑1167) contract
         nftImplementation = await NFTImplementation.deploy();
@@ -102,7 +92,6 @@ describe("MembershipManager", function () {
         membershipManager = await upgrades.deployProxy(
             MembershipManager, 
             [
-                membershipVerifier.target, 
                 await governor.getAddress(),
                 nftImplementation.target
             ],
@@ -142,9 +131,8 @@ describe("MembershipManager", function () {
 
     it(`SET UP: contract deployment
         TESTING: deployed addresses
-        EXPECTED: should deploy NFTImplementation, MembershipManager and MembershipVerifier contracts`, async function () {
+        EXPECTED: should deploy NFTImplementation, MembershipManager contracts`, async function () {
         expect(membershipManager.target).to.be.properAddress;
-        expect(membershipVerifier.target).to.be.properAddress;
         expect(nftImplementation.target).to.be.properAddress;
     });
 
@@ -536,7 +524,7 @@ describe("MembershipManager", function () {
         
         // Attempt to mint NFT to a contract address
         await expect(
-            membershipManager.connect(governor).mintNftToMember(membershipVerifier.target, groupKey)
+            membershipManager.connect(governor).mintNftToMember(nftImplementation.target, groupKey)
         ).to.be.revertedWithCustomError(
             MembershipManager,
             "MemberMustBeEOA"
@@ -998,7 +986,7 @@ describe("MembershipManager", function () {
 
         // Attempt to transfer the NFT to a contract address by the owner
         await expect(
-            clone.connect(user1).transferFrom(user1Address, membershipVerifier.target, 0)
+            clone.connect(user1).transferFrom(user1Address, nftImplementation.target, 0)
         ).to.be.revertedWithCustomError(
             clone,
             "TransferNotAllowed"
@@ -1014,7 +1002,7 @@ describe("MembershipManager", function () {
 
         // Attempt to approve a contract address to transfer the NFT by the owner
         await expect(
-            clone.connect(user1).approve(membershipVerifier.target, 0)
+            clone.connect(user1).approve(nftImplementation.target, 0)
         ).to.be.revertedWithCustomError(
             clone,
             "TransferNotAllowed"
@@ -1029,7 +1017,7 @@ describe("MembershipManager", function () {
 
        // Attempt to set approval for all for a contract address by the owner
        await expect(
-           clone.connect(user1).setApprovalForAll(membershipVerifier.target, true)
+           clone.connect(user1).setApprovalForAll(nftImplementation.target, true)
        ).to.be.revertedWithCustomError(
             clone,
             "TransferNotAllowed"

@@ -181,23 +181,6 @@ contract GovernanceManager is Initializable, UUPSUpgradeable, OwnableUpgradeable
     }
 
     /**
-     * @notice Delegates the verifyProof call to the membership manager.
-     * @dev Only callable by the relayer.
-     * @param proof The zk-SNARK proof to verify.
-     * @param publicSignals The public signals associated with the proof.
-     * @param groupKey The unique identifier for the group.
-     */
-     /*
-    function delegateVerifyProof(
-        uint256[24] calldata proof,
-        uint256[3] calldata publicSignals,
-        bytes32 groupKey
-    ) external onlyRelayer {
-        IMembershipManager(membershipManager).verifyProof(proof, publicSignals, groupKey);
-    }
-    */
-
-    /**
      * @notice Delegates the deployGroupNft call to the membership manager.
      * @dev Only callable by the relayer.
      * @param groupKey The unique identifier for the group.
@@ -324,15 +307,6 @@ contract GovernanceManager is Initializable, UUPSUpgradeable, OwnableUpgradeable
     }
 
     /**
-     * @notice Delegates the getVerifier call to the membership manager.
-     * @dev Only callable by the relayer.
-     * @return The address of the verifier contract.
-     */
-    function delegateGetVerifier() external view onlyRelayer returns (address) {
-        return IMembershipManager(membershipManager).getVerifier();
-    }
-
-    /**
      * @notice Delegates the getNftImplementation call to the membership manager.
      * @dev Only callable by the relayer.
      * @return The address of the NFT implementation contract.
@@ -359,19 +333,6 @@ contract GovernanceManager is Initializable, UUPSUpgradeable, OwnableUpgradeable
     function delegateGetGroupNftAddress(bytes32 groupKey) external view onlyRelayer returns (address) {
         return IMembershipManager(membershipManager).getGroupNftAddress(groupKey);
     }
-
-    /**
-     * @notice Delegates the getNullifier call to the membership manager.
-     * @dev Only callable by the relayer.
-     * @param groupKey The unique identifier for the group.
-     * @param nullifier The nullifier to check.
-     * @return bool indicating whether the nullifier has been used.
-     */
-     /*
-    function delegateGetNullifierStatus(bytes32 groupKey, bytes32 nullifier) external view onlyRelayer returns (bool) {
-        return IMembershipManager(membershipManager).getNullifierStatus(groupKey, nullifier);
-    }
-    */
 
     // ================================================================================================================
     // 2. ProposalManager Delegation Functions

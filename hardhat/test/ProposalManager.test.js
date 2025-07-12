@@ -12,8 +12,6 @@ describe("ProposalManager", function () {
     let proposalManager;
     
     // Verifiers
-    let MembershipVerifier;
-    let membershipVerifier;
     let ProposalVerifier;
     let proposalVerifier;
     let ProposalClaimVerifier;
@@ -89,8 +87,6 @@ describe("ProposalManager", function () {
 
         // Get Contract Factory for MembershipManager
         MembershipManager = await ethers.getContractFactory("MembershipManager");  
-        // Get Contract Factory for MembershipManagerVerifier
-        MembershipVerifier = await ethers.getContractFactory("MembershipVerifier");
 
         // Get Contract Factory for NFT implementation
         NFTImplementation = await ethers.getContractFactory("ERC721IgnitionZK");
@@ -187,9 +183,6 @@ describe("ProposalManager", function () {
 
     // RUN BEFORE EACH TEST
     beforeEach(async function () {
-        // Deploy MembershipVerifier contract
-        membershipVerifier = await MembershipVerifier.deploy();
-        await membershipVerifier.waitForDeployment();
 
         // Deploy the NFT implementation minimal proxy (Clones EIP‑1167) contract
         nftImplementation = await NFTImplementation.deploy();
@@ -199,7 +192,6 @@ describe("ProposalManager", function () {
         membershipManager = await upgrades.deployProxy(
             MembershipManager, 
             [
-                membershipVerifier.target, 
                 await governor.getAddress(),
                 nftImplementation.target
             ],
@@ -281,7 +273,6 @@ describe("ProposalManager", function () {
         EXPECTED: should deploy Membership Verifier, MembershipManager, ProposalVerifier, ProposalClaimVerifier, ProposalManager contracts`, async function () {
         expect(await membershipManager.target).to.be.properAddress;
         expect(await proposalManager.target).to.be.properAddress;
-        expect(await membershipVerifier.target).to.be.properAddress;
         expect(await proposalVerifier.target).to.be.properAddress;
         expect(await proposalClaimVerifier.target).to.be.properAddress;
         expect(await nftImplementation.target).to.be.properAddress;
