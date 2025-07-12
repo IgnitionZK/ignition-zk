@@ -122,11 +122,11 @@ contract ProposalManager is Initializable, OwnableUpgradeable, UUPSUpgradeable, 
     /// @dev The mapping of proposal claim nullifiers. Key: claimNullifier => true if the claim nullifier has been used
     mapping(bytes32 => bool) private claimNullifiers; 
 
-    // Addresses:
-    /// @dev The address of the proposal submission verifier contract.
+    // Interfaces
+    /// @dev The interface of the proposal submission verifier contract.
     IProposalVerifier private submissionVerifier;
 
-    /// @dev The address of the proposal claim verifier contract.
+    /// @dev The interface of the proposal claim verifier contract.
     IProposalClaimVerifier private claimVerifier;
 
 // ====================================================================================================================
