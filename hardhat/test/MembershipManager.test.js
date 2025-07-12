@@ -1024,5 +1024,95 @@ describe("MembershipManager", function () {
         );
     });
 
+    it(`FUNCTION: getRoot
+        TESTING: onlyOwner authorization (failure)
+        EXPECTED: should not allow non-governor to get the root for an existing group`, async function () {
+        // deploy group NFT and initialize group root
+        await deployGroupNftAndInitRoot(governor, groupKey, nftName, nftSymbol, rootHash);
+
+        // Attempt to get root by a non-governor
+        await expect(
+            membershipManager.connect(user1).getRoot(groupKey)
+        ).to.be.revertedWithCustomError(
+            MembershipManager,
+            "OwnableUnauthorizedAccount"
+        );
+    });
+
+    it(`FUNCTION: getRoot
+        TESTING: onlyOwner authorization (success)
+        EXPECTED: should allow the governor to get the root for an existing group`, async function () {
+        // deploy group NFT and initialize group root
+        await deployGroupNftAndInitRoot(governor, groupKey, nftName, nftSymbol, rootHash);
+
+        // Attempt to get root by the governor
+        expect( await membershipManager.connect(governor).getRoot(groupKey)).to.equal(rootHash, "Should return the correct root hash");
+    });
+
+    it(`FUNCTION: getGroupNftAddress
+        TESTING: onlyOwner authorization (failure)
+        EXPECTED: should not allow non-governor to get the NFT address for an existing group`, async function () {
+        // deploy group NFT
+        await membershipManager.connect(governor).deployGroupNft(groupKey, nftName, nftSymbol);
+
+        // Attempt to get NFT address by a non-governor
+        await expect(
+            membershipManager.connect(user1).getGroupNftAddress(groupKey)
+        ).to.be.revertedWithCustomError(
+            MembershipManager,
+            "OwnableUnauthorizedAccount"
+        );
+    });
+
+    it(`FUNCTION: getGroupNftAddress
+        TESTING: onlyOwner authorization (success)
+        EXPECTED: should allow the governor to get the NFT address for an existing group`, async function () {
+        // deploy group NFT
+        await membershipManager.connect(governor).deployGroupNft(groupKey, nftName, nftSymbol);
+
+        // Attempt to get NFT address by the governor
+        expect( await membershipManager.connect(governor).getGroupNftAddress(groupKey)).to.be.properAddress;
+    });
+
+    it(`FUNCTION: getNftImplementation
+        TESTING: onlyOwner authorization (failure)
+        EXPECTED: should not allow non-governor to get the NFT implementation address`, async function () {
+        
+        await expect(membershipManager.connect(user1).getNftImplementation()).to.be.revertedWithCustomError(
+            MembershipManager,
+            "OwnableUnauthorizedAccount"
+        );  
+    });
+
+    it(`FUNCTION: getNftImplementation
+        TESTING: onlyOwner authorization (success)
+        EXPECTED: should allow the governor to get the NFT implementation address`, async function () {
+        
+        expect(await membershipManager.connect(governor).getNftImplementation()).to.equal(
+            nftImplementation.target,
+            "Should return the correct NFT implementation address"
+        );
+    });
+
+    it(`FUNCTION: getMaxMembersBatch
+        TESTING: onlyOwner authorization (success)
+        EXPECTED: should allow the governor to get the max members batch`, async function () {
+
+        expect(await membershipManager.connect(governor).getMaxMembersBatch()).to.equal(
+            30,
+            "Should return the correct max members batch"
+        );
+    });
+
+    it(`FUNCTION: getMaxMembersBatch
+        TESTING: onlyOwner authorization (failure)
+        EXPECTED: should not allow a non-governor to get the max members batch`, async function () {
+
+        await expect(membershipManager.connect(user1).getMaxMembersBatch()).to.be.revertedWithCustomError(
+            MembershipManager,
+            "OwnableUnauthorizedAccount"
+        );
+    });
+
 });
 
