@@ -23,7 +23,9 @@ describe("MembershipManager", function () {
     let user1;
 
     let groupId;
+    let groupId2;
     let groupKey;
+    let groupKey2;
     let rootHash;
     let rootHash2;
 
@@ -46,8 +48,10 @@ describe("MembershipManager", function () {
         MockAttackerERC721 = await ethers.getContractFactory("MockAttackerERC721");
 
         // Initialize variables
-        groupId = '123e4567-e89b-12d3-a456-426614174000'; // Example UUID
+        groupId = '123e4567-e89b-12d3-a456-426614174000'; 
         groupKey = Conversions.stringToBytes32(groupId);
+        groupId2 = '123e4567-e89b-12d3-a456-426614174001'; 
+        groupKey2 = Conversions.stringToBytes32(groupId2);
         rootHash = Conversions.stringToBytes32("rootHash");
         rootHash2 = Conversions.stringToBytes32("newRootHash");
         nftName = "Test Group NFT";
@@ -311,6 +315,23 @@ describe("MembershipManager", function () {
         );
     });    
 
+    it(`FUNCTION: initRoot
+        TESTING: stored data: root hash
+        EXPECTED: should store two different root hashes after calling initRoot for two different groups`, async function () {
+        
+        // Deploy group NFT and initialize group root
+        await deployGroupNftAndInitRoot(governor, groupKey, nftName, nftSymbol, rootHash);
+        await deployGroupNftAndInitRoot(governor, groupKey2, nftName2, nftSymbol2, rootHash2);
+
+        const storedRoot1 = await membershipManager.connect(governor).getRoot(groupKey);
+        const storedRoot2 = await membershipManager.connect(governor).getRoot(groupKey2);
+
+        expect(storedRoot1).to.equal(rootHash, "Root hash for groupKey should match the initialized value");
+        expect(storedRoot2).to.equal(rootHash2, "Root hash for groupKey2 should match the initialized value");
+        expect(storedRoot1).to.not.equal(storedRoot2, "Root hashes for different groups should be different");
+    });
+
+
     it(`FUNCTION: setRoot
         TESTING: event: RootSet, stored data: root hash
         EXPECTED: should allow the governor to set a new root for an existing group and emit event`, async function () {
@@ -349,6 +370,7 @@ describe("MembershipManager", function () {
         expect(await membershipManager.connect(governor).getRoot(groupKey)).to.equal(newRootHash, "Root hash should match the new value");
     });
 
+    
     it(`FUNCTION: setRoot
         TESTING: custom error: RootNotYetInitialized
         EXPECTED: should not allow the governor to set a new root for a group that has not been initialized`, async function () {
@@ -418,6 +440,26 @@ describe("MembershipManager", function () {
         const storedNftAddress = await membershipManager.connect(governor).getGroupNftAddress(groupKey);
         expect(storedNftAddress).to.not.equal(ethers.ZeroAddress, "NFT address should not be zero");
         expect(storedNftAddress).to.be.properAddress;
+    });
+
+    it(`FUNCTION: deployGroupNft
+        TESTING: stored data: group NFT address
+        EXPECTED: should allow the governor to deploy two new group NFTs and get their addresses`, async function () {
+
+        await membershipManager.connect(governor).deployGroupNft(groupKey, nftName, nftSymbol);
+        await membershipManager.connect(governor).deployGroupNft(groupKey2, nftName2, nftSymbol2);
+
+        // Check if the NFT address is stored correctly
+        const storedAddress1 = await membershipManager.connect(governor).getGroupNftAddress(groupKey);
+        const storedAddress2 = await membershipManager.connect(governor).getGroupNftAddress(groupKey2);
+
+        expect(storedAddress1).to.not.equal(ethers.ZeroAddress, "NFT address for groupKey should not be zero");
+        expect(storedAddress1).to.be.properAddress;
+
+        expect(storedAddress2).to.not.equal(ethers.ZeroAddress, "NFT address for groupKey2 should not be zero");
+        expect(storedAddress2).to.be.properAddress;
+
+        expect(storedAddress1).to.not.equal(storedAddress2, "NFT addresses for different groups should be different");
     });
 
     it(`FUNCTION: deployGroupNft

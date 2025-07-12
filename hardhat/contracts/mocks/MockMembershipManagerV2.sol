@@ -196,10 +196,6 @@ contract MockMembershipManagerV2 is Initializable, UUPSUpgradeable, OwnableUpgra
     /// @dev Maps a unique group key to its current Merkle root.
     mapping(bytes32 => bytes32) private groupRoots; 
     
-    /// @dev Maps a nullifier to its status
-    /// NOT USED! DELETE THIS LATER
-    mapping(bytes32 => bool) private groupNullifiers;
-    
     /// @dev Maps a group key to the address of its associated ERC721 NFT contract.
     mapping(bytes32 => address) private groupNftAddresses; 
 
@@ -577,7 +573,7 @@ contract MockMembershipManagerV2 is Initializable, UUPSUpgradeable, OwnableUpgra
     }
 
     function dummy() external pure returns (string memory) {
-        return "This is a dummy function.";
+        return "This is a dummy function to prevent the contract from being empty.";
     }
 
 }

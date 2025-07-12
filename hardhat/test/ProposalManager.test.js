@@ -73,11 +73,11 @@ describe("ProposalManager", function () {
     let realGroupKey;
     let realEpochKey;
     let realContextKey;
-    let realProposalContextHash;
-    let realProposalNullifier;
-    let realContentHash;
-    let realRoot;
-    let realProof;
+    let ProofContextHash;
+    let ProofSubmissionNullifier;
+    let ProofClaimNullifier;
+    let ProofContentHash;
+    let ProofRoot;
     let realPublicSignals;
 
 
@@ -164,7 +164,7 @@ describe("ProposalManager", function () {
             contextKey
         ];
 
-        //real proof inputs:
+        // Real submission proof inputs (CHANGE VALUES)
         realGroupId = '97dca094-bdd7-419b-a91a-5ea1f2aa0537';
         realEpochId = '2935f80b-9cbd-4000-8342-476b97148ee7';
         realGroupKey = Conversions.stringToBytes32(realGroupId);
@@ -178,6 +178,8 @@ describe("ProposalManager", function () {
         ProofClaimNullifier = ethers.toBeHex(realPublicSignals[2], 32);
         ProofRoot = ethers.toBeHex(realPublicSignals[3], 32);
         ProofContentHash = ethers.toBeHex(realPublicSignals[4], 32);
+
+        // Real claim proof inputs (ADD VALUES)
 
     });
 
