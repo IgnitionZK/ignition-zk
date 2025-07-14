@@ -6,11 +6,13 @@ import { IERC721IgnitionZK } from "../interfaces/IERC721IgnitionZK.sol";
 import { IERC165 } from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 import { IERC721 } from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import { IMembershipManager } from "../interfaces/IMembershipManager.sol";
+import { IERC165 } from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 
 // UUPS imports:
 import { UUPSUpgradeable } from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import { Initializable } from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import { OwnableUpgradeable } from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+import { ERC165Upgradeable } from "@openzeppelin/contracts-upgradeable/utils/introspection/ERC165Upgradeable.sol";
 
 // import Clones for NFT factory pattern:
 import { Clones } from "@openzeppelin/contracts/proxy/Clones.sol";
@@ -24,7 +26,7 @@ import { Clones } from "@openzeppelin/contracts/proxy/Clones.sol";
  * It allows for initializing and updating Merkle roots, verifying proofs, managing group NFTs,
  * and adding/removing members. This contract acts as a factory for ERC721IgnitionZK NFT contracts.
  */
-contract MembershipManager is Initializable, UUPSUpgradeable, OwnableUpgradeable, IMembershipManager {
+contract MembershipManager is Initializable, UUPSUpgradeable, OwnableUpgradeable, IMembershipManager, ERC165Upgradeable {
 
 // ====================================================================================================================
 //                                                  CUSTOM ERRORS
@@ -273,6 +275,7 @@ contract MembershipManager is Initializable, UUPSUpgradeable, OwnableUpgradeable
     {
         __Ownable_init(_governor);
         __UUPSUpgradeable_init();
+        __ERC165_init();
       
         if (!IERC165(_nftImplementation).supportsInterface(type(IERC721).interfaceId)) revert NftMustBeERC721();
         nftImplementation = _nftImplementation;
@@ -498,6 +501,15 @@ contract MembershipManager is Initializable, UUPSUpgradeable, OwnableUpgradeable
         return MAX_MEMBERS_BATCH;
     }
 
+    /**
+     * @dev Checks if the contract supports a specific interface.
+     * @param interfaceId The interface identifier to check.
+     * @return bool True if the interface is supported, false otherwise.
+     */
+    function supportsInterface(bytes4 interfaceId) public view virtual override returns (bool) 
+    {
+        return interfaceId == type(IMembershipManager).interfaceId || super.supportsInterface(interfaceId);
+    }
 // ====================================================================================================================
 //                                       EXTERNAL HELPER FUNCTIONS
 // ====================================================================================================================

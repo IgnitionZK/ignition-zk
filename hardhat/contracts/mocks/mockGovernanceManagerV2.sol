@@ -19,7 +19,7 @@ import { ERC165Upgradeable } from "@openzeppelin/contracts-upgradeable/utils/int
  * The contract is upgradeable and follows the UUPS pattern, ensuring that governance can adapt to future requirements.
  */
 
-contract GovernanceManager is Initializable, UUPSUpgradeable, OwnableUpgradeable, ERC165Upgradeable {
+contract MockGovernanceManagerV2 is Initializable, UUPSUpgradeable, OwnableUpgradeable, ERC165Upgradeable {
 
 // ====================================================================================================================
 //                                                  CUSTOM ERRORS
@@ -169,17 +169,6 @@ contract GovernanceManager is Initializable, UUPSUpgradeable, OwnableUpgradeable
         emit RelayerSet(_relayer);
     }
 
-    /**
-     * @notice Sets a new membership manager address.
-     * @dev Only the owner can call this function.
-     * @param _membershipManager The new address for the membership manager.
-     * @custom:error AddressCannotBeZero If the provided membership manager address is zero.
-     * @custom:error AddressIsNotAContract If the provided address is not a contract.
-     * @custom:error NewAddressMustBeDifferent If the new address is the same as the
-     * current membership manager address.
-     * @custom:error InterfaceIdNotSupported If the provided address does not support the IMembership
-     * interface.
-     */
     function setMembershipManager(address _membershipManager) external onlyOwner nonZeroAddress(_membershipManager) {
         if(_membershipManager.code.length == 0) revert AddressIsNotAContract();
         if(_membershipManager == address(membershipManager)) revert NewAddressMustBeDifferent();
@@ -189,28 +178,6 @@ contract GovernanceManager is Initializable, UUPSUpgradeable, OwnableUpgradeable
 
         membershipManager = IMembershipManager(_membershipManager);
         emit MembershipManagerSet(_membershipManager);
-    }
-
-    /**
-     * @notice Sets a new membership manager address.
-     * @dev Only the owner can call this function.
-     * @param _proposalManager The new address for the proposal manager.
-     * @custom:error AddressCannotBeZero If the provided proposal manager address is zero.
-     * @custom:error AddressIsNotAContract If the provided address is not a contract.
-     * @custom:error NewAddressMustBeDifferent If the new address is the same as the
-     * current proposal manager address.
-     * @custom:error InterfaceIdNotSupported If the provided address does not support the IProposalManager
-     * interface.
-     */
-    function setProposalManager(address _proposalManager) external onlyOwner nonZeroAddress(_proposalManager) {
-        if(_proposalManager.code.length == 0) revert AddressIsNotAContract();
-        if(_proposalManager == address(proposalManager)) revert NewAddressMustBeDifferent();
-
-        bytes4 interfaceId = type(IProposalManager).interfaceId;
-        if(!_supportsInterface(_proposalManager, interfaceId)) revert InterfaceIdNotSupported();
-
-        proposalManager = IProposalManager(_proposalManager);
-        emit ProposalManagerSet(_proposalManager);
     }
 
 // ====================================================================================================================
@@ -492,6 +459,10 @@ contract GovernanceManager is Initializable, UUPSUpgradeable, OwnableUpgradeable
         } catch {
             return false;
         }
+    }
+
+    function dummy() external pure returns (string memory) {
+        return "This is a dummy function to prevent the contract from being empty.";
     }
 
 }

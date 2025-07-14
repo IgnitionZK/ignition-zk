@@ -6,14 +6,16 @@ import {IProposalManager} from "../interfaces/IProposalManager.sol";
 import {IProposalVerifier} from "../interfaces/IProposalVerifier.sol";
 import {IProposalClaimVerifier} from "../interfaces/IProposalClaimVerifier.sol";
 import {IMembershipManager} from "../interfaces/IMembershipManager.sol";
+import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 
 // UUPS imports:
 import { UUPSUpgradeable } from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import { Initializable } from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import { OwnableUpgradeable } from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+import { ERC165Upgradeable } from "@openzeppelin/contracts-upgradeable/utils/introspection/ERC165Upgradeable.sol";
 
 // tracks proposal submissions and verifications (pre-vote phase)
-contract ProposalManager is Initializable, OwnableUpgradeable, UUPSUpgradeable, IProposalManager {
+contract ProposalManager is Initializable, OwnableUpgradeable, UUPSUpgradeable, IProposalManager, ERC165Upgradeable {
 
 // ====================================================================================================================
 //                                                  CUSTOM ERRORS
@@ -188,6 +190,7 @@ contract ProposalManager is Initializable, OwnableUpgradeable, UUPSUpgradeable, 
     {
         __Ownable_init(_governor);
         __UUPSUpgradeable_init();
+        __ERC165_init();
 
         submissionVerifier = IProposalVerifier(_submissionVerifier);
         claimVerifier = IProposalClaimVerifier(_claimVerifier);
@@ -328,6 +331,16 @@ contract ProposalManager is Initializable, OwnableUpgradeable, UUPSUpgradeable, 
      */
     function getClaimNullifierStatus(bytes32 nullifier) external view onlyOwner returns (bool) {
         return claimNullifiers[nullifier];
+    }
+
+    /**
+     * @dev Checks if the contract supports a specific interface.
+     * @param interfaceId The interface identifier to check.
+     * @return bool True if the interface is supported, false otherwise.
+     */
+    function supportsInterface(bytes4 interfaceId) public view virtual override returns (bool) 
+    {
+        return interfaceId == type(IProposalManager).interfaceId || super.supportsInterface(interfaceId);
     }
 
 // ====================================================================================================================
