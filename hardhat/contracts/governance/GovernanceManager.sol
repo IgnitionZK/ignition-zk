@@ -224,7 +224,7 @@ contract GovernanceManager is Initializable, UUPSUpgradeable, OwnableUpgradeable
     // ================================================================================================================
 
     /**
-     * @notice Sets a new membership manager address.
+     * @notice Delegates the initRoot call to the membership manager.
      * @dev Only the relayer can call this function.
      * @param initialRoot The initial Merkle root to set.
      * @param groupKey The unique identifier for the group.
