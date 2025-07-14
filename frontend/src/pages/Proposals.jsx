@@ -8,10 +8,10 @@ import CustomDropdown from "../components/CustomDropdown";
 import { useGetProposalsByGroupId } from "../hooks/queries/proposals/useGetActiveProposalsByGroupId";
 import { useGetUserGroups } from "../hooks/queries/groupMembers/useGetUserGroups";
 import CustomButtonIcon from "../components/CustomButtonIcon";
+import CreateProposal from "./CreateProposal";
 
 // icon
 import { FaCirclePlus } from "react-icons/fa6";
-import CreateProposal from "./CreateProposal";
 
 const PageContainer = styled.div`
   display: flex;
@@ -94,7 +94,7 @@ export default function Proposals() {
 
   return (
     <PageContainer>
-      <PageHeader title="" />
+      <PageHeader title="Proposals" />
       <Section>
         <ProofHeader>
           <CustomDropdown
