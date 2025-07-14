@@ -132,6 +132,11 @@ function MainNav() {
             </StyledNavLink>
           </li>
           <li>
+            <StyledNavLink to="campaigns" end>
+              <span>Campaigns</span>
+            </StyledNavLink>
+          </li>
+          <li>
             <StyledNavLink to="proposals" end>
               <span>Proposals</span>
             </StyledNavLink>
