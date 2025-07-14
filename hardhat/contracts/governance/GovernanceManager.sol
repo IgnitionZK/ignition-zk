@@ -332,6 +332,24 @@ contract GovernanceManager is Initializable, UUPSUpgradeable, OwnableUpgradeable
     // ================================================================================================================
 
     /**
+     * @notice Delegates the setProposalSubmissionVerifier call to the proposal manager.
+     * @dev Only callable by the owner.
+     * @param submissionVerifier The address of the new proposal submission verifier contract.
+     */
+    function delegateSetProposalSubmissionVerifier(address submissionVerifier) external onlyOwner {
+        proposalManager.setProposalSubmissionVerifier(submissionVerifier);
+    }
+
+    /**
+     * @notice Delegates the setProposalClaimVerifier call to the proposal manager.
+     * @dev Only callable by the owner.
+     * @param claimVerifier The address of the new proposal claim verifier contract.
+     */
+    function delegateSetProposalClaimVerifier(address claimVerifier) external onlyOwner {
+        proposalManager.setProposalClaimVerifier(claimVerifier);
+    }
+
+    /**
      * @notice Delegates the verifyProposal call to the proposal manager.
      * @dev Only callable by the relayer.
      * @param proof The zk-SNARK proof to verify.
@@ -346,6 +364,21 @@ contract GovernanceManager is Initializable, UUPSUpgradeable, OwnableUpgradeable
     ) external onlyRelayer {
         bytes32 currentRoot = _getCurrentRoot(groupKey);
         proposalManager.verifyProposal(proof, pubSignals, contextKey, currentRoot);
+    }
+
+    /**
+     * @notice Delegates the verifyProposalClaim call to the proposal manager.
+     * @dev Only callable by the relayer.
+     * @param proof The zk-SNARK proof to verify.
+     * @param publicSignals The public signals associated with the proof.
+     * @param contextKey The pre-computed context hash (group, epoch).
+     */
+    function delegateVerifyProposalClaim(
+        uint256[24] calldata proof,
+        uint256[3] calldata publicSignals,
+        bytes32 contextKey
+    ) external onlyRelayer {
+        proposalManager.verifyProposalClaim(proof, publicSignals, contextKey);
     }
 
 // ====================================================================================================================

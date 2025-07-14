@@ -17,6 +17,10 @@ describe("GovernanceManager", function () {
     let proposalVerifier;
     let ProposalClaimVerifier;
     let proposalClaimVerifier;
+    let MockProposalVerifier;
+    let mockProposalVerifier;
+    let MockProposalClaimVerifier;
+    let mockProposalClaimVerifier;
 
     // NFT Implementation
     let NFTImplementation;
@@ -70,11 +74,11 @@ describe("GovernanceManager", function () {
     let realGroupKey;
     let realEpochKey;
     let realContextKey;
-    let ProofContextHash;
-    let ProofSubmissionNullifier;
-    let ProofClaimNullifier;
-    let ProofContentHash;
-    let ProofRoot;
+    let proofContextHash;
+    let proofSubmissionNullifier;
+    let proofClaimNullifier;
+    let proofContentHash;
+    let proofRoot;
     let realPublicSignals;
 
     // RUN ONCE BEFORE ALL TESTS
@@ -94,9 +98,15 @@ describe("GovernanceManager", function () {
         // Get Contract Factory for ProposalVerifier
         ProposalVerifier = await ethers.getContractFactory("ProposalVerifier");
 
+        // Get Contract Factory for MockProposalVerifier (verifyProof returns true/false)
+        MockProposalVerifier = await ethers.getContractFactory("MockProposalVerifier");
+
         // Get Contract Factory for ProposalClaimVerifier
         ProposalClaimVerifier = await ethers.getContractFactory("ProposalClaimVerifier");
-    
+
+        // Get Contract Factory for MockProposalClaimVerifier (verifyProof returns true/false)
+        MockProposalClaimVerifier = await ethers.getContractFactory("MockProposalClaimVerifier");
+	
         // Get Contract Factory for ProposalManager
         ProposalManager = await ethers.getContractFactory("ProposalManager");
 
@@ -167,11 +177,11 @@ describe("GovernanceManager", function () {
         realRoot = ethers.toBeHex(12886375653922554679898676191015074420004311699425387307536167956555820652530n);
         realProof =  [21324237216059067856001326008772402094911947511781008238699193212067506059989n, 2864945365585520580736445144193166667326617123191518303094327819055881893898n, 9465494702140843923161382740269992595504500424060825556224998583474537660180n, 16030498518445137856991221074247654384343749586559714739092600138780412645932n, 13206405049855604729091182801886236353027936746167389593413006162046950936130n, 4048180889747018366596516152682952495036411690853460926059538542586053452269n, 12609570602713816352353876541250421869933566683310145723520331357194292610763n, 7230708155655109188106883860486515119339867121429646046968379650376224850635n, 10422160017288146940026661823861144153069562258697813729447351579113292282332n, 19224572988623427900696980611184826575794205115052705819015127040433839387340n, 5464458218254524957773989784775535143151978126599232326359107991462941009341n, 17466015331361201857470101198136594356860417506221180269276007831559430608536n, 104111675735261926963102685527169626976556205102093081135657122263364031072n, 9647909420810049351150150731868472034940891632806970684008044685699041691902n, 5517304425124738952479655672080171447245708475489731074753736114408015336376n, 3992323730999170742568732932045647379760079477966357347131073234751644727731n, 21584736187497331654923350559507029513407311458396545387156833371106030587174n, 13124016152208354295720478942441341704945400125661605774849977175789656556849n, 94371825887095281395457359605641036224334013945154747165660946136508967536n, 20181668522149303921765270504092927578505186714381356313094322561091892021144n, 2428657391978333859718446390862958247155977941182284203839625529708575207306n, 11530011789437837834442028418577495349735102949773935147946044166578468073553n, 2820924891891396715015254206148811560495416088414132819592239590142857455122n, 11400422769785768671708829126366377902307285817944352534175654791039801233298n]
         realPublicSignals = [1783858561640217141101142531165136293815429284532457890755617800207039425768n, 1783858561640217141101142531165136293815429284532457890755617800207039425768n, 7386565541285461939014061068084680752417332123732607638853227510160241742544n, 12886375653922554679898676191015074420004311699425387307536167956555820652530n, 1086211582699940520437986923287385710360225269413071107044506549724688350225n]
-        ProofContextHash = ethers.toBeHex(realPublicSignals[0], 32);
-        ProofSubmissionNullifier = ethers.toBeHex(realPublicSignals[1], 32);
-        ProofClaimNullifier = ethers.toBeHex(realPublicSignals[2], 32);
-        ProofRoot = ethers.toBeHex(realPublicSignals[3], 32);
-        ProofContentHash = ethers.toBeHex(realPublicSignals[4], 32);
+        proofContextHash = ethers.toBeHex(realPublicSignals[0], 32);
+        proofSubmissionNullifier = ethers.toBeHex(realPublicSignals[1], 32);
+        proofClaimNullifier = ethers.toBeHex(realPublicSignals[2], 32);
+        proofRoot = ethers.toBeHex(realPublicSignals[3], 32);
+        proofContentHash = ethers.toBeHex(realPublicSignals[4], 32);
 
         // Real claim proof inputs (ADD VALUES)
         
@@ -205,6 +215,14 @@ describe("GovernanceManager", function () {
         // Deploy the ProposalClaimVerifier contract
         proposalClaimVerifier = await ProposalClaimVerifier.deploy();
         await proposalClaimVerifier.waitForDeployment();
+
+        // Deploy the MockProposalVerifier contract
+        mockProposalVerifier = await MockProposalVerifier.deploy();
+        await mockProposalVerifier.waitForDeployment();
+
+        // Deploy the MockProposalClaimVerifier contract
+        mockProposalClaimVerifier = await MockProposalClaimVerifier.deploy();
+        await mockProposalClaimVerifier.waitForDeployment();
 
         // Deploy the ProposalManager UUPS Proxy (ERC‑1967) contract with the relayer as the initial owner
         proposalManager = await upgrades.deployProxy(
@@ -244,6 +262,8 @@ describe("GovernanceManager", function () {
         await proposalManager.transferOwnership(governanceManager.target);
 
     });
+
+    // Helper functions for testing:
 
     async function upgradeGovernanceManager() {
         const MockGovernanceManagerV2 = await ethers.getContractFactory("MockGovernanceManagerV2");
@@ -294,6 +314,25 @@ describe("GovernanceManager", function () {
         );
         await mockProposalManager.waitForDeployment();
         return mockProposalManager;
+    }
+
+    async function deployGroupNftAndInitRoot() {
+        // Deploy the group NFT and initialize the root
+        await governanceManager.connect(relayer).delegateDeployGroupNft(groupKey, nftName, nftSymbol);
+        await governanceManager.connect(relayer).delegateInitRoot(rootHash1, groupKey);
+    }
+
+    async function setMockSubmissionVerifierAndVerifyProposal() {
+        // Set the submission verifier to the mock one that returns a valid proof
+        await governanceManager.connect(deployer).delegateSetProposalSubmissionVerifier(mockProposalVerifier.target);
+
+        // Submit a proposal
+        await governanceManager.connect(relayer).delegateVerifyProposal(
+            mockProof,
+            mockPublicSignals1,
+            groupKey,
+            contextKey
+        );
     }
 
     it(`SET UP: contract deployment
@@ -389,7 +428,7 @@ describe("GovernanceManager", function () {
         EXPECTED: should not allow a non-owner to upgrade the governance manager contract`, async function () {
         
         // Get the current owner of the GovernanceManager contract
-        const currentOwner = await governanceManager.owner();
+        const currentOwner = await governanceManager.owner();// Set the submission verifier to the mock one that returns a valid proof
         expect(currentOwner).to.equal(deployerAddress, "Current owner should be the deployer");
 
         // Get contract factory for the new version of GovernanceManager with user1 as signer
@@ -645,7 +684,7 @@ describe("GovernanceManager", function () {
 
     it(`FUNCTION: delegateMintNftToMembers
         TESTING: onlyRelayer authorization (success), event: MemberNftMinted, event data: member addresses
-        EXPECTED: should allow the relayer to mint NFTs to 30 members and emit event`, async function () {
+        EXPECTED: should allow the relayer to mint NFTs to an array of 30 members and emit event`, async function () {
 
         await governanceManager.connect(relayer).delegateDeployGroupNft(groupKey, nftName, nftSymbol);
         const members = Array.from({length: 30}, () => ethers.Wallet.createRandom().address);
@@ -676,6 +715,29 @@ describe("GovernanceManager", function () {
         }
         
         expect(members).to.deep.equal(eventAddresses, "Minted addresses should match the provided members");
+    });
+
+    it(`FUNCTION: delegateMintNftToMembers
+        TESTING: onlyRelayer authorization (failure)
+        EXPECTED: should not allow a non-relayer to mint NFTs to an array of members`, async function () {
+        await governanceManager.connect(relayer).delegateDeployGroupNft(groupKey, nftName, nftSymbol);
+
+        // Attempt to mint NFTs via the deployer
+        await expect(governanceManager.connect(deployer).delegateMintNftToMembers([user1Address], groupKey))
+            .to.be.revertedWithCustomError(governanceManager, "OnlyRelayerAllowed");
+    });
+
+    it(`FUNCTION: delegateMintNftToMembers
+        TESTING: onlyRelayer authorization (failure), custom error: MemberBatchTooLarge
+        EXPECTED: should not allow the relayer to mint NFTs to more than 30 members`, async function () {
+        await governanceManager.connect(relayer).delegateDeployGroupNft(groupKey, nftName, nftSymbol);
+        
+        // Create an array of 31 random member addresses
+        const members = Array.from({length: 31}, () => ethers.Wallet.createRandom().address);
+
+        // Attempt to mint NFTs to the 31 members
+        await expect(governanceManager.connect(relayer).delegateMintNftToMembers(members, groupKey))
+            .to.be.revertedWithCustomError(membershipManager, "MemberBatchTooLarge");
     });
 
     it(`FUNCTION: delegateBurnMemberNft
@@ -713,48 +775,150 @@ describe("GovernanceManager", function () {
             );
     });
 
-    it("delegateVerifyProof: should allow the relayer to verify a proof and emit event", async function () {
-        await governanceManager.connect(relayer).delegateDeployGroupNft(validGroupKey, nftName, nftSymbol);
-        await governanceManager.connect(relayer).delegateInitRoot(validRoot, validGroupKey);
-        await expect(governanceManager.connect(relayer).delegateVerifyProof(validProof, validPublicSignals, validGroupKey))
+    it(`FUNCTION: delegateVerifyProposal
+        TESTING: onlyRelayer authorization (success), event: ProposalVerified
+        EXPECTED: should allow the relayer to verify a proposal submission proof and emit event`, async function () {
+        // Deploy the group NFT and initialize the root
+        await deployGroupNftAndInitRoot();
+
+        // Set the submission verifier to the mock one that returns a valid proof
+        await governanceManager.connect(deployer).delegateSetProposalSubmissionVerifier(mockProposalVerifier.target);
+      
+        // Verify the proposal submission proof
+        await expect(governanceManager.connect(relayer).delegateVerifyProposal(
+            mockProof, 
+            mockPublicSignals1, 
+            groupKey,
+            contextKey))
             .to.emit(
-                membershipManager, 
-                "ProofVerified"
+                proposalManager, 
+                "SubmissionVerified"
             )
-            .withArgs(validGroupKey, validPublicSignals[0]);
+            .withArgs(contextKey, submissionNullifier1, claimNullifier1, contentHash1);
     });
 
-    it("delegateVerifyProof: should not allow non-relayer to verify a valid proof", async function () {
-        await governanceManager.connect(relayer).delegateDeployGroupNft(validGroupKey, nftName, nftSymbol);
-        await governanceManager.connect(relayer).delegateInitRoot(validRoot, validGroupKey);
-        await expect(governanceManager.connect(deployer).delegateVerifyProof(validProof, validPublicSignals, validGroupKey))
+    it(`FUNCTION: delegateVerifyProposal
+        TESTING: onlyRelayer authorization (success), custom error: InvalidSubmissionProof
+        EXPECTED: should not verify an invalid proposal submission proof`, async function () {
+        // Deploy the group NFT and initialize the root
+        await deployGroupNftAndInitRoot();
+
+        // Set the submission verifier to the mock one that returns a valid proof
+        await governanceManager.connect(deployer).delegateSetProposalSubmissionVerifier(mockProposalVerifier.target);
+
+        // Set the mock verifier to return an invalid proof
+        await mockProposalVerifier.setIsValid(false);
+      
+        // Verify the proposal submission proof
+        await expect(governanceManager.connect(relayer).delegateVerifyProposal(
+            mockProof, 
+            mockPublicSignals1, 
+            groupKey,
+            contextKey))
+            .to.be.revertedWithCustomError(
+                proposalManager, 
+                "InvalidSubmissionProof"
+            )
+            .withArgs(contextKey, submissionNullifier1);
+    });
+
+    it(`FUNCTION: delegateVerifyProposal
+        TESTING: onlyRelayer authorization (failure)
+        EXPECTED: should not allow a non-relayer to verify a submission proof`, async function () {
+        // Deploy the group NFT and initialize the root
+        await deployGroupNftAndInitRoot();
+
+        // Set the submission verifier to the mock one that returns a valid proof
+        await governanceManager.connect(deployer).delegateSetProposalSubmissionVerifier(mockProposalVerifier.target);
+      
+        // Verify the proposal submission proof
+        await expect(governanceManager.connect(deployer).delegateVerifyProposal(
+            mockProof, 
+            mockPublicSignals1, 
+            groupKey,
+            contextKey))
             .to.be.revertedWithCustomError(
                 governanceManager,
                 "OnlyRelayerAllowed"
             );
     });
 
-    it("delegateVerifyProof: should not allow the relayer to verify an invalid proof", async function () {
-        await governanceManager.connect(relayer).delegateDeployGroupNft(groupKey, nftName, nftSymbol);
-        await governanceManager.connect(relayer).delegateInitRoot(rootHash, groupKey);
-        await expect(governanceManager.connect(relayer).delegateVerifyProof(invalidProof, invalidPublicSignals, groupKey))
-            .to.be.revertedWithCustomError(
-                membershipManager,
-                "InvalidProof"
-            );
+    it(`FUNCTION: delegateVerifyProposalClaim
+        TESTING: onlyRelayer authorization (success), event: ProposalClaimVerified
+        EXPECTED: should allow the relayer to verify a proposal claim proof and emit event`, async function () {
+        // Deploy the group NFT and initialize the root
+        await deployGroupNftAndInitRoot();
+
+        // Set the submission verifier to the mock one that returns a valid proof and submit a proposal
+        await setMockSubmissionVerifierAndVerifyProposal();
+
+        // Set the claim verifier to the mock one that returns a valid proof
+        await governanceManager.connect(deployer).delegateSetProposalClaimVerifier(mockProposalClaimVerifier.target);
+      
+        // Verify the proposal claim proof
+        await expect(governanceManager.connect(relayer).delegateVerifyProposalClaim(
+            mockProof,
+            mockClaimPublicSignals1,
+            contextKey
+        )).to.emit(
+            proposalManager,
+            "ClaimVerified"
+        ).withArgs(contextKey, claimNullifier1, submissionNullifier1);
     });
 
-    it("delegateVerifyProof: should not allow the relayer to verify a valid proof with an invalid group key", async function () {
-        await governanceManager.connect(relayer).delegateDeployGroupNft(ethers.keccak256(ethers.toUtf8Bytes("invalidGroupKey")), nftName, nftSymbol);
-        await governanceManager.connect(relayer).delegateInitRoot(validRoot, ethers.keccak256(ethers.toUtf8Bytes("invalidGroupKey")));
-        await expect(governanceManager.connect(relayer).delegateVerifyProof(validProof, validPublicSignals, ethers.keccak256(ethers.toUtf8Bytes("invalidGroupKey"))))
+    it(`FUNCTION: delegateVerifyProposalClaim
+        TESTING: onlyRelayer authorization (success), custom error: InvalidClaimProof
+        EXPECTED: should not verify an invalid proposal claim proof`, async function () {
+        // Deploy the group NFT and initialize the root
+        await deployGroupNftAndInitRoot();
+
+        // Set the submission verifier to the mock one that returns a valid proof and submit a proposal
+        await setMockSubmissionVerifierAndVerifyProposal();
+    
+        // Set the claim verifier to the mock one 
+        await governanceManager.connect(deployer).delegateSetProposalClaimVerifier(mockProposalClaimVerifier.target);
+
+        // Set the mock claim verifier to return an invalid proof
+        await mockProposalClaimVerifier.setIsValid(false);
+
+        // Verify the proposal claim proof
+        await expect(governanceManager.connect(relayer).delegateVerifyProposalClaim(
+            mockProof, 
+            mockClaimPublicSignals1, 
+            contextKey))
             .to.be.revertedWithCustomError(
-                membershipManager,
-                "InvalidGroupKey"
-            );
+                proposalManager, 
+                "InvalidClaimProof"
+            )
+            .withArgs(contextKey, claimNullifier1, submissionNullifier1);
     });
 
-    it("delegateRevokeMinterRole: should allow the relayer to revoke the minter role from the membership manager and emit event", async function () {
+    it(`FUNCTION: delegateVerifyProposalClaim
+        TESTING: onlyRelayer authorization (failure)
+        EXPECTED: should not allow a non-relayer to verify a claim proof`, async function () {
+        // Deploy the group NFT and initialize the root
+        await deployGroupNftAndInitRoot();
+
+        // Set the submission verifier to the mock one that returns a valid proof and submit a proposal 
+        await setMockSubmissionVerifierAndVerifyProposal();
+
+        // Set the claim verifier to the mock one that returns a valid proof
+        await governanceManager.connect(deployer).delegateSetProposalClaimVerifier(mockProposalClaimVerifier.target);
+
+        // Verify the proposal claim proof
+        await expect(governanceManager.connect(deployer).delegateVerifyProposalClaim(
+            mockProof,
+            mockClaimPublicSignals1,
+            contextKey
+        )).to.be.revertedWithCustomError(
+            governanceManager,
+            "OnlyRelayerAllowed"
+        );
+    });
+
+    it(`FUNCTION: delegateRevokeMinterRole
+        TESTING: onlyRelayer authorization (success)
+        EXPECTED: should allow the relayer to revoke the minter role from the membership manager and emit event`, async function () {
         await governanceManager.connect(relayer).delegateDeployGroupNft(groupKey, nftName, nftSymbol);
         const nftAddress = await governanceManager.connect(relayer).delegateGetGroupNftAddress(groupKey);
         const role = await nftImplementation.attach(nftAddress).MINTER_ROLE();
@@ -766,7 +930,9 @@ describe("GovernanceManager", function () {
             .withArgs(nftAddress, role, membershipManager.target);
     });
 
-    it("delegateRevokeMinterRole: should not allow a non-relayer to revoke the minter role", async function () {
+    it(`FUNCTION: delegateRevokeMinterRole
+        TESTING: onlyRelayer authorization (failure)
+        EXPECTED: should not allow a non-relayer to revoke the minter role`, async function () {
         await governanceManager.connect(relayer).delegateDeployGroupNft(groupKey, nftName, nftSymbol);
         const nftAddress = await governanceManager.connect(relayer).delegateGetGroupNftAddress(groupKey);
         await expect(governanceManager.connect(deployer).delegateRevokeMinterRole(nftAddress))
@@ -776,7 +942,9 @@ describe("GovernanceManager", function () {
             );
     });
 
-    it("delegateGrantMinterRole: should allow the relayer to grant the minter role to a user and emit event", async function () {
+    it(`FUNCTION: delegateGrantMinterRole
+        TESTING: onlyRelayer authorization (success), event: RoleGranted
+        EXPECTED: should allow the relayer to grant the minter role to a user and emit event`, async function () {
         await governanceManager.connect(relayer).delegateDeployGroupNft(groupKey, nftName, nftSymbol);
         const nftAddress = await governanceManager.connect(relayer).delegateGetGroupNftAddress(groupKey);
         const role = await nftImplementation.attach(nftAddress).MINTER_ROLE();
@@ -788,7 +956,9 @@ describe("GovernanceManager", function () {
             .withArgs(nftAddress, role, user1Address);
     });
 
-    it("delegateGrantMinterRole: should not allow a non-relayer to grant the minter role", async function () {
+    it(`FUNCTION: delegateGrantMinterRole
+        TESTING: onlyRelayer authorization (failure)
+        EXPECTED: should not allow a non-relayer to grant the minter role`, async function () {
         await governanceManager.connect(relayer).delegateDeployGroupNft(groupKey, nftName, nftSymbol);
         const nftAddress = await governanceManager.connect(relayer).delegateGetGroupNftAddress(groupKey);
         await expect(governanceManager.connect(deployer).delegateGrantMinterRole(nftAddress, user1Address))
@@ -798,7 +968,9 @@ describe("GovernanceManager", function () {
             );
     });
 
-    it("delegateRevokeBurnerRole: should allow the relayer to revoke the burner role from the membership manager and emit event", async function () {
+    it(`FUNCTION: delegateRevokeBurnerRole
+        TESTING: onlyRelayer authorization (success), event: RoleRevoked
+        EXPECTED: should allow the relayer to revoke the burner role from the membership manager and emit event`, async function () {
         await governanceManager.connect(relayer).delegateDeployGroupNft(groupKey, nftName, nftSymbol);
         const nftAddress = await governanceManager.connect(relayer).delegateGetGroupNftAddress(groupKey);
         const role = await nftImplementation.attach(nftAddress).BURNER_ROLE();
@@ -810,7 +982,9 @@ describe("GovernanceManager", function () {
             .withArgs(nftAddress, role, membershipManager.target);
     });
 
-    it("delegateRevokeBurnerRole: should not allow a non-relayer to revoke the burner role", async function () {
+    it(`FUNCTION: delegateRevokeBurnerRole
+        TESTING: onlyRelayer authorization (failure)
+        EXPECTED: should not allow a non-relayer to revoke the burner role`, async function () {
         await governanceManager.connect(relayer).delegateDeployGroupNft(groupKey, nftName, nftSymbol);
         const nftAddress = await governanceManager.connect(relayer).delegateGetGroupNftAddress(groupKey);
         await expect(governanceManager.connect(deployer).delegateRevokeBurnerRole(nftAddress))
@@ -820,17 +994,36 @@ describe("GovernanceManager", function () {
             ); 
     });
 
-    it("delegateGetVerifier: should allow the relayer to view the address of the membership verifier", async function () {
-        const verifierAddress = await governanceManager.connect(relayer).delegateGetVerifier();
-        expect(verifierAddress).to.equal(membershipVerifier.target);
+    it(`FUNCTION: delegateGetProposalSubmissionVerifier
+        TESTING: onlyRelayer authorization (success)
+        EXPECTED: should allow the relayer to view the address of the proposal submission verifier`, async function () {
+        const verifierAddress = await governanceManager.connect(relayer).delegateGetProposalSubmissionVerifier();
+        expect(verifierAddress).to.equal(proposalVerifier.target);
     });
 
-    it("delegateGetVerifier: should not allow a  non-relayer to view the address of the membership verifier", async function () {
-        await expect(governanceManager.connect(deployer).delegateGetVerifier())
-            .to.be.revertedWithCustomError(
-                governanceManager, 
-                "OnlyRelayerAllowed"
-            );  
+    it(`FUNCTION: delegateGetProposalSubmissionVerifier
+        TESTING: onlyRelayer authorization (failure)
+        EXPECTED: should not a non-relayer to view the address of the proposal submission verifier`, async function () {
+        await expect(governanceManager.connect(deployer).delegateGetProposalSubmissionVerifier()).to.be.revertedWithCustomError(
+            governanceManager,
+            "OnlyRelayerAllowed"
+        );
+    });
+
+    it(`FUNCTION: delegateGetProposalClaimVerifier
+        TESTING: onlyRelayer authorization (success)
+        EXPECTED: should allow the relayer to view the address of the proposal claim verifier`, async function () {
+        const verifierAddress = await governanceManager.connect(relayer).delegateGetProposalClaimVerifier();
+        expect(verifierAddress).to.equal(proposalClaimVerifier.target);
+    });
+
+    it(`FUNCTION: delegateGetProposalClaimVerifier
+        TESTING: onlyRelayer authorization (failure)
+        EXPECTED: should not a non-relayer to view the address of the proposal claim verifier`, async function () {
+        await expect(governanceManager.connect(deployer).delegateGetProposalClaimVerifier()).to.be.revertedWithCustomError(
+            governanceManager,
+            "OnlyRelayerAllowed"
+        );
     });
 
     it("delegateGetRoot: should allow the relayer to get the root of a group", async function () {
