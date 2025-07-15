@@ -44,3 +44,42 @@ export async function getEpochByUserId(userId) {
 
   return data;
 }
+
+/**
+ * Retrieves all epochs for a specific group.
+ * Queries the epochs table to find all epochs associated with the given group ID.
+ *
+ * @param {string} groupId - The group ID to search for
+ * @returns {Promise<Array>} A promise that resolves to an array of epoch objects
+ * @throws {Error} If groupId parameter is missing or if there's a database error
+ *
+ * @example
+ * // Get all epochs for group "group123"
+ * const epochs = await getEpochsByGroupId("group123");
+ */
+export async function getEpochsByGroupId(groupId) {
+  if (!groupId) {
+    throw new Error("groupId is required");
+  }
+
+  const { data, error } = await supabase
+    .schema("ignitionzk")
+    .from("epochs")
+    .select(
+      `
+      epoch_id,
+      epoch_name,
+      epoch_start_time,
+      epoch_duration,
+      created_at
+    `
+    )
+    .eq("group_id", groupId)
+    .order("epoch_start_time", { ascending: true });
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  return data;
+}
