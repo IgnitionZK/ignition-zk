@@ -1026,16 +1026,22 @@ describe("GovernanceManager", function () {
         );
     });
 
-    it("delegateGetRoot: should allow the relayer to get the root of a group", async function () {
-        await governanceManager.connect(relayer).delegateDeployGroupNft(groupKey, nftName, nftSymbol);
-        await governanceManager.connect(relayer).delegateInitRoot(rootHash, groupKey);
+    it(`FUNCTION: delegateGetRoot
+        TESTING: onlyRelayer authorization (success), stored data: root
+        EXPECTED: should allow the relayer to get the root of a group`, async function () {
+        // Deploy the group NFT and initialize the root
+        await deployGroupNftAndInitRoot();
+
         const root = await governanceManager.connect(relayer).delegateGetRoot(groupKey);
-        expect(root).to.equal(rootHash);
+        expect(root).to.equal(rootHash1);
     });
 
-    it("delegateGetRoot: should not allow non-relayer to get the root of a group", async function () {
-        await governanceManager.connect(relayer).delegateDeployGroupNft(groupKey, nftName, nftSymbol);
-        await governanceManager.connect(relayer).delegateInitRoot(rootHash, groupKey);
+    it(`FUNCTION: delegateGetRoot
+        TESTING: onlyRelayer authorization (failure)
+        EXPECTED: should not allow non-relayer to get the root of a group`, async function () {
+        // Deploy the group NFT and initialize the root
+        await deployGroupNftAndInitRoot();
+        // Attempt to get the root via the deployer
         await expect(governanceManager.connect(deployer).delegateGetRoot(groupKey))
             .to.be.revertedWithCustomError(
                 governanceManager, 
@@ -1043,12 +1049,16 @@ describe("GovernanceManager", function () {
             );
     });
 
-    it("delegateGetNftImplementation: should allow the relayer to get the address of the NFT implementation", async function () {
+    it(`FUNCTION: delegateGetNftImplementation
+        TESTING: onlyRelayer authorization (success)
+        EXPECTED: should allow the relayer to get the address of the NFT implementation`, async function () {
         const nftImplementationAddress = await governanceManager.connect(relayer).delegateGetNftImplementation();
         expect(nftImplementationAddress).to.equal(nftImplementation.target);
     });
 
-    it("delegateGetNftImplementation: should not allow a non-relayer to get the address of the NFT implementation", async function () {
+    it(`FUNCTION: delegateGetNftImplementation
+        TESTING: onlyRelayer authorization (failure)
+        EXPECTED: should not allow a non-relayer to get the address of the NFT implementation`, async function () {
         await expect(governanceManager.connect(deployer).delegateGetNftImplementation())
             .to.be.revertedWithCustomError(
                 governanceManager,
@@ -1056,13 +1066,17 @@ describe("GovernanceManager", function () {
             );
     });
 
-    it("delegateGetGroupNftAddress: should allow the relayer to get the address of a group's NFT", async function () {
+    it(`FUNCTION: delegateGetGroupNftAddress
+        TESTING: onlyRelayer authorization (success)
+        EXPECTED: should allow the relayer to get the address of a group's NFT`, async function () {
         await governanceManager.connect(relayer).delegateDeployGroupNft(groupKey, nftName, nftSymbol);
         const nftAddress = await governanceManager.connect(relayer).delegateGetGroupNftAddress(groupKey);
         expect(nftAddress).to.be.properAddress;
     });
 
-    it("delegateGetGroupNftAddress: should not allow a non-relayer to get the address of a group's NFT", async function () {
+    it(`FUNCTION: delegateGetGroupNftAddress
+        TESTING: onlyRelayer authorization (failure)
+        EXPECTED: should not allow a non-relayer to get the address of a group's NFT`, async function () {
         await governanceManager.connect(relayer).delegateDeployGroupNft(groupKey, nftName, nftSymbol);
         await expect(governanceManager.connect(deployer).delegateGetGroupNftAddress(groupKey))
             .to.be.revertedWithCustomError(
@@ -1071,49 +1085,160 @@ describe("GovernanceManager", function () {
             );
     });
 
-    it("delegateGetNullifierStatus: should allow the relayer to get FALSE as the nullifier status of an unused nullifier", async function () {
-        const nullifier = ethers.keccak256(ethers.toUtf8Bytes("nullifier"));
-        const isNullifierUsed = await governanceManager.connect(relayer).delegateGetNullifierStatus(groupKey, nullifier);
-        expect(isNullifierUsed).to.equal(false);
+    it(`FUNCTION: delegateGetMaxMembersBatch
+        TESTING: onlyRelayer authorization (success)
+        EXPECTED: should allow the relayer to get the maximum number of members that can be minted in a batch`, async function () {
+        const maxMembers = await governanceManager.connect(relayer).delegateGetMaxMembersBatch();
+        expect(maxMembers).to.equal(30);
     });
 
-    it("delegateGetNullifierStatus: should allow the relayer to get TRUE as the nullifier status of a used nullifier", async function () {
-        await governanceManager.connect(relayer).delegateDeployGroupNft(validGroupKey, nftName, nftSymbol);
-        await governanceManager.connect(relayer).delegateInitRoot(validRoot, validGroupKey);
-        await governanceManager.connect(relayer).delegateVerifyProof(validProof, validPublicSignals, validGroupKey);
-        const isNullifierUsed = await governanceManager.connect(relayer).delegateGetNullifierStatus(validGroupKey, validPublicNullifier);
-        expect(isNullifierUsed).to.equal(true);
-    });
-
-    it("delegateGetNullifierStatus: should not allow a non-relayer to get the nullifier status", async function () {
-        const nullifier = ethers.keccak256(ethers.toUtf8Bytes("nullifier"));
-        await expect(governanceManager.connect(deployer).delegateGetNullifierStatus(groupKey, nullifier))
+    
+    it(`FUNCTION: delegateGetMaxMembersBatch
+        TESTING: onlyRelayer authorization (failure)
+        EXPECTED: should not allow a non-relayer to get the maximum number of members that can be minted in a batch`, async function () {
+        await expect(governanceManager.connect(deployer).delegateGetMaxMembersBatch())
             .to.be.revertedWithCustomError(
                 governanceManager, 
                 "OnlyRelayerAllowed"
             );
     });
 
-    it("delegateVerifyProposal: should allow the relayer to verify a proposal, emit event store correct nullifier and content hash", async function () {
-        await governanceManager.connect(relayer).delegateDeployGroupNft(validPropGroupKey, nftName, nftSymbol);
-        await governanceManager.connect(relayer).delegateInitRoot(validPropRoot, validPropGroupKey);
-        const tx = await governanceManager.connect(relayer).delegateVerifyProposal(validPropProof, validPropPublicSignals, validPropGroupKey, validPropContextKey);
-        await expect(tx)    
-            .to.emit(
-                proposalManager, 
-                "ProofVerified"
-            ).withArgs(ProofPropContextHash, ProofProposalNullifier, ProofPropContentHash);
-        expect(await governanceManager.connect(relayer).delegateGetProposalNullifierStatus(ProofProposalNullifier)).to.equal(true);
-        expect(await governanceManager.connect(relayer).delegateGetProposalSubmission(validPropContextKey)).to.equal(ProofPropContentHash);
-
+    it(`FUNCTION: delegateGetProposalSubmissionVerifier
+        TESTING: onlyRelayer authorization (success)
+        EXPECTED: should allow the relayer to get the address of the proposal submission verifier`, async function () {
+        const verifierAddress = await governanceManager.connect(relayer).delegateGetProposalSubmissionVerifier();
+        expect(verifierAddress).to.equal(proposalVerifier.target);
     });
 
-    it("getRelayer: should allow the owner (deployer) to get the relayer address", async function () {
+    it(`FUNCTION: delegateGetProposalSubmissionVerifier
+        TESTING: onlyRelayer authorization (failure)
+        EXPECTED: should not allow a non-relayer to get the address of the proposal submission verifier`, async function () {
+        await expect(governanceManager.connect(deployer).delegateGetProposalSubmissionVerifier())
+            .to.be.revertedWithCustomError(
+                governanceManager,
+                "OnlyRelayerAllowed"
+            );
+    });
+
+    it(`FUNCTION: delegateGetProposalClaimVerifier
+        TESTING: onlyRelayer authorization (success)
+        EXPECTED: should allow the relayer to get the address of the proposal claim verifier`, async function () {
+        const verifierAddress = await governanceManager.connect(relayer).delegateGetProposalClaimVerifier();
+        expect(verifierAddress).to.equal(proposalClaimVerifier.target);
+    });
+
+    it(`FUNCTION: delegateGetProposalClaimVerifier
+        TESTING: onlyRelayer authorization (failure)
+        EXPECTED: should not allow a non-relayer to get the address of the proposal claim verifier`, async function () {
+        await expect(governanceManager.connect(deployer).delegateGetProposalClaimVerifier())
+            .to.be.revertedWithCustomError(
+                governanceManager,
+                "OnlyRelayerAllowed"
+            );
+    });
+
+    it(`FUNCTION: delegateGetSubmissionNullifierStatus
+        TESTING: onlyRelayer authorization (success), stored data: nullifier status
+        EXPECTED: should allow the relayer to get FALSE as the nullifier status of an unused nullifier`, async function () {
+        // Create a nullifier
+        const nullifier = ethers.keccak256(ethers.toUtf8Bytes("nullifier"));
+
+        // Check that the nullifier status is FALSE
+        const isNullifierUsed = await governanceManager.connect(relayer).delegateGetSubmissionNullifierStatus(nullifier);
+        expect(isNullifierUsed).to.equal(false);
+    });
+
+    it(`FUNCTION: delegateGetSubmissionNullifierStatus
+        TESTING: onlyRelayer authorization (success), stored data: nullifier status
+        EXPECTED: should allow the relayer to get TRUE as the nullifier status of a used nullifier`, async function () {
+        // Deploy the group NFT and initialize the root
+        await deployGroupNftAndInitRoot();
+
+        // Set the submission verifier to the mock one that returns a valid proof and submit a proposal
+        await setMockSubmissionVerifierAndVerifyProposal();
+
+        // Get the submission nullifier status
+        const isNullifierUsed = await governanceManager.connect(relayer).delegateGetSubmissionNullifierStatus(submissionNullifier1);
+        expect(isNullifierUsed).to.equal(true);
+    });
+
+    it(`FUNCTION: delegateGetSubmissionNullifierStatus
+        TESTING: onlyRelayer authorization (failure)
+        EXPECTED: should not allow a non-relayer to get the nullifier status`, async function () {
+        // Create a nullifier
+        const nullifier = ethers.keccak256(ethers.toUtf8Bytes("nullifier"));
+
+        // Attempt to get the nullifier status via the deployer
+        await expect(governanceManager.connect(deployer).delegateGetSubmissionNullifierStatus(nullifier))
+            .to.be.revertedWithCustomError(
+                governanceManager,
+                "OnlyRelayerAllowed"
+            );
+    });
+
+    it(`FUNCTION: delegateGetClaimNullifierStatus
+        TESTING: onlyRelayer authorization (success), stored data: claim nullifier status
+        EXPECTED: should allow the relayer to get FALSE as the claim nullifier status of an unused nullifier`, async function () {
+        // Create a nullifier
+        const nullifier = ethers.keccak256(ethers.toUtf8Bytes("claimnullifier"));
+
+        // Check that the nullifier status is FALSE
+        const isNullifierUsed = await governanceManager.connect(relayer).delegateGetClaimNullifierStatus(nullifier);
+        expect(isNullifierUsed).to.equal(false);
+    });
+
+    it(`FUNCTION: delegateGetClaimNullifierStatus
+        TESTING: onlyRelayer authorization (success), stored data: claim nullifier status
+        EXPECTED: should allow the relayer to get TRUE as the claim nullifier status of a used nullifier`, async function () {
+        // Deploy the group NFT and initialize the root
+        await deployGroupNftAndInitRoot();
+
+        // Set the submission verifier to the mock one that returns a valid proof and submit a proposal
+        await setMockSubmissionVerifierAndVerifyProposal();
+
+        // Set the claim verifier to the mock one that returns a valid proof
+        await governanceManager.connect(deployer).delegateSetProposalClaimVerifier(mockProposalClaimVerifier.target);
+
+        // Verify the proposal claim proof
+        await expect(governanceManager.connect(relayer).delegateVerifyProposalClaim(
+            mockProof, 
+            mockClaimPublicSignals1, 
+            contextKey
+        )).to.emit(
+            proposalManager,
+            "ClaimVerified"
+        ).withArgs(contextKey, claimNullifier1, submissionNullifier1);
+
+        // Get the submission nullifier status
+        const isNullifierUsed = await governanceManager.connect(relayer).delegateGetClaimNullifierStatus(claimNullifier1);
+        expect(isNullifierUsed).to.equal(true);
+    });
+
+    it(`FUNCTION: delegateGetClaimNullifierStatus
+        TESTING: onlyRelayer authorization (failure)
+        EXPECTED: should not allow a non-relayer to get the claim nullifier status`, async function () {
+        // Create a nullifier
+        const nullifier = ethers.keccak256(ethers.toUtf8Bytes("nullifier"));
+
+        // Attempt to get the nullifier status via the deployer
+        await expect(governanceManager.connect(deployer).delegateGetClaimNullifierStatus(nullifier))
+            .to.be.revertedWithCustomError(
+                governanceManager,
+                "OnlyRelayerAllowed"
+            );
+    });
+
+
+    it(`FUNCTION: getRelayer
+        TESTING: onlyOwner authorization (success)
+        EXPECTED: should allow the owner (deployer) to get the relayer address`, async function () {
         const addr = await governanceManager.connect(deployer).getRelayer();
         expect(addr).to.equal(relayerAddress);
     });
 
-    it("getRelayer: should not allow a non-owner to get the relayer address", async function () {
+    it(`FUNCTION: getRelayer
+        TESTING: onlyOwner authorization (failure)
+        EXPECTED: should not allow a non-owner to get the relayer address`, async function () {
         await expect(governanceManager.connect(user1).getRelayer())
             .to.be.revertedWithCustomError(
                 governanceManager, 
@@ -1121,12 +1246,16 @@ describe("GovernanceManager", function () {
             );
     });
 
-    it("getMembershipManager: should allow the owner (deployer) to get the address of the MembershipManager", async function () {
+    it(`FUNCTION: getMembershipManager
+        TESTING: onlyOwner authorization (success)  
+        EXPECTED: should allow the owner (deployer) to get the address of the MembershipManager`, async function () {
         const addr = await governanceManager.connect(deployer).getMembershipManager();
         expect(addr).to.equal(membershipManager.target);
     });
 
-    it("getMembershipManager: should not allow a non-owner to get the address of the MembershipManager", async function () {
+    it(`FUNCTION: getMembershipManager
+        TESTING: onlyOwner authorization (failure)
+        EXPECTED: should not allow a non-owner to get the address of the MembershipManager`, async function () {
         await expect(governanceManager.connect(user1).getMembershipManager())
             .to.be.revertedWithCustomError(
                 governanceManager, 
@@ -1134,5 +1263,21 @@ describe("GovernanceManager", function () {
             );
     });
 
+    it(`FUNCTION: getProposalManager
+        TESTING: onlyOwner authorization (success)  
+        EXPECTED: should allow the owner (deployer) to get the address of the ProposalManager`, async function () {
+        const addr = await governanceManager.connect(deployer).getProposalManager();
+        expect(addr).to.equal(proposalManager.target);
+    });
+
+    it(`FUNCTION: getProposalManager
+        TESTING: onlyOwner authorization (failure)
+        EXPECTED: should not allow a non-owner to get the address of the ProposalManager`, async function () {
+        await expect(governanceManager.connect(user1).getProposalManager())
+            .to.be.revertedWithCustomError(
+                governanceManager, 
+                "OwnableUnauthorizedAccount"
+            );
+    });
 
 })
