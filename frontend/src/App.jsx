@@ -17,6 +17,7 @@ import Dashboard from "./pages/Dashboard";
 import Settings from "./pages/Settings";
 import Proposals from "./pages/Proposals";
 import Proofs from "./pages/Proofs";
+import Campaigns from "./pages/Campaigns";
 
 // components
 import ProtectedRoute from "./components/ProtectedRoute";
@@ -61,6 +62,10 @@ const router = createBrowserRouter([
           {
             path: "inbox",
             element: <Proofs />,
+          },
+          {
+            path: "campaigns",
+            element: <Campaigns />,
           },
           {
             path: "proposals",

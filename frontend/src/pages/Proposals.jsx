@@ -7,6 +7,11 @@ import ProposalItem from "../components/ProposalItem";
 import CustomDropdown from "../components/CustomDropdown";
 import { useGetProposalsByGroupId } from "../hooks/queries/proposals/useGetActiveProposalsByGroupId";
 import { useGetUserGroups } from "../hooks/queries/groupMembers/useGetUserGroups";
+import CustomButtonIcon from "../components/CustomButtonIcon";
+import CreateProposal from "./CreateProposal";
+
+// icon
+import { FaCirclePlus } from "react-icons/fa6";
 
 const PageContainer = styled.div`
   display: flex;
@@ -21,7 +26,7 @@ const PageContainer = styled.div`
 
 const ProofHeader = styled.div`
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-end;
   align-items: center;
   margin-bottom: 1.6rem;
 `;
@@ -44,6 +49,20 @@ const ActivityList = styled.ul`
   gap: 1.2rem;
 `;
 
+const SectionHeader = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.6rem;
+`;
+
+const SectionTitleInline = styled.h2`
+  font-size: 2rem;
+  font-weight: 500;
+  color: var(--color-grey-100);
+  margin: 0;
+`;
+
 /**
  * Proposals page component that displays active and historical proposals
  * @component
@@ -51,6 +70,7 @@ const ActivityList = styled.ul`
 export default function Proposals() {
   const { userGroups, isLoading: isLoadingGroups } = useGetUserGroups();
   const { isLoading, proposals, error } = useGetProposalsByGroupId(userGroups);
+  const [showCreateProposal, setShowCreateProposal] = useState(false);
 
   const [selectedGroup, setSelectedGroup] = useState("All Groups");
 
@@ -68,12 +88,15 @@ export default function Proposals() {
         : proposal.group_name === selectedGroup
     );
 
+  if (showCreateProposal) {
+    return <CreateProposal />;
+  }
+
   return (
     <PageContainer>
-      <PageHeader title="" />
+      <PageHeader title="Proposals" />
       <Section>
         <ProofHeader>
-          <SectionTitle> Active </SectionTitle>
           <CustomDropdown
             options={groupNames}
             selectedOption={selectedGroup}
@@ -81,6 +104,16 @@ export default function Proposals() {
             placeholder="All Groups"
           />
         </ProofHeader>
+        <SectionHeader>
+          <SectionTitleInline>Active</SectionTitleInline>
+          <CustomButtonIcon
+            icon={FaCirclePlus}
+            tooltipText="Create new proposal"
+            onClick={() => {
+              setShowCreateProposal(true);
+            }}
+          />
+        </SectionHeader>
         {isLoading || isLoadingGroups ? (
           <div>Loading...</div>
         ) : error ? (
@@ -97,6 +130,7 @@ export default function Proposals() {
           </ActivityList>
         )}
       </Section>
+
       <Section>
         <SectionTitle>Activity History</SectionTitle>
         {isLoading || isLoadingGroups ? (
