@@ -164,11 +164,22 @@ const ButtonRow = styled.div`
   margin-top: 2.4rem;
 `;
 
-export default function CreateCampaign() {
+const ErrorMessage = styled.div`
+  color: var(--color-red-400);
+  font-size: 1.2rem;
+  margin-top: 0.4rem;
+  font-weight: 500;
+`;
+
+export default function CreateCampaign({ onCancel }) {
   const [selectedGroup, setSelectedGroup] = useState("");
   const [eventName, setEventName] = useState("");
-  const [duration, setDuration] = useState("2 weeks");
+  const [duration, setDuration] = useState("");
   const [startDate, setStartDate] = useState(null);
+
+  // Validation state
+  const [errors, setErrors] = useState({});
+  const [touched, setTouched] = useState({});
 
   // Get user groups
   const {
@@ -330,20 +341,74 @@ export default function CreateCampaign() {
     return true;
   };
 
+  // Validation functions
+  const validateField = (fieldName, value) => {
+    switch (fieldName) {
+      case "selectedGroup":
+        return !value ? "Please select a group" : "";
+      case "eventName":
+        return !value || value.trim() === "" ? "Event name is required" : "";
+      case "duration":
+        return !value ? "Please select a duration" : "";
+      case "startDate":
+        if (!value) return "Please select a start date";
+        if (isDateRangeConflicting(value, endDate)) {
+          return "This date range conflicts with an existing campaign";
+        }
+        return "";
+      default:
+        return "";
+    }
+  };
+
+  const handleFieldChange = (fieldName, value) => {
+    // Update the field value
+    switch (fieldName) {
+      case "selectedGroup":
+        setSelectedGroup(value);
+        break;
+      case "eventName":
+        setEventName(value);
+        break;
+      case "duration":
+        setDuration(value);
+        break;
+      case "startDate":
+        setStartDate(value);
+        break;
+    }
+
+    // Mark field as touched
+    setTouched((prev) => ({ ...prev, [fieldName]: true }));
+
+    // Validate the field
+    const error = validateField(fieldName, value);
+    setErrors((prev) => ({ ...prev, [fieldName]: error }));
+  };
+
+  const validateAllFields = () => {
+    const newErrors = {};
+    newErrors.selectedGroup = validateField("selectedGroup", selectedGroup);
+    newErrors.eventName = validateField("eventName", eventName);
+    newErrors.duration = validateField("duration", duration);
+    newErrors.startDate = validateField("startDate", startDate);
+
+    setErrors(newErrors);
+    setTouched({
+      selectedGroup: true,
+      eventName: true,
+      duration: true,
+      startDate: true,
+    });
+
+    return !Object.values(newErrors).some((error) => error);
+  };
+
   const handleSubmit = (e) => {
     e.preventDefault();
 
-    // Validate form fields
-    if (!selectedGroup || !eventName || !duration || !startDate) {
-      alert("Please fill in all required fields.");
-      return;
-    }
-
-    // Check for date range conflicts
-    if (isDateRangeConflicting(startDate, endDate)) {
-      alert(
-        "The selected date range conflicts with an existing campaign. Please choose a different start date or duration."
-      );
+    // Validate all fields
+    if (!validateAllFields()) {
       return;
     }
 
@@ -356,11 +421,6 @@ export default function CreateCampaign() {
       endDate,
       groupId: selectedGroupObject?.group_id,
     });
-  };
-
-  const handleCancel = () => {
-    // TODO: Navigate back or close modal
-    console.log("Canceling campaign creation");
   };
 
   if (isLoadingGroups) {
@@ -472,7 +532,7 @@ export default function CreateCampaign() {
             <CustomDropdown
               options={groupOptions}
               selectedOption={selectedGroup}
-              onSelect={setSelectedGroup}
+              onSelect={(value) => handleFieldChange("selectedGroup", value)}
               placeholder="-"
               fullWidth={true}
             />
@@ -498,6 +558,9 @@ export default function CreateCampaign() {
                 Error loading existing campaigns: {epochsError.message}
               </div>
             )}
+            {touched.selectedGroup && errors.selectedGroup && (
+              <ErrorMessage>{errors.selectedGroup}</ErrorMessage>
+            )}
           </FormField>
 
           <FormField>
@@ -515,10 +578,13 @@ export default function CreateCampaign() {
             <Input
               type="text"
               value={eventName}
-              onChange={(e) => setEventName(e.target.value)}
+              onChange={(e) => handleFieldChange("eventName", e.target.value)}
               placeholder="Enter event name"
               required
             />
+            {touched.eventName && errors.eventName && (
+              <ErrorMessage>{errors.eventName}</ErrorMessage>
+            )}
           </FormField>
 
           <FormField>
@@ -535,10 +601,13 @@ export default function CreateCampaign() {
             <CustomDropdown
               options={durationOptions}
               selectedOption={duration}
-              onSelect={setDuration}
-              placeholder="Select duration"
+              onSelect={(value) => handleFieldChange("duration", value)}
+              placeholder="-"
               fullWidth={true}
             />
+            {touched.duration && errors.duration && (
+              <ErrorMessage>{errors.duration}</ErrorMessage>
+            )}
           </FormField>
 
           <FormField>
@@ -554,7 +623,7 @@ export default function CreateCampaign() {
             </Label>
             <StyledDatePicker
               selected={startDate}
-              onChange={(date) => setStartDate(date)}
+              onChange={(date) => handleFieldChange("startDate", date)}
               placeholderText="Select start date"
               dateFormat="MMM dd, yyyy"
               filterDate={filterDate}
@@ -562,6 +631,9 @@ export default function CreateCampaign() {
               showPopperArrow={false}
               popperClassName="campaign-datepicker-popper"
             />
+            {touched.startDate && errors.startDate && (
+              <ErrorMessage>{errors.startDate}</ErrorMessage>
+            )}
           </FormField>
         </FormSection>
 
@@ -578,7 +650,7 @@ export default function CreateCampaign() {
             backgroundColor="var(--color-red-300)"
             textColor="#232328"
             hoverColor="var(--color-red-400)"
-            onClick={handleCancel}
+            onClick={onCancel}
           >
             Cancel
           </CustomButton>

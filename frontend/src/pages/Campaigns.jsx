@@ -23,12 +23,6 @@ const SectionHeader = styled.div`
   margin-bottom: 1.6rem;
 `;
 
-const RightHeaderActions = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 1.2rem;
-`;
-
 const SectionTitleInline = styled.h2`
   font-size: 2rem;
   font-weight: 500;
@@ -93,8 +87,13 @@ export default function Campaigns() {
         )
     : [];
 
+  // Handler to show campaigns page again
+  const handleCancelCreateCampaign = () => {
+    setShowCreateCampaign(false);
+  };
+
   if (showCreateCampaign) {
-    return <CreateCampaign />;
+    return <CreateCampaign onCancel={handleCancelCreateCampaign} />;
   }
 
   return (
