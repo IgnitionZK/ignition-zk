@@ -83,3 +83,54 @@ export async function getEpochsByGroupId(groupId) {
 
   return data;
 }
+
+/**
+ * Inserts a new epoch into the database
+ * @param {Object} params - The parameters object
+ * @param {string} params.group_id - The group ID for the epoch
+ * @param {number} params.epoch_duration - The duration in days
+ * @param {string} params.epoch_name - The name of the epoch
+ * @param {Date} params.epoch_start_time - The start time of the epoch
+ * @returns {Promise<Object>} The newly created epoch record
+ * @throws {Error} If required parameters are missing or if there's a database error
+ */
+export async function insertEpoch({
+  group_id,
+  epoch_duration,
+  epoch_name,
+  epoch_start_time,
+}) {
+  if (!group_id) {
+    throw new Error("group_id is required");
+  }
+  if (!epoch_duration) {
+    throw new Error("epoch_duration is required");
+  }
+  if (!epoch_name) {
+    throw new Error("epoch_name is required");
+  }
+  if (!epoch_start_time) {
+    throw new Error("epoch_start_time is required");
+  }
+
+  // Convert epoch_start_time to ISO string for timestamptz compatibility
+  const formattedStartTime = new Date(epoch_start_time).toISOString();
+
+  const { data, error } = await supabase
+    .schema("ignitionzk")
+    .from("epochs")
+    .insert({
+      group_id,
+      epoch_duration,
+      epoch_name,
+      epoch_start_time: formattedStartTime,
+    })
+    .select()
+    .single();
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  return data;
+}

@@ -2,13 +2,16 @@ import React, { useState, useMemo } from "react";
 import styled from "styled-components";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
+import toast from "react-hot-toast";
 
 // custom hooks
 import { useGetUserGroups } from "../hooks/queries/groupMembers/useGetUserGroups";
 import { useGetEpochsByGroupId } from "../hooks/queries/epochs/useGetEpochsByGroupId";
+import { useInsertEpoch } from "../hooks/queries/epochs/useInsertEpoch";
 import CustomButton from "../components/CustomButton";
 import CustomDropdown from "../components/CustomDropdown";
 import PageHeader from "../components/PageHeader";
+import CampaignConfirmationModal from "../components/CampaignConfirmationModal";
 
 // icons
 import { IoIosInformationCircle } from "react-icons/io";
@@ -174,12 +177,15 @@ const ErrorMessage = styled.div`
 export default function CreateCampaign({ onCancel }) {
   const [selectedGroup, setSelectedGroup] = useState("");
   const [eventName, setEventName] = useState("");
-  const [duration, setDuration] = useState("");
+  const [duration, setDuration] = useState("2 weeks");
   const [startDate, setStartDate] = useState(null);
 
   // Validation state
   const [errors, setErrors] = useState({});
   const [touched, setTouched] = useState({});
+
+  // Confirmation modal state
+  const [showConfirmationModal, setShowConfirmationModal] = useState(false);
 
   // Get user groups
   const {
@@ -200,6 +206,12 @@ export default function CreateCampaign({ onCancel }) {
     isLoading: isLoadingEpochs,
     error: epochsError,
   } = useGetEpochsByGroupId(selectedGroupObject?.group_id);
+
+  const {
+    insertEpoch,
+    isLoading: isInserting,
+    error: insertError,
+  } = useInsertEpoch();
 
   // Duration options
   const durationOptions = useMemo(() => {
@@ -347,7 +359,7 @@ export default function CreateCampaign({ onCancel }) {
       case "selectedGroup":
         return !value ? "Please select a group" : "";
       case "eventName":
-        return !value || value.trim() === "" ? "Event name is required" : "";
+        return !value || value.trim() === "" ? "Campaign name is required" : "";
       case "duration":
         return !value ? "Please select a duration" : "";
       case "startDate":
@@ -412,15 +424,49 @@ export default function CreateCampaign({ onCancel }) {
       return;
     }
 
-    // TODO: Implement campaign creation logic
-    console.log("Creating campaign:", {
-      selectedGroup,
-      eventName,
-      duration,
-      startDate,
-      endDate,
-      groupId: selectedGroupObject?.group_id,
-    });
+    // Show confirmation modal
+    setShowConfirmationModal(true);
+  };
+
+  const handleConfirmCreation = () => {
+    // Prepare values for DB
+    const group_id = selectedGroupObject?.group_id;
+    const epoch_duration = duration
+      ? parseInt(duration.split(" ")[0], 10) * 7
+      : 0;
+    const epoch_name = eventName;
+    const epoch_start_time = startDate;
+
+    insertEpoch(
+      { group_id, epoch_duration, epoch_name, epoch_start_time },
+      {
+        onSuccess: () => {
+          // Close confirmation modal and form
+          setShowConfirmationModal(false);
+          onCancel && onCancel();
+          // Show success toast
+          toast.success(`Campaign "${eventName}" created successfully!`);
+        },
+        onError: (error) => {
+          // Close confirmation modal but keep form open
+          setShowConfirmationModal(false);
+          // Show error toast
+          toast.error(`Failed to create campaign: ${error.message}`);
+        },
+      }
+    );
+  };
+
+  const handleCancelConfirmation = () => {
+    setShowConfirmationModal(false);
+  };
+
+  const handleCancel = () => {
+    // Show cancellation toast if form has any data
+    if (selectedGroup || eventName || duration || startDate) {
+      toast.success("Campaign creation cancelled.");
+    }
+    onCancel && onCancel();
   };
 
   if (isLoadingGroups) {
@@ -491,7 +537,7 @@ export default function CreateCampaign({ onCancel }) {
           <SectionTitle>Instructions</SectionTitle>
           <InstructionsText>
             Please read the following instructions carefully before creating
-            your event:
+            your campaign:
           </InstructionsText>
           <InstructionsList>
             <InstructionItem>All fields required.</InstructionItem>
@@ -505,14 +551,19 @@ export default function CreateCampaign({ onCancel }) {
               <InfoIconWrapper>
                 <InfoIcon />
                 <Tooltip>
-                  Campaigns are automatically divided into three phases:
-                  proposal, voting, and review. Each phase has specific time
-                  allocations and purposes.
+                  The duration (in days) determines how the phases are divided.
+                  If the duration is equally divisble by 3 each phase will be
+                  the same length. If the duration is not equally divisible by 3
+                  the voting phase will be allocated the remainder time.
+                  Example: 14 days will be divided as follows: proposal phase (4
+                  days), voting phase (6 days), and review phase (4 days). 21
+                  days would be: proposal phase (7 days), voting phase (7 days),
+                  and review phase (7 days)
                 </Tooltip>
               </InfoIconWrapper>
             </InstructionItem>
             <InstructionItem className="warning">
-              Once submitted, the event details cannot be altered.
+              Once submitted, the campaign details cannot be altered.
             </InstructionItem>
           </InstructionsList>
         </FormSection>
@@ -524,8 +575,8 @@ export default function CreateCampaign({ onCancel }) {
               <InfoIconWrapper>
                 <InfoIcon />
                 <Tooltip>
-                  Choose the group for which you want to create this event. You
-                  can only create campaigns for groups you are a member of.
+                  Choose the group for which you want to create this campaign.
+                  You can only create campaigns for groups you are a member of.
                 </Tooltip>
               </InfoIconWrapper>
             </Label>
@@ -565,11 +616,11 @@ export default function CreateCampaign({ onCancel }) {
 
           <FormField>
             <Label>
-              Event Name
+              Campaign Name
               <InfoIconWrapper>
                 <InfoIcon />
                 <Tooltip>
-                  Enter a descriptive name for your event. This will be
+                  Enter a descriptive name for your campaign. This will be
                   displayed to all group members and cannot be changed after
                   creation.
                 </Tooltip>
@@ -579,7 +630,7 @@ export default function CreateCampaign({ onCancel }) {
               type="text"
               value={eventName}
               onChange={(e) => handleFieldChange("eventName", e.target.value)}
-              placeholder="Enter event name"
+              placeholder="Enter campaign name"
               required
             />
             {touched.eventName && errors.eventName && (
@@ -593,8 +644,8 @@ export default function CreateCampaign({ onCancel }) {
               <InfoIconWrapper>
                 <InfoIcon />
                 <Tooltip>
-                  Select the total duration for your event. This will be divided
-                  into the three phases: proposal, voting, and review.
+                  Select the total duration for your campaign. This will be
+                  divided into the three phases: proposal, voting, and review.
                 </Tooltip>
               </InfoIconWrapper>
             </Label>
@@ -650,12 +701,41 @@ export default function CreateCampaign({ onCancel }) {
             backgroundColor="var(--color-red-300)"
             textColor="#232328"
             hoverColor="var(--color-red-400)"
-            onClick={onCancel}
+            onClick={handleCancel}
           >
             Cancel
           </CustomButton>
         </ButtonRow>
+        {insertError && (
+          <ErrorMessage style={{ textAlign: "center" }}>
+            Error creating campaign: {insertError.message}
+          </ErrorMessage>
+        )}
+        {isInserting && (
+          <div
+            style={{
+              color: "var(--color-grey-400)",
+              textAlign: "center",
+              margin: "1rem 0",
+            }}
+          >
+            Creating campaign...
+          </div>
+        )}
       </PageContainer>
+
+      <CampaignConfirmationModal
+        isOpen={showConfirmationModal}
+        campaignData={{
+          eventName,
+          selectedGroup,
+          duration,
+          startDate,
+        }}
+        onConfirm={handleConfirmCreation}
+        onCancel={handleCancelConfirmation}
+        isCreating={isInserting}
+      />
     </>
   );
 }
