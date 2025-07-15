@@ -14,6 +14,7 @@ import { getCurrentPhase } from "../utils/epochPhaseCalculator";
 
 // icon
 import { FaCirclePlus } from "react-icons/fa6";
+import CreateCampaign from "./CreateCampaign";
 
 const SectionHeader = styled.div`
   display: flex;
@@ -52,6 +53,8 @@ const DropdownWrapper = styled.div`
 `;
 
 export default function Campaigns() {
+  const [showCreateCampaign, setShowCreateCampaign] = useState(false);
+
   const {
     epochs,
     isLoading: isLoadingEpochs,
@@ -90,6 +93,10 @@ export default function Campaigns() {
         )
     : [];
 
+  if (showCreateCampaign) {
+    return <CreateCampaign />;
+  }
+
   return (
     <>
       <PageHeader title="" />
@@ -107,7 +114,9 @@ export default function Campaigns() {
           <CustomButtonIcon
             icon={FaCirclePlus}
             tooltipText="Create new campaign"
-            onClick={() => {}}
+            onClick={() => {
+              setShowCreateCampaign(true);
+            }}
           />
         </SectionHeader>
         {isLoadingEpochs && <Spinner />}
