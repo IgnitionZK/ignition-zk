@@ -3,7 +3,8 @@ import styled from "styled-components";
 
 const DropdownContainer = styled.div`
   position: relative;
-  display: inline-block;
+  display: ${(props) => (props.$fullWidth ? "block" : "inline-block")};
+  width: ${(props) => (props.$fullWidth ? "100%" : "auto")};
 `;
 
 const DropdownButton = styled.button`
@@ -17,7 +18,8 @@ const DropdownButton = styled.button`
   display: flex;
   align-items: center;
   gap: 8px;
-  min-width: 160px;
+  min-width: ${(props) => (props.$fullWidth ? "auto" : "160px")};
+  width: ${(props) => (props.$fullWidth ? "100%" : "auto")};
   justify-content: space-between;
 
   &:hover {
@@ -28,13 +30,14 @@ const DropdownButton = styled.button`
 const DropdownList = styled.ul`
   position: absolute;
   top: 100%;
-  right: 0;
+  right: ${(props) => (props.$fullWidth ? "0" : "0")};
+  left: ${(props) => (props.$fullWidth ? "0" : "auto")};
   background: #3a4353;
   border: 1px solid #4a5568;
   border-radius: 8px;
   margin-top: 4px;
   padding: 8px 0;
-  min-width: 160px;
+  min-width: ${(props) => (props.$fullWidth ? "auto" : "160px")};
   max-height: 300px;
   overflow-y: auto;
   z-index: 1000;
@@ -64,6 +67,7 @@ const CustomDropdown = ({
   selectedOption,
   onSelect,
   placeholder = "Select group",
+  fullWidth = false,
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef(null);
@@ -80,13 +84,13 @@ const CustomDropdown = ({
   }, []);
 
   return (
-    <DropdownContainer ref={dropdownRef}>
-      <DropdownButton onClick={() => setIsOpen(!isOpen)}>
+    <DropdownContainer ref={dropdownRef} $fullWidth={fullWidth}>
+      <DropdownButton onClick={() => setIsOpen(!isOpen)} $fullWidth={fullWidth}>
         {selectedOption || placeholder}
         <span>▼</span>
       </DropdownButton>
       {isOpen && (
-        <DropdownList>
+        <DropdownList $fullWidth={fullWidth}>
           {options.map((option) => (
             <DropdownItem
               key={option}

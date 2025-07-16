@@ -14,18 +14,13 @@ import { getCurrentPhase } from "../utils/epochPhaseCalculator";
 
 // icon
 import { FaCirclePlus } from "react-icons/fa6";
+import CreateCampaign from "./CreateCampaign";
 
 const SectionHeader = styled.div`
   display: flex;
   justify-content: space-between;
   align-items: center;
   margin-bottom: 1.6rem;
-`;
-
-const RightHeaderActions = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 1.2rem;
 `;
 
 const SectionTitleInline = styled.h2`
@@ -52,6 +47,8 @@ const DropdownWrapper = styled.div`
 `;
 
 export default function Campaigns() {
+  const [showCreateCampaign, setShowCreateCampaign] = useState(false);
+
   const {
     epochs,
     isLoading: isLoadingEpochs,
@@ -90,6 +87,15 @@ export default function Campaigns() {
         )
     : [];
 
+  // Handler to show campaigns page again
+  const handleCancelCreateCampaign = () => {
+    setShowCreateCampaign(false);
+  };
+
+  if (showCreateCampaign) {
+    return <CreateCampaign onCancel={handleCancelCreateCampaign} />;
+  }
+
   return (
     <>
       <PageHeader title="" />
@@ -107,7 +113,9 @@ export default function Campaigns() {
           <CustomButtonIcon
             icon={FaCirclePlus}
             tooltipText="Create new campaign"
-            onClick={() => {}}
+            onClick={() => {
+              setShowCreateCampaign(true);
+            }}
           />
         </SectionHeader>
         {isLoadingEpochs && <Spinner />}

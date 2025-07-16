@@ -5,7 +5,7 @@ import {
   getCurrentPhase,
   formatDate,
 } from "../utils/epochPhaseCalculator";
-import { FaInfoCircle } from "react-icons/fa";
+import { IoIosInformationCircle } from "react-icons/io";
 
 // Dot color logic (solid colors, ProposalItem style)
 const getDotColor = (phase, currentPhase) => {
@@ -66,6 +66,42 @@ const SectionTitle = styled.div`
   align-items: center;
   gap: 0.5rem;
   color: var(--color-grey-200);
+`;
+
+const InfoIcon = styled(IoIosInformationCircle)`
+  color: #a5b4fc;
+  font-size: 1.7rem;
+  vertical-align: middle;
+`;
+
+const InfoIconWrapper = styled.span`
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  &:hover > div {
+    opacity: 1;
+    visibility: visible;
+  }
+`;
+
+const Tooltip = styled.div`
+  position: absolute;
+  top: -3.2rem;
+  left: 0;
+  min-width: 260px;
+  max-width: 340px;
+  background: var(--color-grey-800);
+  color: var(--color-grey-100);
+  padding: 1rem 1.4rem;
+  border-radius: 0.6rem;
+  font-size: 1.32rem;
+  white-space: normal;
+  word-break: break-word;
+  opacity: 0;
+  visibility: hidden;
+  transition: all 0.2s ease-in-out;
+  z-index: 10;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
 `;
 
 const PhaseList = styled.div`
@@ -148,7 +184,15 @@ export default function EpochItem({ epoch }) {
       <InfoSection>
         <EpochName>{epoch.epoch_name}</EpochName>
         <SectionTitle>
-          Current Phase <FaInfoCircle size={16} />
+          Current Phase
+          <InfoIconWrapper>
+            <InfoIcon />
+            <Tooltip>
+              The campaign is divided into three phases: proposal, voting, and
+              review. The current phase is highlighted in green, completed
+              phases are shown in red, and upcoming phases are shown in gray.
+            </Tooltip>
+          </InfoIconWrapper>
         </SectionTitle>
         <PhaseList>
           {phaseList.map((phase) => (
