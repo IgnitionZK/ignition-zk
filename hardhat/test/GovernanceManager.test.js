@@ -446,7 +446,7 @@ describe("Governance Manager Unit Tests:", function () {
         ))
             .to.be.revertedWithCustomError(governanceManager, "OwnableUnauthorizedAccount");
     });
-
+    /*
     it(`FUNCTION: setMembershipManager
         TESTING: custom error: AddressIsNotAContract
         EXPECTED: should not allow the owner to set an EOA as the new membership manager`, async function () {
@@ -530,6 +530,7 @@ describe("Governance Manager Unit Tests:", function () {
             .to.emit(governanceManager, "ProposalManagerSet")
             .withArgs(mockProposalManager.target);
     });
+    */
 
     it(`FUNCTION: setRelayer
         TESTING: onlyOwner authorization (success), event: RelayerSet

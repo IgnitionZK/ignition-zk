@@ -518,6 +518,7 @@ contract MembershipManager is Initializable, UUPSUpgradeable, OwnableUpgradeable
     {
         return interfaceId == type(IMembershipManager).interfaceId || super.supportsInterface(interfaceId);
     }
+    
 // ====================================================================================================================
 //                                       EXTERNAL HELPER FUNCTIONS
 // ====================================================================================================================

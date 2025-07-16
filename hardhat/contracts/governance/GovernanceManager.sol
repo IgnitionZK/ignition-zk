@@ -180,6 +180,7 @@ contract GovernanceManager is Initializable, UUPSUpgradeable, OwnableUpgradeable
      * @custom:error InterfaceIdNotSupported If the provided address does not support the IMembership
      * interface.
      */
+    /*
     function setMembershipManager(address _membershipManager) external onlyOwner nonZeroAddress(_membershipManager) {
         if(_membershipManager.code.length == 0) revert AddressIsNotAContract();
         if(_membershipManager == address(membershipManager)) revert NewAddressMustBeDifferent();
@@ -190,6 +191,7 @@ contract GovernanceManager is Initializable, UUPSUpgradeable, OwnableUpgradeable
         membershipManager = IMembershipManager(_membershipManager);
         emit MembershipManagerSet(_membershipManager);
     }
+    */
 
     /**
      * @notice Sets a new membership manager address.
@@ -202,6 +204,7 @@ contract GovernanceManager is Initializable, UUPSUpgradeable, OwnableUpgradeable
      * @custom:error InterfaceIdNotSupported If the provided address does not support the IProposalManager
      * interface.
      */
+    /*
     function setProposalManager(address _proposalManager) external onlyOwner nonZeroAddress(_proposalManager) {
         if(_proposalManager.code.length == 0) revert AddressIsNotAContract();
         if(_proposalManager == address(proposalManager)) revert NewAddressMustBeDifferent();
@@ -212,6 +215,7 @@ contract GovernanceManager is Initializable, UUPSUpgradeable, OwnableUpgradeable
         proposalManager = IProposalManager(_proposalManager);
         emit ProposalManagerSet(_proposalManager);
     }
+    */
 
 // ====================================================================================================================
 // ====================================================================================================================
@@ -519,6 +523,7 @@ contract GovernanceManager is Initializable, UUPSUpgradeable, OwnableUpgradeable
      * @param interfaceId The interface ID to check for support.
      * @return bool indicating whether the contract supports the specified interface.
      */
+    /*
     function _supportsInterface(address target, bytes4 interfaceId) private view returns (bool) {
         try IERC165(target).supportsInterface(interfaceId) returns (bool supported) {
             return supported;
@@ -526,5 +531,6 @@ contract GovernanceManager is Initializable, UUPSUpgradeable, OwnableUpgradeable
             return false;
         }
     }
+    */
 
 }

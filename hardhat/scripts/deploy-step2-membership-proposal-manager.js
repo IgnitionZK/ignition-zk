@@ -16,8 +16,8 @@ async function main() {
   const NFT_IMPLEMENTATION_ADDRESS =
     "0x8EdE77A2676F9A35D49923e25e4ADfaFCa9F1Ccf"; // From Step 1
   const PROPOSAL_VERIFIER_ADDRESS =
-    "0x997172817177c1Aa125a0212B2c574c965174f9E"; // From hardhat ignition deploy
-  const PROPOSAL_CLAIM_VERIFIER_ADDRESS = ""; // From hardhat ignition deploy
+    "0xcF4eED1e78442d9d557B62008d1A7E53BE3B1b8c"; // From hardhat ignition deploy
+  const PROPOSAL_CLAIM_VERIFIER_ADDRESS = "0xcF4eED1e78442d9d557B62008d1A7E53BE3B1b8c"; // From hardhat ignition deploy
   const GOVERNOR_PLACEHOLDER = "0x5F909fd25A9F5e4f5a219318FdeD6C8124F6c1F1";
 
   console.log("📋 Configuration:");
