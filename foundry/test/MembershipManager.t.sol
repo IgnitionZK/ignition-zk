@@ -22,6 +22,7 @@ contract MembershipManagerTest is Test {
     ERC721IgnitionZK nftImplementation;
 
     address governor = vm.addr(1);
+    address mockMember = vm.addr(2);
     string mockNftName = "IgnitionZK Membership NFT";
     string mockNftSymbol = "IZK";
     bytes32 mockGroupKey = keccak256(abi.encodePacked("mockGroupKey"));
@@ -53,6 +54,10 @@ contract MembershipManagerTest is Test {
     }
 
 
+    /**
+     * @dev Fuzz test: tests deployment of group NFTs with various group keys
+     * Assumes the group key is not zero.
+     */
     function testFuzz_deployGroupNft__withValidFuzzedGroupKey_Succeeds(bytes32 groupKey) public {
         vm.assume(groupKey != bytes32(0));
         vm.startPrank(governor);
@@ -78,6 +83,10 @@ contract MembershipManagerTest is Test {
         vm.stopPrank();
     }
 
+    /**
+     * @dev Fuzz test: tests deployment of group NFTs with various NFT symbols
+     * Assumes the NFT symbol is within the valid length range (1-5 characters).
+     */
     function testFuzz_deployGroupNft__withValidFuzzedNftSymbol_Succeeds(string memory fuzzNftSymbol) public {
         vm.startPrank(governor);
 
@@ -101,6 +110,10 @@ contract MembershipManagerTest is Test {
         vm.stopPrank();
     }
 
+    /**
+     * @dev Fuzz test: tests deployment of group NFTs with various NFT names.
+     * Assumes the NFT name is within the valid length range (1-32 characters).
+     */
     function testFuzz_deployGroupNft_withValidFuzzedNftName_Succeeds(string memory fuzzNftName) public {
         vm.startPrank(governor);
         
@@ -124,6 +137,10 @@ contract MembershipManagerTest is Test {
         vm.stopPrank();
     }
 
+    /**
+     * @dev Fuzz test: tests initialization of the root for a group with various group keys.
+     * Assumes the group key is not zero.
+     */
     function testFuzz_initRoot_withValidFuzzedGroupKey_Succeeds(bytes32 groupKey) public {
         vm.assume(groupKey != bytes32(0));
         vm.startPrank(governor);
@@ -148,6 +165,10 @@ contract MembershipManagerTest is Test {
         vm.stopPrank();
     }
 
+    /**
+     * @dev Fuzz test: tests initialization of the root for a group with various initial roots.
+     * Assumes the initial root is not zero.
+     */
     function testFuzz_initRoot_withValidFuzzedInitialRoot_Succeeds(bytes32 initialRoot) public {
         vm.assume(initialRoot != bytes32(0));
         vm.startPrank(governor);
@@ -172,6 +193,10 @@ contract MembershipManagerTest is Test {
         vm.stopPrank();
     }
 
+    /**
+     * @dev Fuzz test: tests setting a new root for a group with various group keys.
+     * Assumes the group key is not zero.
+     */
     function testFuzz_setRoot_withValidFuzzedGroupKey_Succeeds(bytes32 groupKey) public {
         vm.assume(groupKey != bytes32(0));
         vm.startPrank(governor);
@@ -198,6 +223,10 @@ contract MembershipManagerTest is Test {
         vm.stopPrank();
     }
 
+    /**
+     * @dev Fuzz test: tests setting a new root for a group with various new roots.
+     * Assumes the new root is not zero.
+     */
     function testFuzz_setRoot_withValidFuzzedNewRoot_Succeeds(bytes32 newRoot) public {
         vm.assume(newRoot != bytes32(0));
         vm.startPrank(governor);
@@ -224,6 +253,62 @@ contract MembershipManagerTest is Test {
         vm.stopPrank();
     }
 
+    /**
+     * @dev Fuzz test: tests minting NFTs to members with various member addresses.
+     * Assumes the member address is not zero and is an EOA.
+     */
+    function testFuzz_mintNftToMember_withValidFuzzedMemberAddress_Succeeds(address member) public {
+        vm.assume(member != address(0));
+        vm.assume(member.code.length == 0); 
+        vm.startPrank(governor);
+        
+        // deploy Group VFT
+        membershipManager.deployGroupNft(
+            mockGroupKey,
+            mockNftName,
+            mockNftSymbol
+        );
+
+        vm.expectEmit(true, true, true, false);
+        emit MembershipManager.MemberNftMinted(mockGroupKey, member, uint256(0));
+
+        // mint NFT to the member
+        membershipManager.mintNftToMember(
+            member,
+            mockGroupKey
+        );
+
+    }
+
+    /**
+     * @dev Fuzz test: tests minting NFTs to a member using various group keys.
+     * Assumes the member address is not zero and is an EOA.
+     */
+    function testFuzz_mintNftToMember_withValidFuzzedGroupKey_Succeeds(bytes32 groupKey) public {
+        vm.assume(groupKey != bytes32(0));
+        vm.startPrank(governor);
+        
+        // deploy Group VFT
+        membershipManager.deployGroupNft(
+            groupKey,
+            mockNftName,
+            mockNftSymbol
+        );
+
+        vm.expectEmit(true, true, true, false);
+        emit MembershipManager.MemberNftMinted(groupKey, mockMember, uint256(0));
+
+        // mint NFT to the member
+        membershipManager.mintNftToMember(
+            mockMember,
+            groupKey
+        );
+
+    }
+
+    /**
+     * @dev Helper function to predict the address of the clone NFT contract
+     */
     function _expectedCloneAddress(bytes32 groupKey) private view returns (address) {
         return Clones.predictDeterministicAddress(
             address(nftImplementation), 
