@@ -338,10 +338,12 @@ contract ProposalManager is Initializable, OwnableUpgradeable, UUPSUpgradeable, 
      * @param interfaceId The interface identifier to check.
      * @return bool True if the interface is supported, false otherwise.
      */
+    /*
     function supportsInterface(bytes4 interfaceId) public view virtual override returns (bool) 
     {
         return interfaceId == type(IProposalManager).interfaceId || super.supportsInterface(interfaceId);
     }
+    */
 
 // ====================================================================================================================
 //                                       PRIVATE HELPER FUNCTIONS

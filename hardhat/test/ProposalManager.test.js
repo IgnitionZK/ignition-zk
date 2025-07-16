@@ -3,7 +3,7 @@ const { expect } = require("chai");
 const { anyUint } = require("@nomicfoundation/hardhat-chai-matchers/withArgs");
 const { Conversions } = require("./utils.js");
 
-describe("ProposalManager", function () {
+describe("Proposal Manager Unit Tests:", function () {
     
     // Managers
     let MembershipManager;

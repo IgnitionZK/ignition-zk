@@ -66,6 +66,12 @@ contract MembershipManager is Initializable, UUPSUpgradeable, OwnableUpgradeable
     /// @notice Thrown if the NFT implementation does not support the ERC721 interface.
     error NftMustBeERC721();
 
+    /// @notice Thrown if the NFT name is empty or exceeds the maximum length.
+    error InvalidNftNameLength();
+
+    /// @notice Thrown if the NFT symbol is empty or exceeds the maximum length.
+    error InvalidNftSymbolLength();
+
     /// @notice Thrown if the `safeMint` call to the NFT contract fails.
     error MintingFailed(string reason);
 
@@ -304,6 +310,8 @@ contract MembershipManager is Initializable, UUPSUpgradeable, OwnableUpgradeable
         returns (address) 
     {
         if (groupNftAddresses[groupKey] != address(0)) revert GroupNftAlreadySet();
+        if (bytes(symbol).length > 5 || bytes(symbol).length == 0) revert InvalidNftSymbolLength();
+        if (bytes(name).length > 32 || bytes(name).length == 0) revert InvalidNftNameLength();
 
         bytes32 salt = groupKey;
         address clone = Clones.cloneDeterministic(
@@ -510,6 +518,7 @@ contract MembershipManager is Initializable, UUPSUpgradeable, OwnableUpgradeable
     {
         return interfaceId == type(IMembershipManager).interfaceId || super.supportsInterface(interfaceId);
     }
+    
 // ====================================================================================================================
 //                                       EXTERNAL HELPER FUNCTIONS
 // ====================================================================================================================

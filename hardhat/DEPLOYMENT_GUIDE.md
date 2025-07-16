@@ -20,6 +20,16 @@ This guide walks you through deploying the upgradeable smart contracts using the
 
 3. **Network Configuration**: The deployment is configured for Sepolia testnet.
 
+4. **Verifier Contracts**: Make sure all Verifier contract modules are deployed via Hardhat Ignition:
+```
+npx hardhat ignition deploy ignition/modules/ProposalVerifierModule.js --network sepolia
+```
+and 
+```
+npx hardhat ignition deploy ignition/modules/ProposalClaimVerifierModule.js --network sepolia
+```
+
+
 ## Deployment Steps
 
 ### Step 1: Deploy ERC721IgnitionZK Implementation

@@ -12,7 +12,9 @@ optimizer_runs = 100000
 # ==============================================================================
 
 # Path to Solidity source files relative to the foundry.toml file
-src = "../hardhat/contracts/"
+# create symlink to hardhat contracts:
+# ln -s ../hardhat/contracts contracts
+src = "contracts"
 
 # Path to the test files
 test = "test"
@@ -33,7 +35,7 @@ cache_path = "cache"
 remappings = [
     "@openzeppelin/contracts=lib/openzeppelin-contracts/contracts",
     "@openzeppelin/contracts-upgradeable=lib/openzeppelin-contracts-upgradeable/contracts",
-    "hardhat-contracts/=../hardhat/contracts/"
+    "hardhat-contracts/=contracts/"
     #"managers/=../hardhat/contracts/managers/",
     #"interfaces/=../hardhat/contracts/interfaces/",
     #"mocks/= ./mocks/",

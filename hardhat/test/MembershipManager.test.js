@@ -3,7 +3,7 @@ const { expect } = require("chai");
 const { anyUint, anyValue } = require("@nomicfoundation/hardhat-chai-matchers/withArgs");
 const { Conversions } = require("./utils.js");
 
-describe("MembershipManager", function () {
+describe("Membership Manager Unit Tests:", function () {
 
     // Managers
     let MembershipManager;
@@ -55,9 +55,9 @@ describe("MembershipManager", function () {
         rootHash = Conversions.stringToBytes32("rootHash");
         rootHash2 = Conversions.stringToBytes32("newRootHash");
         nftName = "Test Group NFT";
-        nftSymbol = "TGNFT";  
+        nftSymbol = "TG1";  
         nftName2 = "Test Group NFT 2";
-        nftSymbol2 = "TGNFT2";  
+        nftSymbol2 = "TG2";  
 
         // invalid proof inputs:
         /*
@@ -460,6 +460,50 @@ describe("MembershipManager", function () {
         expect(storedAddress2).to.be.properAddress;
 
         expect(storedAddress1).to.not.equal(storedAddress2, "NFT addresses for different groups should be different");
+    });
+
+    it(`FUNCTION: deployGroupNft
+        TESTING: custom error: InvalidNftSymbolLength
+        EXPECTED: should not allow the governor to deploy a group NFT with an empty symbol length`, async function () {
+        await expect(
+            membershipManager.connect(governor).deployGroupNft(groupKey, nftName, "")
+        ).to.be.revertedWithCustomError(
+            MembershipManager,
+            "InvalidNftSymbolLength"
+        );
+    });
+
+    it(`FUNCTION: deployGroupNft
+        TESTING: custom error: InvalidNftSymbolLength
+        EXPECTED: should not allow the governor to deploy a group NFT with a symbol length longer than 5 characters`, async function () {
+        await expect(
+            membershipManager.connect(governor).deployGroupNft(groupKey, nftName, "TGNFT123")
+        ).to.be.revertedWithCustomError(
+            MembershipManager,
+            "InvalidNftSymbolLength"
+        );
+    });
+
+    it(`FUNCTION: deployGroupNft
+        TESTING: custom error: InvalidNftNameLength
+        EXPECTED: should not allow the governor to deploy a group NFT with an empty name length`, async function () {
+        await expect(
+            membershipManager.connect(governor).deployGroupNft(groupKey, "", nftSymbol)
+        ).to.be.revertedWithCustomError(
+            MembershipManager,
+            "InvalidNftNameLength"
+        );
+    });
+
+    it(`FUNCTION: deployGroupNft
+        TESTING: custom error: InvalidNftNameLength
+        EXPECTED: should not allow the governor to deploy a group NFT with a name longer than 32 characters`, async function () {
+        await expect(
+            membershipManager.connect(governor).deployGroupNft(groupKey, "0123456789012345678901234567890123", nftSymbol)
+        ).to.be.revertedWithCustomError(
+            MembershipManager,
+            "InvalidNftNameLength"
+        );
     });
 
     it(`FUNCTION: deployGroupNft
