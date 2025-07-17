@@ -169,7 +169,7 @@ contract ProposalManager is Initializable, OwnableUpgradeable, UUPSUpgradeable, 
     }
 
     /**
-     * @notice Initializes the MembershipManager contract.
+     * @notice Initializes the ProposalManager contract.
      * @dev This function replaces the constructor for upgradeable contracts and is called once
      * after the proxy is deployed. It sets the initial verifier and governor.
      * @param _governor The address of the governor (DAO) contract.

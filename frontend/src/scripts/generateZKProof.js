@@ -314,7 +314,6 @@ export class ZKProofGenerator {
       commitmentArray
     );
 
-    console.log("Identity Trapdoor:", merkleProofInput.identityTrapdoor);
     console.log("Identity Nullifier:", merkleProofInput.identityNullifier);
 
     const groupHashBigInt = this.#stringToBigInt(groupId);
@@ -339,7 +338,6 @@ export class ZKProofGenerator {
       proposalClaimHash: proposalClaimHashBigInt.toString(),
       proposalSubmissionHash: proposalSubmissionHashBigInt.toString(),
       proposalContextHash: proposalContextHash.toString(),
-      identityTrapdoor: merkleProofInput.identityTrapdoor,
       identityNullifier: merkleProofInput.identityNullifier
     };
     console.log("Circuit Input for Proposal Claim:", circuitInput);
