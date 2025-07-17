@@ -10,6 +10,11 @@ import { useGetUserGroups } from "../hooks/queries/groupMembers/useGetUserGroups
 import CustomButtonIcon from "../components/CustomButtonIcon";
 import CreateProposal from "./CreateProposal";
 
+// Imports for file upload
+import { uploadFile } from "../scripts/uploadFile";
+import FileUploader from "../components/FileUploader";
+import { encryptUserFile } from "../scripts/encryptUserFile";
+
 // icon
 import { FaCirclePlus } from "react-icons/fa6";
 
@@ -92,6 +97,27 @@ export default function Proposals() {
     return <CreateProposal />;
   }
 
+  // Hardcoded file for testing purposes:
+  /*
+  const fileContent = "This is a test file.";
+  const fileName = "testfile.txt";
+  const fileType = "text/plain";
+  const blob = new Blob([fileContent], { type: fileType });
+  const hardcodedFile = new File([blob], fileName, { type: fileType });
+  console.log(hardcodedFile);
+  */
+
+  // Function to handle file upload:
+  const handleFileUpload = async (file) => {
+
+    try {
+      const cid = await uploadFile(file);
+      console.log(`File uploaded to (Pinata) IPFS with CID: ${cid}`);
+    } catch (err) {
+      console.log(`Upload failed: ${err.message}`);
+    }
+  };
+
   return (
     <PageContainer>
       <PageHeader title="Proposals" />
@@ -156,6 +182,11 @@ export default function Proposals() {
           </ActivityList>
         )}
       </Section>
+
+      <Section>
+        <FileUploader onUpload={handleFileUpload} />
+      </Section>
+
     </PageContainer>
   );
 }
