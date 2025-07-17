@@ -12,7 +12,6 @@ import CreateProposal from "./CreateProposal";
 
 // Imports for file upload
 import { uploadFile } from "../scripts/uploadFile";
-import FileUploader from "../components/FileUploader";
 import { encryptUserFile } from "../scripts/encryptUserFile";
 
 // icon
