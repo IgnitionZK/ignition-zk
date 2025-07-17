@@ -76,8 +76,6 @@ export default function Proposals() {
   const { isLoading, proposals, error } = useGetProposalsByGroupId(userGroups);
   const [showCreateProposal, setShowCreateProposal] = useState(false);
 
-  console.log(proposals);
-
   const [selectedGroup, setSelectedGroup] = useState("All Groups");
 
   const groupNames = [

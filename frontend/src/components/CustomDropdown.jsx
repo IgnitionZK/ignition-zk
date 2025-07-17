@@ -30,14 +30,14 @@ const DropdownButton = styled.button`
 const DropdownList = styled.ul`
   position: absolute;
   top: 100%;
-  right: ${(props) => (props.$fullWidth ? "0" : "0")};
-  left: ${(props) => (props.$fullWidth ? "0" : "auto")};
+  left: 0;
+  right: 0;
   background: #3a4353;
   border: 1px solid #4a5568;
   border-radius: 8px;
   margin-top: 4px;
   padding: 8px 0;
-  min-width: ${(props) => (props.$fullWidth ? "auto" : "160px")};
+  width: 100%;
   max-height: 300px;
   overflow-y: auto;
   z-index: 1000;
@@ -49,6 +49,9 @@ const DropdownItem = styled.li`
   cursor: pointer;
   font-size: 1.4rem;
   color: var(--color-grey-100);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 
   &:hover {
     background: #444b5e;
@@ -62,12 +65,36 @@ const DropdownItem = styled.li`
   `}
 `;
 
+const ItemContent = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  flex: 1;
+`;
+
+const ItemName = styled.span`
+  font-size: 1.4rem;
+  color: var(--color-grey-100);
+`;
+
+const ItemStatus = styled.span`
+  font-size: 1.1rem;
+  color: ${(props) => {
+    if (props.$isInProposalPhase) return "#22c55e"; // green
+    if (props.$currentPhase === "completed") return "#6b7280"; // gray
+    if (props.$currentPhase === "pending") return "#f59e0b"; // amber
+    return "#ef4444"; // red
+  }};
+  font-weight: 500;
+`;
+
 const CustomDropdown = ({
   options,
   selectedOption,
   onSelect,
   placeholder = "Select group",
   fullWidth = false,
+  showStatus = false,
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef(null);
@@ -83,6 +110,24 @@ const CustomDropdown = ({
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  // Helper function to get display text for an option
+  const getDisplayText = (option) => {
+    if (typeof option === "string") return option;
+    return option.name || option;
+  };
+
+  // Helper function to get option value for comparison
+  const getOptionValue = (option) => {
+    if (typeof option === "string") return option;
+    return option.name || option;
+  };
+
+  // Helper function to check if option is selected
+  const isOptionSelected = (option) => {
+    const optionValue = getOptionValue(option);
+    return optionValue === selectedOption;
+  };
+
   return (
     <DropdownContainer ref={dropdownRef} $fullWidth={fullWidth}>
       <DropdownButton onClick={() => setIsOpen(!isOpen)} $fullWidth={fullWidth}>
@@ -93,14 +138,43 @@ const CustomDropdown = ({
         <DropdownList $fullWidth={fullWidth}>
           {options.map((option) => (
             <DropdownItem
-              key={option}
-              selected={option === selectedOption}
+              key={getOptionValue(option)}
+              selected={isOptionSelected(option)}
               onClick={() => {
-                onSelect(option);
-                setIsOpen(false);
+                // Only allow selection if it's a string or if it's in proposal phase
+                if (typeof option === "string" || option.isInProposalPhase) {
+                  onSelect(getOptionValue(option));
+                  setIsOpen(false);
+                }
+              }}
+              style={{
+                cursor:
+                  typeof option === "string" || option.isInProposalPhase
+                    ? "pointer"
+                    : "not-allowed",
+                opacity:
+                  typeof option === "string" || option.isInProposalPhase
+                    ? 1
+                    : 0.6,
               }}
             >
-              {option}
+              {showStatus && typeof option === "object" ? (
+                <>
+                  <ItemContent>
+                    <ItemName>{option.name}</ItemName>
+                    <ItemStatus
+                      $isInProposalPhase={option.isInProposalPhase}
+                      $currentPhase={option.currentPhase}
+                    >
+                      {option.isInProposalPhase
+                        ? "Available for proposals"
+                        : `(${option.phaseName} - must be in Proposal Phase to submit)`}
+                    </ItemStatus>
+                  </ItemContent>
+                </>
+              ) : (
+                getDisplayText(option)
+              )}
             </DropdownItem>
           ))}
         </DropdownList>
