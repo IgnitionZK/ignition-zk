@@ -72,6 +72,8 @@ export default function Proposals() {
   const { isLoading, proposals, error } = useGetProposalsByGroupId(userGroups);
   const [showCreateProposal, setShowCreateProposal] = useState(false);
 
+  console.log(proposals);
+
   const [selectedGroup, setSelectedGroup] = useState("All Groups");
 
   const groupNames = [
@@ -121,11 +123,7 @@ export default function Proposals() {
         ) : (
           <ActivityList>
             {filteredProposals?.map((proposal) => (
-              <ProposalItem
-                key={proposal.proposal_id}
-                proposal={proposal}
-                showSubmitButton={false}
-              />
+              <ProposalItem key={proposal.proposal_id} proposal={proposal} />
             ))}
           </ActivityList>
         )}
@@ -147,11 +145,7 @@ export default function Proposals() {
                   : proposal.group_name === selectedGroup
               )
               .map((proposal) => (
-                <ProposalItem
-                  key={proposal.proposal_id}
-                  proposal={proposal}
-                  showSubmitButton={false}
-                />
+                <ProposalItem key={proposal.proposal_id} proposal={proposal} />
               ))}
           </ActivityList>
         )}
