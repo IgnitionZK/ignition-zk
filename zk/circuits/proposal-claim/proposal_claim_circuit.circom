@@ -20,11 +20,9 @@ template ProposalClaimProof() {
     // Private Inputs
     /**
      * @notice identityNullifier: the nullifier key that is used together with the identityTrapdoor in the generation of the final identity commitment.
-     * @notice identityTrapdoor: the secret key that is used in the generation of the final identity commitment.
      * @dev These values are used to compute the claim nullifier.
      */
     signal input identityNullifier;
-    signal input identityTrapdoor;
 
     /**
      * @notice computedClaimNullifier: the computed claim nullifier, which is derived from the identity trapdoor, identity nullifier, and proposal submission nullifier.
@@ -32,10 +30,9 @@ template ProposalClaimProof() {
      * The claim nullifier is computed as the Poseidon hash of the identity trapdoor, identity nullifier, and proposal submission nullifier.
      */
     signal computedClaimNullifier;
-    component claimNullifierHasher = Poseidon(3);
-    claimNullifierHasher.inputs[0] <== identityTrapdoor;
-    claimNullifierHasher.inputs[1] <== identityNullifier;
-    claimNullifierHasher.inputs[2] <== proposalSubmissionNullifier;
+    component claimNullifierHasher = Poseidon(2);
+    claimNullifierHasher.inputs[0] <== identityNullifier;
+    claimNullifierHasher.inputs[1] <== proposalSubmissionNullifier;
     computedClaimNullifier <== claimNullifierHasher.out;
 
     /**
