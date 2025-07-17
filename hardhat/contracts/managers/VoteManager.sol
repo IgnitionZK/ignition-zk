@@ -22,12 +22,13 @@ contract VoteManager is Initializable, OwnableUpgradeable, UUPSUpgradeable, IVot
     event VoteVerifierAddressSet(address indexed voteVerifier);
     event VoteVerified(bytes32 indexed contextKey, indexed proofVoteNullifier, proofVoteContentHash);
 
-    enum VoteChoice {Abstain, Yes, No }
+    enum VoteChoice { Abstain, Yes, No }
 
     struct VoteTally {
         uint256 abstain;
         uint256 yes;
         uint256 no;
+
     }
 
     mapping(bytes32 => VoteTally) private voteTallies; // voteContextHash (group, epoch, proposal) => VoteTally
@@ -155,10 +156,8 @@ contract VoteManager is Initializable, OwnableUpgradeable, UUPSUpgradeable, IVot
 
     function _votesCast(bytes32 contextKey) private view returns (uint256 numTotalVotes, uint256 numYesVotes)  {
         VoteTally storage tally = voteTallies[contextKey];
-
         numTotalVotes = tally.abstain + tally.yes + tally.no;
-        //numYesVotes
-
+        numYesVotes = tally.numYesVotes;
     }
 
     /**
