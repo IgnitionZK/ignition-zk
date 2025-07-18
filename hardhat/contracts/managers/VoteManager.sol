@@ -18,13 +18,14 @@ contract VoteManager is Initializable, OwnableUpgradeable, UUPSUpgradeable, IVot
     error VoteNullifierAlreadyUsed();
     error RootNotYetInitialized();
     error InvalidVoteProof(bytes32 contextKey, bytes32 proofVoteNullifier);
-    error MembersCountCannotBeZero();
+    error InvalidMemberCount();
     error QuorumCannotBeLowerThan25();
+    error GroupParamsCannotBeZero();
 
     event VoteVerifierAddressSet(address indexed voteVerifier);
     event VoteVerified(bytes32 indexed contextKey, indexed proofVoteNullifier, proofVoteContentHash);
     event QuorumSet(bytes32 indexed groupKey, uint256 indexed quorum);
-    event MembersCountSet(bytes32 indexed groupKey, uint256 indexed membersCount);
+    event MemberCountSet(bytes32 indexed groupKey, uint256 memberCount);
 
     enum VoteChoice { Abstain, Yes, No }
 
@@ -34,22 +35,27 @@ contract VoteManager is Initializable, OwnableUpgradeable, UUPSUpgradeable, IVot
         uint256 no;
     }
 
-    struct ProposalStatus {
+    struct ProposalResult {
         VoteTally tally;
         bool passed;
     }
 
-    mapping(bytes32 => ProposalStatus) private proposalStatuses; // voteContextHash (group, epoch, proposal) => VoteTally
+    mapping(bytes32 => ProposalResult) private proposalResults; // voteContextHash (group, epoch, proposal) => VoteTally
     mapping(bytes32 => bool) private voteNullifiers; // status of vote nullifier => used (true, false) 
 
-    struct GroupGovernance {
+    struct GroupParams {
         uint256 memberCount;
         uint256 quorum;
     }
 
-    mapping(bytes32 => GroupGovernance) private groupGovernance; // groupKey => GroupGovernance
+    mapping(bytes32 => GroupParams) private groupParams; // groupKey => GroupGovernance
 
     IVoteVerifier private voteVerifier;
+
+    uint256 private constant QUORUM_MIN_THRESHOLD = 25;
+    uint256 private constant QUORUM_MAX_THRESHOLD = 50;
+    uint256 private constant GROUP_SIZE_FOR_MAX_QUORUM = 30;
+    uint256 private constant GROUP_SIZE_FOR_MIN_QUORUM = 200;
 
 // ====================================================================================================================
 //                                                  MODIFIERS
@@ -172,46 +178,80 @@ contract VoteManager is Initializable, OwnableUpgradeable, UUPSUpgradeable, IVot
         bytes32 contextKey, 
         bytes32 groupKey
     ) external onlyOwner nonZeroKey(contextKey) nonZeroKey(groupKey) {
-        GroupGovernance storage groupParams = groupGovernance[groupKey];
-        ProposalStatus storage status = proposalStatuses[contextKey];
+        GroupParams storage params = groupParams[groupKey];
+        ProposalResult storage proposal = proposalResults[contextKey];
 
-        uint256 totalVotes = status.tally.abstain + status.tally.yes + status.tally.no;
-        uint256 requiredVotes = _ceilDiv(groupParams.memberCount * groupParams.quorum, 100);
-        bool hasReachedQuorum = totalVotes >= requiredVotes;
-        bool hasYesMajority = status.tally.yes > status.tally.no;
-        bool hasPassed = hasReachedQuorum && hasYesMajority;
+        if (params.memberCount == 0 || params.quorum == 0) revert GroupParamsCannotBeZero(); 
+        bool hasPassed = _computePassedStatus(params, proposal);
 
         // update passed value
         status.passed = hasPassed;
     }
 
-    function setMembersCount(bytes32 groupKey, uint256 _membersCount) external onlyOwner nonZeroKey(groupKey) {
-        if (_membersCount == 0) revert MembersCountCannotBeZero();
+    function setMemberCount(bytes32 groupKey, uint256 _memberCount) external onlyOwner nonZeroKey(groupKey) {
+        if (_memberCount == 0 || _memberCount > 1024) revert InvalidMemberCount();
 
-        groupGovernance[groupKey].membersCount = _membersCount;
-        emit MembersCountSet(groupKey, _membersCount);
+        groupGovernance[groupKey].memberCount = _memberCount;
+        emit MemberCountSet(groupKey, _memberCount);
+
+        if (_memberCount <= GROUP_SIZE_FOR_MAX_QUORUM ) {
+            _setQuorum(groupKey, QUORUM_MAX_THRESHOLD);
+        } else if (_memberCount > GROUP_SIZE_FOR_MIN_QUORUM) {
+            _setQuorum(groupKey, QUORUM_MIN_THRESHOLD);
+        } else {
+            uint256 interpolatedQuorum = _linearInterpolation(
+                _memberCount, 
+                GROUP_SIZE_FOR_MAX_QUORUM, 
+                QUORUM_MAX_THRESHOLD,
+                GROUP_SIZE_FOR_MIN_QUORUM,
+                QUORUM_MIN_THRESHOLD
+            );
+
+            _setQuorum(groupKey, interpolatedQuorum);
+        }
     }
-
-    function setQuorum(bytes32 groupKey, uint256 _quorum) external onlyOwner nonZeroKey(groupKey) {
-        if (_quorum < 25 ) revert QuorumCannotBeLowerThan25();
-
-        groupGovernance[groupKey].quorum = _quorum;
-        emit QuorumSet(groupKey, _quorum);
-    }
-
 
 // ====================================================================================================================
 //                                       PRIVATE HELPER FUNCTIONS
 // ====================================================================================================================
 
-    function _ceilDiv(uint256 a, uint256 b) private view returns (uint256) {
-        return (a + b - 1) / b;
+    
+    function _setQuorum(bytes32 groupKey, uint256 _quorum) private nonZeroKey(groupKey) {
+        if (_quorum < 25 ) revert QuorumCannotBeLowerThan25();
+        groupGovernance[groupKey].quorum = _quorum;
+        emit QuorumSet(groupKey, _quorum);
+    }
+    
+    function _computePassedStatus(GroupParams memory params, ProposalResult memory proposal) private view returns (bool)  {    
+        uint256 totalVotes = proposal.tally.abstain + proposal.tally.yes + proposal.tally.no;
+        uint256 requiredVotes = _ceilDiv(params.memberCount * params.quorum, 100);
+        
+        bool hasReachedQuorum = totalVotes >= requiredVotes;
+        bool hasYesMajority = proposal.tally.yes > proposal.tally.no;
+        // bool hasMinimumMembers = params.memberCount >= 5;
+
+        return hasReachedQuorum && hasYesMajority;
     }
 
-    function _votesCast(bytes32 contextKey) private view returns (uint256 numTotalVotes, uint256 numYesVotes)  {
-        VoteTally storage tally = voteTallies[contextKey];
-        numTotalVotes = tally.abstain + tally.yes + tally.no;
-        numYesVotes = tally.numYesVotes;
+    function _linearInterpolation(
+        uint256 x,
+        uint256 x1,
+        uint256 y1,
+        uint256 x2,
+        uint256 y2
+    ) private pure returns (uint256) {
+        // y = y1 + slope * (x  - x1)
+        // slope = (y2 - y1) / (x2 - x1)
+        if (x2 <= x1) revert InvalidX1X2Inputs();
+        if (y2 <= y1) revert InvalidY1Y2Inputs();
+        if (x <= x1 || x > x2) revert InvalidXInput();
+
+        uint256 slope = (y2 - y1 ) / (x2 - x1);
+        return y1 + slope * (x - x1);
+    }
+
+     function _ceilDiv(uint256 a, uint256 b) private pure returns (uint256) {
+        return (a + b - 1) / b;
     }
 
     /**
