@@ -30,8 +30,10 @@ module.exports = {
       "MembershipManager",
       "ProposalManager",
       "GovernanceManager",
+      "VoteManager",
       "ProposalVerifier",
-      "ProposalClaimVerifier"
+      "ProposalClaimVerifier",
+      "VotingVerifier"
     ],
     except: [
       "MockMembershipManagerV2", 

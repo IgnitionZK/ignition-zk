@@ -7,6 +7,6 @@ interface IVoteVerifier {
     function verifyProof(
         uint256[24] calldata _proof, 
         uint256[4] calldata _pubSignals
-    ) public view returns (bool);
+    ) external view returns (bool);
 
 }
