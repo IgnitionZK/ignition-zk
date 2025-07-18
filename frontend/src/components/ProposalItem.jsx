@@ -1,5 +1,7 @@
 import styled from "styled-components";
 import CustomButton from "./CustomButton";
+import { calculateEpochPhases } from "../utils/epochPhaseCalculator";
+import { useGetEpochsByGroupId } from "../hooks/queries/epochs/useGetEpochsByGroupId";
 
 const ProposalItemContainer = styled.li`
   background-color: rgba(165, 180, 252, 0.1);
@@ -8,9 +10,6 @@ const ProposalItemContainer = styled.li`
   border: 1px solid rgba(165, 180, 252, 0.2);
   font-size: 1.6rem;
   transition: all 0.2s ease-in-out;
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
   margin-bottom: 1.2rem;
 
   &:hover {
@@ -19,11 +18,51 @@ const ProposalItemContainer = styled.li`
   }
 `;
 
+const HeaderSection = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 1.2rem;
+`;
+
+const LeftSection = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+  flex: 1;
+`;
+
+const RightSection = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.8rem;
+  min-width: 200px;
+`;
+
+const ProposalTitle = styled.span`
+  font-weight: 500;
+  font-size: 1.8rem;
+  color: var(--color-grey-100);
+`;
+
+const GroupName = styled.span`
+  color: var(--color-grey-100);
+  font-size: 1.6rem;
+  font-weight: 500;
+`;
+
+const ProposalDescription = styled.p`
+  color: var(--color-grey-300);
+  font-size: 1.4rem;
+  line-height: 1.4;
+  margin: 0;
+`;
+
 const StatusIndicator = styled.div`
   display: flex;
   align-items: center;
   gap: 0.8rem;
-  margin-bottom: 1.2rem;
   font-size: 1.4rem;
   color: var(--color-grey-300);
 `;
@@ -52,53 +91,38 @@ const StatusDot = styled.span`
   }};
 `;
 
-const ProposalInfo = styled.div`
+const FooterSection = styled.div`
   display: flex;
-  flex-direction: column;
-  gap: 0.8rem;
-  flex: 1;
-`;
-
-const ProposalTitle = styled.span`
-  font-weight: 500;
-  font-size: 1.8rem;
-`;
-
-const GroupName = styled.span`
-  color: var(--color-grey-300);
-  font-size: 1.4rem;
-`;
-
-const ProposalDescription = styled.p`
-  color: var(--color-grey-300);
-  font-size: 1.4rem;
-  line-height: 1.4;
-`;
-
-const VotingPeriod = styled.div`
-  display: flex;
-  gap: 1.6rem;
-  color: var(--color-grey-400);
-  font-size: 1.4rem;
-`;
-
-const VotingTime = styled.span`
-  display: flex;
+  justify-content: space-between;
   align-items: center;
-  gap: 0.4rem;
+  margin-top: 1.6rem;
+  padding-top: 1.2rem;
+  border-top: 1px solid rgba(165, 180, 252, 0.1);
 `;
 
-function ProposalItem({ proposal = {}, showSubmitButton = true }) {
+const VotingWindow = styled.div`
+  color: var(--color-grey-300);
+  font-size: 1.4rem;
+`;
+
+function ProposalItem({ proposal = {} }) {
+  // Fetch epoch data using the group_id from the proposal
+  const { epochs, isLoading: isLoadingEpochs } = useGetEpochsByGroupId(
+    proposal.group_id
+  );
+
   // Guard clause to handle undefined/null proposal
   if (!proposal || typeof proposal !== "object") {
     return (
       <ProposalItemContainer>
-        <ProposalInfo>
-          <ProposalTitle>Invalid Proposal Data</ProposalTitle>
-          <ProposalDescription>
-            Unable to display proposal information.
-          </ProposalDescription>
-        </ProposalInfo>
+        <HeaderSection>
+          <LeftSection>
+            <ProposalTitle>Invalid Proposal Data</ProposalTitle>
+            <ProposalDescription>
+              Unable to display proposal information.
+            </ProposalDescription>
+          </LeftSection>
+        </HeaderSection>
       </ProposalItemContainer>
     );
   }
@@ -112,10 +136,12 @@ function ProposalItem({ proposal = {}, showSubmitButton = true }) {
         year: "numeric",
         month: "short",
         day: "numeric",
-        hour: "2-digit",
-        minute: "2-digit",
       });
     } catch (error) {
+      console.error("Error formatting date:", {
+        dateString,
+        error: error.message,
+      });
       return "Invalid date";
     }
   };
@@ -130,51 +156,90 @@ function ProposalItem({ proposal = {}, showSubmitButton = true }) {
       .join(" ");
   };
 
+  // Calculate voting window from epoch data
+  const getVotingWindow = () => {
+    if (!proposal.epoch_id || !epochs || isLoadingEpochs) {
+      return "Voting window not available";
+    }
+
+    try {
+      // Find the specific epoch for this proposal
+      const proposalEpoch = epochs.find(
+        (epoch) => epoch.epoch_id === proposal.epoch_id
+      );
+
+      if (!proposalEpoch) {
+        return "Voting window not available";
+      }
+
+      const epochData = {
+        epoch_start_time: proposalEpoch.epoch_start_time,
+        epoch_duration: proposalEpoch.epoch_duration,
+      };
+
+      const phases = calculateEpochPhases(epochData);
+      const votingStart = formatDate(phases.votingPhase.start);
+      const votingEnd = formatDate(phases.votingPhase.end);
+
+      return `Voting Window: ${votingStart} - ${votingEnd}`;
+    } catch (error) {
+      console.error("Error calculating voting window:", {
+        error: error.message,
+        stack: error.stack,
+        proposalId: proposal.proposal_id,
+        epochId: proposal.epoch_id,
+        groupId: proposal.group_id,
+      });
+
+      // Provide more specific error messages based on error type
+      if (error.message.includes("epoch_start_time")) {
+        return "Invalid epoch start time";
+      } else if (error.message.includes("epoch_duration")) {
+        return "Invalid epoch duration";
+      } else if (error.message.includes("calculateEpochPhases")) {
+        return "Error calculating phases";
+      } else {
+        return "Voting window calculation failed";
+      }
+    }
+  };
+
   return (
     <ProposalItemContainer>
-      <ProposalInfo>
-        <ProposalTitle>{proposal.title || "Untitled Proposal"}</ProposalTitle>
-        <GroupName>{proposal.group_name || "Unknown Group"}</GroupName>
-        <ProposalDescription>
-          {proposal.description || "No description available"}
-        </ProposalDescription>
-        <VotingPeriod>
-          <VotingTime>
-            <span>Created:</span>{" "}
-            {proposal.created_at ? formatDate(proposal.created_at) : "Not set"}
-          </VotingTime>
-        </VotingPeriod>
-      </ProposalInfo>
-      <div
-        style={{
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "flex-end",
-          gap: "1.2rem",
-        }}
-      >
-        <StatusIndicator>
-          <StatusDot $status={proposal.status_type || "unknown"} />
-          {formatStatus(proposal.status_type)}
-        </StatusIndicator>
-        {showSubmitButton && (
-          <CustomButton
-            size="small"
-            backgroundColor="rgba(165, 180, 252, 0.1)"
-            hoverColor="rgba(165, 180, 252, 0.15)"
-            textColor="#A5B4FC"
-            style={{
-              border: "1px solid rgba(165, 180, 252, 0.2)",
-              padding: "0.8rem 1.6rem",
-              fontSize: "1.4rem",
-              fontWeight: "500",
-              minWidth: "auto",
-            }}
-          >
-            Submit
-          </CustomButton>
-        )}
-      </div>
+      <HeaderSection>
+        <LeftSection>
+          <ProposalTitle>{proposal.title || "Untitled Proposal"}</ProposalTitle>
+          <ProposalDescription>
+            {proposal.description || "No description available"}
+          </ProposalDescription>
+        </LeftSection>
+        <RightSection>
+          <GroupName>{proposal.group_name || "Unknown Group"}</GroupName>
+          <StatusIndicator>
+            <StatusDot $status={proposal.status_type || "unknown"} />
+            {formatStatus(proposal.status_type)}
+          </StatusIndicator>
+        </RightSection>
+      </HeaderSection>
+
+      <FooterSection>
+        <CustomButton
+          size="small"
+          backgroundColor="rgba(165, 180, 252, 0.1)"
+          hoverColor="rgba(165, 180, 252, 0.15)"
+          textColor="#A5B4FC"
+          style={{
+            border: "1px solid rgba(165, 180, 252, 0.2)",
+            padding: "0.8rem 1.6rem",
+            fontSize: "1.4rem",
+            fontWeight: "500",
+            minWidth: "auto",
+          }}
+        >
+          Review Details
+        </CustomButton>
+        <VotingWindow>{getVotingWindow()}</VotingWindow>
+      </FooterSection>
     </ProposalItemContainer>
   );
 }

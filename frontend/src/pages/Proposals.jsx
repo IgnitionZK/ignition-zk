@@ -125,11 +125,7 @@ export default function Proposals() {
         ) : (
           <ActivityList>
             {filteredProposals?.map((proposal) => (
-              <ProposalItem
-                key={proposal.proposal_id}
-                proposal={proposal}
-                showSubmitButton={false}
-              />
+              <ProposalItem key={proposal.proposal_id} proposal={proposal} />
             ))}
           </ActivityList>
         )}
@@ -151,11 +147,7 @@ export default function Proposals() {
                   : proposal.group_name === selectedGroup
               )
               .map((proposal) => (
-                <ProposalItem
-                  key={proposal.proposal_id}
-                  proposal={proposal}
-                  showSubmitButton={false}
-                />
+                <ProposalItem key={proposal.proposal_id} proposal={proposal} />
               ))}
           </ActivityList>
         )}
