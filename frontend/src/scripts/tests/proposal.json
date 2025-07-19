@@ -1,22 +1,22 @@
 {
-  "title": "Proposal for New Feature",
-  "description": "This proposal outlines a new feature that aims to enhance user experience by introducing a customizable dashboard.",
-  "funding": {
-    "amount": "100000000",
-    "currency": "USDC",
-    "tranches": "3"
-    },
-  "metadata": {
-    "ipfs_cid": "bafybeierylgfcmaly6qxawlg4fxh7znvngal6m5tzu6tu3ahbnr3opur2y", // obtaind from ipfs client (pinata)
-  },
-  "payload": {
-    "target_contract": "0xGovernanceContractAddress",
-    "target_function": "executeProposal",
-    "target_action": "delegateDistributeGrant",
-    "value": "0",
-    "calldata": {
-      "recipient": "0xabcdefabcdefabcdefabcdefabcdefabcdefabcd", // vesting contract or multisig address, no EOA
-      "amount": "3000000000000000000" // first tranche amount
-    }
-  }
+  "title": "Proposal for New Feature",
+  "description": "This proposal outlines a new feature that aims to enhance user experience by introducing a customizable dashboard.",
+  "funding": {
+    "type": "lumpSum",
+    "amount": "100000000",
+    "currency": "USDC"
+  },
+  "metadata": {
+    "ipfs_cid": "bafybeierylgfcmaly6qxawlg4fxh7znvngal6m5tzu6tu3ahbnr3opur2y"
+  },
+  "payload": {
+    "target_contract": "0xGovernanceContractAddress",
+    "target_function": "executeProposal",
+    "target_action": "delegateDistributeGrant",
+    "value": "0",
+    "calldata": {
+      "recipient": "0xabcdefabcdefabcdefabcdefabcdefabcdefabcd",
+      "amount": "100000000"
+    }
+  }
 }
