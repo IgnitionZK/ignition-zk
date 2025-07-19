@@ -1,15 +1,15 @@
 export async function uploadFile(file) {
-  const url = 'https://api.pinata.cloud/pinning/pinFileToIPFS';
+  const url = "https://api.pinata.cloud/pinning/pinFileToIPFS";
 
   const formData = new FormData();
-  formData.append('file', file);
+  formData.append("file", file);
 
   try {
     const response = await fetch(url, {
-      method: 'POST',
+      method: "POST",
       headers: {
         pinata_api_key: import.meta.env.VITE_PINATA_API_KEY,
-        pinata_secret_api_key: import.meta.env.VITE_PINATA_API_SECRET
+        pinata_secret_api_key: import.meta.env.VITE_PINATA_API_SECRET,
       },
       body: formData,
     });
@@ -20,10 +20,10 @@ export async function uploadFile(file) {
     }
 
     const data = await response.json();
-    console.log('Pinata CID:', data.IpfsHash);
+    console.log("Pinata CID:", data.IpfsHash);
     return data.IpfsHash;
   } catch (error) {
-    console.error('Upload error:', error);
+    console.error("Upload error:", error);
     throw error;
   }
 }

@@ -5,13 +5,18 @@ import styled from "styled-components";
 import PageHeader from "../components/PageHeader";
 import CustomDropdown from "../components/CustomDropdown";
 import CustomButton from "../components/CustomButton";
+import MnemonicInput from "../components/MnemonicInput";
+import ConfirmationModal from "../components/ConfirmationModal";
 
 // hooks
 import { useGetUserGroups } from "../hooks/queries/groupMembers/useGetUserGroups";
 import { useGetEpochsByGroupId } from "../hooks/queries/epochs/useGetEpochsByGroupId";
+import { useVerifyProposal } from "../hooks/queries/proofs/useVerifyProposal";
+import { useGetCommitmentArray } from "../hooks/queries/merkleTreeLeaves/useGetCommitmentArray";
 
 // utils
 import { getCurrentPhase } from "../utils/epochPhaseCalculator";
+import { uploadFile } from "../scripts/uploadFile";
 
 // icons
 import { IoIosInformationCircle } from "react-icons/io";
@@ -361,6 +366,12 @@ export default function CreateProposal() {
   const [errors, setErrors] = useState({});
   const [touched, setTouched] = useState({});
 
+  // Modal state
+  const [showMnemonicInput, setShowMnemonicInput] = useState(false);
+  const [showSubmitConfirm, setShowSubmitConfirm] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState("");
+
   // File input ref
   const fileInputRef = useRef(null);
 
@@ -383,6 +394,15 @@ export default function CreateProposal() {
     isLoading: isLoadingCampaigns,
     error: campaignsError,
   } = useGetEpochsByGroupId(selectedGroupObject?.group_id);
+
+  // Get commitment array for the selected group
+  const { commitmentArray, isLoading: isLoadingCommitments } =
+    useGetCommitmentArray({
+      groupId: selectedGroupObject?.group_id,
+    });
+
+  // Get proposal verification hook
+  const { verifyProposal, isVerifying } = useVerifyProposal();
 
   // Group options for dropdown
   const groupOptions = useMemo(() => {
@@ -587,18 +607,130 @@ export default function CreateProposal() {
       return;
     }
 
-    // TODO: Handle form submission
-    console.log("Form submitted:", {
-      selectedGroup,
-      selectedCampaign,
-      proposalName,
-      description,
-      proposalType,
-      amount,
-      currencyType,
-      fundingType,
-      uploadedFile,
-    });
+    // Show confirmation modal before proceeding to mnemonic input
+    setShowSubmitConfirm(true);
+  };
+
+  const handleConfirmSubmit = () => {
+    setShowSubmitConfirm(false);
+    setShowMnemonicInput(true);
+  };
+
+  const handleCancelSubmit = () => {
+    setShowSubmitConfirm(false);
+  };
+
+  const handleSubmitMnemonic = async (mnemonic) => {
+    setShowMnemonicInput(false);
+    setIsSubmitting(true);
+    setUploadProgress("");
+
+    try {
+      // Upload file to IPFS if a file was selected
+      let ipfsCid = null;
+      if (uploadedFile) {
+        setUploadProgress("Uploading file to IPFS...");
+        console.log("Uploading file to IPFS:", uploadedFile.name);
+        try {
+          ipfsCid = await uploadFile(uploadedFile);
+          console.log("File uploaded successfully. IPFS CID:", ipfsCid);
+          setUploadProgress("File uploaded successfully!");
+        } catch (uploadError) {
+          console.error("File upload failed:", uploadError);
+          throw new Error(`Failed to upload file: ${uploadError.message}`);
+        }
+      }
+
+      setUploadProgress("Creating proposal...");
+
+      // Create the proposal object with the IPFS CID
+      const proposalData = {
+        title: proposalName,
+        description,
+        funding: {
+          type: fundingType.toLowerCase().replace(" ", ""),
+          amount,
+          currency: currencyType,
+        },
+        metadata: {
+          ipfs_cid: ipfsCid,
+        },
+        payload: {
+          target_contract: "0xGovernanceContractAddress", // This would be dynamic
+          target_function: "executeProposal",
+          target_action: "delegateDistributeGrant",
+          value: "0",
+          calldata: {
+            recipient: "0xabcdefabcdefabcdefabcdefabcdefabcdefabcd", // This would be dynamic
+            amount,
+          },
+        },
+      };
+
+      console.log("Creating proposal with data:", proposalData);
+      console.log("Mnemonic provided:", mnemonic);
+      console.log("Selected group:", selectedGroup);
+      console.log("Selected campaign:", selectedCampaign);
+
+      // Validate required data
+      if (!selectedGroupObject?.group_id) {
+        throw new Error("No group ID available");
+      }
+
+      if (!selectedCampaign) {
+        throw new Error("No campaign selected");
+      }
+
+      if (!commitmentArray) {
+        throw new Error("Commitment array not loaded");
+      }
+
+      // Get the selected campaign object to access epoch_id
+      const selectedCampaignObject = campaigns?.find(
+        (campaign) => campaign.epoch_name === selectedCampaign
+      );
+
+      if (!selectedCampaignObject?.epoch_id) {
+        throw new Error("No epoch ID available");
+      }
+
+      setUploadProgress("Generating zero-knowledge proof...");
+
+      // Verify the proposal using the ZK proof system
+      const { isValid, publicSignals } = await verifyProposal(
+        commitmentArray,
+        mnemonic,
+        selectedGroupObject.group_id,
+        selectedCampaignObject.epoch_id,
+        proposalData.title,
+        proposalData.description,
+        proposalData.payload,
+        proposalData.funding,
+        proposalData.metadata
+      );
+
+      if (isValid) {
+        setUploadProgress("Proposal verified successfully!");
+        console.log("Proposal verified successfully!");
+        console.log("Public signals:", publicSignals);
+
+        // TODO: Store the proposal in the database
+        // TODO: Navigate back to proposals page or show success message
+
+        // For now, just simulate a delay
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+
+        console.log("Proposal created and verified successfully!");
+      } else {
+        throw new Error("Proposal verification failed");
+      }
+    } catch (error) {
+      console.error("Error creating proposal:", error);
+      alert(`Error creating proposal: ${error.message}`);
+    } finally {
+      setIsSubmitting(false);
+      setUploadProgress("");
+    }
   };
 
   // File upload handlers
@@ -666,6 +798,13 @@ export default function CreateProposal() {
   if (groupsError) {
     return <div>Error loading groups: {groupsError.message}</div>;
   }
+
+  // Create proposal object for mnemonic modal
+  const proposalForModal = {
+    title: proposalName || "Untitled Proposal",
+    group_name: selectedGroup || "Unknown Group",
+    description: description || "No description available",
+  };
 
   return (
     <PageContainer>
@@ -983,18 +1122,46 @@ export default function CreateProposal() {
           textColor="#232328"
           hoverColor="#818cf8"
           onClick={handleSubmit}
+          disabled={isSubmitting || isVerifying || isLoadingCommitments}
         >
-          Create
+          {isSubmitting ? uploadProgress || "Creating..." : "Create"}
         </CustomButton>
         <CustomButton
           backgroundColor="var(--color-red-300)"
           textColor="#232328"
           hoverColor="var(--color-red-400)"
           onClick={handleCancel}
+          disabled={isSubmitting || isVerifying}
         >
           Cancel
         </CustomButton>
       </ButtonRow>
+
+      {/* Mnemonic Input Modal */}
+      {showMnemonicInput && (
+        <MnemonicInput
+          proposal={proposalForModal}
+          onClose={() => setShowMnemonicInput(false)}
+          onSubmit={handleSubmitMnemonic}
+        />
+      )}
+
+      {/* Confirmation Modal */}
+      <ConfirmationModal
+        isOpen={showSubmitConfirm}
+        title="Create Proposal"
+        message={`Are you sure you want to create the proposal "${
+          proposalName || "Untitled Proposal"
+        }"? This action will require your mnemonic phrase to generate a zero-knowledge proof for anonymous submission.`}
+        confirmText="Continue"
+        cancelText="Cancel"
+        confirmButtonColor="#a5b4fc"
+        confirmButtonHoverColor="#818cf8"
+        cancelButtonColor="var(--color-grey-600)"
+        cancelButtonHoverColor="var(--color-grey-500)"
+        onConfirm={handleConfirmSubmit}
+        onCancel={handleCancelSubmit}
+      />
     </PageContainer>
   );
 }
