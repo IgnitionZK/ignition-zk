@@ -47,6 +47,12 @@ contract VoteManager is Initializable, OwnableUpgradeable, UUPSUpgradeable, IVot
     // GROUP PARAM ERRORS (memberCount, Quorum)
     // ====================================================================================================
     
+    /// @notice Thrown if the quorum parameters are invalid.
+    error InvalidQuorumParams();
+
+    /// @notice Thrown if the group size values corresponding to the quorum thresholds are invalid.
+    error InvalidGroupSizeParams();
+
     /// @notice Thrown if the member count is zero or greater than 1024.
     error InvalidMemberCount();
 
@@ -107,6 +113,20 @@ contract VoteManager is Initializable, OwnableUpgradeable, UUPSUpgradeable, IVot
     event QuorumSet(bytes32 indexed groupKey, uint256 indexed quorum);
 
     /**
+     * @notice Emitted when quorum parameters are set.
+     * @param minQuorumPercent The minimum quorum threshold percentage.
+     * @param maxQuorumPercent The maximum quorum threshold percentage.
+     * @param maxGroupSizeForMinQuorum The group size corresponding to the minimum quorum.
+     * @param minGroupSizeForMaxQuorum The group size corresponding to the maximum quorum.
+     */
+    event QuorumParamsSet(
+        uint256 minQuorumPercent,
+        uint256 maxQuorumPercent,
+        uint256 maxGroupSizeForMinQuorum,
+        uint256 minGroupSizeForMaxQuorum
+    );
+
+    /**
      * @notice Emitted when a member count is set for a group.
      * @param groupKey The unique identifier for the group.
      * @param memberCount The number of members in the group.
@@ -161,6 +181,14 @@ contract VoteManager is Initializable, OwnableUpgradeable, UUPSUpgradeable, IVot
         uint256 quorum;
     }
 
+    /// @dev The QuorumParams struct, which contains the minimum and maximum quorum thresholds and group size parameters.
+    struct QuorumParams {
+        uint256 minQuorumPercent;
+        uint256 maxQuorumPercent;
+        uint256 maxGroupSizeForMinQuorum;
+        uint256 minGroupSizeForMaxQuorum;
+    }
+
     // ====================================================================================================
     // MAPPINGS
     // ====================================================================================================
@@ -182,20 +210,17 @@ contract VoteManager is Initializable, OwnableUpgradeable, UUPSUpgradeable, IVot
     IVoteVerifier private voteVerifier;
 
     // ====================================================================================================
-    // CONSTANTS
+    // QUORUM STATE VARIABLES
     // ====================================================================================================
 
-    /// @dev The minimum quorum percentage that can be set for a group, which is 25% of the group size.
-    uint256 private constant QUORUM_MIN_THRESHOLD = 25;
-
-    /// @dev The maximum  quorum percentage that can be set for a group, which is 50% of the group size.
-    uint256 private constant QUORUM_MAX_THRESHOLD = 50;
-
-    /// @dev The maximum number of members in a group for which the maximum quorum can be set.
-    uint256 private constant GROUP_SIZE_FOR_MAX_QUORUM = 30;
-
-    /// @dev The minimum number of members in a group for which the minimum quorum can be set.
-    uint256 private constant GROUP_SIZE_FOR_MIN_QUORUM = 200;
+    /// @dev The quorum parameters, which include the minimum and maximum thresholds and group size parameters.
+    /// These parameters are used to determine the quorum for proposals based on the group size.
+    QuorumParams private quorumParams = QuorumParams({
+        minQuorumPercent: 25,
+        maxQuorumPercent: 50,
+        maxGroupSizeForMinQuorum: 200,
+        minGroupSizeForMaxQuorum: 30
+    });
 
 // ====================================================================================================================
 //                                                  MODIFIERS
@@ -352,21 +377,104 @@ contract VoteManager is Initializable, OwnableUpgradeable, UUPSUpgradeable, IVot
         groupParams[groupKey].memberCount = _memberCount;
         emit MemberCountSet(groupKey, _memberCount);
 
-        if (_memberCount <= GROUP_SIZE_FOR_MAX_QUORUM ) {
-            _setQuorum(groupKey, QUORUM_MAX_THRESHOLD);
-        } else if (_memberCount > GROUP_SIZE_FOR_MIN_QUORUM) {
-            _setQuorum(groupKey, QUORUM_MIN_THRESHOLD);
+        if (_memberCount <= quorumParams.minGroupSizeForMaxQuorum ) {
+            _setQuorum(groupKey, quorumParams.maxQuorumPercent);
+        } else if (_memberCount > quorumParams.maxGroupSizeForMinQuorum) {
+            _setQuorum(groupKey, quorumParams.minQuorumPercent);
         } else {
             uint256 interpolatedQuorum = _linearInterpolation(
                 _memberCount, 
-                GROUP_SIZE_FOR_MAX_QUORUM, 
-                QUORUM_MAX_THRESHOLD,
-                GROUP_SIZE_FOR_MIN_QUORUM,
-                QUORUM_MIN_THRESHOLD
+                quorumParams.minGroupSizeForMaxQuorum, 
+                quorumParams.maxQuorumPercent,
+                quorumParams.maxGroupSizeForMinQuorum,
+                quorumParams.minQuorumPercent
             );
 
             _setQuorum(groupKey, interpolatedQuorum);
         }
+    }
+
+    /**
+     * @dev This function can only be called by the contract owner (governor).
+     * @custom:error InvalidQuorumParams If the quorum parameters are invalid.
+     * @custom:error InvalidGroupSizeParams If the group size values corresponding to the quorum thresholds are invalid.
+     */
+    function setQuorumParams(
+        uint256 _minQuorumPercent,
+        uint256 _maxQuorumPercent,
+        uint256 _maxGroupSizeForMinQuorum,
+        uint256 _minGroupSizeForMaxQuorum
+    ) external onlyOwner {
+        if (_minQuorumPercent < 25 ||
+            _minQuorumPercent > _maxQuorumPercent ||
+            _maxQuorumPercent > 50 ) revert InvalidQuorumParams();
+
+        if (_maxGroupSizeForMinQuorum < _minGroupSizeForMaxQuorum ||
+            _maxGroupSizeForMinQuorum > 1024 ||
+            _minGroupSizeForMaxQuorum < 5) revert InvalidGroupSizeParams();
+
+        if (quorumParams.minQuorumPercent != _minQuorumPercent) {
+            quorumParams.minQuorumPercent = _minQuorumPercent;
+        }
+
+        if (quorumParams.maxQuorumPercent != _maxQuorumPercent) {
+            quorumParams.maxQuorumPercent = _maxQuorumPercent;
+        }
+        
+        if (quorumParams.maxGroupSizeForMinQuorum != _maxGroupSizeForMinQuorum) {
+            quorumParams.maxGroupSizeForMinQuorum = _maxGroupSizeForMinQuorum;
+        }
+
+        if (quorumParams.minGroupSizeForMaxQuorum != _minGroupSizeForMaxQuorum) {
+            quorumParams.minGroupSizeForMaxQuorum = _minGroupSizeForMaxQuorum;
+        }
+
+        emit QuorumParamsSet(
+            quorumParams.minQuorumPercent,
+            quorumParams.maxQuorumPercent,
+            quorumParams.maxGroupSizeForMinQuorum,
+            quorumParams.minGroupSizeForMaxQuorum
+        );
+
+    }
+
+// ====================================================================================================================
+//                                       EXTERNAL VIEW FUNCTIONS
+// ====================================================================================================================
+
+    /**
+     * @dev Only callable by the owner (governor).
+     */
+    function getVoteVerifier() external view onlyOwner returns (address) {
+        return address(voteVerifier);
+    }
+
+    /**
+     * @dev Only callable by the owner (governor).
+     */
+    function getVoteNullifierStatus(bytes32 nullifier) external view onlyOwner returns (bool) {
+        return voteNullifiers[nullifier];
+    }
+
+    /**
+     * @dev Only callable by the owner (governor).
+     */
+    function getGroupParams(bytes32 groupKey) external view onlyOwner returns (GroupParams memory params) {
+        return groupParams[groupKey];
+    }
+
+    /**
+     * @dev Only callable by the owner (governor).
+     */
+    function getProposalResult(bytes32 contextKey) external view onlyOwner returns (ProposalResult memory result) {
+        return proposalResults[contextKey];
+    }
+
+    /**
+     * @dev Only callable by the owner (governor).
+     */
+    function getQuorumParams() external view onlyOwner returns (QuorumParams memory params) {
+        return quorumParams;
     }
 
 // ====================================================================================================================

@@ -2,7 +2,7 @@
 
 export CIRCUIT_FILENAME="voting_circuit"
 export CIRCUIT_PATH="voting"
-export CONTRACT_NAME="VotingVerifier"
+export CONTRACT_NAME="VoteVerifier"
 export PTAU_POWER=14
 trusted_setup=false
 
