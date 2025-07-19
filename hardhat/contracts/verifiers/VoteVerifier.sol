@@ -21,7 +21,7 @@
 
 pragma solidity >=0.7.0 <0.9.0;
 
-contract VotingVerifier {
+contract VoteVerifier {
     // Omega
     uint256 constant w1 = 20619701001583904760601357484951574588621083236087856586626117568842480512645;    
     // Scalar field size

@@ -312,7 +312,7 @@ contract ProposalManager is Initializable, OwnableUpgradeable, UUPSUpgradeable, 
         return address(submissionVerifier);
     }
 
-     /**
+    /**
      * @dev Only callable by the owner (governor).
      */
     function getProposalClaimVerifier() external view onlyOwner returns (address) {
@@ -326,7 +326,7 @@ contract ProposalManager is Initializable, OwnableUpgradeable, UUPSUpgradeable, 
         return submissionNullifiers[nullifier];
     }
 
-     /**
+    /**
      * @dev Only callable by the owner (governor).
      */
     function getClaimNullifierStatus(bytes32 nullifier) external view onlyOwner returns (bool) {
