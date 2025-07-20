@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useRef } from "react";
 import styled from "styled-components";
+import toast from "react-hot-toast";
 
 // components
 import PageHeader from "../components/PageHeader";
@@ -7,12 +8,16 @@ import CustomDropdown from "../components/CustomDropdown";
 import CustomButton from "../components/CustomButton";
 import MnemonicInput from "../components/MnemonicInput";
 import ConfirmationModal from "../components/ConfirmationModal";
+import Spinner from "../components/Spinner";
 
 // hooks
 import { useGetUserGroups } from "../hooks/queries/groupMembers/useGetUserGroups";
 import { useGetEpochsByGroupId } from "../hooks/queries/epochs/useGetEpochsByGroupId";
 import { useVerifyProposal } from "../hooks/queries/proofs/useVerifyProposal";
 import { useGetCommitmentArray } from "../hooks/queries/merkleTreeLeaves/useGetCommitmentArray";
+import { useGetGroupMemberId } from "../hooks/queries/groupMembers/useGetGroupMemberId";
+import { useInsertProposal } from "../hooks/queries/proposals/useInsertProposal";
+import { useInsertProof } from "../hooks/queries/proofs/useInsertProof";
 
 // utils
 import { getCurrentPhase } from "../utils/epochPhaseCalculator";
@@ -346,7 +351,29 @@ const ErrorMessage = styled.div`
   font-weight: 500;
 `;
 
-export default function CreateProposal() {
+// Loading Overlay Styles
+const LoadingOverlay = styled.div`
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.8);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 1001;
+`;
+
+const LoadingText = styled.p`
+  color: #fff;
+  font-size: 1.8rem;
+  margin-top: 16px;
+  text-align: center;
+`;
+
+export default function CreateProposal({ onSuccess, onCancel }) {
   // Form state
   const [selectedGroup, setSelectedGroup] = useState("");
   const [selectedCampaign, setSelectedCampaign] = useState("");
@@ -369,11 +396,17 @@ export default function CreateProposal() {
   // Modal state
   const [showMnemonicInput, setShowMnemonicInput] = useState(false);
   const [showSubmitConfirm, setShowSubmitConfirm] = useState(false);
+  const [showBackConfirm, setShowBackConfirm] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [uploadProgress, setUploadProgress] = useState("");
+  const [showLoadingOverlay, setShowLoadingOverlay] = useState(false);
 
   // File input ref
   const fileInputRef = useRef(null);
+
+  // Default callbacks if not provided
+  const successCallback = onSuccess || (() => {});
+  const cancelCallback = onCancel || (() => {});
 
   // Get user groups
   const {
@@ -403,6 +436,19 @@ export default function CreateProposal() {
 
   // Get proposal verification hook
   const { verifyProposal, isVerifying } = useVerifyProposal();
+
+  // Get group member ID for the selected group
+  const { groupMemberId, isLoading: isLoadingGroupMemberId } =
+    useGetGroupMemberId({
+      groupId: selectedGroupObject?.group_id,
+    });
+
+  // Get proposal insertion hook
+  const { insertProposal, isLoading: isInsertingProposal } =
+    useInsertProposal();
+
+  // Get proof insertion hook
+  const { insertProof, isLoading: isInsertingProof } = useInsertProof();
 
   // Group options for dropdown
   const groupOptions = useMemo(() => {
@@ -624,6 +670,7 @@ export default function CreateProposal() {
     setShowMnemonicInput(false);
     setIsSubmitting(true);
     setUploadProgress("");
+    setShowLoadingOverlay(true);
 
     try {
       // Upload file to IPFS if a file was selected
@@ -714,22 +761,74 @@ export default function CreateProposal() {
         console.log("Proposal verified successfully!");
         console.log("Public signals:", publicSignals);
 
-        // TODO: Store the proposal in the database
-        // TODO: Navigate back to proposals page or show success message
+        // Insert the proposal into the database
+        setUploadProgress("Storing proposal in database...");
 
-        // For now, just simulate a delay
-        await new Promise((resolve) => setTimeout(resolve, 1000));
+        if (!groupMemberId) {
+          throw new Error("Group member ID not available");
+        }
 
-        console.log("Proposal created and verified successfully!");
+        const insertedProposal = await insertProposal({
+          epochId: selectedCampaignObject.epoch_id,
+          groupId: selectedGroupObject.group_id,
+          groupMemberId: groupMemberId,
+          title: proposalData.title,
+          description: proposalData.description,
+          metadata: proposalData.metadata,
+          payload: proposalData.payload,
+          funding: proposalData.funding,
+          claimHash: publicSignals[2]?.toString() || null,
+        });
+
+        console.log("Proposal stored in database:", insertedProposal);
+
+        if (!insertedProposal) {
+          throw new Error("Failed to insert proposal into database");
+        }
+
+        setUploadProgress("Storing proof in database...");
+
+        // Insert the proof into the database
+        // publicSignals[1] is the proposalSubmissionNullifier (nullifier hash)
+        const nullifierHash = publicSignals[1]?.toString();
+
+        if (!nullifierHash) {
+          throw new Error(
+            "Nullifier hash not available from proof verification"
+          );
+        }
+
+        const insertedProof = await insertProof({
+          proposalId: insertedProposal.proposal_id,
+          groupId: selectedGroupObject.group_id,
+          groupMemberId: groupMemberId,
+          nullifierHash: nullifierHash,
+          circuitType: "proposal",
+        });
+
+        console.log("Proof stored in database:", insertedProof);
+        setUploadProgress("Proposal created successfully!");
+
+        // Show success message
+        toast.success("Proposal created successfully!");
+
+        // Small delay to ensure the success message is visible
+        await new Promise((resolve) => setTimeout(resolve, 1500));
+
+        // Call the success callback with the proposal title
+        successCallback(proposalName);
+
+        console.log("Proposal and proof created and verified successfully!");
       } else {
         throw new Error("Proposal verification failed");
       }
     } catch (error) {
       console.error("Error creating proposal:", error);
-      alert(`Error creating proposal: ${error.message}`);
+      toast.error(`Error creating proposal: ${error.message}`);
     } finally {
       setIsSubmitting(false);
       setUploadProgress("");
+      setShowLoadingOverlay(false);
     }
   };
 
@@ -787,8 +886,29 @@ export default function CreateProposal() {
   };
 
   const handleCancel = () => {
-    // TODO: Navigate back to proposals page
-    console.log("Cancel clicked");
+    // Check if there's any data entered
+    const hasData =
+      selectedGroup ||
+      selectedCampaign ||
+      proposalName ||
+      description ||
+      amount ||
+      uploadedFile;
+
+    if (hasData) {
+      setShowBackConfirm(true);
+    } else {
+      cancelCallback();
+    }
+  };
+
+  const handleConfirmBack = () => {
+    setShowBackConfirm(false);
+    cancelCallback();
+  };
+
+  const handleCancelBack = () => {
+    setShowBackConfirm(false);
   };
 
   if (isLoadingGroups) {
@@ -1122,7 +1242,14 @@ export default function CreateProposal() {
           textColor="#232328"
           hoverColor="#818cf8"
           onClick={handleSubmit}
-          disabled={isSubmitting || isVerifying || isLoadingCommitments}
+          disabled={
+            isSubmitting ||
+            isVerifying ||
+            isLoadingCommitments ||
+            isLoadingGroupMemberId ||
+            isInsertingProposal ||
+            isInsertingProof
+          }
         >
           {isSubmitting ? uploadProgress || "Creating..." : "Create"}
         </CustomButton>
@@ -1131,7 +1258,13 @@ export default function CreateProposal() {
           textColor="#232328"
           hoverColor="var(--color-red-400)"
           onClick={handleCancel}
-          disabled={isSubmitting || isVerifying}
+          disabled={
+            isSubmitting ||
+            isVerifying ||
+            isLoadingGroupMemberId ||
+            isInsertingProposal ||
+            isInsertingProof
+          }
         >
           Cancel
         </CustomButton>
@@ -1162,6 +1295,38 @@ export default function CreateProposal() {
         onConfirm={handleConfirmSubmit}
         onCancel={handleCancelSubmit}
       />
+
+      {/* Confirmation Modal for Back */}
+      <ConfirmationModal
+        isOpen={showBackConfirm}
+        title="Discard Proposal"
+        message="Are you sure you want to discard this proposal? Any data you have entered will be lost."
+        confirmText="Discard"
+        cancelText="Cancel"
+        confirmButtonColor="var(--color-red-400)"
+        confirmButtonHoverColor="var(--color-red-500)"
+        cancelButtonColor="var(--color-grey-600)"
+        cancelButtonHoverColor="var(--color-grey-500)"
+        onConfirm={handleConfirmBack}
+        onCancel={handleCancelBack}
+      />
+
+      {/* Loading Overlay */}
+      {showLoadingOverlay && (
+        <LoadingOverlay>
+          <Spinner />
+          <LoadingText>{uploadProgress || "Creating proposal..."}</LoadingText>
+          <LoadingText
+            style={{
+              fontSize: "1.4rem",
+              marginTop: "0.8rem",
+              color: "var(--color-grey-300)",
+            }}
+          >
+            This may take several minutes.
+          </LoadingText>
+        </LoadingOverlay>
+      )}
     </PageContainer>
   );
 }
