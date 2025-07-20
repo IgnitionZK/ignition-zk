@@ -2,29 +2,20 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { getGroupMemberId } from "../../../services/apiGroupMembers";
 
 /**
- * Custom hook to fetch a group member ID for a specific user and group.
+ * Custom hook to fetch the group member ID for a specific group
  *
  * @param {Object} params - The parameters object
- * @param {string} params.groupId - The ID of the group to check membership for
- *
- * @returns {Object} An object containing:
- *   - isLoading: boolean indicating if the query is in progress
- *   - groupMemberId: string | undefined - The ID of the group member if found
- *   - error: Error | null - Any error that occurred during the query
+ * @param {string} params.groupId - The ID of the group to get the member ID for
+ * @returns {Object} Object containing:
+ *   - isLoading: boolean - Loading state of the query
+ *   - groupMemberId: string | null - The group member ID if found
+ *   - error: Error | null - Error state of the query
  *
  * @notes
- * -queryKey ["groupMemberId", userId, groupId]
- * - The query key is composed of:
- * - "groupMemberId": Base key for this query type
- * - userId: The ID of the current user
- * - groupId: The ID of the group being checked
- *
- * - queryFn
- * The query function:
- * - Requires both userId and groupId to be present
- * - Throws an error if either userId or groupId is missing
- * - Calls getGroupMemberId service with the required parameters
- * - Only enabled when both userId and groupId are available
+ *   - queryKey: ["groupMemberId", userId, groupId] - Query key includes user and group IDs
+ *   - queryFn: Fetches group member ID using getGroupMemberId API call
+ *   - Requires valid user ID and group ID
+ *   - Only enabled when both user ID and group ID exist
  */
 export function useGetGroupMemberId({ groupId }) {
   const queryClient = useQueryClient();
@@ -41,7 +32,7 @@ export function useGetGroupMemberId({ groupId }) {
         throw new Error("No user ID available");
       }
       if (!groupId) {
-        throw new Error("No group ID available");
+        throw new Error("No group ID provided");
       }
       return getGroupMemberId({ userId: user.id, groupId });
     },

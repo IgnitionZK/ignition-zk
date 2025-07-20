@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import styled from "styled-components";
+import toast from "react-hot-toast";
 
 // components
 import PageHeader from "../components/PageHeader";
@@ -93,7 +94,17 @@ export default function Proposals() {
     );
 
   if (showCreateProposal) {
-    return <CreateProposal />;
+    return (
+      <CreateProposal
+        onSuccess={(proposalTitle) => {
+          setShowCreateProposal(false);
+          toast.success(`Successfully created "${proposalTitle}"!`);
+        }}
+        onCancel={() => {
+          setShowCreateProposal(false);
+        }}
+      />
+    );
   }
 
   return (

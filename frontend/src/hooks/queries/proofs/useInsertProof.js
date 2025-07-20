@@ -10,7 +10,7 @@ import { insertProof } from "../../../services/apiProofs";
 export function useInsertProof() {
   const queryClient = useQueryClient();
 
-  const { mutate: insertProofMutation, isLoading } = useMutation({
+  const { mutateAsync: insertProofMutation, isLoading } = useMutation({
     /**
      * Mutation function to insert a new proof
      * @param {Object} params - The parameters for inserting a proof
