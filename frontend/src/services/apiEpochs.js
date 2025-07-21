@@ -2,8 +2,7 @@ import { supabase } from "./supabase";
 
 /**
  * Retrieves epochs that a user is a member of through group membership.
- * Queries the epochs table and joins with groups and group_members to find
- * epochs where the specified user is a member of at least one group.
+ * First gets the user's groups, then fetches epochs for those groups.
  *
  * @param {string} userId - The user ID to search for
  * @returns {Promise<Array>} A promise that resolves to an array of epoch objects with group information
@@ -18,31 +17,47 @@ export async function getEpochByUserId(userId) {
     throw new Error("userId is required");
   }
 
-  const { data, error } = await supabase
+  // First, get the user's groups
+  const { data: userGroups, error: groupsError } = await supabase
+    .schema("ignitionzk")
+    .from("group_members")
+    .select("group_id")
+    .eq("user_id", userId);
+
+  if (groupsError) {
+    throw new Error(groupsError.message);
+  }
+
+  if (!userGroups || userGroups.length === 0) {
+    return [];
+  }
+
+  // Extract group IDs
+  const groupIds = userGroups.map((group) => group.group_id);
+
+  // Then, get epochs for those groups
+  const { data: epochs, error: epochsError } = await supabase
     .schema("ignitionzk")
     .from("epochs")
     .select(
       `
-    epoch_id,
-    epoch_name,
-    epoch_start_time,
-    epoch_duration,
-    groups (
-      group_id,
-      name,
-      group_members (
-        user_id
+      epoch_id,
+      epoch_name,
+      epoch_start_time,
+      epoch_duration,
+      groups (
+        group_id,
+        name
       )
+    `
     )
-  `
-    )
-    .eq("groups.group_members.user_id", userId);
+    .in("group_id", groupIds);
 
-  if (error) {
-    throw new Error(error.message);
+  if (epochsError) {
+    throw new Error(epochsError.message);
   }
 
-  return data;
+  return epochs || [];
 }
 
 /**
