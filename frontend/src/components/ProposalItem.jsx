@@ -1,4 +1,5 @@
 import styled from "styled-components";
+import toast from "react-hot-toast";
 import CustomButton from "./CustomButton";
 import { calculateEpochPhases } from "../utils/epochPhaseCalculator";
 import { useGetEpochsByGroupId } from "../hooks/queries/epochs/useGetEpochsByGroupId";
@@ -111,6 +112,8 @@ function ProposalItem({ proposal = {} }) {
     proposal.group_id
   );
 
+  console.log(proposal);
+
   // Guard clause to handle undefined/null proposal
   if (!proposal || typeof proposal !== "object") {
     return (
@@ -154,6 +157,32 @@ function ProposalItem({ proposal = {} }) {
       .split("_")
       .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
       .join(" ");
+  };
+
+  // Handle opening the document from Pinata
+  const handleReviewDetails = () => {
+    try {
+      // Check if proposal has metadata with ipfs_cid
+      if (!proposal.metadata || !proposal.metadata.ipfs_cid) {
+        console.warn("No IPFS CID found in proposal metadata");
+        toast.error("No document available for this proposal.");
+        return;
+      }
+
+      const ipfsCid = proposal.metadata.ipfs_cid;
+
+      // Construct the IPFS gateway URL
+      // Using Pinata's gateway for better reliability
+      const ipfsUrl = `https://gateway.pinata.cloud/ipfs/${ipfsCid}`;
+
+      console.log("Opening document from IPFS:", ipfsUrl);
+
+      // Open the document in a new window
+      window.open(ipfsUrl, "_blank", "noopener,noreferrer");
+    } catch (error) {
+      console.error("Error opening document:", error);
+      toast.error("Error opening document. Please try again.");
+    }
   };
 
   // Calculate voting window from epoch data
@@ -235,6 +264,7 @@ function ProposalItem({ proposal = {} }) {
             fontWeight: "500",
             minWidth: "auto",
           }}
+          onClick={handleReviewDetails}
         >
           Review Details
         </CustomButton>

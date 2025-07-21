@@ -11,10 +11,6 @@ import { useGetUserGroups } from "../hooks/queries/groupMembers/useGetUserGroups
 import CustomButtonIcon from "../components/CustomButtonIcon";
 import CreateProposal from "./CreateProposal";
 
-// Imports for file upload
-import { uploadFile } from "../scripts/uploadFile";
-import { encryptUserFile } from "../scripts/encryptUserFile";
-
 // icon
 import { FaCirclePlus } from "react-icons/fa6";
 
