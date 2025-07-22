@@ -12,6 +12,8 @@ describe("Proposal Manager Unit Tests:", function () {
     let proposalManager;
     
     // Verifiers
+    let MembershipVerifier;
+    let membershipVerifier;
     let ProposalVerifier;
     let proposalVerifier;
     let ProposalClaimVerifier;
@@ -90,6 +92,9 @@ describe("Proposal Manager Unit Tests:", function () {
 
         // Get Contract Factory for NFT implementation
         NFTImplementation = await ethers.getContractFactory("ERC721IgnitionZK");
+
+        // Get Contract Factory for MembershipVerifier
+        MembershipVerifier = await ethers.getContractFactory("MembershipVerifier");
 
         // Get Contract Factory for ProposalVerifier
         ProposalVerifier = await ethers.getContractFactory("ProposalVerifier");
@@ -190,12 +195,17 @@ describe("Proposal Manager Unit Tests:", function () {
         nftImplementation = await NFTImplementation.deploy();
         await nftImplementation.waitForDeployment();
 
+        // Deploy the MembershipVerifier contract
+        membershipVerifier = await MembershipVerifier.deploy();
+        await membershipVerifier.waitForDeployment();
+
         // Deploy the MembershipMannager UUPS Proxy (ERC‑1967) contract
         membershipManager = await upgrades.deployProxy(
             MembershipManager, 
             [
                 await governor.getAddress(),
-                nftImplementation.target
+                nftImplementation.target,
+                membershipVerifier.target
             ],
             {
                 initializer: "initialize",

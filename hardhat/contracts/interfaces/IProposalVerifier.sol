@@ -1,6 +1,10 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.28;
 
+/**
+ * @title IProposalVerifier
+ * @notice Interface for verifying zero-knowledge proofs related to proposal submissions
+ */
 interface IProposalVerifier {
     /**
      * @notice Verifies a zero-knowledge proof for proposal verification

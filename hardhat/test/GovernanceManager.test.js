@@ -13,10 +13,14 @@ describe("Governance Manager Unit Tests:", function () {
     let governanceManager;
 
     // Verifiers
+    let MembershipVerifier;
+    let membershipVerifier;
     let ProposalVerifier;
     let proposalVerifier;
     let ProposalClaimVerifier;
     let proposalClaimVerifier;
+    let MockMembershipVerifier;
+    let mockMembershipVerifier;
     let MockProposalVerifier;
     let mockProposalVerifier;
     let MockProposalClaimVerifier;
@@ -94,6 +98,12 @@ describe("Governance Manager Unit Tests:", function () {
 
         // Get Contract Factory for NFT implementation
         NFTImplementation = await ethers.getContractFactory("ERC721IgnitionZK");
+
+        // Get Contract Factory for MembershipVerifier
+        MembershipVerifier = await ethers.getContractFactory("MembershipVerifier");
+
+        // Get Contract Factory for MockMembershipVerifier (verifyProof returns true/false)
+        MockMembershipVerifier = await ethers.getContractFactory("MockMembershipVerifier");
 
         // Get Contract Factory for ProposalVerifier
         ProposalVerifier = await ethers.getContractFactory("ProposalVerifier");
@@ -194,12 +204,17 @@ describe("Governance Manager Unit Tests:", function () {
         nftImplementation = await NFTImplementation.deploy();
         await nftImplementation.waitForDeployment();
         
+        // Deploy the MembershipVerifier contract
+        membershipVerifier = await MembershipVerifier.deploy();
+        await membershipVerifier.waitForDeployment();
+
         // Deploy the MembershipMannager UUPS Proxy (ERC‑1967) contract
         membershipManager = await upgrades.deployProxy(
             MembershipManager, 
             [
                 deployerAddress, // _initialOwner
-                nftImplementation.target
+                nftImplementation.target,
+                membershipVerifier.target // _membershipVerifier
             ],
             {
                 initializer: "initialize",
@@ -207,6 +222,10 @@ describe("Governance Manager Unit Tests:", function () {
             }
         );
         await membershipManager.waitForDeployment();
+
+        // Deploy the MockMembershipVerifier contract
+        mockMembershipVerifier = await MockMembershipVerifier.deploy();
+        await mockMembershipVerifier.waitForDeployment();
         
         // Deploy the ProposalVerifier contract
         proposalVerifier = await ProposalVerifier.deploy();

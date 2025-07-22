@@ -6,6 +6,24 @@ interface IMembershipManager {
 // ====================================================================================================================
 //                                       EXTERNAL STATE-CHANGING FUNCTIONS
 // ====================================================================================================================
+    
+    /**
+     * @notice Sets the address of the membership verifier contract.
+     * @param _membershipVerifier The address of the membership verifier contract.
+     */
+    function setMembershipVerifier(address _membershipVerifier) external;
+    
+    /**
+     * @notice Verifies a zero-knowledge proof for membership verification.
+     * @param proof The proof data array containing 24 elements.
+     * @param publicSignals The public signals array containing 2 elements: root and groupHash.
+     * @param groupKey The unique identifier for the group.
+     */
+    function verifyMembership(
+        uint256[24] calldata proof, 
+        uint256[2] calldata publicSignals,
+        bytes32 groupKey
+    ) external;
 
     /**
      * @notice Deploys a new ERC721 NFT Clone for a specific group.
@@ -73,6 +91,12 @@ interface IMembershipManager {
      * @return address of the NFT implementation contract.
      */
     function getNftImplementation() external view returns (address);
+
+    /**
+     * @notice Retrieves the address of the Membership Verifier contract.
+     * @return address of the Membership Verifier contract.
+     */
+    function getMembershipVerifier() external view returns (address);
 
     /**
      * @notice Retrieves the maximum number of members that can be added in a single batch transaction.

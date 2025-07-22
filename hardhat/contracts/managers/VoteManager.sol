@@ -12,6 +12,9 @@ import { ERC165Upgradeable } from "@openzeppelin/contracts-upgradeable/utils/int
 import { IVoteVerifier } from "../interfaces/IVoteVerifier.sol";
 import { IVoteManager } from "../interfaces/IVoteManager.sol";
 
+// Complex Types:
+import { VoteTypes } from "../types/VoteTypes.sol";
+
 contract VoteManager is Initializable, OwnableUpgradeable, UUPSUpgradeable, IVoteManager, ERC165Upgradeable {
 
 // ====================================================================================================================
@@ -158,49 +161,21 @@ contract VoteManager is Initializable, OwnableUpgradeable, UUPSUpgradeable, IVot
     // STRUCTS & ENUMS
     // ====================================================================================================
     
-    /// @dev The choices available for voting.
-    //enum VoteChoice { Abstain, Yes, No } -- defined in IVoteManager
-
-    /// @dev The vote tally struct, which contains the counts of abstain, yes, and no votes.
-    struct VoteTally {
-        uint256 abstain;
-        uint256 yes;
-        uint256 no;
-    }
-
-    /// @dev The proposal status struct, which contains the vote tally and a boolean indicating if the proposal has passed.
-    /// Passed status is determined by the quorum and majority of votes.
-    struct ProposalResult {
-        VoteTally tally;
-        bool passed;
-    }
+    // Defined in VoteTypes.sol:
+    // VoteTally, GroupParams, ProposalResult, QuorumParams, VoteChoice
     
-    /// @dev The GroupParams struct, which contains the member count and quorum percentage for a group.
-    struct GroupParams {
-        uint256 memberCount;
-        uint256 quorum;
-    }
-
-    /// @dev The QuorumParams struct, which contains the minimum and maximum quorum thresholds and group size parameters.
-    struct QuorumParams {
-        uint256 minQuorumPercent;
-        uint256 maxQuorumPercent;
-        uint256 maxGroupSizeForMinQuorum;
-        uint256 minGroupSizeForMaxQuorum;
-    }
-
     // ====================================================================================================
     // MAPPINGS
     // ====================================================================================================
 
     /// @dev The mapping of context keys to proposal results (vote tally and passed status). Key: contextKey (bytes32) => ProposalResult 
-    mapping(bytes32 => ProposalResult) private proposalResults; 
+    mapping(bytes32 => VoteTypes.ProposalResult) private proposalResults; 
 
     /// @dev The mapping of vote nullifiers. Key: voteNullifier (bytes32) => (bool) true if the vote nullifier has been used
     mapping(bytes32 => bool) private voteNullifiers;  
 
     /// @dev The mapping of group governance parameters. Key: groupKey (bytes32) => GroupParams
-    mapping(bytes32 => GroupParams) private groupParams; // groupKey => GroupParams
+    mapping(bytes32 => VoteTypes.GroupParams) private groupParams; // groupKey => GroupParams
 
     // ====================================================================================================
     // ADDRESSES
@@ -215,7 +190,7 @@ contract VoteManager is Initializable, OwnableUpgradeable, UUPSUpgradeable, IVot
 
     /// @dev The quorum parameters, which include the minimum and maximum thresholds and group size parameters.
     /// These parameters are used to determine the quorum for proposals based on the group size.
-    QuorumParams private quorumParams = QuorumParams({
+    VoteTypes.QuorumParams private quorumParams = VoteTypes.QuorumParams({
         minQuorumPercent: 25,
         maxQuorumPercent: 50,
         maxGroupSizeForMinQuorum: 200,
@@ -316,7 +291,7 @@ contract VoteManager is Initializable, OwnableUpgradeable, UUPSUpgradeable, IVot
         bytes32 contextKey,
         bytes32 groupKey,
         bytes32 currentRoot,
-        VoteChoice choice
+        VoteTypes.VoteChoice choice
     ) 
         external 
         onlyOwner
@@ -350,13 +325,13 @@ contract VoteManager is Initializable, OwnableUpgradeable, UUPSUpgradeable, IVot
         emit VoteVerified(contextKey, proofVoteNullifier, proofVoteContentHash);
 
         // Update vote tally for proposal
-        VoteTally storage tally = proposalResults[contextKey].tally;
+        VoteTypes.VoteTally storage tally = proposalResults[contextKey].tally;
 
-        if ( choice == VoteChoice.Abstain) {
+        if ( choice == VoteTypes.VoteChoice.Abstain) {
             tally.abstain++;
-        } else if ( choice == VoteChoice.Yes) {
+        } else if ( choice == VoteTypes.VoteChoice.Yes) {
             tally.yes++;
-        } else if ( choice == VoteChoice.No) {
+        } else if ( choice == VoteTypes.VoteChoice.No) {
             tally.no++;
         }
         emit VoteTallyUpdated(contextKey, tally.abstain, tally.yes, tally.no);
@@ -459,21 +434,21 @@ contract VoteManager is Initializable, OwnableUpgradeable, UUPSUpgradeable, IVot
     /**
      * @dev Only callable by the owner (governor).
      */
-    function getGroupParams(bytes32 groupKey) external view onlyOwner returns (GroupParams memory params) {
+    function getGroupParams(bytes32 groupKey) external view onlyOwner returns (VoteTypes.GroupParams memory params) {
         return groupParams[groupKey];
     }
 
     /**
      * @dev Only callable by the owner (governor).
      */
-    function getProposalResult(bytes32 contextKey) external view onlyOwner returns (ProposalResult memory result) {
+    function getProposalResult(bytes32 contextKey) external view onlyOwner returns (VoteTypes.ProposalResult memory result) {
         return proposalResults[contextKey];
     }
 
     /**
      * @dev Only callable by the owner (governor).
      */
-    function getQuorumParams() external view onlyOwner returns (QuorumParams memory params) {
+    function getQuorumParams() external view onlyOwner returns (VoteTypes.QuorumParams memory params) {
         return quorumParams;
     }
 
@@ -489,8 +464,8 @@ contract VoteManager is Initializable, OwnableUpgradeable, UUPSUpgradeable, IVot
      * @custom:error GroupParamsCannotBeZero If the member count or quorum is zero.
      */
     function _updateProposalStatus(bytes32 contextKey, bytes32 groupKey) private nonZeroKey(contextKey) nonZeroKey(groupKey) {
-        GroupParams storage params = groupParams[groupKey];
-        ProposalResult storage proposal = proposalResults[contextKey];
+        VoteTypes.GroupParams storage params = groupParams[groupKey];
+        VoteTypes.ProposalResult storage proposal = proposalResults[contextKey];
 
         if (params.memberCount == 0 || params.quorum == 0) revert GroupParamsCannotBeZero(); 
         bool hasPassed = _computePassedStatus(params, proposal);
@@ -519,7 +494,7 @@ contract VoteManager is Initializable, OwnableUpgradeable, UUPSUpgradeable, IVot
      * @param proposal The proposal result containing the vote tally.
      * @return bool True if the proposal has passed, false otherwise.
      */
-    function _computePassedStatus(GroupParams memory params, ProposalResult memory proposal) private view returns (bool)  {    
+    function _computePassedStatus(VoteTypes.GroupParams memory params, VoteTypes.ProposalResult memory proposal) private pure returns (bool)  {    
         uint256 totalVotes = proposal.tally.abstain + proposal.tally.yes + proposal.tally.no;
         uint256 requiredVotes = _ceilDiv(params.memberCount * params.quorum, 100);
         
