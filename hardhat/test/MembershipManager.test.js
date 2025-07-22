@@ -9,6 +9,12 @@ describe("Membership Manager Unit Tests:", function () {
     let MembershipManager;
     let membershipManager;
 
+    // Verifiers
+    let MembershipVerifier;
+    let membershipVerifier;
+    let MockMembershipVerifier;
+    let mockMembershipVerifier;
+
     // NFT Implementation
     let NFTImplementation;
     let nftImplementation;
@@ -40,6 +46,12 @@ describe("Membership Manager Unit Tests:", function () {
 
         // Get Contract Factory for MembershipManager
         MembershipManager = await ethers.getContractFactory("MembershipManager");  
+
+        // Get Contract Factory for MembershipVerifier
+        MembershipVerifier = await ethers.getContractFactory("MembershipVerifier");
+
+        // Get Contract Factory for MockMembershipVerifier
+        MockMembershipVerifier = await ethers.getContractFactory("MockMembershipVerifier");
         
         // Get Contract Factory for NFT implementation
         NFTImplementation = await ethers.getContractFactory("ERC721IgnitionZK");
@@ -60,19 +72,23 @@ describe("Membership Manager Unit Tests:", function () {
         nftSymbol2 = "TG2";  
 
         // invalid proof inputs:
-        /*
+        
         mockProof = [
             1, 2, 3, 4, 5, 6,
             7, 8, 9, 10, 11, 12,
             13, 14, 15, 16, 17, 18,
             19, 20, 21, 22, 23, 24
         ];
-        mockPublicSignals = [
-            Conversions.stringToBytes32("nullifier"),
-            Conversions.stringToBytes32("rootHash"),
+        mockPublicSignals1 = [
+            rootHash,
+            groupKey
+        ];
+        mockPublicSignals2 = [
+            rootHash2,
             groupKey
         ];
 
+        /*
         //valid proof inputs:
         validUuid = 'bf56d8b4-618e-4bfe-a2b8-0ebeb9c06d2f';
         validGroupKey = Conversions.stringToBytes32(validUuid);
@@ -81,8 +97,8 @@ describe("Membership Manager Unit Tests:", function () {
         validPublicNullifier = ethers.toBeHex(validPublicSignals[0], 32);
         validRoot = ethers.toBeHex(validPublicSignals[1], 32);
         validExternalNullifier = ethers.toBeHex(validPublicSignals[2], 32);
+        
         */
-
     });
 
     // RUN BEFORE EACH TEST
@@ -91,13 +107,22 @@ describe("Membership Manager Unit Tests:", function () {
         // Deploy the NFT implementation minimal proxy (Clones EIP‑1167) contract
         nftImplementation = await NFTImplementation.deploy();
         await nftImplementation.waitForDeployment();
-        
-        // Deploy the MembershipMannager UUPS Proxy (ERC‑1967) contract
+
+        // Deploy the MembershipVerifier contract
+        membershipVerifier = await MembershipVerifier.deploy();
+        await membershipVerifier.waitForDeployment();
+
+        // Deploy the MockMembershipVerifier contract
+        mockMembershipVerifier = await MockMembershipVerifier.deploy();
+        await mockMembershipVerifier.waitForDeployment();
+
+        // Deploy the MembershipManager UUPS Proxy (ERC‑1967) contract
         membershipManager = await upgrades.deployProxy(
             MembershipManager, 
             [
                 await governor.getAddress(),
-                nftImplementation.target
+                nftImplementation.target,
+                membershipVerifier.target
             ],
             {
                 initializer: "initialize",
@@ -243,6 +268,146 @@ describe("Membership Manager Unit Tests:", function () {
 
     });
 
+    
+    it(`FUNCTION: setMembershipVerifier
+        TESTING: custom error: AddressCannotBeZero
+        EXPECTED: should not allow the governor to set the membership verifier to the zero address`, async function () {
+        await expect(membershipManager.connect(governor).setMembershipVerifier(ethers.ZeroAddress))
+            .to.be.revertedWithCustomError(membershipManager, "AddressCannotBeZero");
+    });
+
+    it(`FUNCTION: setMembershipVerifier
+        TESTING: onlyOwner authorization (success)
+        EXPECTED: should allow the governor to set the membership verifier`, async function () {
+        await membershipManager.connect(governor).setMembershipVerifier(membershipVerifier.target);
+        expect(await membershipManager.connect(governor).getMembershipVerifier()).to.equal(membershipVerifier.target);
+    });
+
+    it(`FUNCTION: setMembershipVerifier
+        TESTING: onlyOwner authorization (failure)
+        EXPECTED: should not allow non-governor to set the membership verifier`, async function () {
+        await expect(membershipManager.connect(user1).setMembershipVerifier(membershipVerifier.target))
+            .to.be.revertedWithCustomError(membershipManager, "OwnableUnauthorizedAccount");
+    });
+
+    it(`FUNCTION: setMembershipVerifier
+        TESTING: custom error: AddressIsNotAContract
+        EXPECTED: should not allow the governor to set the membership verifier to an address that is not a contract`, async function () {
+        await expect(membershipManager.connect(governor).setMembershipVerifier(user1.address))
+            .to.be.revertedWithCustomError(membershipManager, "AddressIsNotAContract");
+    });
+
+    it(`FUNCTION: setMembershipVerifier
+        TESTING: custom error: AddressDoesNotSupportInterface
+        EXPECTED: should not allow the governor to set the membership verifier to an address not implementing the IMembershipVerifier interface`, async function () {
+        await expect(membershipManager.connect(governor).setMembershipVerifier(membershipManager.target))
+            .to.be.revertedWithCustomError(membershipManager, "AddressDoesNotSupportInterface");
+    });
+
+    it(`FUNCTION verifyMembership (with mock membership verifier): 
+        TESTING: custom error: InvalidContextHash
+        EXPECTED: should not allow the governor to verify a proof with an invalid context key`, async function () {
+        
+        const invalidKey = Conversions.stringToBytes32("invalidGroupKey");
+
+        // deploy group NFT and initialize group root
+        await deployGroupNftAndInitRoot(governor, invalidKey, nftName, nftSymbol, rootHash);
+
+        // set the membership verifier to the mock verifier
+        await membershipManager.connect(governor).setMembershipVerifier(mockMembershipVerifier.target);
+        
+        await expect(membershipManager.connect(governor).verifyMembership(
+            mockProof,
+            mockPublicSignals1,
+            invalidKey
+        )).to.be.revertedWithCustomError(membershipManager, "InvalidGroupKey");
+    });
+
+    it(`FUNCTION: verifyMembership (with mock submission verifier)
+        TESTING: custom error: InvalidMerkleRoot
+        EXPECTED: should not allow the governor to verify a membership with a root different than the current root`, async function () {
+
+        // deploy group NFT and initialize group root
+        await deployGroupNftAndInitRoot(governor, groupKey, nftName, nftSymbol, rootHash);
+
+        // set the membership verifier to the mock verifier
+        await membershipManager.connect(governor).setMembershipVerifier(mockMembershipVerifier.target);
+
+        await expect(membershipManager.connect(governor).verifyMembership(
+            mockProof,
+            mockPublicSignals2,
+            groupKey
+        )).to.be.revertedWithCustomError(membershipManager, "InvalidMerkleRoot");
+    });
+
+    it(`FUNCTION: verifyMembership (with mock submission verifier)
+        TESTING: custom error: RootNotYetInitialized
+        EXPECTED: should not allow the governor to verify membership for a group with a non-initialized root`, async function () {
+
+        // deploy group NFT without initializing the root
+        await membershipManager.connect(governor).deployGroupNft(groupKey, nftName, nftSymbol);
+
+        // set the membership verifier to the mock verifier
+        await membershipManager.connect(governor).setMembershipVerifier(mockMembershipVerifier.target);
+
+        await expect(membershipManager.connect(governor).verifyMembership(
+            mockProof,
+            mockPublicSignals1,
+            groupKey
+        )).to.be.revertedWithCustomError(membershipManager, "RootNotYetInitialized");
+    });
+
+    it(`FUNCTION: verifyMembership (with mock submission verifier)
+        TESTING: onlyOwner authorization
+        EXPECTED: should not allow non-governor to verify membership`, async function () {
+
+        // deploy group NFT and initialize group root
+        await deployGroupNftAndInitRoot(governor, groupKey, nftName, nftSymbol, rootHash);
+
+        // set the membership verifier to the mock verifier
+        await membershipManager.connect(governor).setMembershipVerifier(mockMembershipVerifier.target);
+
+        await expect(membershipManager.connect(user1).verifyMembership(
+            mockProof,
+            mockPublicSignals1,
+            groupKey
+        )).to.be.revertedWithCustomError(membershipManager, "OwnableUnauthorizedAccount");
+    });
+
+    it(`FUNCTION: verifyMembership (with mock submission verifier)
+        TESTING: custom error: InvalidProof
+        EXPECTED: should not let governor verify membership with an invalid proof`, async function () {
+
+        // deploy group NFT and initialize group root
+        await deployGroupNftAndInitRoot(governor, groupKey, nftName, nftSymbol, rootHash);
+
+        // set the membership verifier to the mock verifier
+        await membershipManager.connect(governor).setMembershipVerifier(mockMembershipVerifier.target);
+
+        // set the mock membership verifier to return an invalid proof
+        await mockMembershipVerifier.connect(governor).setIsValid(false);
+
+        await expect(membershipManager.connect(governor).verifyMembership(
+            mockProof,
+            mockPublicSignals1,
+            groupKey
+        )).to.be.revertedWithCustomError(membershipManager, "InvalidProof").withArgs(groupKey);
+    });
+
+    it(`FUNCTION: verifyMembership (with real verifier, mock proof)
+        TESTING: zero proof inputs handling
+        EXPECTED: should not allow the governor to verify membership with a zero proof`, async function () {
+        // deploy group NFT and initialize group root
+        await deployGroupNftAndInitRoot(governor, groupKey, nftName, nftSymbol, rootHash);
+        
+        const zeroProof = new Array(24).fill(0);
+
+        await expect(membershipManager.connect(governor).verifyMembership(
+            zeroProof,
+            mockPublicSignals1,
+            groupKey
+        )).to.be.revertedWithCustomError(membershipManager, "InvalidProof").withArgs(groupKey);
+    });
 
     it(`FUNCTION: initRoot
         TESTING: event: RootInitialized, stored data: root hash

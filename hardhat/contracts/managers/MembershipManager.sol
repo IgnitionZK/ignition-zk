@@ -6,7 +6,7 @@ import { IERC721IgnitionZK } from "../interfaces/IERC721IgnitionZK.sol";
 import { IERC165 } from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 import { IERC721 } from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import { IMembershipManager } from "../interfaces/IMembershipManager.sol";
-import { IERC165 } from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
+import { IMembershipVerifier } from "../interfaces/IMembershipVerifier.sol";
 
 // UUPS imports:
 import { UUPSUpgradeable } from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
@@ -38,7 +38,7 @@ contract MembershipManager is Initializable, UUPSUpgradeable, OwnableUpgradeable
     /// @notice Thrown if a Merkle root is zero.
     error RootCannotBeZero();
     
-    /// @notice Thrown if a Merkle root is zero.
+    /// @notice Thrown if the Merkle root does not match the current root.
     error InvalidMerkleRoot();
 
     /// @notice Thrown if a new Merkle root is the same as the current root.
@@ -81,11 +81,7 @@ contract MembershipManager is Initializable, UUPSUpgradeable, OwnableUpgradeable
 
     /// @notice Thrown if the zk-SNARK proof is invalid.
     /// @param groupKey The unique identifier for the group associated with the proof.
-    /// @param nullifier The unique identifier derived from the proof, preventing double-use.
-    error InvalidProof(bytes32 groupKey, bytes32 nullifier);
-
-    /// @notice Thrown if the nullifier has already been used.
-    error NullifierAlreadyUsed();
+    error InvalidProof(bytes32 groupKey);
 
     /// @notice Thrown if the group key in the public signals does not match the expected group key.
     error InvalidGroupKey();
@@ -118,6 +114,13 @@ contract MembershipManager is Initializable, UUPSUpgradeable, OwnableUpgradeable
 
     /// @notice Thrown if an address is zero.
     error AddressCannotBeZero();
+
+    /// @notice Thrown if the provided address is not a contract.
+    error AddressIsNotAContract();
+
+    /// @notice Thrown if the provided address does not support the required interface.
+    /// @dev This is used to check if the address supports the `verifyProof` function
+    error AddressDoesNotSupportInterface();
     
 // ====================================================================================================================
 //                                                  EVENTS
@@ -142,9 +145,8 @@ contract MembershipManager is Initializable, UUPSUpgradeable, OwnableUpgradeable
      /**
      * @notice Emitted after a zk-SNARK proof is verified.
      * @param groupKey The unique identifier for the group.
-     * @param nullifier A unique identifier derived from the proof, preventing double-use.
      */
-    event ProofVerified(bytes32 indexed groupKey, bytes32 indexed nullifier); 
+    event ProofVerified(bytes32 indexed groupKey); 
     
     /**
      * @notice Emitted when a new ERC721 NFT contract is deployed for a group.
@@ -193,6 +195,12 @@ contract MembershipManager is Initializable, UUPSUpgradeable, OwnableUpgradeable
      */
     event NftImplementationSet(address indexed nftImplementation);
 
+    /**
+     * @notice Emitted when the address of the membership verifier contract is set.
+     * @param membershipVerifier The address of the membership verifier contract.
+     */
+    event MembershipVerifierSet(address indexed membershipVerifier);
+
 // ====================================================================================================================
 //                                          STATE VARIABLES
 // NOTE: Once the contract is deployed do not change the order of the variables. If this contract is updated append new variables to the end of this list. 
@@ -213,6 +221,9 @@ contract MembershipManager is Initializable, UUPSUpgradeable, OwnableUpgradeable
     
     /// @dev The address of the NFT implementation contract used for creating new group NFTs.
     address private nftImplementation;
+
+    /// @dev The interface of the membership verifier contract.
+    IMembershipVerifier private membershipVerifier;
 
     // ====================================================================================================
     // CONSTANTS
@@ -272,12 +283,14 @@ contract MembershipManager is Initializable, UUPSUpgradeable, OwnableUpgradeable
     function initialize
     (
         address _governor, 
-        address _nftImplementation
+        address _nftImplementation,
+        address _membershipVerifier
     ) 
         external 
         initializer 
         nonZeroAddress(_governor) 
         nonZeroAddress(_nftImplementation) 
+        nonZeroAddress(_membershipVerifier) 
     {
         __Ownable_init(_governor);
         __UUPSUpgradeable_init();
@@ -285,12 +298,62 @@ contract MembershipManager is Initializable, UUPSUpgradeable, OwnableUpgradeable
       
         if (!IERC165(_nftImplementation).supportsInterface(type(IERC721).interfaceId)) revert NftMustBeERC721();
         nftImplementation = _nftImplementation;
+        membershipVerifier = IMembershipVerifier(_membershipVerifier);
         emit NftImplementationSet(_nftImplementation);
+        emit MembershipVerifierSet(_membershipVerifier);
     }
 
 // ====================================================================================================================
 //                                       EXTERNAL STATE-CHANGING FUNCTIONS
 // ====================================================================================================================
+
+    /**
+     * @dev This function can only be called by the contract owner (governor).
+     * @custom:error AddressCannotBeZero If the provided verifier address is zero.
+     * @custom:error AddressIsNotAContract If the provided address is not a contract.
+     * @custom:error AddressDoesNotSupportInterface If the provided address does not support the `verifyProof` function.
+     */
+    function setMembershipVerifier(address _membershipVerifier) external onlyOwner nonZeroAddress(_membershipVerifier) {
+        if(_membershipVerifier.code.length == 0) revert AddressIsNotAContract();
+        if(!_supportsIMembershipInterface(_membershipVerifier)) revert AddressDoesNotSupportInterface();
+
+        membershipVerifier = IMembershipVerifier(_membershipVerifier);
+        emit MembershipVerifierSet(_membershipVerifier);
+    }
+
+    /**
+     * @dev Verifies a zk-SNARK proof for membership in a group.
+     * It does not check for unique nullifiers or prevent double-spending. It can be used multiple times to prove membership of a user. 
+     * @dev It can only be called by the contract owner (governor).
+     * @custom:error RootNotYetInitialized If no root has been set for the group yet.
+     * @custom:error InvalidMerkleRoot If the provided proof root does not match the current root.
+     * @custom:error InvalidGroupKey If the group key in the public signals does not match the expected group key.
+     * @custom:error InvalidProof If the provided zk-SNARK proof is invalid for the given group key.
+     */
+    function verifyMembership(
+        uint256[24] calldata proof, 
+        uint256[2] calldata publicSignals,
+        bytes32 groupKey
+    ) external onlyOwner nonZeroKey(groupKey) {
+
+        bytes32 proofRoot = bytes32(publicSignals[0]);
+        bytes32 proofGroupHash = bytes32(publicSignals[1]);
+
+        // check if root is valid
+        bytes32 currentRoot = groupRoots[groupKey];
+        if (currentRoot == bytes32(0)) revert RootNotYetInitialized();
+        if (currentRoot != proofRoot) revert InvalidMerkleRoot();
+
+        // check if context is valid
+        if (groupKey != proofGroupHash) revert InvalidGroupKey();
+
+        // check if proof is valid
+        bool isValid = membershipVerifier.verifyProof(proof, publicSignals);
+        if (!isValid) revert InvalidProof(groupKey);
+
+        // emit event
+        emit ProofVerified(groupKey);
+    }
 
     /**
      * @dev Uses the Clones library to create a deterministic clone of the NFT implementation.
@@ -495,6 +558,14 @@ contract MembershipManager is Initializable, UUPSUpgradeable, OwnableUpgradeable
         return groupNftAddresses[groupKey];
     }
 
+    
+    /**
+     * @dev Only callable by the owner (governor).
+     */
+    function getMembershipVerifier() external view onlyOwner returns (address) {
+        return address(membershipVerifier);
+    }
+
     /**
      * @dev Only callable by the owner (governor).
      */
@@ -591,6 +662,22 @@ contract MembershipManager is Initializable, UUPSUpgradeable, OwnableUpgradeable
         address nftAddress = groupNftAddresses[groupKey];
         if (nftAddress == address(0)) revert GroupNftNotSet();
         return nftAddress;
+    }
+
+    /**
+     * @dev Checks if the provided address supports the `verifyProof` function for membership verification.
+     * @param _address The address to check.
+     * @return bool True if the address supports the IMembershipVerifier interface, false otherwise.
+     */
+    function _supportsIMembershipInterface(address _address) private view returns (bool) {
+        uint256[24] memory dummyProof = [uint256(1), 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24];
+        uint256[2] memory dummyPublicSignals = [uint256(1), 2];
+
+        try IMembershipVerifier(_address).verifyProof(dummyProof, dummyPublicSignals) returns (bool) {
+            return true;
+        } catch {
+            return false;
+        }
     }
 
 }
