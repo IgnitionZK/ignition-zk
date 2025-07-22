@@ -228,6 +228,30 @@ contract GovernanceManager is Initializable, UUPSUpgradeable, OwnableUpgradeable
     // ================================================================================================================
 
     /**
+     * @notice Delegates the setMembershipVerifier call to the membership manager.
+     * @dev Only the relayer can call this function.
+     * @param membershipVerifier The address of the new membership verifier contract.
+     */
+    function delegateSetMembershipVerifier(address membershipVerifier) external onlyRelayer {
+        membershipManager.setMembershipVerifier(membershipVerifier);
+    }
+
+    /**
+     * @notice Delegates the verifyMembership call to the membership manager.
+     * @dev Only the relayer can call this function.
+     * @param proof The zk-SNARK proof to verify.
+     * @param publicSignals The public signals associated with the proof.
+     * @param groupKey The unique identifier for the group.
+     */
+    function delegateVerifyMembership(
+        uint256[24] calldata proof, 
+        uint256[2] calldata publicSignals,
+        bytes32 groupKey
+    ) external onlyRelayer {
+        return membershipManager.verifyMembership(proof, publicSignals, groupKey);
+    }
+    
+    /**
      * @notice Delegates the initRoot call to the membership manager.
      * @dev Only the relayer can call this function.
      * @param initialRoot The initial Merkle root to set.
