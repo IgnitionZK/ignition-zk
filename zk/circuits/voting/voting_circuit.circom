@@ -5,7 +5,6 @@ include "../../circomlib/circuits/poseidon.circom";
 //include "../../circomlib/circuits/comparators.circom";
 include "../membership/membership_circuit.circom";
 
-
 /**
  * @title VotingProof
  * @notice Verifies that a vote is valid by checking membership, uniqueness, vote choice, and content.
@@ -116,9 +115,9 @@ template VotingProof(treeLevels) {
      */
     signal isValidVoteChoice;
 
-    const ABSTAIN = 0;
-    const YES = 1;
-    const NO = 2;
+    var ABSTAIN = 0;
+    var YES = 1;
+    var NO = 2;
 
     component isZero = IsEqual();
     isZero.in[0] <== voteChoice;

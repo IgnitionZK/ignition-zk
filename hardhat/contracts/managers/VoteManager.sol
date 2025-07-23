@@ -299,7 +299,7 @@ contract VoteManager is Initializable, OwnableUpgradeable, UUPSUpgradeable, IVot
      */
     function verifyVote(
         uint256[24] calldata proof,
-        uint256[4] calldata publicSignals,
+        uint256[5] calldata publicSignals,
         bytes32 contextKey,
         bytes32 groupKey,
         bytes32 currentRoot
@@ -581,7 +581,7 @@ contract VoteManager is Initializable, OwnableUpgradeable, UUPSUpgradeable, IVot
      */
     function _supportsIVoteInterface(address _address) private view returns (bool) {
         uint256[24] memory dummyProof = [uint256(1), 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24];
-        uint256[4] memory dummyPublicSignals = [uint256(1), 2, 3, 4];
+        uint256[5] memory dummyPublicSignals = [uint256(1), 2, 3, 4, 5];
 
         try IVoteVerifier(_address).verifyProof(dummyProof, dummyPublicSignals) returns (bool) {
             return true;
@@ -589,6 +589,5 @@ contract VoteManager is Initializable, OwnableUpgradeable, UUPSUpgradeable, IVot
             return false;
         }
     }
-
 
 }

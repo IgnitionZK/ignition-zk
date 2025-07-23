@@ -18,15 +18,13 @@ interface IVoteManager {
      * @param contextKey The pre-computed context hash (group, epoch).
      * @param groupKey The unique identifier for the voting group.
      * @param currentRoot The current Merkle root from the MembershipManager contract.
-     * @param choice The vote choice (Yes, No, Abstain).
      */
     function verifyVote(
         uint256[24] calldata proof,
-        uint256[4] calldata publicSignals,
+        uint256[5] calldata publicSignals,
         bytes32 contextKey,
         bytes32 groupKey,
-        bytes32 currentRoot,
-        VoteTypes.VoteChoice choice
+        bytes32 currentRoot
     ) external;
 
     /**
