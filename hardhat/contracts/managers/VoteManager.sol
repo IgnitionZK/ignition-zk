@@ -46,6 +46,9 @@ contract VoteManager is Initializable, OwnableUpgradeable, UUPSUpgradeable, IVot
     /// @param proofVoteNullifier The nullifier associated with the vote proof.
     error InvalidVoteProof(bytes32 contextKey, bytes32 proofVoteNullifier);
 
+    /// @notice Thrown if the vote choice in the public outputs does not match one of the expected values.
+    error InvalidVoteChoice();
+
     // ====================================================================================================
     // GROUP PARAM ERRORS (memberCount, Quorum)
     // ====================================================================================================
@@ -197,9 +200,18 @@ contract VoteManager is Initializable, OwnableUpgradeable, UUPSUpgradeable, IVot
         minGroupSizeForMaxQuorum: 30
     });
 
-// ====================================================================================================================
-//                                                  MODIFIERS
-// ====================================================================================================================
+    // ====================================================================================================
+    // CONSTANTS
+    // ====================================================================================================
+
+    /// @dev The values corresponding to the Poseidon hash of the Abstain (0), Yes (1) and No (2) votes.
+    uint256 private constant POSEIDON_HASH_ABSTAIN = 19014214495641488759237505126948346942972912379615652741039992445865937985820;
+    uint256 private constant POSEIDON_HASH_YES = 18586133768512220936620570745912940619677854269274689475585506675881198879027;
+    uint256 private constant POSEIDON_HASH_NO = 8645981980787649023086883978738420856660271013038108762834452721572614684349;
+
+    // ====================================================================================================================
+    //                                                  MODIFIERS
+    // ====================================================================================================================
 
     /**
      * @dev Ensures that the provided group key is not zero.
@@ -287,11 +299,10 @@ contract VoteManager is Initializable, OwnableUpgradeable, UUPSUpgradeable, IVot
      */
     function verifyVote(
         uint256[24] calldata proof,
-        uint256[4] calldata publicSignals,
+        uint256[5] calldata publicSignals,
         bytes32 contextKey,
         bytes32 groupKey,
-        bytes32 currentRoot,
-        VoteTypes.VoteChoice choice
+        bytes32 currentRoot
     ) 
         external 
         onlyOwner
@@ -301,9 +312,10 @@ contract VoteManager is Initializable, OwnableUpgradeable, UUPSUpgradeable, IVot
         // save values from public signals:
         bytes32 proofContextHash = bytes32(publicSignals[0]);
         bytes32 proofVoteNullifier = bytes32(publicSignals[1]);
-        bytes32 proofRoot = bytes32(publicSignals[2]);
-        bytes32 proofVoteContentHash = bytes32(publicSignals[3]);
-        
+        uint256 proofVoteChoiceHash = publicSignals[2];
+        bytes32 proofRoot = bytes32(publicSignals[3]);
+        bytes32 proofVoteContentHash = bytes32(publicSignals[4]);
+
         // check root
         if (currentRoot == bytes32(0)) revert RootNotYetInitialized();
         if (proofRoot != currentRoot) revert InvalidMerkleRoot();
@@ -324,14 +336,27 @@ contract VoteManager is Initializable, OwnableUpgradeable, UUPSUpgradeable, IVot
         // Emit event for verified vote
         emit VoteVerified(contextKey, proofVoteNullifier, proofVoteContentHash);
 
+        // Infer the vote choice from the public outputs
+        VoteTypes.VoteChoice inferredChoice;
+
+        if (proofVoteChoiceHash == POSEIDON_HASH_ABSTAIN){
+            inferredChoice = VoteTypes.VoteChoice.Abstain;
+        } else if (proofVoteChoiceHash == POSEIDON_HASH_YES) {
+            inferredChoice = VoteTypes.VoteChoice.Yes;
+        } else if (proofVoteChoiceHash == POSEIDON_HASH_NO) {
+            inferredChoice = VoteTypes.VoteChoice.No;
+        } else {
+            revert InvalidVoteChoice();
+        }
+
         // Update vote tally for proposal
         VoteTypes.VoteTally storage tally = proposalResults[contextKey].tally;
 
-        if ( choice == VoteTypes.VoteChoice.Abstain) {
+        if ( inferredChoice == VoteTypes.VoteChoice.Abstain) {
             tally.abstain++;
-        } else if ( choice == VoteTypes.VoteChoice.Yes) {
+        } else if ( inferredChoice == VoteTypes.VoteChoice.Yes) {
             tally.yes++;
-        } else if ( choice == VoteTypes.VoteChoice.No) {
+        } else if ( inferredChoice == VoteTypes.VoteChoice.No) {
             tally.no++;
         }
         emit VoteTallyUpdated(contextKey, tally.abstain, tally.yes, tally.no);
@@ -470,8 +495,11 @@ contract VoteManager is Initializable, OwnableUpgradeable, UUPSUpgradeable, IVot
         if (params.memberCount == 0 || params.quorum == 0) revert GroupParamsCannotBeZero(); 
         bool hasPassed = _computePassedStatus(params, proposal);
 
-        // update passed value
-        proposal.passed = hasPassed;
+        // update passed value if it is different from the current value
+        if (hasPassed != proposal.passed) {
+            proposal.passed = hasPassed;
+        }
+
         emit ProposalStatusUpdated(contextKey, hasPassed);
     }
 
@@ -553,7 +581,7 @@ contract VoteManager is Initializable, OwnableUpgradeable, UUPSUpgradeable, IVot
      */
     function _supportsIVoteInterface(address _address) private view returns (bool) {
         uint256[24] memory dummyProof = [uint256(1), 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24];
-        uint256[4] memory dummyPublicSignals = [uint256(1), 2, 3, 4];
+        uint256[5] memory dummyPublicSignals = [uint256(1), 2, 3, 4, 5];
 
         try IVoteVerifier(_address).verifyProof(dummyProof, dummyPublicSignals) returns (bool) {
             return true;
@@ -561,6 +589,5 @@ contract VoteManager is Initializable, OwnableUpgradeable, UUPSUpgradeable, IVot
             return false;
         }
     }
-
 
 }

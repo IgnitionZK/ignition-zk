@@ -2,9 +2,8 @@ pragma circom 2.2.2;
 
 
 include "../../circomlib/circuits/poseidon.circom";
-include "../../circomlib/circuits/comparators.circom";
+//include "../../circomlib/circuits/comparators.circom";
 include "../membership/membership_circuit.circom";
-
 
 /**
  * @title VotingProof
@@ -21,7 +20,7 @@ template VotingProof(treeLevels) {
     signal input root;
 
     /**
-     * @notice voteContentHash: the hash of the vote content, which is used to derive the vote nullifier.
+     * @notice voteContentHash: the hash of the vote content.
      * @dev This value is revealed in the public output.
      * This value has to match the computed vote content hash.
      */
@@ -89,7 +88,8 @@ template VotingProof(treeLevels) {
 
     /**
      * @notice voteNullifier: the final nullifier that is computed from identityNullifier and voteContextHash.
-     * @dev This value is used to ensure that the vote is unique for the given context.
+     * @dev This value is used to ensure that each member can only vote once per context. 
+     * The vote content is not included in the nullifier so that only one vote per proposal is allowed.
      * It is revealed in the public output and stored onchain.
      */
     signal output voteNullifier;
@@ -98,14 +98,16 @@ template VotingProof(treeLevels) {
     voteNullifierHash.inputs[1] <== voteContextHash;
     voteNullifier <== voteNullifierHash.out;
 
-    // 3. Vote choice verification
+    // 3. Vote choice verification 
+    // Method A:
     /*
     component lessThanThreeCheck = LessThan(4);
     lessThanThreeCheck.in[0] <== voteChoice;
     lessThanThreeCheck.in[1] <== 3; // Valid choices are 0, 1, 2 (Abstain, Yes, No)
     lessThanThreeCheck.out === 1; // Ensure the vote choice is less than 3
     */
-   
+
+    // Method B:
     /**
      * @notice isValidVoteChoice: a signal that checks if the vote choice is valid.
      * @dev It ensures that the vote choice is one of the valid choices (0, 1, 2).
@@ -113,17 +115,21 @@ template VotingProof(treeLevels) {
      */
     signal isValidVoteChoice;
 
+    var ABSTAIN = 0;
+    var YES = 1;
+    var NO = 2;
+
     component isZero = IsEqual();
     isZero.in[0] <== voteChoice;
-    isZero.in[1] <== 0;
+    isZero.in[1] <== ABSTAIN;
 
     component isOne = IsEqual();
     isOne.in[0] <== voteChoice;
-    isOne.in[1] <== 1;
+    isOne.in[1] <== YES;
 
     component isTwo = IsEqual();
     isTwo.in[0] <== voteChoice;
-    isTwo.in[1] <== 2;
+    isTwo.in[1] <== NO;
 
     isValidVoteChoice <== isZero.out + isOne.out + isTwo.out;
     isValidVoteChoice === 1;
@@ -143,6 +149,16 @@ template VotingProof(treeLevels) {
 
     computedVoteContentHash === voteContentHash; 
 
+
+    // 5. On-chain verifiable vote choice hash
+    /**
+     * @notice onChainVerifiableVoteChoiceHash: the Poseidon hash of the vote choice.
+     * This value is revealed in the public output and can be used to infer the vote choice on-chain.
+     */
+    signal output onChainVerifiableVoteChoiceHash;
+    component voteChoiceHasher = Poseidon(1);
+    voteChoiceHasher.inputs[0] <== voteChoice;
+    onChainVerifiableVoteChoiceHash <== voteChoiceHasher.out;
 }
 
 component main {public [root, voteContentHash]} = VotingProof(10); 

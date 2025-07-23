@@ -1,8 +1,8 @@
 #!/bin/bash
 
-export CIRCUIT_FILENAME="membership_circuit_instance"
-export CIRCUIT_PATH="membership"
-export CONTRACT_NAME="MembershipVerifier"
+export CIRCUIT_FILENAME="voting_circuit"
+export CIRCUIT_PATH="voting"
+export CONTRACT_NAME="VoteVerifier"
 export PTAU_POWER=14
 trusted_setup=false
 
