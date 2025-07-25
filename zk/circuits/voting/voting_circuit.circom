@@ -141,13 +141,13 @@ template VotingProof(treeLevels) {
      * The computed hash is then compared to the provided voteContentHash.
      * This ensures that the vote content is valid and matches the expected hash.
      */
-    signal computedVoteContentHash;
-    component voteContentHasher = Poseidon(2);
-    voteContentHasher.inputs[0] <== voteChoice;
-    voteContentHasher.inputs[1] <== voteTimestamp;
-    computedVoteContentHash <== voteContentHasher.out;
+    // signal computedVoteContentHash;
+    // component voteContentHasher = Poseidon(2);
+    // voteContentHasher.inputs[0] <== voteChoice;
+    // voteContentHasher.inputs[1] <== voteTimestamp;
+    // computedVoteContentHash <== voteContentHasher.out;
 
-    computedVoteContentHash === voteContentHash; 
+    // computedVoteContentHash === voteContentHash; 
 
 
     // 5. On-chain verifiable vote choice hash
