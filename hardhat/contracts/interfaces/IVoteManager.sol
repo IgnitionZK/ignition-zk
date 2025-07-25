@@ -21,7 +21,7 @@ interface IVoteManager {
      */
     function verifyVote(
         uint256[24] calldata proof,
-        uint256[5] calldata publicSignals,
+        uint256[4] calldata publicSignals,
         bytes32 contextKey,
         bytes32 groupKey,
         bytes32 currentRoot
