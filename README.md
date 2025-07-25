@@ -30,6 +30,9 @@
         * [Step 1.3 Member ZK Credential Generation](#step-13-member-zk-credential-generation)
         * [Step 1.4 Merkle Tree Creation](#step-14-merkle-tree-creation)
         * [Step 1.5 Member Verification](#step-14-member-verification)
+    * [Phase 2: Anonymous Proposal Submissions](#phase-2-anonymous-proposal-submissions)
+    * [Phase 3: Anonymous Voting](#phase-3-anonymous-voting)
+    * [Phase 4: Proposal Execution](#phase-4-proposal-execution)
 
 ## Introducing IgnitionZK 
 
@@ -266,8 +269,15 @@ When a DAO member wants to perform an action, like submitting or voting on a pro
 
 </details>
 
-### **Phase 2:** Proposal Submissions
-### **Phase 3:** Voting
+### **Phase 2:** Anonymous Proposal Submissions
+
+#### Step 2.1 Campaign Creation 
+
+![Campaign creation](frontend/src/assets/campaign_graph.png)
+
+#### Step 2.2 Proposal Submission
+
+### **Phase 3:** Anonymous Voting
 ### **Phase 4:** Proposal Execution
 
 
