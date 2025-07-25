@@ -3,13 +3,14 @@ import * as circomlibjs from "circomlibjs";
 import { hkdf } from "@noble/hashes/hkdf";
 import { sha256 } from "@noble/hashes/sha2";
 import { keccak256, toUtf8Bytes } from "ethers";
+// import crypto from "crypto";
 
 /**
  * A class for generating and managing zero-knowledge credentials.
  * This class provides methods for generating mnemonic seeds, cryptographic keys,
  * and zero-knowledge credentials for identity management.
  */
-/** 
+/**
  * @class ZkCredential
  * @description This class encapsulates methods for generating zero-knowledge credentials,
  * including mnemonic seed generation, key derivation, and identity creation.
