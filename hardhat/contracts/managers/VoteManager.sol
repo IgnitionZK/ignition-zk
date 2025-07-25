@@ -107,9 +107,8 @@ contract VoteManager is Initializable, OwnableUpgradeable, UUPSUpgradeable, IVot
      * @notice Emitted when a vote is verified.
      * @param contextKey The context key associated with the vote.
      * @param voteNullifier The nullifier associated with the vote proof.
-     * @param voteContentHash The content hash of the vote.
      */
-    event VoteVerified(bytes32 indexed contextKey, bytes32 indexed voteNullifier, bytes32 voteContentHash);
+    event VoteVerified(bytes32 indexed contextKey, bytes32 indexed voteNullifier);
 
     /**
      * @notice Emitted when a quorum is set for a group.
@@ -142,11 +141,11 @@ contract VoteManager is Initializable, OwnableUpgradeable, UUPSUpgradeable, IVot
     /**
      * @notice Emitted when a vote tally is updated.
      * @param contextKey The context key associated with the vote.
-     * @param abstain The number of abstain votes.
-     * @param yes The number of yes votes.
      * @param no The number of no votes.
+     * @param yes The number of yes votes.
+     * @param abstain The number of abstain votes.
      */
-    event VoteTallyUpdated(bytes32 contextKey, uint256 abstain, uint256 yes, uint256 no);
+    event VoteTallyUpdated(bytes32 contextKey, uint256 no, uint256 yes, uint256 abstain);
 
     /**
      * @notice Emitted when a proposal's status is updated.
@@ -205,9 +204,9 @@ contract VoteManager is Initializable, OwnableUpgradeable, UUPSUpgradeable, IVot
     // ====================================================================================================
 
     /// @dev The values corresponding to the Poseidon hash of the Abstain (0), Yes (1) and No (2) votes.
-    uint256 private constant POSEIDON_HASH_ABSTAIN = 19014214495641488759237505126948346942972912379615652741039992445865937985820;
+    uint256 private constant POSEIDON_HASH_NO = 19014214495641488759237505126948346942972912379615652741039992445865937985820;
     uint256 private constant POSEIDON_HASH_YES = 18586133768512220936620570745912940619677854269274689475585506675881198879027;
-    uint256 private constant POSEIDON_HASH_NO = 8645981980787649023086883978738420856660271013038108762834452721572614684349;
+    uint256 private constant POSEIDON_HASH_ABSTAIN = 8645981980787649023086883978738420856660271013038108762834452721572614684349;
 
     // ====================================================================================================================
     //                                                  MODIFIERS
@@ -299,7 +298,7 @@ contract VoteManager is Initializable, OwnableUpgradeable, UUPSUpgradeable, IVot
      */
     function verifyVote(
         uint256[24] calldata proof,
-        uint256[5] calldata publicSignals,
+        uint256[4] calldata publicSignals,
         bytes32 contextKey,
         bytes32 groupKey,
         bytes32 currentRoot
@@ -314,7 +313,6 @@ contract VoteManager is Initializable, OwnableUpgradeable, UUPSUpgradeable, IVot
         bytes32 proofVoteNullifier = bytes32(publicSignals[1]);
         uint256 proofVoteChoiceHash = publicSignals[2];
         bytes32 proofRoot = bytes32(publicSignals[3]);
-        bytes32 proofVoteContentHash = bytes32(publicSignals[4]);
 
         // check root
         if (currentRoot == bytes32(0)) revert RootNotYetInitialized();
@@ -334,7 +332,7 @@ contract VoteManager is Initializable, OwnableUpgradeable, UUPSUpgradeable, IVot
         voteNullifiers[proofVoteNullifier] = true;
 
         // Emit event for verified vote
-        emit VoteVerified(contextKey, proofVoteNullifier, proofVoteContentHash);
+        emit VoteVerified(contextKey, proofVoteNullifier);
 
         // Infer the vote choice from the public outputs
         VoteTypes.VoteChoice inferredChoice;
@@ -352,14 +350,14 @@ contract VoteManager is Initializable, OwnableUpgradeable, UUPSUpgradeable, IVot
         // Update vote tally for proposal
         VoteTypes.VoteTally storage tally = proposalResults[contextKey].tally;
 
-        if ( inferredChoice == VoteTypes.VoteChoice.Abstain) {
-            tally.abstain++;
+        if ( inferredChoice == VoteTypes.VoteChoice.No) {
+            tally.no++;
         } else if ( inferredChoice == VoteTypes.VoteChoice.Yes) {
             tally.yes++;
-        } else if ( inferredChoice == VoteTypes.VoteChoice.No) {
-            tally.no++;
+        } else if ( inferredChoice == VoteTypes.VoteChoice.Abstain) {
+            tally.abstain++;
         }
-        emit VoteTallyUpdated(contextKey, tally.abstain, tally.yes, tally.no);
+        emit VoteTallyUpdated(contextKey, tally.no, tally.yes, tally.abstain);
         
         // Update the proposal's Passed status
         _updateProposalStatus(contextKey, groupKey);
@@ -523,14 +521,14 @@ contract VoteManager is Initializable, OwnableUpgradeable, UUPSUpgradeable, IVot
      * @return bool True if the proposal has passed, false otherwise.
      */
     function _computePassedStatus(VoteTypes.GroupParams memory params, VoteTypes.ProposalResult memory proposal) private pure returns (bool)  {    
-        uint256 totalVotes = proposal.tally.abstain + proposal.tally.yes + proposal.tally.no;
+        uint256 totalVotes = proposal.tally.no + proposal.tally.yes + proposal.tally.abstain;
         uint256 requiredVotes = _ceilDiv(params.memberCount * params.quorum, 100);
         
         bool hasReachedQuorum = totalVotes >= requiredVotes;
         bool hasYesMajority = proposal.tally.yes > proposal.tally.no;
-        // bool hasMinimumMembers = params.memberCount >= 5;
+        bool hasMinimumMembers = params.memberCount >= 2;
 
-        return hasReachedQuorum && hasYesMajority;
+        return hasReachedQuorum && hasYesMajority && hasMinimumMembers;
     }
 
     /**
@@ -581,7 +579,7 @@ contract VoteManager is Initializable, OwnableUpgradeable, UUPSUpgradeable, IVot
      */
     function _supportsIVoteInterface(address _address) private view returns (bool) {
         uint256[24] memory dummyProof = [uint256(1), 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24];
-        uint256[5] memory dummyPublicSignals = [uint256(1), 2, 3, 4, 5];
+        uint256[4] memory dummyPublicSignals = [uint256(1), 2, 3, 4];
 
         try IVoteVerifier(_address).verifyProof(dummyProof, dummyPublicSignals) returns (bool) {
             return true;

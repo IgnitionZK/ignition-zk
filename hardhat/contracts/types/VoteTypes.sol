@@ -4,9 +4,9 @@ pragma solidity ^0.8.28;
 library VoteTypes {
     /// @dev The vote tally struct, which contains the counts of abstain, yes, and no votes.
     struct VoteTally {
-        uint256 abstain;
-        uint256 yes;
         uint256 no;
+        uint256 yes;
+        uint256 abstain;
     }
 
     /// @dev The GroupParams struct, which contains the member count and quorum percentage for a group.
@@ -33,6 +33,6 @@ library VoteTypes {
     /**
      * @notice Represents the different choices a voter can make.
      */
-    enum VoteChoice { Yes, No, Abstain }
+    enum VoteChoice { No, Yes, Abstain }
 
 }
