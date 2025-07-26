@@ -54,15 +54,20 @@ const ToggleSwitch = styled.label`
   display: inline-block;
   width: 4.8rem;
   height: 2.4rem;
-  background-color: ${({ $isOn }) =>
-    $isOn ? "#A5B4FC" : "var(--color-grey-600)"};
+  background-color: ${({ $isOn, $disabled }) => {
+    if ($disabled) return "var(--color-grey-700)";
+    return $isOn ? "#A5B4FC" : "var(--color-grey-600)";
+  }};
   border-radius: 1.2rem;
-  cursor: pointer;
+  cursor: ${({ $disabled }) => ($disabled ? "not-allowed" : "pointer")};
   transition: background-color 0.3s ease;
+  opacity: ${({ $disabled }) => ($disabled ? 0.5 : 1)};
 
   &:hover {
-    background-color: ${({ $isOn }) =>
-      $isOn ? "#818CF8" : "var(--color-grey-500)"};
+    background-color: ${({ $isOn, $disabled }) => {
+      if ($disabled) return "var(--color-grey-700)";
+      return $isOn ? "#818CF8" : "var(--color-grey-500)";
+    }};
   }
 `;
 
@@ -245,17 +250,24 @@ export default function Proofs() {
         <ControlsRow>
           <LeftSection>
             <ToggleContainer>
-              <ToggleSwitch $isOn={isInboxVisible}>
+              <ToggleSwitch
+                $isOn={isInboxVisible}
+                $disabled={selectedGroup === ""}
+              >
                 <ToggleInput
                   type="checkbox"
                   checked={isInboxVisible}
                   onChange={handleToggleChange}
+                  disabled={selectedGroup === ""}
                 />
                 <ToggleSlider $isOn={isInboxVisible} />
               </ToggleSwitch>
               <InfoIconWrapper>
                 <InfoIcon />
-                <Tooltip>Toggle to show/hide inbox content</Tooltip>
+                <Tooltip>
+                  Select a group first, then use toggle to show/hide inbox
+                  content
+                </Tooltip>
               </InfoIconWrapper>
             </ToggleContainer>
           </LeftSection>
