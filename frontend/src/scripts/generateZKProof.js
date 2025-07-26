@@ -14,11 +14,12 @@ import * as ethers from "ethers";
  */
 export class ZKProofGenerator {
   // Membership circuit paths
-  static #MEMBERSHIP_WASM_PATH = "/membership_circuit/membership_circuit.wasm";
+  static #MEMBERSHIP_WASM_PATH =
+    "/membership_circuit_instance/membership_circuit_instance.wasm";
   static #MEMBERSHIP_ZKEY_PATH =
-    "/membership_circuit/membership_circuit_final.zkey";
+    "/membership_circuit_instance/membership_circuit_instance_final.zkey";
   static #MEMBERSHIP_VKEY_PATH =
-    "/membership_circuit/membership_circuit_key.json";
+    "/membership_circuit_instance/membership_circuit_instance_key.json";
 
   // Voting circuit paths
   static #VOTING_WASM_PATH = "";

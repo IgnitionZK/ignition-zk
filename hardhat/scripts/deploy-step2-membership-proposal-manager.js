@@ -14,15 +14,20 @@ async function main() {
 
   // Configuration - Update these addresses from previous steps
   const NFT_IMPLEMENTATION_ADDRESS =
-    "0x8EdE77A2676F9A35D49923e25e4ADfaFCa9F1Ccf"; // From Step 1
+    "0x7C33a33561C0CFa6EECA18239A119d3FD3267B2A"; // From Step 1
+  const MEMBERSHIP_VERIFIER_ADDRESS =
+    "0xf1b3963996420a1765B452AB51ad7b52e94F9C1d"; // From Step 0 - UPDATE THIS
   const PROPOSAL_VERIFIER_ADDRESS =
-    "0x6811Bf24b590C5e334CfC247DF2331bC923E98b7"; // From hardhat ignition deploy
-  const PROPOSAL_CLAIM_VERIFIER_ADDRESS = "0xcF4eED1e78442d9d557B62008d1A7E53BE3B1b8c"; // From hardhat ignition deploy
+    "0x684F9113f63b15A683E2a75C62787bCaEed8156C"; // From Step 0 - UPDATE THIS
+  const PROPOSAL_CLAIM_VERIFIER_ADDRESS =
+    "0x7a2ED32E1C83981F7160fFb61275a9d29b007d9e"; // From Step 0 - UPDATE THIS
   const GOVERNOR_PLACEHOLDER = "0x5F909fd25A9F5e4f5a219318FdeD6C8124F6c1F1";
 
   console.log("📋 Configuration:");
   console.log(`🔧 NFT Implementation: ${NFT_IMPLEMENTATION_ADDRESS}`);
-  console.log(`🔐 Proposal Verifier: ${PROPOSAL_VERIFIER_ADDRESS}`);
+  console.log(`🔐 Membership Verifier: ${MEMBERSHIP_VERIFIER_ADDRESS}`);
+  console.log(`📄 Proposal Verifier: ${PROPOSAL_VERIFIER_ADDRESS}`);
+  console.log(`👤 Proposal Claim Verifier: ${PROPOSAL_CLAIM_VERIFIER_ADDRESS}`);
   console.log(`👤 Governor Placeholder: ${GOVERNOR_PLACEHOLDER}`);
   console.log("");
 
@@ -49,6 +54,7 @@ async function main() {
       [
         GOVERNOR_PLACEHOLDER,
         NFT_IMPLEMENTATION_ADDRESS,
+        MEMBERSHIP_VERIFIER_ADDRESS,
       ],
       {
         initializer: "initialize",
@@ -88,7 +94,7 @@ async function main() {
       [
         GOVERNOR_PLACEHOLDER,
         PROPOSAL_VERIFIER_ADDRESS,
-        PROPOSAL_CLAIM_VERIFIER_ADDRESS
+        PROPOSAL_CLAIM_VERIFIER_ADDRESS,
       ],
       {
         initializer: "initialize",

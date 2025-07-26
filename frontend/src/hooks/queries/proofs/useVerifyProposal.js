@@ -9,7 +9,7 @@ const PROPOSAL_VERIFIER_ABI = [
   "function verifyProof(uint256[24] calldata _proof, uint256[5] calldata _pubSignals) public view returns (bool)",
 ];
 
-const PROPOSAL_VERIFIER_ADDRESS = "0x997172817177c1Aa125a0212B2c574c965174f9E";
+const PROPOSAL_VERIFIER_ADDRESS = "0x684F9113f63b15A683E2a75C62787bCaEed8156C";
 
 /**
  * Custom hook for verifying proposal submission using zero-knowledge proofs

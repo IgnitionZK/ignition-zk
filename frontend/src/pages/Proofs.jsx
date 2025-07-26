@@ -5,10 +5,12 @@ import styled from "styled-components";
 import PageHeader from "../components/PageHeader";
 import InboxItem from "../components/InboxItem";
 import CustomDropdown from "../components/CustomDropdown";
-import CustomButton from "../components/CustomButton";
+import MnemonicInput from "../components/MnemonicInput";
 import { useGetProposalsByGroupId } from "../hooks/queries/proposals/useGetActiveProposalsByGroupId";
 import { useGetUserGroups } from "../hooks/queries/groupMembers/useGetUserGroups";
 import { useGetProofsByGroupMemberId } from "../hooks/queries/proofs/useGetProofsByGroupMemberId";
+import { useVerifyMembership } from "../hooks/queries/proofs/useVerifyMembership";
+import { useGetCommitmentArray } from "../hooks/queries/merkleTreeLeaves/useGetCommitmentArray";
 
 // icons
 import { IoIosInformationCircle } from "react-icons/io";
@@ -190,6 +192,29 @@ const Tooltip = styled.div`
   }
 `;
 
+const CurrentGroupDisplay = styled.div`
+  background: var(--color-grey-700);
+  color: var(--color-grey-100);
+  padding: 0.8rem 1.6rem;
+  border: 1px solid var(--color-grey-600);
+  border-radius: 0.8rem;
+  font-size: 1.4rem;
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  min-width: 16rem;
+  justify-content: space-between;
+`;
+
+const GroupName = styled.span`
+  font-weight: 500;
+`;
+
+const LockIcon = styled.span`
+  color: #22c55e;
+  font-size: 1.2rem;
+`;
+
 /**
  * Proofs component displays a list of pending and verified proposals for the user's groups.
  * It allows filtering proposals by group and shows different sections for pending and verified items.
@@ -203,11 +228,27 @@ export default function Proofs() {
   const groupMemberIds =
     userGroups?.map((group) => group.group_member_id) || [];
   const { proofs } = useGetProofsByGroupMemberId(groupMemberIds);
+  const {
+    verifyMembership,
+    isVerifying,
+    error: verificationError,
+  } = useVerifyMembership();
 
   const [selectedGroup, setSelectedGroup] = useState("");
   const [isInboxVisible, setIsInboxVisible] = useState(false);
+  const [showMnemonicInput, setShowMnemonicInput] = useState(false);
+  const [unlockedGroups, setUnlockedGroups] = useState(new Set());
+  const [localVerificationError, setLocalVerificationError] = useState(null);
 
   const groupNames = userGroups?.map((group) => group.name) || [];
+
+  // Get the selected group's ID
+  const selectedGroupData = userGroups?.find(
+    (group) => group.name === selectedGroup
+  );
+
+  const { commitmentArray, isLoading: isLoadingCommitments } =
+    useGetCommitmentArray({ groupId: selectedGroupData?.group_id });
 
   // Filter active proposals and then by selected group
   const filteredProposals = proposals
@@ -240,7 +281,95 @@ export default function Proofs() {
     }));
 
   const handleToggleChange = () => {
-    setIsInboxVisible(!isInboxVisible);
+    if (selectedGroup === "") return;
+
+    if (!unlockedGroups.has(selectedGroup)) {
+      setShowMnemonicInput(true);
+    } else {
+      const newInboxVisible = !isInboxVisible;
+
+      if (newInboxVisible) {
+        // If showing the inbox, require mnemonic re-entry even for unlocked groups
+        setShowMnemonicInput(true);
+      } else {
+        // If hiding the inbox, reset the selected group and remove from unlocked groups
+        setIsInboxVisible(false);
+        setSelectedGroup("");
+        setLocalVerificationError(null); // Clear any verification errors
+        // Clear all unlocked groups so they need to re-enter mnemonic
+        setUnlockedGroups(new Set());
+      }
+    }
+  };
+
+  const handleMnemonicSubmit = async (mnemonic) => {
+    setShowMnemonicInput(false);
+    setLocalVerificationError(null);
+
+    try {
+      if (!commitmentArray) {
+        throw new Error("Commitment array not loaded");
+      }
+
+      if (!selectedGroupData) {
+        throw new Error("Selected group data not found");
+      }
+
+      console.log(
+        "Verifying membership for group:",
+        selectedGroupData.group_id
+      );
+
+      // Verify membership using the ZK proof
+      const { isValid, publicSignals } = await verifyMembership(
+        commitmentArray,
+        mnemonic,
+        selectedGroupData.group_id
+      );
+
+      if (isValid) {
+        console.log(
+          "Membership verified successfully for group:",
+          selectedGroup
+        );
+
+        // Add the group to unlocked groups (only one group can be unlocked at a time)
+        setUnlockedGroups(new Set([selectedGroup]));
+
+        // Show the inbox
+        setIsInboxVisible(true);
+
+        console.log("Inbox unlocked for group:", selectedGroup);
+      } else {
+        throw new Error("Membership verification failed");
+      }
+    } catch (error) {
+      console.error("Membership verification error:", error);
+      setLocalVerificationError(error.message || "Failed to verify membership");
+
+      // Don't unlock the inbox if verification fails
+      setIsInboxVisible(false);
+    }
+  };
+
+  const handleMnemonicClose = () => {
+    setShowMnemonicInput(false);
+  };
+
+  // Check if the selected group is unlocked
+  const isGroupUnlocked =
+    selectedGroup === "" || unlockedGroups.has(selectedGroup);
+
+  // Check if inbox is visible and group is unlocked (this means dropdown should be hidden)
+  const shouldHideDropdown =
+    isInboxVisible && unlockedGroups.has(selectedGroup);
+
+  // Handle group selection - only allow if inbox is not visible or group is not unlocked
+  const handleGroupSelection = (groupName) => {
+    if (shouldHideDropdown) {
+      return; // Prevent group switching when inbox is unlocked
+    }
+    setSelectedGroup(groupName);
   };
 
   return (
@@ -252,31 +381,39 @@ export default function Proofs() {
             <ToggleContainer>
               <ToggleSwitch
                 $isOn={isInboxVisible}
-                $disabled={selectedGroup === ""}
+                $disabled={selectedGroup === "" || isVerifying}
               >
                 <ToggleInput
                   type="checkbox"
                   checked={isInboxVisible}
                   onChange={handleToggleChange}
-                  disabled={selectedGroup === ""}
+                  disabled={selectedGroup === "" || isVerifying}
                 />
                 <ToggleSlider $isOn={isInboxVisible} />
               </ToggleSwitch>
               <InfoIconWrapper>
                 <InfoIcon />
                 <Tooltip>
-                  Select a group first, then use toggle to show/hide inbox
-                  content
+                  {shouldHideDropdown
+                    ? "Group is locked. Toggle off to switch groups or refresh the page."
+                    : "Select a group first, then use toggle to unlock inbox content. Re-entry of mnemonic required each time."}
                 </Tooltip>
               </InfoIconWrapper>
             </ToggleContainer>
           </LeftSection>
-          <CustomDropdown
-            options={groupNames}
-            selectedOption={selectedGroup}
-            onSelect={setSelectedGroup}
-            placeholder="Please select group"
-          />
+          {!shouldHideDropdown ? (
+            <CustomDropdown
+              options={groupNames}
+              selectedOption={selectedGroup}
+              onSelect={handleGroupSelection}
+              placeholder="Please select group"
+            />
+          ) : (
+            <CurrentGroupDisplay>
+              <GroupName>{selectedGroup}</GroupName>
+              <LockIcon>🔒</LockIcon>
+            </CurrentGroupDisplay>
+          )}
         </ControlsRow>
       </PageHeaderContainer>
 
@@ -284,9 +421,34 @@ export default function Proofs() {
         <HiddenMessage>
           <HiddenTitle>Inbox hidden</HiddenTitle>
           <HiddenSubtitle>
-            Select a group using the dropdown and use toggle button to reveal
-            inbox items.
+            {shouldHideDropdown
+              ? "Group is locked. Toggle off to switch groups or refresh the page to unlock a different group."
+              : "Select a group using the dropdown and use toggle button to reveal inbox items. Mnemonic re-entry required each time."}
           </HiddenSubtitle>
+          {localVerificationError && (
+            <div
+              style={{
+                color: "var(--color-red-400)",
+                fontSize: "1.4rem",
+                marginTop: "1.6rem",
+                textAlign: "center",
+              }}
+            >
+              Error: {localVerificationError}
+            </div>
+          )}
+          {isVerifying && (
+            <div
+              style={{
+                color: "var(--color-grey-300)",
+                fontSize: "1.4rem",
+                marginTop: "1.6rem",
+                textAlign: "center",
+              }}
+            >
+              Verifying membership...
+            </div>
+          )}
         </HiddenMessage>
       ) : (
         <>
@@ -330,6 +492,22 @@ export default function Proofs() {
             )}
           </Section>
         </>
+      )}
+      {showMnemonicInput && (
+        <MnemonicInput
+          title="Unlock Inbox"
+          subtitle="Enter your mnemonic phrase to unlock inbox items for this group"
+          wordCount={12}
+          contextInfo={{
+            groupName: selectedGroup,
+          }}
+          onClose={handleMnemonicClose}
+          onSubmit={handleMnemonicSubmit}
+          confirmButtonText="Unlock"
+          cancelButtonText="Cancel"
+          confirmationMessage={`Are you sure you want to unlock the inbox for "${selectedGroup}"? This will require your mnemonic phrase verification.`}
+          showConfirmation={true}
+        />
       )}
     </PageContainer>
   );
