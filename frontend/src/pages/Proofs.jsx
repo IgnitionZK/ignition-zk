@@ -111,6 +111,8 @@ const HiddenSubtitle = styled.p`
   font-size: 1.6rem;
   font-style: italic;
   color: var(--color-grey-400);
+  text-align: center;
+  line-height: 1.4;
 `;
 
 const ProofHeader = styled.div`
@@ -197,21 +199,16 @@ export default function Proofs() {
     userGroups?.map((group) => group.group_member_id) || [];
   const { proofs } = useGetProofsByGroupMemberId(groupMemberIds);
 
-  const [selectedGroup, setSelectedGroup] = useState("All Groups");
+  const [selectedGroup, setSelectedGroup] = useState("");
   const [isInboxVisible, setIsInboxVisible] = useState(false);
 
-  const groupNames = [
-    "All Groups",
-    ...(userGroups?.map((group) => group.name) || []),
-  ];
+  const groupNames = userGroups?.map((group) => group.name) || [];
 
   // Filter active proposals and then by selected group
   const filteredProposals = proposals
     ?.filter((proposal) => proposal.status_type === "active")
     .filter((proposal) =>
-      selectedGroup === "All Groups"
-        ? true
-        : proposal.group_name === selectedGroup
+      selectedGroup === "" ? true : proposal.group_name === selectedGroup
     )
     .filter(
       (proposal) =>
@@ -228,9 +225,7 @@ export default function Proofs() {
       )
     )
     .filter((proposal) =>
-      selectedGroup === "All Groups"
-        ? true
-        : proposal.group_name === selectedGroup
+      selectedGroup === "" ? true : proposal.group_name === selectedGroup
     )
     .map((proposal) => ({
       ...proposal,
@@ -268,7 +263,7 @@ export default function Proofs() {
             options={groupNames}
             selectedOption={selectedGroup}
             onSelect={setSelectedGroup}
-            placeholder="All Groups"
+            placeholder="Please select group"
           />
         </ControlsRow>
       </PageHeaderContainer>
@@ -276,7 +271,10 @@ export default function Proofs() {
       {!isInboxVisible ? (
         <HiddenMessage>
           <HiddenTitle>Inbox hidden</HiddenTitle>
-          <HiddenSubtitle>Use toggle button to reveal.</HiddenSubtitle>
+          <HiddenSubtitle>
+            Select a group using the dropdown and use toggle button to reveal
+            inbox items.
+          </HiddenSubtitle>
         </HiddenMessage>
       ) : (
         <>
