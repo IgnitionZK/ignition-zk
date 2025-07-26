@@ -208,7 +208,7 @@ export default function Proofs() {
   const filteredProposals = proposals
     ?.filter((proposal) => proposal.status_type === "active")
     .filter((proposal) =>
-      selectedGroup === "" ? true : proposal.group_name === selectedGroup
+      selectedGroup === "" ? false : proposal.group_name === selectedGroup
     )
     .filter(
       (proposal) =>
@@ -225,7 +225,7 @@ export default function Proofs() {
       )
     )
     .filter((proposal) =>
-      selectedGroup === "" ? true : proposal.group_name === selectedGroup
+      selectedGroup === "" ? false : proposal.group_name === selectedGroup
     )
     .map((proposal) => ({
       ...proposal,
