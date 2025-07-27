@@ -77,6 +77,7 @@ export function useRelayerVerifyMembership() {
           body: {
             proof: proof.map((item) => item.toString()),
             publicSignals: publicSignals.map((item) => item.toString()),
+            // !!!!
             groupKey: groupKey.toString(),
           },
           headers: {

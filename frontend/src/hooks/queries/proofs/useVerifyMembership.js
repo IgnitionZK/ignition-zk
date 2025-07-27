@@ -86,6 +86,7 @@ export function useVerifyMembership() {
       console.log("[FRONTEND/useVerifyMembership] Data sent to relayer:", {
         proof: proofSolidity,
         publicSignals: publicSignalsSolidity,
+        // !!!!
         groupKey: groupKeyBytes32,
       });
 
