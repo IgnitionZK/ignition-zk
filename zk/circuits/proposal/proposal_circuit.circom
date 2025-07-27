@@ -126,10 +126,9 @@ template ProposalSubmissionProof(treeLevels) {
      * It connects the identity with the unique proposal submission nullifier. It therefore encapsulates identity + content + context
      */
     signal output proposalClaimNullifier; 
-    component proposalClaimHash = Poseidon(3);
-    proposalClaimHash.inputs[0] <== identityTrapdoor;   
-    proposalClaimHash.inputs[1] <== identityNullifier;
-    proposalClaimHash.inputs[2] <== proposalSubmissionNullifier; 
+    component proposalClaimHash = Poseidon(2);
+    proposalClaimHash.inputs[0] <== identityNullifier;
+    proposalClaimHash.inputs[1] <== proposalSubmissionNullifier; 
     proposalClaimNullifier <== proposalClaimHash.out;
 }
 

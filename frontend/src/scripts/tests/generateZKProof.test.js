@@ -1,72 +1,189 @@
 import { ZkCredential } from "../generateCredentials-browser-safe.js";
-import { ZKProofGenerator } from "../generateZKProof.js";
+import { ZKProofGenerator } from "./generateZKProof-nodejs-compatible.js";
 
-// Group ID: 81373f0e-8e13-4b8f-80fa-4e8f94821a1e
+console.log(process.cwd());
+
 // Commitment values and group IDs extracted from DB: hashedLeaves.json
 // SQL query: select commitment_value, group_id from ignitionzk.merkle_tree_leaves where is_active = true order by created_at;
-const targetGroupId = "81373f0e-8e13-4b8f-80fa-4e8f94821a1e";
+const groupId = "21fae0f7-096f-4c8f-8515-93b9f247582d";
+const epochId = "06134393-4412-4e46-9534-85186ea7bbe8";
+const proposalId = "5b18c981-c040-4672-bf60-67e1301d3e27";
+const proposalTitle = "Sonic Screwdriver Upgrade";
+const proposalDescription = "Proposal to upgrade the Sonic Screwdriver to v42.0, adding quantum syncing, voice commands, and optional ice cream mode—keeping the Doctor stylishly overpowered across space and time.";
+const proposalPayload = '{"value":"0","calldata":{"amount":"2","recipient":"0xabcdefabcdefabcdefabcdefabcdefabcdefabcd"},"target_action":"delegateDistributeGrant","target_contract":"0xGovernanceContractAddress","target_function":"executeProposal"}';
+const proposalFunding = '{"type":"lumpsum payment","amount":"2","currency":"ETH"}';
+const proposalMetadata = '{"ipfs_cid":"QmTwui9718uxaUmyHasXDQ63RVoZKTQSnmRZfhGPRV1bzX"}';
+const voteChoice = 1;
 
-// User1 test1@mail.com
 const mnemonic_user1 =
-  "immune common syrup eight obscure include cake wagon night bid orange blind";
-// User2 test2@mail.com
-const mnemonic_user2 =
-  "spare find poverty envelope boost fiscal black spare zero ticket legend point";
-// User3 test3@mail.com
-const mnemonic_user3 =
-  "service nice lava heavy patient satisfy fresh run index never castle dream";
+  "forward fiction concert during pencil man boy slice slab engage knife smoke";
 
 const users = [
-  { user: "user1", mnemonic: mnemonic_user1 },
-  { user: "user2", mnemonic: mnemonic_user2 },
-  { user: "user3", mnemonic: mnemonic_user3 },
+  { user: "test7@mail.com", mnemonic: mnemonic_user1 }
 ];
 
 const commitmentArray = await ZKProofGenerator.filterLeavesByGroupId(
-  "src/scripts/tests/hashedLeaves.json", // leaves JSON file
-  targetGroupId // group ID to filter by
+  "./hashedLeaves.json", // leaves JSON file
+  groupId // group ID to filter by
 );
-console.log(`Commitments for groupId ${targetGroupId}:`, commitmentArray);
-
-async function testProof(mnemonic) {
-  const circuitInput = await ZKProofGenerator.generateCircuitInput(
-    mnemonic,
-    commitmentArray,
-    targetGroupId // external nullifier
-  );
-  const { proof, publicSignals } = await ZKProofGenerator.generateProof(
-    circuitInput,
-    "membership"
-  );
-  console.log("Generated proof:", proof);
-  console.log("Public signals:", publicSignals);
-
-  // internal test to check if public nullifier in the public Signals matches the expected public nullifier
-  const publiNullifierTest = await ZkCredential.generatePublicNullifier(
-    BigInt(circuitInput.identityNullifier),
-    targetGroupId // external nullifier
-  );
-
-  if (publicSignals[0] !== publiNullifierTest.toString()) {
-    throw new Error(
-      "Public Nullifier in public signals does not match the expected public nullifier."
-    );
-  }
-  console.log("Public Nullifier matches the expected value.");
-
-  const isValidProof = await ZKProofGenerator.verifyProofOffChain(
-    proof,
-    publicSignals,
-    "membership"
-  );
-
-  return isValidProof;
-}
+console.log(`Commitments for groupId ${groupId}:`, commitmentArray);
 
 for (const user of users) {
   console.log(`\nTesting for ${user.user}...`);
-  const isValidProof = await testProof(user.mnemonic);
+  console.log(`User mnemonic: ${user.mnemonic}`);
 
-  console.log(`Proof valid for ${user.user}:`, isValidProof);
+  ////////////////////////////////////////
+  ///       MEMBERSHIP CIRCUIT          //
+  ////////////////////////////////////////           
+
+  const membershipCircuitInput = await ZKProofGenerator.generateMembershipCircuitInput(
+    user.mnemonic,
+    commitmentArray,
+    groupId 
+  );
+
+  const { 
+    proof: membeshipProof, 
+    publicSignals:membershipPublicSignals 
+  } = await ZKProofGenerator.generateProof(
+    membershipCircuitInput,
+    "membership"
+  );
+
+  const {
+    proofSolidity: membershipProofSolidity, 
+    publicSignalsSolidity: membershipPublicSignalsSolidity 
+  } = await ZKProofGenerator.generateSolidityCalldata(membeshipProof, membershipPublicSignals);
+
+  console.log("Membership Solidity proof: ", membershipProofSolidity);
+  console.log("Membership Solidity publicSignals: ", membershipPublicSignalsSolidity);
+
+  const isValidMembershipProof = await ZKProofGenerator.verifyProofOffChain(
+    membeshipProof,
+    membershipPublicSignals,
+    "membership"
+  );
+  console.log(`Is proof valid for ${user.user} and membership circuit:`, isValidMembershipProof);
+
+  ////////////////////////////////////////
+  ///       PROPOSAL CIRCUIT           ///
+  ////////////////////////////////////////       
+
+  const proposalCircuitInput = await ZKProofGenerator.generateProposalCircuitInput(
+    user.mnemonic,
+    commitmentArray,
+    groupId,
+    epochId,
+    proposalTitle,
+    proposalDescription,
+    proposalPayload,
+    proposalFunding,
+    proposalMetadata
+  );
+
+  const { 
+    proof: proposalProof, 
+    publicSignals:proposalPublicSignals 
+  } = await ZKProofGenerator.generateProof(
+    proposalCircuitInput,
+    "proposal"
+  );
+
+  const {
+    proofSolidity: proposalProofSolidity, 
+    publicSignalsSolidity: proposalPublicSignalsSolidity 
+  } = await ZKProofGenerator.generateSolidityCalldata(proposalProof, proposalPublicSignals);
+
+  console.log("Proposal Solidity proof: ", proposalProofSolidity);
+  console.log("Proposal Solidity publicSignals: ", proposalPublicSignalsSolidity);
+
+  const isValidProposalProof = await ZKProofGenerator.verifyProofOffChain(
+    proposalProof,
+    proposalPublicSignals,
+    "proposal"
+  );
+  console.log(`Is proof valid for ${user.user} and proposal circuit:`, isValidProposalProof);
+
+  ////////////////////////////////////////
+  ///       PROPOSAL CLAIM CIRCUIT     ///
+  ////////////////////////////////////////       
+  
+  const proposalContextHashTest = proposalPublicSignals[0];
+   console.log("testing proposalContextHash: ", proposalContextHashTest);
+  const proposalSubmissionHash = proposalPublicSignals[1];
+  console.log("proposalSubmissionHash: ", proposalSubmissionHash);
+  const proposalClaimHash = proposalPublicSignals[2];
+  console.log("proposalClaimHash: ", proposalClaimHash);
+  
+
+  const proposalClaimCircuitInput =  await ZKProofGenerator.generateProposalClaimCircuitInput(
+        user.mnemonic,
+        commitmentArray,
+        groupId,
+        epochId,
+        proposalClaimHash,
+        proposalSubmissionHash
+      );
+
+  const { 
+    proof: proposalClaimProof, 
+    publicSignals:proposalClaimPublicSignals 
+  } = await ZKProofGenerator.generateProof(
+    proposalClaimCircuitInput,
+    "proposal-claim"
+  );
+
+  const {
+    proofSolidity: proposalClaimProofSolidity, 
+    publicSignalsSolidity: proposalClaimPublicSignalsSolidity 
+  } = await ZKProofGenerator.generateSolidityCalldata(proposalClaimProof, proposalClaimPublicSignals);
+
+  console.log("Proposal Claim Solidity proof: ", proposalClaimProofSolidity);
+  console.log("Proposal Claim Solidity publicSignals: ", proposalClaimPublicSignalsSolidity);
+
+  const isValidProposalClaimProof = await ZKProofGenerator.verifyProofOffChain(
+    proposalClaimProof,
+    proposalClaimPublicSignals,
+    "proposal-claim"
+  );
+  console.log(`Is proof valid for ${user.user} and proposal claim circuit:`, isValidProposalClaimProof);
+
+  
+  ////////////////////////////////////////
+  ///       VOTE CIRCUIT               ///
+  ////////////////////////////////////////       
+
+  const voteCircuitInput = await ZKProofGenerator.generateVoteCircuitInput(
+    user.mnemonic, 
+    commitmentArray,
+    groupId,
+    epochId,
+    proposalId,
+    voteChoice
+  );
+
+  const { 
+    proof: voteProof, 
+    publicSignals:votePublicSignals 
+  } = await ZKProofGenerator.generateProof(
+    voteCircuitInput,
+    "vote"
+  );
+
+  const {
+    proofSolidity: voteProofSolidity, 
+    publicSignalsSolidity: votePublicSignalsSolidity 
+  } = await ZKProofGenerator.generateSolidityCalldata(voteProof, votePublicSignals);
+
+  console.log("Vote Solidity proof: ", voteProofSolidity);
+  console.log("Vote Solidity publicSignals: ", votePublicSignalsSolidity);
+
+  const isValidVoteProof = await ZKProofGenerator.verifyProofOffChain(
+    voteProof,
+    votePublicSignals,
+    "vote"
+  );
+  console.log(`Is proof valid for ${user.user} and vote circuit:`, isValidVoteProof);
 }
+
 process.exit(0);
