@@ -43,7 +43,7 @@ const Subtitle = styled.p`
   text-align: center;
 `;
 
-const ProposalInfo = styled.div`
+const ContextInfo = styled.div`
   background: rgba(165, 180, 252, 0.1);
   padding: 1.6rem;
   border-radius: 0.8rem;
@@ -52,20 +52,20 @@ const ProposalInfo = styled.div`
   width: 100%;
 `;
 
-const ProposalTitle = styled.h3`
+const ContextTitle = styled.h3`
   color: #fff;
   font-size: 1.8rem;
   font-weight: 500;
   margin-bottom: 0.8rem;
 `;
 
-const GroupName = styled.p`
+const ContextSubtitle = styled.p`
   color: var(--color-grey-300);
   font-size: 1.4rem;
   margin-bottom: 0.8rem;
 `;
 
-const ProposalDescription = styled.p`
+const ContextDescription = styled.p`
   color: var(--color-grey-300);
   font-size: 1.4rem;
   line-height: 1.4;
@@ -124,12 +124,58 @@ const Input = styled.input`
 `;
 
 /**
- * A modal component that displays a form for entering a 12-word mnemonic phrase.
- * Used for submitting mnemonic phrases for proposals.
+ * A generic modal component for entering mnemonic phrases.
+ * Can be customized for different use cases like proposal submission or inbox unlocking.
+ *
+ * @param {Object} props - Component props
+ * @param {string} props.title - Modal title
+ * @param {string} props.subtitle - Modal subtitle
+ * @param {number} props.wordCount - Number of words in the mnemonic phrase
+ * @param {Object} props.contextInfo - Context information to display (title, groupName, description)
+ * @param {Function} props.onClose - Function to call when modal is closed
+ * @param {Function} props.onSubmit - Function to call when mnemonic is submitted
+ * @param {string} props.confirmButtonText - Text for confirm button
+ * @param {string} props.cancelButtonText - Text for cancel button
+ * @param {string} props.confirmationMessage - Message for confirmation modal
+ * @param {boolean} props.showConfirmation - Whether to show confirmation modal
+ * @param {string} props.confirmButtonColor - Color for confirm button
+ * @param {string} props.confirmButtonHoverColor - Hover color for confirm button
+ * @param {string} props.cancelButtonColor - Color for cancel button
+ * @param {string} props.cancelButtonHoverColor - Hover color for cancel button
+ * @param {Object} props.proposal - Legacy prop for backward compatibility
  */
-function MnemonicInput({ proposal, onClose, onSubmit }) {
-  const [words, setWords] = useState(Array(12).fill(""));
+function MnemonicInput({
+  // Generic props
+  title = "Enter Mnemonic Phrase",
+  subtitle = "Please enter your mnemonic phrase",
+  wordCount = 12,
+  contextInfo = null,
+  onClose,
+  onSubmit,
+  confirmButtonText = "Confirm",
+  cancelButtonText = "Cancel",
+  confirmationMessage = "Are you sure you want to proceed?",
+  showConfirmation = true,
+  confirmButtonColor = "#a5b4fc",
+  confirmButtonHoverColor = "#818cf8",
+  cancelButtonColor = "#f87171",
+  cancelButtonHoverColor = "#ef4444",
+  // Legacy props for backward compatibility
+  proposal = null,
+}) {
+  const [words, setWords] = useState(Array(wordCount).fill(""));
   const [showConfirmModal, setShowConfirmModal] = useState(false);
+
+  // Handle legacy proposal prop for backward compatibility
+  const finalContextInfo =
+    contextInfo ||
+    (proposal
+      ? {
+          title: proposal.title,
+          groupName: proposal.group_name,
+          description: proposal.description,
+        }
+      : null);
 
   const handleWordChange = (index, value) => {
     const newWords = [...words];
@@ -138,7 +184,12 @@ function MnemonicInput({ proposal, onClose, onSubmit }) {
   };
 
   const handleSubmit = () => {
-    setShowConfirmModal(true);
+    if (showConfirmation) {
+      setShowConfirmModal(true);
+    } else {
+      const mnemonic = words.map((word) => word.trim()).join(" ");
+      onSubmit(mnemonic);
+    }
   };
 
   const handleConfirmSubmit = () => {
@@ -155,21 +206,37 @@ function MnemonicInput({ proposal, onClose, onSubmit }) {
   const areAllWordsFilled = words.every((word) => word.trim() !== "");
 
   // Split words into two columns
-  const firstColumn = words.slice(0, 6);
-  const secondColumn = words.slice(6, 12);
+  const firstColumn = words.slice(0, Math.ceil(wordCount / 2));
+  const secondColumn = words.slice(Math.ceil(wordCount / 2), wordCount);
+
+  const renderContextInfo = () => {
+    if (!finalContextInfo) return null;
+
+    return (
+      <ContextInfo>
+        {finalContextInfo.title && (
+          <ContextTitle>{finalContextInfo.title}</ContextTitle>
+        )}
+        {finalContextInfo.groupName && (
+          <ContextSubtitle>{finalContextInfo.groupName}</ContextSubtitle>
+        )}
+        {finalContextInfo.description && (
+          <ContextDescription>
+            {finalContextInfo.description}
+          </ContextDescription>
+        )}
+      </ContextInfo>
+    );
+  };
 
   return (
     <>
       <Overlay>
         <Modal>
-          <Title>Enter Mnemonic Phrase</Title>
-          <Subtitle>Please enter your 12-word mnemonic phrase</Subtitle>
+          <Title>{title}</Title>
+          <Subtitle>{subtitle}</Subtitle>
 
-          <ProposalInfo>
-            <ProposalTitle>{proposal.title}</ProposalTitle>
-            <GroupName>{proposal.group_name}</GroupName>
-            <ProposalDescription>{proposal.description}</ProposalDescription>
-          </ProposalInfo>
+          {renderContextInfo()}
 
           <MnemonicGrid>
             <Column>
@@ -191,15 +258,18 @@ function MnemonicInput({ proposal, onClose, onSubmit }) {
             </Column>
             <Column>
               {secondColumn.map((word, index) => (
-                <WordInput key={index + 6}>
-                  <WordIndex>{index + 7}</WordIndex>
+                <WordInput key={index + firstColumn.length}>
+                  <WordIndex>{index + firstColumn.length + 1}</WordIndex>
                   <Input
                     type="text"
                     value={word}
                     onChange={(e) =>
-                      handleWordChange(index + 6, e.target.value)
+                      handleWordChange(
+                        index + firstColumn.length,
+                        e.target.value
+                      )
                     }
-                    placeholder={`Word ${index + 7}`}
+                    placeholder={`Word ${index + firstColumn.length + 1}`}
                     autoComplete="off"
                     autoCorrect="off"
                     autoCapitalize="off"
@@ -212,43 +282,45 @@ function MnemonicInput({ proposal, onClose, onSubmit }) {
 
           <div style={{ display: "flex", gap: "1.2rem" }}>
             <CustomButton
-              backgroundColor="#a5b4fc"
-              hoverColor="#818cf8"
+              backgroundColor={confirmButtonColor}
+              hoverColor={confirmButtonHoverColor}
               textColor="#232328"
               size="large"
               onClick={handleSubmit}
               style={{ minWidth: 120 }}
               disabled={!areAllWordsFilled}
             >
-              Confirm
+              {confirmButtonText}
             </CustomButton>
             <CustomButton
-              backgroundColor="#f87171"
-              hoverColor="#ef4444"
+              backgroundColor={cancelButtonColor}
+              hoverColor={cancelButtonHoverColor}
               textColor="#fff"
               size="large"
               onClick={onClose}
               style={{ minWidth: 120 }}
             >
-              Cancel
+              {cancelButtonText}
             </CustomButton>
           </div>
         </Modal>
       </Overlay>
 
-      <ConfirmationModal
-        isOpen={showConfirmModal}
-        title="Submit Mnemonic"
-        message={`Are you sure you want to submit your mnemonic phrase for the proposal "${proposal.title}"? This will submit your proof. Make sure you have entered the correct 12-word phrase.`}
-        confirmText="Submit"
-        cancelText="Cancel"
-        confirmButtonColor="#a5b4fc"
-        confirmButtonHoverColor="#818cf8"
-        cancelButtonColor="var(--color-grey-600)"
-        cancelButtonHoverColor="var(--color-grey-500)"
-        onConfirm={handleConfirmSubmit}
-        onCancel={handleCancelSubmit}
-      />
+      {showConfirmation && (
+        <ConfirmationModal
+          isOpen={showConfirmModal}
+          title="Confirm Action"
+          message={confirmationMessage}
+          confirmText="Confirm"
+          cancelText="Cancel"
+          confirmButtonColor={confirmButtonColor}
+          confirmButtonHoverColor={confirmButtonHoverColor}
+          cancelButtonColor="var(--color-grey-600)"
+          cancelButtonHoverColor="var(--color-grey-500)"
+          onConfirm={handleConfirmSubmit}
+          onCancel={handleCancelSubmit}
+        />
+      )}
     </>
   );
 }

@@ -1,178 +1,150 @@
-# Deployment Guide - Step by Step with OpenZeppelin Upgrades
+# Ignition ZK Deployment Guide
 
-This guide walks you through deploying the upgradeable smart contracts using the OpenZeppelin upgrades plugin in separate steps.
+This guide explains how to deploy the Ignition ZK governance system using the 5-step deployment process.
+
+## Overview
+
+The deployment process consists of 5 steps that deploy all necessary contracts in the correct order:
+
+1. **Step 0**: Deploy all verifier contracts
+2. **Step 1**: Deploy ERC721 implementation
+3. **Step 2**: Deploy MembershipManager and ProposalManager with verifier addresses
+4. **Step 3**: Deploy GovernanceManager
+5. **Step 4**: Finalize deployment and set up ownership
 
 ## Prerequisites
 
-1. **Environment Setup**: Ensure your `.env` file has the required variables:
-
-   ```
-   PRIVATE_KEY=your_private_key_here
-   ALCHEMY_SEPOLIA_URL=your_alchemy_url_here
-   ETHERSCAN_API_KEY=your_etherscan_api_key_here
-   ```
-
-2. **Dependencies**: Make sure all dependencies are installed:
-
-   ```bash
-   npm install
-   ```
-
-3. **Network Configuration**: The deployment is configured for Sepolia testnet.
-
-4. **Verifier Contracts**: Make sure all Verifier contract modules are deployed via Hardhat Ignition:
-```
-npx hardhat ignition deploy ignition/modules/ProposalVerifierModule.js --network sepolia
-```
-and 
-```
-npx hardhat ignition deploy ignition/modules/ProposalClaimVerifierModule.js --network sepolia
-```
-
+- Node.js and npm installed
+- Hardhat configured for your target network
+- Sufficient funds in your deployer account
+- All dependencies installed (`npm install`)
 
 ## Deployment Steps
 
-### Step 1: Deploy ERC721IgnitionZK Implementation
+### Step 0: Deploy Verifier Contracts
 
-Deploy the NFT implementation contract (not a proxy):
-
-```bash
-npx hardhat run scripts/deploy-step1-erc721.js --network sepolia
-```
-
-**Save the output address** - you'll need it for Step 2.
-
-### Step 2: Deploy MembershipManager as UUPS Proxy
-
-1. **Update the script**: Open `scripts/deploy-step2-membershipmanager.js`
-2. **Replace the placeholder**: Update `NFT_IMPLEMENTATION_ADDRESS` with the address from Step 1
-3. **Run the deployment**:
-   ```bash
-   npx hardhat run scripts/deploy-step2-membership-proposal-manager.js --network sepolia
-   ```
-
-**Save the output proxy address** (this is your **MembershipManager Proxy**) - you'll need it for Step 3.
-
-### Step 3: Deploy Governor as UUPS Proxy
-
-1. **Update the script**: Open `scripts/deploy-step3-governor.js`
-2. **Replace the placeholder**: Update `MEMBERSHIP_MANAGER_ADDRESS` with the proxy address from Step 2
-3. **Run the deployment**:
-   ```bash
-   npx hardhat run scripts/deploy-step3-governor.js --network sepolia
-   ```
-
-**Save the output proxy address** (this is your **Governor Proxy**) - you'll need it for Step 4.
-
-### Step 4: Finalize Deployment & Setup Ownership
-
-1. **Update the script**: Open `scripts/deploy-step4-finalize.js`
-2. **Replace the placeholders**: Update both `MEMBERSHIP_MANAGER_ADDRESS`, `GOVERNOR_ADDRESS` & `NFT_IMPLEMENTATION`
-3. **Run the finalization**:
-   ```bash
-   npx hardhat run scripts/deploy-step4-finalize.js --network sepolia
-   ```
-
-## Helper Scripts
-
-### Identify Deployed Contracts
-
-To see which addresses are MembershipManager and which are Governor, run:
+First, deploy all ZK-proof verifier contracts:
 
 ```bash
-npx hardhat run scripts/identify-contracts.js --network sepolia
+npx hardhat run scripts/deploy-step0-verifiers.js --network <your-network>
 ```
 
-This script will:
+This will deploy:
 
-- List all implementation and proxy addresses
-- Clearly label which is **MembershipManager** and which is **Governor**
-- Show the relayer and verifier addresses for extra clarity
+- `MembershipVerifier` - Verifies membership proofs
+- `ProposalVerifier` - Verifies proposal submission proofs
+- `ProposalClaimVerifier` - Verifies proposal claim proofs
+- `VoteVerifier` - Verifies voting proofs
 
-### Example Output
+**Save the deployed addresses** - you'll need them for Step 2.
 
+### Step 1: Deploy ERC721 Implementation
+
+Deploy the ERC721 implementation contract:
+
+```bash
+npx hardhat run scripts/deploy-step1-erc721.js --network <your-network>
 ```
-🔧 IMPLEMENTATION CONTRACTS:
-1. Address: 0xFDFc5aBEf488271F5Ce554511DDaf800D2deDE1A
-   📋 Type: MembershipManager Implementation
-2. Address: 0x2CF37e7a8d5BFf735ABD37aBa813CcF82256129f
-   📋 Type: Governor Implementation
 
-📦 PROXY CONTRACTS:
-1. Proxy Address: 0xCd07Bf51Ccd58A3B43eF407ca771497DE7744672
-   📋 Contract Type: MembershipManager Proxy
-2. Proxy Address: 0x62f8A5d3A2B578D46fdd8e9C02Ab0C30c2d9F9B9
-   📋 Contract Type: Governor Proxy
+**Save the deployed address** - you'll need it for Step 2.
+
+### Step 2: Deploy MembershipManager and ProposalManager
+
+Update the addresses in `deploy-step2-membership-proposal-manager.js` with the addresses from Steps 0 and 1, then run:
+
+```bash
+npx hardhat run scripts/deploy-step2-membership-proposal-manager.js --network <your-network>
 ```
+
+This deploys:
+
+- `MembershipManager` (UUPS proxy) - Manages group memberships and NFT deployments
+- `ProposalManager` (UUPS proxy) - Manages proposal submissions and claims
+
+**Save the deployed addresses** - you'll need them for Step 3.
+
+### Step 3: Deploy GovernanceManager
+
+Update the addresses in `deploy-step3-governor.js` with the addresses from Step 2, then run:
+
+```bash
+npx hardhat run scripts/deploy-step3-governor.js --network <your-network>
+```
+
+This deploys:
+
+- `GovernanceManager` (UUPS proxy) - Main governance contract that coordinates all operations
+
+**Save the deployed address** - you'll need it for Step 4.
+
+### Step 4: Finalize Deployment
+
+Update the addresses in `deploy-step4-finalize.js` with all previous addresses, then run:
+
+```bash
+npx hardhat run scripts/deploy-step4-finalize.js --network <your-network>
+```
+
+This step:
+
+- Transfers ownership of MembershipManager to GovernanceManager
+- Transfers ownership of ProposalManager to GovernanceManager
+- Verifies all ownership relationships are correct
 
 ## Contract Architecture
 
-After deployment, the contract relationships will be:
+After deployment, the contract hierarchy is:
 
 ```
-Owner/Relayer (EOA)
-    ↓ owns
-Governor (UUPS Proxy)
-    ↓ owns
-MembershipManager (UUPS Proxy)
-    ↓ owns (is admin)
-ERC721IgnitionZK (Implementation)
+GovernanceManager (Owner: Deployer)
+├── MembershipManager (Owner: GovernanceManager)
+│   ├── ERC721IgnitionZK Implementation
+│   └── MembershipVerifier
+└── ProposalManager (Owner: GovernanceManager)
+    ├── ProposalVerifier
+    └── ProposalClaimVerifier
 ```
 
-## Verification
+## Verifier Contracts
 
-### Verify Contracts on Etherscan
+The verifier contracts are critical for ZK-proof verification:
 
-After deployment, verify your contracts:
+- **MembershipVerifier**: Verifies that a user is a valid member of a group
+- **ProposalVerifier**: Verifies that a user can submit a proposal (must be a member)
+- **ProposalClaimVerifier**: Verifies that a user can claim a proposal they submitted
+- **VoteVerifier**: Verifies that a user can vote on proposals (must be a member)
 
-```bash
-npx hardhat verify --network sepolia <CONTRACT_ADDRESS> [CONSTRUCTOR_ARGS]
-```
+## Important Notes
 
-### Test the Setup
-
-You can test the deployment by:
-
-1. **Checking ownership**:
-
-   ```javascript
-   const membershipManagerOwner = await membershipManager.owner();
-   const governorOwner = await governor.owner();
-   ```
-
-2. **Deploying a group NFT**:
-   ```javascript
-   await governor.delegateDeployGroupNft(groupKey, "Test Group", "TEST");
-   ```
+1. **Address Updates**: You must manually update the hardcoded addresses in each script after running the previous step
+2. **Network Configuration**: Ensure your Hardhat config is set up for the target network
+3. **Gas Costs**: Verifier contracts are large and deployment can be expensive
+4. **Ownership**: The final owner of GovernanceManager should be your DAO or multisig wallet
+5. **Upgrades**: All manager contracts are upgradeable via UUPS proxy pattern
 
 ## Troubleshooting
 
 ### Common Issues
 
-1. **Gas Issues**: If deployment fails due to gas, increase gas limits in `hardhat.config.js`
-2. **Address Mismatch**: Ensure you're using the correct addresses from previous steps
-3. **Network Issues**: Verify your RPC URL and network configuration
+1. **Insufficient Gas**: Increase gas limit in deployment scripts
+2. **Wrong Network**: Double-check your Hardhat network configuration
+3. **Address Mismatch**: Ensure all addresses are correctly copied between steps
+4. **Ownership Errors**: Verify the deployer account has sufficient permissions
 
-### Reset Deployment
+### Verification
 
-To start over:
+After deployment, verify that:
 
-1. Delete the `.openzeppelin` folder
-2. Clear the `cache` folder
-3. Start from Step 1
-
-## Security Notes
-
-- Keep your private key secure
-- Verify all contract addresses before proceeding
-- Test on testnet before mainnet deployment
-- Consider using a multisig wallet for production deployments
+- All contracts are deployed and accessible
+- Ownership relationships are correctly set
+- Verifier contracts can be called by manager contracts
+- GovernanceManager can delegate calls to other contracts
 
 ## Next Steps
 
 After successful deployment:
 
-1. **Frontend Integration**: Update your frontend with the deployed contract addresses
-2. **Testing**: Run comprehensive tests on the deployed contracts
-3. **Documentation**: Update your project documentation with the new addresses
-4. **Monitoring**: Set up monitoring for your deployed contracts
+1. Verify contracts on block explorers
+2. Set up frontend configuration with new contract addresses
+3. Test the complete governance flow
+4. Transfer GovernanceManager ownership to your DAO
