@@ -1,6 +1,7 @@
 import { useMutation } from "@tanstack/react-query";
 import { supabase } from "../../services/supabase";
 import { insertGroupMember } from "../../services/apiGroupMembers";
+import { uuidToBytes32 } from "../../utils/uuidToBytes32";
 
 /**
  * Custom hook to deploy an ERC721 contract using the Supabase edge function relayer
@@ -69,12 +70,16 @@ export function useRelayerDeployERC721() {
         throw new Error("memberAddresses must be an array");
       }
 
+      // Convert the groupId UUID to bytes32 format
+      const groupKeyBytes32 = uuidToBytes32(groupId);
+
       // Call the Supabase edge function
       const { data, error } = await supabase.functions.invoke(
         "relayer-deploy-erc721",
         {
           body: {
-            groupKey: groupId.toString(), // Convert to string as expected by edge function
+            // !!!
+            groupKey: groupKeyBytes32.toString(), // Convert to string as expected by edge function
             name: tokenName,
             symbol: tokenSymbol,
             memberAddresses: memberAddresses || [], // Pass the array of addresses

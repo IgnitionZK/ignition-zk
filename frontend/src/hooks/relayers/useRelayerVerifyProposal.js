@@ -1,6 +1,7 @@
 import { useMutation } from "@tanstack/react-query";
 import { supabase } from "../../services/supabase";
 import { ZKProofGenerator } from "../../scripts/generateZKProof";
+import { uuidToBytes32 } from "../../utils/uuidToBytes32";
 
 /**
  * Custom hook to update Merkle tree root using the Supabase edge function relayer
@@ -67,13 +68,14 @@ export function useRelayerVerifyProposal() {
       });
 
       // Compute the context_key using Poseidon hash (groupKey, epochKey)
+      // this function applies modular reduction internally
       let contextKey;
       try {
         contextKey = await ZKProofGenerator.computeContextKey(
           groupKey.toString(),
           epochKey.toString()
         );
-
+        
         console.log(
           "[FRONTEND/useRelayerVerifyProposal] Computed context_key:",
           {
@@ -90,6 +92,15 @@ export function useRelayerVerifyProposal() {
         throw new Error(`Failed to compute context_key: ${error.message}`);
       }
 
+      // Convert the groupId UUID to bytes32 format
+      console.log("[FRONTEND/useRelayerVerifyProposal] Converting groupKey to bytes32 format");
+      console.log("Group Key to be converted:", groupKey);
+      const groupKeyBytes32 = uuidToBytes32(groupKey);
+      console.log(
+        "[FRONTEND/useRelayerVerifyProposal] Group Key Bytes32:",
+        groupKeyBytes32
+      );
+
       // Call the Supabase edge function
       const { data, error } = await supabase.functions.invoke(
         "relayer-verify-proposal",
@@ -97,7 +108,7 @@ export function useRelayerVerifyProposal() {
           body: {
             proof: proof.map((item) => item.toString()),
             public_signals: publicSignals.map((item) => item.toString()),
-            group_key: groupKey.toString(),
+            group_key: groupKeyBytes32.toString(), //groupKey.toString(),
             context_key: contextKey, // Send the pre-computed context_key
           },
           headers: {
