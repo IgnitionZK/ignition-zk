@@ -20,12 +20,10 @@ template VoteProof(treeLevels) {
 
     // Private inputs
     /**
-     * @notice voteChoice: the choice made by the voter (0 - Abstain, 1 - Yes, 2 - No).
-     * @notice voteTimestamp: the timestamp of the vote.
+     * @notice voteChoice: the choice made by the voter (0 - No, 1 - Yes, 2 - Abstain).
      * @dev These values are used to compute the vote content hash.
      */
     signal input voteChoice; 
-    signal input voteTimestamp; 
 
     /**
      * @notice identityTrapdoor: the secret key that is used in the generation of the final identity commitment.
