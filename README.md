@@ -273,7 +273,7 @@ When a DAO member wants to perform an action, like submitting or voting on a pro
 
 #### Step 2.1 Campaign Creation 
 
-![Campaign creation](frontend/src/assets/campaign_graph.png)
+![Campaign creation](frontend/src/assets/campaign_illustration.png)
 
 #### Step 2.2 Proposal Submission
 

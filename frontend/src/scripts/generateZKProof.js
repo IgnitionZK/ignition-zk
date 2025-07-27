@@ -14,7 +14,8 @@ import * as ethers from "ethers";
  */
 export class ZKProofGenerator {
   // Membership circuit paths
-  static #MEMBERSHIP_WASM_PATH = "/membership_circuit_instance/membership_circuit_instance.wasm";
+  static #MEMBERSHIP_WASM_PATH =
+    "/membership_circuit_instance/membership_circuit_instance.wasm";
   static #MEMBERSHIP_ZKEY_PATH =
     "/membership_circuit_instance/membership_circuit_instance_final.zkey";
   static #MEMBERSHIP_VKEY_PATH =
@@ -29,12 +30,9 @@ export class ZKProofGenerator {
     "/vote_circuit/vote_circuit_key.json";
 
   // Proposal circuit paths
-  static #PROPOSAL_WASM_PATH =
-    "/proposal_circuit/proposal_circuit.wasm";
-  static #PROPOSAL_ZKEY_PATH =
-    "/proposal_circuit/proposal_circuit_final.zkey";
-  static #PROPOSAL_VKEY_PATH =
-    "/proposal_circuit/proposal_circuit_key.json";
+  static #PROPOSAL_WASM_PATH = "/proposal_circuit/proposal_circuit.wasm";
+  static #PROPOSAL_ZKEY_PATH = "/proposal_circuit/proposal_circuit_final.zkey";
+  static #PROPOSAL_VKEY_PATH = "/proposal_circuit/proposal_circuit_key.json";
 
   // Proposal claim circuit paths
   static #PROPOSAL_CLAIM_WASM_PATH =
@@ -346,11 +344,14 @@ export class ZKProofGenerator {
     const proposalClaimHashBigInt = BigInt(proposalClaimHash);
     const proposalSubmissionHashBigInt = BigInt(proposalSubmissionHash);
     console.log("Proposal Claim Hash BigInt:", proposalClaimHashBigInt);
-    console.log("Proposal Submission Hash BigInt:", proposalSubmissionHashBigInt);
-    
+    console.log(
+      "Proposal Submission Hash BigInt:",
+      proposalSubmissionHashBigInt
+    );
+
     const poseidon = await this.#getPoseidon();
     const F = poseidon.F;
-    
+
     const proposalContextHash = F.toObject(
       poseidon([groupHashBigInt, epochHashBigInt])
     );
@@ -360,7 +361,7 @@ export class ZKProofGenerator {
       proposalClaimNullifier: proposalClaimHashBigInt.toString(),
       proposalSubmissionNullifier: proposalSubmissionHashBigInt.toString(),
       proposalContextHash: proposalContextHash.toString(),
-      identityNullifier: merkleProofInput.identityNullifier
+      identityNullifier: merkleProofInput.identityNullifier,
     };
     console.log("Circuit Input for Proposal Claim:", circuitInput);
 

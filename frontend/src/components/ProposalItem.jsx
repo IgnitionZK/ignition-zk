@@ -112,8 +112,6 @@ function ProposalItem({ proposal = {} }) {
     proposal.group_id
   );
 
-  console.log(proposal);
-
   // Guard clause to handle undefined/null proposal
   if (!proposal || typeof proposal !== "object") {
     return (

@@ -150,10 +150,80 @@ export const useGenerateProof = () => {
     }
   };
 
+  /**
+   * Generates membership circuit input from commitment array and mnemonic
+   * @param {string[]} commitmentArray - Array of commitment values
+   * @param {string} mnemonic - Mnemonic phrase
+   * @param {string} groupId - Group ID value
+   * @returns {Promise<Object>} Generated circuit input
+   * @throws {Error} If circuit input generation fails
+   */
+  const generateMembershipCircuitInput = async (
+    commitmentArray,
+    mnemonic,
+    groupId
+  ) => {
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      const input = await ZKProofGenerator.generateMembershipCircuitInput(
+        mnemonic,
+        commitmentArray,
+        groupId
+      );
+      setCircuitInput(input);
+      return input;
+    } catch (err) {
+      setError(err.message || "Failed to generate membership circuit input");
+      throw err;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  /**
+   * Generates a complete membership proof from raw inputs
+   * @param {string[]} commitmentArray - Array of commitment values
+   * @param {string} mnemonic - Mnemonic phrase
+   * @param {string} groupId - Group ID value
+   * @returns {Promise<Object>} Object containing proof, public signals, and circuit type
+   * @throws {Error} If proof generation fails
+   */
+  const generateMembershipProofFromInput = async (
+    commitmentArray,
+    mnemonic,
+    groupId
+  ) => {
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      // First generate the membership circuit input
+      const input = await generateMembershipCircuitInput(
+        commitmentArray,
+        mnemonic,
+        groupId
+      );
+
+      // Then generate the proof using the circuit input
+      const { proof, publicSignals } = await generateProof(input, "membership");
+
+      return { proof, publicSignals, circuitType: "membership" };
+    } catch (err) {
+      setError(err.message || "Failed to generate membership proof from input");
+      throw err;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return {
     generateCircuitInput,
+    generateMembershipCircuitInput,
     generateProof,
     generateProofFromInput,
+    generateMembershipProofFromInput,
     isLoading,
     error,
     circuitInput,
