@@ -70,17 +70,21 @@ describe("Proposal Manager Unit Tests:", function () {
     let mockClaimPublicSignals2;
 
     // real proof inputs
+    let realRoot;
     let realGroupId;
     let realEpochId;
     let realGroupKey;
     let realEpochKey;
     let realContextKey;
-    let ProofContextHash;
-    let ProofSubmissionNullifier;
-    let ProofClaimNullifier;
-    let ProofContentHash;
-    let ProofRoot;
+    let proofContextHash;
+    let proofSubmissionNullifier;
+    let proofClaimNullifier;
+    let proofContentHash;
+    let proofRoot;
+    let realProof
     let realPublicSignals;
+    let realClaimProof;
+    let realClaimPublicSignals;
 
 
     // RUN ONCE BEFORE ALL TESTS
@@ -169,22 +173,85 @@ describe("Proposal Manager Unit Tests:", function () {
             contextKey
         ];
 
-        // Real submission proof inputs (CHANGE VALUES)
-        realGroupId = '97dca094-bdd7-419b-a91a-5ea1f2aa0537';
-        realEpochId = '2935f80b-9cbd-4000-8342-476b97148ee7';
+        // Real submission proof inputs 
+        realGroupId = '21fae0f7-096f-4c8f-8515-93b9f247582d';
+        realEpochId = '06134393-4412-4e46-9534-85186ea7bbe8';
         realGroupKey = Conversions.stringToBytes32(realGroupId);
         realEpochKey = Conversions.stringToBytes32(realEpochId);
         realContextKey = await Conversions.computeContextKey(realGroupId, realEpochId);
-        realRoot = ethers.toBeHex(12886375653922554679898676191015074420004311699425387307536167956555820652530n);
-        realProof =  [21324237216059067856001326008772402094911947511781008238699193212067506059989n, 2864945365585520580736445144193166667326617123191518303094327819055881893898n, 9465494702140843923161382740269992595504500424060825556224998583474537660180n, 16030498518445137856991221074247654384343749586559714739092600138780412645932n, 13206405049855604729091182801886236353027936746167389593413006162046950936130n, 4048180889747018366596516152682952495036411690853460926059538542586053452269n, 12609570602713816352353876541250421869933566683310145723520331357194292610763n, 7230708155655109188106883860486515119339867121429646046968379650376224850635n, 10422160017288146940026661823861144153069562258697813729447351579113292282332n, 19224572988623427900696980611184826575794205115052705819015127040433839387340n, 5464458218254524957773989784775535143151978126599232326359107991462941009341n, 17466015331361201857470101198136594356860417506221180269276007831559430608536n, 104111675735261926963102685527169626976556205102093081135657122263364031072n, 9647909420810049351150150731868472034940891632806970684008044685699041691902n, 5517304425124738952479655672080171447245708475489731074753736114408015336376n, 3992323730999170742568732932045647379760079477966357347131073234751644727731n, 21584736187497331654923350559507029513407311458396545387156833371106030587174n, 13124016152208354295720478942441341704945400125661605774849977175789656556849n, 94371825887095281395457359605641036224334013945154747165660946136508967536n, 20181668522149303921765270504092927578505186714381356313094322561091892021144n, 2428657391978333859718446390862958247155977941182284203839625529708575207306n, 11530011789437837834442028418577495349735102949773935147946044166578468073553n, 2820924891891396715015254206148811560495416088414132819592239590142857455122n, 11400422769785768671708829126366377902307285817944352534175654791039801233298n]
-        realPublicSignals = [1783858561640217141101142531165136293815429284532457890755617800207039425768n, 1783858561640217141101142531165136293815429284532457890755617800207039425768n, 7386565541285461939014061068084680752417332123732607638853227510160241742544n, 12886375653922554679898676191015074420004311699425387307536167956555820652530n, 1086211582699940520437986923287385710360225269413071107044506549724688350225n]
-        ProofContextHash = ethers.toBeHex(realPublicSignals[0], 32);
-        ProofSubmissionNullifier = ethers.toBeHex(realPublicSignals[1], 32);
-        ProofClaimNullifier = ethers.toBeHex(realPublicSignals[2], 32);
-        ProofRoot = ethers.toBeHex(realPublicSignals[3], 32);
-        ProofContentHash = ethers.toBeHex(realPublicSignals[4], 32);
+        realRoot = ethers.toBeHex(8382028473019880437532291517957501217880306914202305497790783762876650668442n);
+        realProof =  [
+            4160082357726907288154962751768800619364547905185501987938567395992963626756n,
+            8625191419888166001787288936525491236965189171168431531580450179034558022628n,
+            8663426768450541325893863068057652087373433414669976966805392185357166988298n,
+            4370380180872603991303613753283339003660679138439446445411511540846534579473n,
+            14535668297481111487584752732259061609062369960463252113342295661612480217875n,
+            13464746825577454986616840409467983179939738709257645654324715365483280308240n,
+            12482547363391314789048825926158576636653280918225939537422051376247206025379n,
+            6425173490738242109124751003607921391818549286250922120905300269803872297520n,
+            21867122944002752806844061013556642734340120630422574202220999464430872253739n,
+            18303335069190759842167583153896225853680476424013584621050786623335449686685n,
+            6227545735508585745608419115002984035075442362970894397791904138026328673325n,
+            14382361922826105148392868704816988202231434486726405491561867922774534631091n,
+            9552428347965547746691501869392784606122155596379513751104949012052750544211n,
+            2302755567771284608940437217367815749744276219766254297504221627205993546298n,
+            19871946349315711705904003513613176206359316972300765120626593295263110998032n,
+            3323578654821101975665354060651301996026442820081832378114947301446748033323n,
+            3010626687343341210674142569935787964497430514255055837156821427657034889090n,
+            20814825545369736445078060111030960560292045692197797944294659313624178305723n,
+            8809555674879872451626294962074150505479982682178138755219803710877310372357n,
+            1551989834106132465664208243483421133538165958314739599389780100567667732048n,
+            712496314335736147322087972926575111220098174587906109568858392078735395668n,
+            2011994745874617327408216421498351059169876092504697566598493992683855101105n,
+            17407614594591813575087546676494537031868753905141623450388448398354606953774n,
+            19925841242912817942652827919213205403554809012254685308740983652900643995042n
+        ];
 
-        // Real claim proof inputs (ADD VALUES)
+        realPublicSignals = [
+            10784837327942539940262199572332172861641502897581390099206106957093606019065n,
+            11437135861965939255357707860095145538920168988595282139508950839172378710733n,
+            18657539368208857675267473580234674446480662122335439399989949196824462772537n,
+            8382028473019880437532291517957501217880306914202305497790783762876650668442n,
+            4227634804796440866596074335636719855117858676967569745568900499808312409208n
+        ];
+        proofContextHash = ethers.toBeHex(realPublicSignals[0], 32);
+        proofSubmissionNullifier = ethers.toBeHex(realPublicSignals[1], 32);
+        proofClaimNullifier = ethers.toBeHex(realPublicSignals[2], 32);
+        proofRoot = ethers.toBeHex(realPublicSignals[3], 32);
+        proofContentHash = ethers.toBeHex(realPublicSignals[4], 32);
+
+        // Real claim proof inputs
+        realClaimProof = [       
+            17022331385491674352656711953572521334764478826855946644636639963938221138413n,
+            13337814841785982322066856443939408100968278096512154546697259056428429584094n,
+            8883627696396774374357596422972368278011072566085500716483555474754647564880n,
+            5438389370482609175775618075204450083954805113708375793323243869015057601338n,
+            6374740200591525703549142787463554041675631437883820441502575678351557131796n,
+            13387079409746748113007800474053907895840107982340179099597766196784974628091n,
+            20629616285169984666713518995120722745602095075070123925245113269902058659715n,
+            10839288422678664499811083521520036398385931316745759488209591614033422711300n,
+            9179551507929582257092430526783606917123042311680961270553288412408483991n,
+            4644079564805158252918109860134909564745972357973182387883736159551091614454n,
+            4836649542050320363278663492077397639479099273406457765089203615520299906911n,
+            14821584109745652907827166850740593603967080112453213443093852511391780831164n,
+            8776842109124755821482698920281245695037982148421048179581669504061849457375n,
+            17249709923036293211235032073846080957568089077345548342437778640774874525220n,
+            12787412407414482081427135293389433704689940515527535533457097261196022783631n,
+            5193929429869679588142346251997675979203081582481432677113650182748612673264n,
+            5724811214610435675026298931259868477631400132202027438663902112076766389553n,
+            10987109609173640378042984797428872255421003208080005028994376853078165031572n,
+            13819930228950491354084334551567566975985914459182249330260977602831388358273n,
+            10419181180601177277516732109696985589616135635552566285580719655557627216936n,
+            19474163458552574499479589850520692943944105435988781409290709534298908192326n,
+            11336422004633526528374124157024614104309973643386717948558256508497276422392n,
+            15534725659224339149667733889992013871633648659281584426665332857365408128934n,
+            7141974369526416983448047383179455418470281347379905821373483403101987276473n
+        ];      
+        realClaimPublicSignals = [
+            18657539368208857675267473580234674446480662122335439399989949196824462772537n,
+            11437135861965939255357707860095145538920168988595282139508950839172378710733n,
+            10784837327942539940262199572332172861641502897581390099206106957093606019065n
+        ];
 
     });
 
@@ -689,9 +756,128 @@ describe("Proposal Manager Unit Tests:", function () {
         )).to.be.revertedWithCustomError(proposalManager, "InvalidSubmissionProof").withArgs(contextKey, submissionNullifier1);
     });
 
+    it(`FUNCTION: verifyProposal (with real verifier & real proof)
+        TESTING: event: SubmissionVerified, stored data: submissionNullifier
+        EXPECTED: should allow the governor to verify a proposal with a valid proof`, async function () {
+        await deployGroupNftAndInitRoot(governor, realGroupKey, nftName, nftSymbol, realRoot);
+        await expect(proposalManager.connect(governor).verifyProposal(
+            realProof,
+            realPublicSignals,
+            realContextKey,
+            realRoot
+        )).to.emit(proposalManager, "SubmissionVerified").withArgs(
+            proofContextHash,
+            proofSubmissionNullifier,
+            proofClaimNullifier,
+            proofContentHash
+        );
 
-    it("verifyProposal / REAL VERIFIER, REAL PROOF: should allow the governor to verify a proposal with a valid proof", async function () {
-        console.log("TO DO:");
+        const submissionNullifierStatus = await proposalManager.connect(governor).getSubmissionNullifierStatus(proofSubmissionNullifier);
+        expect(submissionNullifierStatus).to.equal(true, "Submission nullifier status should be true after verification");
+    });
+
+    it(`FUNCTION: verifyProposal (with real verifier, valid proof, invalid public signals)
+        TESTING: custom error: InvalidContextHash
+        EXPECTED: should not allow the governor to verify a proposal with a valid proof array and an invalid context key in the public signals`, async function () {
+        await deployGroupNftAndInitRoot(governor, realGroupKey, nftName, nftSymbol, realRoot);
+
+        // change one value in the public signals to make the proof invalid
+        const invalidPublicSignals = [...realPublicSignals];
+
+        // increment the first public signal (context key) to make it invalid
+        invalidPublicSignals[0] = invalidPublicSignals[0] + BigInt(1);
+        
+        await expect(proposalManager.connect(governor).verifyProposal(
+            realProof,
+            invalidPublicSignals,
+            realContextKey,
+            realRoot
+        )).to.be.revertedWithCustomError(proposalManager, "InvalidContextHash");
+    });
+
+    it(`FUNCTION: verifyProposal (with real verifier, valid proof, invalid public signals)
+        TESTING: custom error: InvalidSubmissionProof
+        EXPECTED: should not allow the governor to verify a proposal with a valid proof array and an invalid submission nullifier in the public signals`, async function () {
+        await deployGroupNftAndInitRoot(governor, realGroupKey, nftName, nftSymbol, realRoot);
+
+        // change one value in the public signals to make the proof invalid
+        const invalidPublicSignals = [...realPublicSignals];
+
+        // increment the second public signal (submission nullifier) to make it invalid
+        invalidPublicSignals[1] = invalidPublicSignals[1] + BigInt(1);
+        
+        await expect(proposalManager.connect(governor).verifyProposal(
+            realProof,
+            invalidPublicSignals,
+            realContextKey,
+            realRoot
+        )).to.be.revertedWithCustomError(proposalManager, "InvalidSubmissionProof").withArgs(
+            realContextKey,
+            invalidPublicSignals[1]
+        );
+    });
+
+    it(`FUNCTION: verifyProposal (with real verifier, valid proof, invalid public signals)
+        TESTING: custom error: InvalidSubmissionProof
+        EXPECTED: should not allow the governor to verify a proposal with a valid proof array and an invalid claim nullifier in the public signals`, async function () {
+        await deployGroupNftAndInitRoot(governor, realGroupKey, nftName, nftSymbol, realRoot);
+
+        // change one value in the public signals to make the proof invalid
+        const invalidPublicSignals = [...realPublicSignals];
+
+        // increment the third public signal (claim nullifier) to make it invalid
+        invalidPublicSignals[2] = invalidPublicSignals[2] + BigInt(1);
+        
+        await expect(proposalManager.connect(governor).verifyProposal(
+            realProof,
+            invalidPublicSignals,
+            realContextKey,
+            realRoot
+        )).to.be.revertedWithCustomError(proposalManager, "InvalidSubmissionProof").withArgs(
+            realContextKey,
+            invalidPublicSignals[1]
+        );
+    });
+
+    it(`FUNCTION: verifyProposal (with real verifier, valid proof, invalid public signals)
+        TESTING: custom error: InvalidMerkleRoot
+        EXPECTED: should not allow the governor to verify a proposal with a valid proof array and an invalid root in the public signals`, async function () {
+        await deployGroupNftAndInitRoot(governor, realGroupKey, nftName, nftSymbol, realRoot);
+
+        // change one value in the public signals to make the proof invalid
+        const invalidPublicSignals = [...realPublicSignals];
+
+        // increment the 4th public signal (claim nullifier) to make it invalid
+        invalidPublicSignals[3] = invalidPublicSignals[3] + BigInt(1);
+        
+        await expect(proposalManager.connect(governor).verifyProposal(
+            realProof,
+            invalidPublicSignals,
+            realContextKey,
+            realRoot
+        )).to.be.revertedWithCustomError(proposalManager, "InvalidMerkleRoot");
+    });
+
+    it(`FUNCTION: verifyProposal (with real verifier, valid proof, invalid public signals)
+        TESTING: custom error: InvalidSubmissionProof
+        EXPECTED: should not allow the governor to verify a proposal with a valid proof array and an invalid content hash in the public signals`, async function () {
+        await deployGroupNftAndInitRoot(governor, realGroupKey, nftName, nftSymbol, realRoot);
+
+        // change one value in the public signals to make the proof invalid
+        const invalidPublicSignals = [...realPublicSignals];
+
+        // increment the 5th public signal (content hash) to make it invalid
+        invalidPublicSignals[4] = invalidPublicSignals[4] + BigInt(1);
+        
+        await expect(proposalManager.connect(governor).verifyProposal(
+            realProof,
+            invalidPublicSignals,
+            realContextKey,
+            realRoot
+        )).to.be.revertedWithCustomError(proposalManager, "InvalidSubmissionProof").withArgs(
+            realContextKey,
+            invalidPublicSignals[1]
+        );
     });
 
     it(`FUNCTION: verifyProposalClaim (with mock claim verifier)
@@ -837,6 +1023,108 @@ describe("Proposal Manager Unit Tests:", function () {
             mockClaimPublicSignals1,
             contextKey
         )).to.be.revertedWithCustomError(proposalManager, "InvalidClaimProof");
+    });
+
+    it(`FUNCTION: verifyProposalClaim (with real verifier & real proof)
+        TESTING: event: ClaimVerified, stored data: claimNullifier
+        EXPECTED: should allow the governor to verify a proposal claim with a valid proof`, async function () {
+        await deployGroupNftAndInitRoot(governor, realGroupKey, nftName, nftSymbol, realRoot);
+        await proposalManager.connect(governor).verifyProposal(
+            realProof,
+            realPublicSignals,
+            realContextKey,
+            realRoot
+        );
+
+        const submissionNullifierStatus = await proposalManager.connect(governor).getSubmissionNullifierStatus(proofSubmissionNullifier);
+        expect(submissionNullifierStatus).to.equal(true, "Submission nullifier status should be true after verification");
+
+        await expect(proposalManager.connect(governor).verifyProposalClaim(
+            realClaimProof,
+            realClaimPublicSignals,
+            realContextKey
+        )).to.emit(proposalManager, "ClaimVerified").withArgs(
+            proofContextHash,
+            proofClaimNullifier,
+            proofSubmissionNullifier
+        );
+
+        const claimNullifierStatus = await proposalManager.connect(governor).getClaimNullifierStatus(proofClaimNullifier);
+        expect(claimNullifierStatus).to.equal(true, "Claim nullifier status should be true after verification");
+    });
+
+    it(`FUNCTION: verifyProposalClaim (with real verifier, real proof, invalid public signals)
+        TESTING: custom error: InvalidClaimProof
+        EXPECTED: should not allow the governor to verify a proposal claim with a valid proof and an invalid claim nullifier in the public signals`, async function () {
+        await deployGroupNftAndInitRoot(governor, realGroupKey, nftName, nftSymbol, realRoot);
+        await proposalManager.connect(governor).verifyProposal(
+            realProof,
+            realPublicSignals,
+            realContextKey,
+            realRoot
+        );
+
+        const invalidClaimPublicSignals = [...realClaimPublicSignals];
+        // increment the first public signal (claim nullifier) to make it invalid
+        invalidClaimPublicSignals[0] = invalidClaimPublicSignals[0] + BigInt(1);
+
+        await expect(proposalManager.connect(governor).verifyProposalClaim(
+            realClaimProof,
+            invalidClaimPublicSignals,
+            realContextKey
+        )).to.be.revertedWithCustomError(proposalManager, "InvalidClaimProof").withArgs(
+            realContextKey,
+            invalidClaimPublicSignals[0],
+            proofSubmissionNullifier
+        );
+    });
+
+    it(`FUNCTION: verifyProposalClaim (with real verifier, real proof, invalid public signals)
+        TESTING: custom error: ProposalHasNotBeenSubmitted
+        EXPECTED: should not allow the governor to verify a proposal claim with a valid proof and an invalid submission nullifier in the public signals`, async function () {
+        await deployGroupNftAndInitRoot(governor, realGroupKey, nftName, nftSymbol, realRoot);
+        await proposalManager.connect(governor).verifyProposal(
+            realProof,
+            realPublicSignals,
+            realContextKey,
+            realRoot
+        );
+
+        // increment the 2nd public signal (submission nullifier) to make it invalid
+        const invalidClaimPublicSignals = [...realClaimPublicSignals];
+        invalidClaimPublicSignals[1] = invalidClaimPublicSignals[1] + BigInt(1);
+
+        const submissionNullifier = ethers.toBeHex(invalidClaimPublicSignals[1],32);
+        const submissionNullifierStatus = await proposalManager.connect(governor).getSubmissionNullifierStatus(submissionNullifier);
+        expect(submissionNullifierStatus).to.equal(false, "Submission nullifier status should be false for an invalid submission nullifier");
+
+        await expect(proposalManager.connect(governor).verifyProposalClaim(
+            realClaimProof,
+            invalidClaimPublicSignals,
+            realContextKey
+        )).to.be.revertedWithCustomError(proposalManager, "ProposalHasNotBeenSubmitted");
+    });
+
+    it(`FUNCTION: verifyProposalClaim (with real verifier, real proof, invalid public signals)
+        TESTING: custom error: InvalidContextHash
+        EXPECTED: should not allow the governor to verify a proposal claim with a valid proof and an invalid context hash in the public signals`, async function () {
+        await deployGroupNftAndInitRoot(governor, realGroupKey, nftName, nftSymbol, realRoot);
+        await proposalManager.connect(governor).verifyProposal(
+            realProof,
+            realPublicSignals,
+            realContextKey,
+            realRoot
+        );
+
+        // increment the 3rd public signal (context hash) to make it invalid
+        const invalidClaimPublicSignals = [...realClaimPublicSignals];
+        invalidClaimPublicSignals[2] = invalidClaimPublicSignals[2] + BigInt(1);
+
+        await expect(proposalManager.connect(governor).verifyProposalClaim(
+            realClaimProof,
+            invalidClaimPublicSignals,
+            realContextKey
+        )).to.be.revertedWithCustomError(proposalManager, "InvalidContextHash");
     });
 
     it(`FUNCTION: getClaimNullifierStatus

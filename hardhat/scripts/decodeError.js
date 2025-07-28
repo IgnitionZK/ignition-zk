@@ -11,9 +11,9 @@ async function main() {
     }
     }
 
-    const selector = "0x44953053";
+    const selector = "0x6767c25c";
 
-    const errorSignatures = [
+    const errorSignaturesMM = [
         "OwnableUnauthorizedAccount()",
         "RootCannotBeZero()",        
         "InvalidMerkleRoot()",
@@ -41,29 +41,26 @@ async function main() {
         "AddressDoesNotSupportInterface()"
     ];
     
-    findMatchingError(selector, errorSignatures);
-
-    // 0x44953053
-
-    const originalGroupId = '3ac03f73-b1b2-4358-88ef-82dd58c0870a';
-    const bytes32GroupId = ethers.toBeHex(ethers.keccak256(ethers.toUtf8Bytes(originalGroupId)), 32);
-    const bytes32GroupIdWithModularReduction = ethers.toBeHex(
-    BigInt(ethers.keccak256(ethers.toUtf8Bytes(originalGroupId))) %
-    BigInt("21888242871839275222246405745257275088548364400416034343698204186575808495617"),
-    32
-    );  
-
-    console.log("Original groupId:", originalGroupId);
-    console.log("Bytes32 representation of groupId:", bytes32GroupId);
-    console.log("Bytes32 representation with modular reduction:", bytes32GroupIdWithModularReduction);
-
-    // GM 0x96CebDEddF629537Ae5757fDB13AD3820A550f1D
-    // get contract at:
-    const contractAddress = "0x96CebDEddF629537Ae5757fDB13AD3820A550f1D";
-    const contract = await ethers.getContractAt("GovernanceManager", contractAddress);
-
+    const errorSignaturesPM = [
+        "OwnableUnauthorizedAccount()",
+        "InvalidMerkleRoot()",
+        "RootAlreadyInitialized()",
+        "RootNotYetInitialized()",
+        "InvalidSubmissionProof(bytes32,bytes32)",
+        "InvalidClaimProof(bytes32,bytes32,bytes32)",
+        "SubmissionNullifierAlreadyUsed()",
+        "ClaimNullifierAlreadyUsed()",
+        "InvalidContextHash()",
+        "InvalidContentHash()",
+        "ProposalHasNotBeenSubmitted()",
+        "ProposalHasAlreadyBeenClaimed()",
+        "AddressCannotBeZero()",
+        "AddressIsNotAContract()",
+        "AddressDoesNotSupportInterface()",
+        "KeyCannotBeZero()"
+    ];
     
-
+    findMatchingError(selector, errorSignaturesPM);
 }
 
 main().catch(console.error);
