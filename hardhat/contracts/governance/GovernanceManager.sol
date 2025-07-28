@@ -4,7 +4,11 @@ pragma solidity ^0.8.28;
 // interfaces
 import { IMembershipManager } from "../interfaces/IMembershipManager.sol";
 import { IProposalManager } from "../interfaces/IProposalManager.sol";
+import { IVoteManager } from "../interfaces/IVoteManager.sol";
 import { IERC165 } from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
+
+// types
+import { VoteTypes } from "../types/VoteTypes.sol";
 
 // UUPS imports:
 import { UUPSUpgradeable } from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
@@ -73,6 +77,12 @@ contract GovernanceManager is Initializable, UUPSUpgradeable, OwnableUpgradeable
      */
     event ProposalManagerSet(address indexed newProposalManager);
 
+    /**
+     * @notice Emitted when the vote manager address is updated.
+     * @param newVoteManager The new address of the vote manager.
+     */
+    event VoteManagerSet(address indexed newVoteManager);
+
 // ====================================================================================================================
 //                                              STATE VARIABLES
 // NOTE: Once the contract is deployed do not change the order of the variables. If this contract is updated append new variables to the end of this list. 
@@ -86,6 +96,9 @@ contract GovernanceManager is Initializable, UUPSUpgradeable, OwnableUpgradeable
 
     /// @dev The interface of the proposal manager contract
     IProposalManager private proposalManager;
+
+    /// @dev The interface of the vote manager contract
+    IVoteManager private voteManager;
 
 // ====================================================================================================================
 //                                                  MODIFIERS
@@ -112,26 +125,30 @@ contract GovernanceManager is Initializable, UUPSUpgradeable, OwnableUpgradeable
 //                                 CONSTRUCTOR / INITIALIZER / UPGRADE AUTHORIZATION
 // ====================================================================================================================
     /**
-     * @dev Initializes the contract with the initial owner, relayer, and membership manager addresses.
+     * @dev Initializes the contract with the initial owner, relayer, and manager addresses.
      * @param _initialOwner The address of the initial owner of the contract.
      * @param _relayer The address of the relayer, which must not be zero.
      * @param _membershipManager The address of the membership manager, which must not be zero.
      * @param _proposalManager The address of the proposal manager, which must not be zero.
+     * @param _voteManager The address of the vote manager, which must not be zero.
      * @custom:error RelayerAddressCannotBeZero If the provided relayer address is zero.
      * @custom:error MembershipAddressCannotBeZero If the provided membership manager address is zero.
      * @custom:error ProposalAddressCannotBeZero If the provided proposal manager address is zero.
+     * @custom:error VoteAddressCannotBeZero If the provided vote manager address is zero.
      */
     function initialize(
         address _initialOwner,
         address _relayer,
         address _membershipManager,
-        address _proposalManager
+        address _proposalManager,
+        address _voteManager
     ) 
         external 
         initializer 
         nonZeroAddress(_relayer)
         nonZeroAddress(_membershipManager)
         nonZeroAddress(_proposalManager)
+        nonZeroAddress(_voteManager)
     {
         __Ownable_init(_initialOwner);
         __UUPSUpgradeable_init();
@@ -140,10 +157,12 @@ contract GovernanceManager is Initializable, UUPSUpgradeable, OwnableUpgradeable
         relayer = _relayer;
         membershipManager = IMembershipManager(_membershipManager);
         proposalManager = IProposalManager(_proposalManager);
+        voteManager = IVoteManager(_voteManager);
 
         emit RelayerSet(_relayer);
         emit MembershipManagerSet(_membershipManager);
         emit ProposalManagerSet(_proposalManager);
+        emit VoteManagerSet(_voteManager);
     }
 
     /**
@@ -409,6 +428,65 @@ contract GovernanceManager is Initializable, UUPSUpgradeable, OwnableUpgradeable
         proposalManager.verifyProposalClaim(proof, publicSignals, contextKey);
     }
 
+    // ================================================================================================================
+    // 3. VoteManager Delegation Functions
+    // ================================================================================================================
+
+    /**
+     * @notice Delegates the setVoteVerifier call to the vote manager.
+     * @dev Only callable by the owner.
+     * @param voteVerifier The address of the new vote verifier contract.
+     */
+    function delegateSetVoteVerifier(address voteVerifier) external onlyOwner {
+        voteManager.setVoteVerifier(voteVerifier);
+    }
+
+    /**
+     * @notice Delegates the verifyVote call to the vote manager.
+     * @dev Only callable by the relayer.
+     * @param proof The zk-SNARK proof to verify.
+     * @param publicSignals The public signals associated with the proof.
+     * @param contextKey The pre-computed context hash (group, epoch).
+     * @param groupKey The unique identifier for the voting group.
+     * @param currentRoot The current Merkle root from the MembershipManager contract.
+     */
+    function delegateVerifyVote(
+        uint256[24] calldata proof,
+        uint256[4] calldata publicSignals,
+        bytes32 contextKey,
+        bytes32 groupKey,
+        bytes32 currentRoot
+    ) external onlyRelayer {
+        voteManager.verifyVote(proof, publicSignals, contextKey, groupKey, currentRoot);
+    }
+
+    /**
+     * @notice Delegates the setMemberCount call to the vote manager.
+     * @dev Only callable by the relayer.
+     * @param groupKey The unique identifier for the voting group.
+     * @param memberCount The number of members in the voting group.
+     */
+    function delegateSetMemberCount(bytes32 groupKey, uint256 memberCount) external onlyRelayer {
+        voteManager.setMemberCount(groupKey, memberCount);
+    }
+
+    /**
+     * @notice Delegates the setQuorumParams call to the vote manager.
+     * @dev Only callable by the owner.
+     * @param minQuorumPercent The minimum quorum percentage value that can be used.
+     * @param maxQuorumPercent The maximum quorum percentage value that can be used.
+     * @param maxGroupSizeForMinQuorum The maximum group size for which the minimum quorum percentage applies.
+     * @param minGroupSizeForMaxQuorum The minimum group size for which the maximum quorum percentage applies.
+     */
+    function delegateSetQuorumParams(
+        uint256 minQuorumPercent,
+        uint256 maxQuorumPercent,
+        uint256 maxGroupSizeForMinQuorum,
+        uint256 minGroupSizeForMaxQuorum
+    ) external onlyOwner {
+        voteManager.setQuorumParams(minQuorumPercent, maxQuorumPercent, maxGroupSizeForMinQuorum, minGroupSizeForMaxQuorum);
+    }
+
 // ====================================================================================================================
 // ====================================================================================================================
 //                           EXTERNAL VIEW FUNCTIONS (FORWARDED VIA GOVERNANCE)
@@ -500,6 +578,58 @@ contract GovernanceManager is Initializable, UUPSUpgradeable, OwnableUpgradeable
         return proposalManager.getClaimNullifierStatus(nullifier);
     }   
 
+    // ================================================================================================================
+    // 3. VoteManager Delegation Functions
+    // ================================================================================================================
+
+    /**
+     * @notice Delegates the getVoteVerifier call to the vote manager.
+     * @dev Only callable by the relayer.
+     * @return The address of the vote verifier contract.
+     */
+    function delegateGetVoteVerifier() external view onlyRelayer returns (address) {
+        return voteManager.getVoteVerifier();
+    }
+
+    /**
+     * @notice Delegates the getVoteNullifierStatus call to the vote manager.
+     * @dev Only callable by the relayer.
+     * @param nullifier The vote nullifier to check.
+     * @return The status of the vote nullifier (true if used, false if not).
+     */
+    function delegateGetVoteNullifierStatus(bytes32 nullifier) external view onlyRelayer returns (bool) {
+        return voteManager.getVoteNullifierStatus(nullifier);
+    }
+
+    /**
+     * @notice Delegates the getGroupParams call to the vote manager.
+     * @dev Only callable by the relayer.
+     * @param groupKey The unique identifier for the voting group.
+     * @return params The group parameters including member count and quorum settings.
+     */
+    function delegateGetGroupParams(bytes32 groupKey) external view onlyRelayer returns (VoteTypes.GroupParams memory params) {
+        return voteManager.getGroupParams(groupKey);
+    }
+
+    /**
+     * @notice Delegates the getProposalResult call to the vote manager.
+     * @dev Only callable by the relayer.
+     * @param contextKey The pre-computed context hash (group, epoch, proposal).
+     * @return result The proposal result including the vote tally and proposal passed status.
+     */
+    function delegateGetProposalResult(bytes32 contextKey) external view onlyRelayer returns (VoteTypes.ProposalResult memory result) {
+        return voteManager.getProposalResult(contextKey);
+    }
+
+    /**
+     * @notice Delegates the getQuorumParams call to the vote manager.
+     * @dev Only callable by the relayer.
+     * @return params The quorum parameters including minimum and maximum quorum percentages and group size thresholds.
+     */
+    function delegateGetQuorumParams() external view onlyRelayer returns (VoteTypes.QuorumParams memory params) {
+        return voteManager.getQuorumParams();
+    }
+
 // ====================================================================================================================
 //                                   EXTERNAL VIEW FUNCTIONS (NOT FORWARDED)
 // ====================================================================================================================
@@ -526,6 +656,14 @@ contract GovernanceManager is Initializable, UUPSUpgradeable, OwnableUpgradeable
      */
     function getProposalManager() external view onlyOwner returns (address) {
         return address(proposalManager);
+    }
+
+    /**
+     * @notice Gets the address of the vote manager.
+     * @return address of the vote manager.
+     */
+    function getVoteManager() external view onlyOwner returns (address) {
+        return address(voteManager);
     }
 
 // ====================================================================================================================
