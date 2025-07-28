@@ -63,6 +63,7 @@ for (const user of users) {
     membershipPublicSignals,
     "membership"
   );
+  console.log("Verifying proof off-chain...");
   console.log(`Is proof valid for ${user.user} and membership circuit:`, isValidMembershipProof);
 
   ////////////////////////////////////////
@@ -102,6 +103,7 @@ for (const user of users) {
     proposalPublicSignals,
     "proposal"
   );
+  console.log("Verifying proof off-chain...");
   console.log(`Is proof valid for ${user.user} and proposal circuit:`, isValidProposalProof);
 
   ////////////////////////////////////////
@@ -146,6 +148,7 @@ for (const user of users) {
     proposalClaimPublicSignals,
     "proposal-claim"
   );
+  console.log("Verifying proof off-chain...");
   console.log(`Is proof valid for ${user.user} and proposal claim circuit:`, isValidProposalClaimProof);
 
   
@@ -183,6 +186,7 @@ for (const user of users) {
     votePublicSignals,
     "vote"
   );
+  console.log("Verifying proof off-chain...");
   console.log(`Is proof valid for ${user.user} and vote circuit:`, isValidVoteProof);
 }
 
