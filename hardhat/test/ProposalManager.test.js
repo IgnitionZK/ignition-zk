@@ -173,7 +173,7 @@ describe("Proposal Manager Unit Tests:", function () {
             contextKey
         ];
 
-        // Real submission proof inputs (CHANGE VALUES)
+        // Real submission proof inputs 
         realGroupId = '21fae0f7-096f-4c8f-8515-93b9f247582d';
         realEpochId = '06134393-4412-4e46-9534-85186ea7bbe8';
         realGroupKey = Conversions.stringToBytes32(realGroupId);
@@ -220,7 +220,7 @@ describe("Proposal Manager Unit Tests:", function () {
         proofRoot = ethers.toBeHex(realPublicSignals[3], 32);
         proofContentHash = ethers.toBeHex(realPublicSignals[4], 32);
 
-        // Real claim proof inputs (ADD VALUES)
+        // Real claim proof inputs
         realClaimProof = [       
             17022331385491674352656711953572521334764478826855946644636639963938221138413n,
             13337814841785982322066856443939408100968278096512154546697259056428429584094n,
