@@ -298,8 +298,8 @@ export class ZKProofGenerator {
       proposalTitleHash: proposalTitleBigInt.toString(),
       proposalDescriptionHash: proposalDescriptionBigInt.toString(),
       proposalPayloadHash: proposalPayloadBigInt.toString(),
-      proposalFundingHash: proposalFundingBigInt.toString(),
       proposalMetadataHash: proposalMetadataBigInt.toString(),
+      proposalFundingHash: proposalFundingBigInt.toString(),
       groupHash: groupHashBigInt.toString(),
       epochHash: epochHashBigInt.toString(),
     };

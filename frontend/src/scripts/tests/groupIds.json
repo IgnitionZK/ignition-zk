@@ -1,0 +1,292 @@
+[
+  {
+    "group_id": "bf56d8b4-618e-4bfe-a2b8-0ebeb9c06d2f",
+    "name": "DAO PDREAM",
+    "created_at": "2025-05-31 12:17:17.945295+00"
+  },
+  {
+    "group_id": "81373f0e-8e13-4b8f-80fa-4e8f94821a1e",
+    "name": "DAO HTR",
+    "created_at": "2025-06-01 21:48:03.831989+00"
+  },
+  {
+    "group_id": "caeca9ca-b049-421c-87a4-5b1577f89fc1",
+    "name": "Apex Group",
+    "created_at": "2025-06-21 23:16:04.065178+00"
+  },
+  {
+    "group_id": "212146a4-a106-466e-8045-637b9206ef04",
+    "name": "Test Group",
+    "created_at": "2025-06-22 23:00:45.818429+00"
+  },
+  {
+    "group_id": "cbb97c06-9e77-4084-968f-1d3679b88446",
+    "name": "Test 2 Group",
+    "created_at": "2025-06-23 00:00:09.137676+00"
+  },
+  {
+    "group_id": "706e755f-8c6e-4ce3-b580-9ba9dace2e9b",
+    "name": "Falcon Group",
+    "created_at": "2025-06-27 19:43:55.854982+00"
+  },
+  {
+    "group_id": "ef79a6f0-19a0-4ec7-b4c3-5a956b42ffc8",
+    "name": "Wolf Group",
+    "created_at": "2025-06-27 21:52:22.507009+00"
+  },
+  {
+    "group_id": "d6848c23-2de1-407a-a8e5-77cc559d6c52",
+    "name": "Tiger Group",
+    "created_at": "2025-06-27 21:58:59.852139+00"
+  },
+  {
+    "group_id": "7a7d062d-efc1-4a29-bbd3-2516dcaf62be",
+    "name": "Bear Group",
+    "created_at": "2025-06-27 22:04:08.444981+00"
+  },
+  {
+    "group_id": "c99731ec-8ba7-4be4-a471-eb57dab48f5d",
+    "name": "Lion Group",
+    "created_at": "2025-06-27 22:31:15.949245+00"
+  },
+  {
+    "group_id": "8ac4de38-7510-4823-bcdf-9de025920087",
+    "name": "3 member Group",
+    "created_at": "2025-06-28 16:28:29.122321+00"
+  },
+  {
+    "group_id": "5bb05849-edfc-4141-8367-97120c9972c7",
+    "name": "Group 10 Test",
+    "created_at": "2025-06-28 21:06:43.036773+00"
+  },
+  {
+    "group_id": "a74b1363-596b-4aa0-9439-1cd78a91b8af",
+    "name": "Test Group 3.1",
+    "created_at": "2025-06-28 21:40:30.323786+00"
+  },
+  {
+    "group_id": "224deb5d-a05b-47fd-8140-ba8e1c0fa128",
+    "name": "Shark Group",
+    "created_at": "2025-06-29 03:09:39.904216+00"
+  },
+  {
+    "group_id": "1f50ae8d-bc12-44cc-b41f-e4aa72d5e462",
+    "name": "Fox Group",
+    "created_at": "2025-06-29 22:04:58.975773+00"
+  },
+  {
+    "group_id": "2e8f8961-70bd-4a1c-beae-672fdc593757",
+    "name": "Eagle Group",
+    "created_at": "2025-06-30 21:07:43.032989+00"
+  },
+  {
+    "group_id": "3c91877c-601a-462e-b794-94239c18ddc9",
+    "name": "test group 3",
+    "created_at": "2025-06-30 21:39:13.405347+00"
+  },
+  {
+    "group_id": "3c5eac6f-27da-4838-9191-83bf1c6d78ef",
+    "name": "Phoenix Group",
+    "created_at": "2025-06-30 22:38:52.794751+00"
+  },
+  {
+    "group_id": "ebdc1fe9-6601-4dea-aeae-64dc3fb12660",
+    "name": "Unicorn Group",
+    "created_at": "2025-06-30 23:39:30.750327+00"
+  },
+  {
+    "group_id": "1bdede92-ee22-4bed-bb0e-f8ea49fae27a",
+    "name": "Dragon Group",
+    "created_at": "2025-06-30 23:52:11.039675+00"
+  },
+  {
+    "group_id": "93854cef-e10f-400c-8a2e-5ec3cc44bc52",
+    "name": "Otter Group",
+    "created_at": "2025-06-30 23:58:10.214859+00"
+  },
+  {
+    "group_id": "97dca094-bdd7-419b-a91a-5ea1f2aa0537",
+    "name": "Time And Relative Dimension In Space",
+    "created_at": "2025-07-01 04:35:05.450552+00"
+  },
+  {
+    "group_id": "cc8962a2-f551-4c2f-b98d-5407e1ebde0b",
+    "name": "Walrus Group",
+    "created_at": "2025-07-01 22:01:34.493027+00"
+  },
+  {
+    "group_id": "2990a068-7ddc-4b0b-abc0-6160644830b8",
+    "name": "Cybermen Group",
+    "created_at": "2025-07-01 22:56:57.439783+00"
+  },
+  {
+    "group_id": "f87fa1d4-4464-43ec-bbee-1996b768173d",
+    "name": "Empire Group",
+    "created_at": "2025-07-01 23:01:51.889588+00"
+  },
+  {
+    "group_id": "e41f9199-885b-4051-a435-84c9d9ef4b1b",
+    "name": "Rebel Group",
+    "created_at": "2025-07-01 23:27:44.756734+00"
+  },
+  {
+    "group_id": "a3034dcb-82dc-415f-a0f2-8d8e2ceab326",
+    "name": "Red Group",
+    "created_at": "2025-07-01 23:45:08.988047+00"
+  },
+  {
+    "group_id": "178ca622-9bc7-4412-87e0-2804ceaab6a9",
+    "name": "Gorilla Group",
+    "created_at": "2025-07-03 00:01:41.77732+00"
+  },
+  {
+    "group_id": "825bac51-59fe-42e3-9016-507c506bccf2",
+    "name": "Hdyra Group",
+    "created_at": "2025-07-03 21:24:08.93801+00"
+  },
+  {
+    "group_id": "080eabf4-037d-4959-ab95-21b57651ba9d",
+    "name": "Centaur Group",
+    "created_at": "2025-07-03 23:05:55.540024+00"
+  },
+  {
+    "group_id": "c6d27d19-1b26-4b8e-b07a-c84d552efe45",
+    "name": "Pegasus Group",
+    "created_at": "2025-07-03 23:16:57.624163+00"
+  },
+  {
+    "group_id": "9ba684b2-8d0a-4163-ae05-5a020e5add02",
+    "name": "Badger Group",
+    "created_at": "2025-07-04 02:28:44.822303+00"
+  },
+  {
+    "group_id": "618658b3-8001-43f1-8842-ec873da211ee",
+    "name": "RPC Group",
+    "created_at": "2025-07-05 21:30:44.532034+00"
+  },
+  {
+    "group_id": "e069f584-bb4c-47ae-a001-152d8352d64c",
+    "name": "RPC2 Group",
+    "created_at": "2025-07-05 21:43:31.141729+00"
+  },
+  {
+    "group_id": "e865d560-465c-4bd5-9fc4-1ef6ac9e77ed",
+    "name": "RPC3 Group",
+    "created_at": "2025-07-05 21:55:26.133755+00"
+  },
+  {
+    "group_id": "a9728f36-5a33-4c78-b1bf-3383134ddb85",
+    "name": "Squirrel Group",
+    "created_at": "2025-07-06 19:44:44.420887+00"
+  },
+  {
+    "group_id": "23d7b60d-8757-4614-bab6-d270cfaac816",
+    "name": "Saturn Group",
+    "created_at": "2025-07-06 20:01:31.940453+00"
+  },
+  {
+    "group_id": "cbc05518-229a-40c3-b582-f375e6c40e94",
+    "name": "Mars Group",
+    "created_at": "2025-07-06 20:32:00.584966+00"
+  },
+  {
+    "group_id": "f4effd07-11c1-4cec-bed9-b1d6cddccd57",
+    "name": "Grizzly Group",
+    "created_at": "2025-07-18 21:15:07.41953+00"
+  },
+  {
+    "group_id": "ca79cc05-38b3-4608-8ef0-9bbcb4ebb50b",
+    "name": "Chameleon Group",
+    "created_at": "2025-07-20 00:16:26.870657+00"
+  },
+  {
+    "group_id": "21fae0f7-096f-4c8f-8515-93b9f247582d",
+    "name": "The Timelord Gallifrey Association",
+    "created_at": "2025-07-20 05:14:43.874478+00"
+  },
+  {
+    "group_id": "47dd2ab1-e8a4-4c4e-8f3e-d7ac00010eff",
+    "name": "Jaguar Group",
+    "created_at": "2025-07-23 01:05:08.046495+00"
+  },
+  {
+    "group_id": "d89465de-f074-4e69-89db-798ed60468cf",
+    "name": "Fire Dragon Group",
+    "created_at": "2025-07-23 01:10:59.110718+00"
+  },
+  {
+    "group_id": "567963ce-71e1-49c9-af24-8a46b3cb0d56",
+    "name": "Stallion Group",
+    "created_at": "2025-07-23 01:13:08.248621+00"
+  },
+  {
+    "group_id": "dc75c359-8724-426e-84d9-31df9e330d42",
+    "name": "Circuit Group",
+    "created_at": "2025-07-24 18:41:40.857284+00"
+  },
+  {
+    "group_id": "56599ca0-b0c0-496e-b2a9-27aa4aa4946d",
+    "name": "Glasses Group",
+    "created_at": "2025-07-26 20:51:59.652857+00"
+  },
+  {
+    "group_id": "e3ba9840-fd78-47c1-818d-c6facd58ccd4",
+    "name": "The Weeping Angels",
+    "created_at": "2025-07-27 04:04:01.968311+00"
+  },
+  {
+    "group_id": "0b4ac1eb-20ca-41ee-8e40-224aa61644de",
+    "name": "Scorpion Group",
+    "created_at": "2025-07-27 04:08:54.024501+00"
+  },
+  {
+    "group_id": "e57442c6-9b9d-483b-bde4-e049880b172d",
+    "name": "Fleet of Cybermen",
+    "created_at": "2025-07-27 04:19:17.702337+00"
+  },
+  {
+    "group_id": "e1c1b080-6ea1-4825-820c-ac51d5fed1ff",
+    "name": "Water Group",
+    "created_at": "2025-07-27 04:53:21.029341+00"
+  },
+  {
+    "group_id": "2cfb5b61-bc82-4aaf-9ac8-0ceefe37fd68",
+    "name": "DALEK CORP",
+    "created_at": "2025-07-27 05:26:31.087901+00"
+  },
+  {
+    "group_id": "980c9d4f-8050-49b7-8528-818ef3f8d5d4",
+    "name": "Fish Fingers And Custard",
+    "created_at": "2025-07-27 06:15:56.334309+00"
+  },
+  {
+    "group_id": "3ac03f73-b1b2-4358-88ef-82dd58c0870a",
+    "name": "Gallifrey Timelords",
+    "created_at": "2025-07-27 07:32:50.173835+00"
+  },
+  {
+    "group_id": "dcdc44c2-fe9b-41cb-8429-9efd3fd44a38",
+    "name": "Earth Group",
+    "created_at": "2025-07-27 12:40:52.588207+00"
+  },
+  {
+    "group_id": "e7e401c8-4ab4-4610-9a5a-5a2dbe0545f2",
+    "name": "Wind Group",
+    "created_at": "2025-07-27 13:46:10.585774+00"
+  },
+  {
+    "group_id": "c7bcc361-4ab9-4990-b0f2-55f01e1622d5",
+    "name": "Group 17",
+    "created_at": "2025-07-27 13:52:13.22723+00"
+  },
+  {
+    "group_id": "0b02e4f2-6e00-4c70-96ae-24ff7954daf0",
+    "name": "Kiwi Group",
+    "created_at": "2025-07-27 14:29:26.949261+00"
+  },
+  {
+    "group_id": "2bfbb4a3-ce55-4dca-aa43-f76b0ed670c4",
+    "name": "Chips Group",
+    "created_at": "2025-07-27 16:49:06.384473+00"
+  }
+]
