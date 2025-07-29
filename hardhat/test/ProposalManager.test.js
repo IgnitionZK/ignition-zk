@@ -1,6 +1,5 @@
 const { ethers, upgrades, keccak256 , toUtf8Bytes, HashZero} = require("hardhat");
 const { expect } = require("chai");
-const { anyUint } = require("@nomicfoundation/hardhat-chai-matchers/withArgs");
 const { Conversions } = require("./utils.js");
 
 describe("Proposal Manager Unit Tests:", function () {
@@ -407,7 +406,6 @@ describe("Proposal Manager Unit Tests:", function () {
         const newImplementationAddress = await upgrades.erc1967.getImplementationAddress(upgradedAddress);
 
         // Check if the upgrade was successful
-        expect(upgradedAddress).to.be.properAddress;
         expect(newImplementationAddress).to.be.properAddress;
         expect(upgradedAddress).to.equal(proxyAddress, "Proxy address should remain the same after upgrade");
         expect(newImplementationAddress).to.not.equal(implementationAddress, "Implementation address should change after upgrade");
@@ -427,7 +425,7 @@ describe("Proposal Manager Unit Tests:", function () {
         )).to.be.revertedWithCustomError(proposalManager, "OwnableUnauthorizedAccount");
     });
 
-     it(`FUNCTIONALITY: upgradeability
+    it(`FUNCTIONALITY: upgradeability
         TESTING: proxy data storage
         EXPECTED: should preserve proxy data after upgrade`, async function () {
 
@@ -461,7 +459,6 @@ describe("Proposal Manager Unit Tests:", function () {
         expect(await proposalManagerV2.connect(governor).getSubmissionNullifierStatus(submissionNullifier1)).to.equal(true);
 
     });
-
 
     it(`FUNCTION: getProposalSubmissionVerifier
         TESTING: onlyOwner authorization (success)

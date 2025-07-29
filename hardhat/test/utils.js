@@ -53,6 +53,30 @@ class Conversions {
     // Convert to hex string for better compatibility with ethers.js
     return toBeHex(contextHashBigInt);
   }
+
+
+  /**
+   * Computes the context key using Poseidon hash from groupKey and epochKey.
+   * This is used for proposal verification to create the context hash.
+   * @param {string} groupId - The group key string.
+   * @param {string} epochId - The epoch key string.
+   * @param {string} proposalId - The proposal key string.
+   * @returns {Promise<string>} The computed context key as a hex string.
+   */
+  static async computeVoteContextKey(groupId, epochId, proposalId) {
+    const groupHashBigInt = this.stringToBigInt(groupId);
+    const epochHashBigInt = this.stringToBigInt(epochId);
+    const proposalHashBigInt = this.stringToBigInt(proposalId);
+
+    const poseidon = await this.#getPoseidon();
+    const F = poseidon.F;
+    const contextHashBigInt = F.toObject(
+      poseidon([groupHashBigInt, epochHashBigInt, proposalHashBigInt])
+    );
+
+    // Convert to hex string for better compatibility with ethers.js
+    return toBeHex(contextHashBigInt);
+  }
 }
 
 module.exports = { Conversions };
