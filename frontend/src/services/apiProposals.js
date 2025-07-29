@@ -271,3 +271,44 @@ export async function getProposalByIdentifiers({
 
   return data;
 }
+
+/**
+ * Retrieves pending inbox proposals by group ID(s) from the database using an RPC function
+ * This function returns proposals that are active AND have no associated voting proof
+ * @param {Object} params - The parameters object
+ * @param {string|string[]} params.groupId - Single group ID or array of group IDs to fetch proposals for
+ * @returns {Promise<Array<Object>|null>} Array of proposal objects with group names and status types, or null if no proposals found
+ * @throws {Error} If groupId is not provided or if there's a database error
+ * @example
+ * // Get pending proposals for a single group
+ * const proposals = await getPendingInboxProposals({ groupId: '123' });
+ *
+ * // Get pending proposals for multiple groups
+ * const proposals = await getPendingInboxProposals({ groupId: ['123', '456'] });
+ */
+export async function getPendingInboxProposals({ groupId }) {
+  if (!groupId) {
+    throw new Error("groupId is required");
+  }
+
+  // Convert single groupId to array if it's not already
+  const groupIds = Array.isArray(groupId) ? groupId : [groupId];
+
+  const { data, error } = await supabase
+    .schema("ignitionzk")
+    .rpc("get_pending_inbox_proposals", {
+      p_group_ids: groupIds,
+    }); // Call the RPC function with explicit schema
+
+  if (error) {
+    if (error.code === "PGRST116") {
+      // This error code typically means "no rows found", so return null
+      return null;
+    }
+    throw new Error(error.message);
+  }
+
+  // The RPC function already returns the data in the desired format,
+  // so no further transformation is needed here for group_name or status_type.
+  return data;
+}

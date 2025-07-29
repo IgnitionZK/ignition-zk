@@ -4,6 +4,7 @@ import CustomButton from "./CustomButton";
 import MnemonicInput from "./MnemonicInput";
 import ConfirmationModal from "./ConfirmationModal";
 import Spinner from "./Spinner";
+import toast from "react-hot-toast";
 import { useVerifyProposal } from "../hooks/queries/proofs/useVerifyProposal";
 import { useGetCommitmentArray } from "../hooks/queries/merkleTreeLeaves/useGetCommitmentArray";
 import { useInsertProof } from "../hooks/queries/proofs/useInsertProof";
@@ -167,14 +168,56 @@ function InboxItem({
     }
   };
 
+  // Check if proposal is currently in voting phase
+  const isInVotingPhase = () => {
+    if (!proposal.epoch_start_time || !proposal.epoch_duration) {
+      return false;
+    }
+
+    try {
+      const epoch = {
+        epoch_start_time: proposal.epoch_start_time,
+        epoch_duration: proposal.epoch_duration,
+      };
+
+      const phases = calculateEpochPhases(epoch);
+      const now = new Date();
+      const votingStart = phases.votingPhase.start;
+      const votingEnd = phases.votingPhase.end;
+
+      return now >= votingStart && now < votingEnd;
+    } catch (error) {
+      console.error("Error checking voting phase:", error);
+      return false;
+    }
+  };
+
   // Find the user's group member ID for this proposal's group
   const userGroupMemberId = userGroups?.find(
     (group) => group.group_id === proposal.group_id
   )?.group_member_id;
 
   const handleDownloadDetails = () => {
-    // TODO: Implement download details functionality
-    console.log("Download details for proposal:", proposal.proposal_id);
+    try {
+      // Check if proposal has metadata with ipfs_cid
+      if (!proposal.metadata || !proposal.metadata.ipfs_cid) {
+        console.warn("No IPFS CID found in proposal metadata");
+        toast.error("No document available for this proposal.");
+        return;
+      }
+
+      const ipfsCid = proposal.metadata.ipfs_cid;
+
+      // Construct the IPFS gateway URL
+      // Using Pinata's gateway for better reliability
+      const ipfsUrl = `https://gateway.pinata.cloud/ipfs/${ipfsCid}`;
+
+      // Open the document in a new window
+      window.open(ipfsUrl, "_blank", "noopener,noreferrer");
+    } catch (error) {
+      console.error("Error opening document:", error);
+      toast.error("Error opening document. Please try again.");
+    }
   };
 
   const handleVote = () => {
@@ -274,7 +317,7 @@ function InboxItem({
               size="small"
               backgroundColor="rgba(165, 180, 252, 0.1)"
               hoverColor="rgba(165, 180, 252, 0.15)"
-              textColor="#FFFFFF"
+              textColor="#ffffff"
               onClick={handleVote}
               style={{
                 border: "1px solid rgba(165, 180, 252, 0.2)",
@@ -287,13 +330,16 @@ function InboxItem({
                 isLoadingCommitments ||
                 isVerifying ||
                 hasSubmittedProof ||
-                isSubmitting
+                isSubmitting ||
+                !isInVotingPhase()
               }
             >
               {isLoadingCommitments
                 ? "Loading..."
                 : isVerifying || isSubmitting
                 ? "Verifying..."
+                : !isInVotingPhase()
+                ? "Voting Window Not Open"
                 : "Vote"}
             </CustomButton>
           )}
