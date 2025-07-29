@@ -15,7 +15,7 @@ import { IVoteManager } from "../interfaces/IVoteManager.sol";
 // Complex Types:
 import { VoteTypes } from "../types/VoteTypes.sol";
 
-contract VoteManager is Initializable, OwnableUpgradeable, UUPSUpgradeable, IVoteManager, ERC165Upgradeable {
+contract MockVoteManagerV2 is Initializable, OwnableUpgradeable, UUPSUpgradeable, IVoteManager, ERC165Upgradeable {
 
 // ====================================================================================================================
 //                                                  CUSTOM ERRORS
@@ -67,6 +67,12 @@ contract VoteManager is Initializable, OwnableUpgradeable, UUPSUpgradeable, IVot
 
     /// @notice Thrown if the group parameters (member count or quorum) are zero.
     error GroupParamsCannotBeZero();
+
+    /// @notice Thrown if the x1 and x2 inputs for linear interpolation are invalid.
+    error InvalidX1X2Inputs();
+
+    /// @notice Thrown if the y1 and y2 inputs for linear interpolation are invalid.
+    error InvalidY1Y2Inputs();
 
     /// @notice Thrown if the x input for linear interpolation is invalid.
     error InvalidXInput();
@@ -373,10 +379,17 @@ contract VoteManager is Initializable, OwnableUpgradeable, UUPSUpgradeable, IVot
 
         if (_memberCount <= quorumParams.minGroupSizeForMaxQuorum ) {
             _setQuorum(groupKey, quorumParams.maxQuorumPercent);
-        } else if (_memberCount >= quorumParams.maxGroupSizeForMinQuorum) {
+        } else if (_memberCount > quorumParams.maxGroupSizeForMinQuorum) {
             _setQuorum(groupKey, quorumParams.minQuorumPercent);
         } else {
-            uint256 interpolatedQuorum = _linearInterpolation(_memberCount);
+            uint256 interpolatedQuorum = _linearInterpolation(
+                _memberCount, 
+                quorumParams.minGroupSizeForMaxQuorum, 
+                quorumParams.maxQuorumPercent,
+                quorumParams.maxGroupSizeForMinQuorum,
+                quorumParams.minQuorumPercent
+            );
+
             _setQuorum(groupKey, interpolatedQuorum);
         }
     }
@@ -523,29 +536,32 @@ contract VoteManager is Initializable, OwnableUpgradeable, UUPSUpgradeable, IVot
     /**
      * @dev Performs linear interpolation to find the y value for a given x.
      * @param x The x value for which to find the corresponding y value.
+     * @param x1 The first x value in the range.
+     * @param y1 The corresponding y value for x1.
+     * @param x2 The second x value in the range.
+     * @param y2 The corresponding y value for x2.
      * @return uint256 The interpolated y value for the given x.
-     * @custom:error InvalidXInput If x is less than or equal to x1 or greater than or equal to x2.
-     * @notice We assume that x1 < x2 and y1 > y2 (negative slope).
-     * Formula: y = y1 + slope * (x - x1), where slope = (y2 - y1) / (x2 - x1).
+     * @custom:error InvalidX1X2Inputs If x2 is less than or equal to x1.
+     * @custom:error InvalidY1Y2Inputs If y2 is less than or equal to y1.
+     * @custom:error InvalidXInput If x is less than or equal to x1 or greater than x2.
+     * @notice This function assumes that x1 < x2 and y1 < y2.
+     * It uses the formula: y = y1 + slope * (x - x1), where slope = (y2 - y1) / (x2 - x1).
      */
-    function _linearInterpolation(uint256 x) private view returns (uint256) {
+    function _linearInterpolation(
+        uint256 x,
+        uint256 x1,
+        uint256 y1,
+        uint256 x2,
+        uint256 y2
+    ) private pure returns (uint256) {
         // y = y1 + slope * (x  - x1)
         // slope = (y2 - y1) / (x2 - x1)
-        uint256 x1 = quorumParams.minGroupSizeForMaxQuorum;
-        uint256 y1Scaled = quorumParams.maxQuorumPercent * 100;
-        uint256 x2 = quorumParams.maxGroupSizeForMinQuorum;
-        uint256 y2Scaled = quorumParams.minQuorumPercent * 100;
+        if (x2 <= x1) revert InvalidX1X2Inputs();
+        if (y2 <= y1) revert InvalidY1Y2Inputs();
+        if (x <= x1 || x > x2) revert InvalidXInput();
 
-        // x should be between x1 and x2
-        if (x <= x1 || x >= x2) revert InvalidXInput();
-
-        uint256 slopeScalingFactor = 1e18;
-        uint256 slopeNumeratorPositive = y1Scaled - y2Scaled;
-        uint256 slopeDenominator =  x2 - x1;
-        uint256 slopePositiveScaled = slopeNumeratorPositive * slopeScalingFactor / slopeDenominator;
-
-        uint256 quorumScaled = y1Scaled - (slopePositiveScaled * (x - x1)) / slopeScalingFactor;
-        return quorumScaled / 100;
+        uint256 slope = (y2 - y1 ) / (x2 - x1);
+        return y1 + slope * (x - x1);
     }
 
     /**
@@ -572,6 +588,10 @@ contract VoteManager is Initializable, OwnableUpgradeable, UUPSUpgradeable, IVot
         } catch {
             return false;
         }
+    }
+
+    function dummyFunction() external pure returns (string memory) {
+        return "This is a dummy function";
     }
 
 }
