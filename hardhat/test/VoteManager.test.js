@@ -59,6 +59,8 @@ describe("Vote Manager Unit Tests:", function () {
     let claimNullifier2;
     let voteNullifier1;
     let voteNullifier2;
+    let voteNullifier3;
+    let voteNullifier4;
 
     // content hashes
     let contentHash1;
@@ -79,6 +81,8 @@ describe("Vote Manager Unit Tests:", function () {
     let mockProof;
     let mockPublicSignals1;
     let mockPublicSignals2;
+    let mockPublicSignals3;
+    let mockPublicSignals4;
     let mockProposalProof;
     let mockProposalPublicSignals1;
 
@@ -151,6 +155,8 @@ describe("Vote Manager Unit Tests:", function () {
         claimNullifier1 = Conversions.stringToBytes32("claimNullifier1");
         voteNullifier1 = Conversions.stringToBytes32("voteNullifier1");
         voteNullifier2 = Conversions.stringToBytes32("voteNullifier2");
+        voteNullifier3 = Conversions.stringToBytes32("voteNullifier3");
+        voteNullifier4 = Conversions.stringToBytes32("voteNullifier4");
         contentHash1 = Conversions.stringToBytes32("contentHash1");
         contentHash2 = Conversions.stringToBytes32("contentHash2");
         voteChoiceNo = 19014214495641488759237505126948346942972912379615652741039992445865937985820n;
@@ -169,6 +175,7 @@ describe("Vote Manager Unit Tests:", function () {
             19, 20, 21, 22, 23, 24
         ];
         
+        // mock public signals with one vote choice and nullifier:
         mockPublicSignals1 = [
             contextKey,
             voteNullifier1,
@@ -176,11 +183,28 @@ describe("Vote Manager Unit Tests:", function () {
             rootHash1
         ];
 
+        // mock public signals with another vote choice and nullifier on the same context:
         mockPublicSignals2 = [
             contextKey,
             voteNullifier2,
             voteChoiceYes,
-            rootHash2
+            rootHash1
+        ];
+
+        // mock public signals with another vote choice and nullifier on the same context:
+        mockPublicSignals3 = [
+            contextKey,
+            voteNullifier3,
+            voteChoiceAbstain,
+            rootHash1
+        ];
+
+        // mock public signals with another vote and nullifier on the same context:
+        mockPublicSignals4 = [
+            contextKey,
+            voteNullifier4,
+            voteChoiceYes,
+            rootHash1
         ];
 
         // mock proof inputs:
@@ -345,6 +369,19 @@ describe("Vote Manager Unit Tests:", function () {
             contextKey,
             root
         );
+    }
+
+    async function setVoteVerifierAndVerifyVote(signer, verifier, proof, publicSignals, contextKey, groupKey, root) {
+        // Set the vote verifier
+        await voteManager.connect(signer).setVoteVerifier(verifier);
+        // Verify the vote
+        return await voteManager.connect(signer).verifyVote(
+            proof,
+            publicSignals,
+            contextKey,
+            groupKey,
+            root
+        ); 
     }
 
     async function linearInterpolation(x) {
@@ -598,4 +635,366 @@ describe("Vote Manager Unit Tests:", function () {
         );
     });
 
-})
+    it(`FUNCTION: setQuorumParams
+        TESTING: onlyOwner authorization (success), stored data, event: QuorumParamsSet
+        EXPECTED: should allow the governor to set the quorum parameters`, async function () {
+        
+        // check the group parameters of an initialized group
+        await deployGroupNftAndInitRoot(governor, groupKey, nftName, nftSymbol, rootHash1);
+        
+        // set the quorum parameters
+        const newQuorumParams = {
+            minQuorumPercent: 30,
+            maxQuorumPercent: 40,
+            maxGroupSizeForMinQuorum: 100,
+            minGroupSizeForMaxQuorum: 20
+        };
+
+        expect(await voteManager.connect(governor).setQuorumParams(
+            newQuorumParams.minQuorumPercent,
+            newQuorumParams.maxQuorumPercent,
+            newQuorumParams.maxGroupSizeForMinQuorum,
+            newQuorumParams.minGroupSizeForMaxQuorum
+        )).to.emit(voteManager, "QuorumParamsSet").withArgs(
+            newQuorumParams.minQuorumPercent,
+            newQuorumParams.maxQuorumPercent,
+            newQuorumParams.maxGroupSizeForMinQuorum,
+            newQuorumParams.minGroupSizeForMaxQuorum
+        );
+
+        // get the quorum parameters and check if they were set correctly
+        const quorumParams = await voteManager.connect(governor).getQuorumParams();
+        expect(quorumParams.minQuorumPercent).to.equal(newQuorumParams.minQuorumPercent);
+        expect(quorumParams.maxQuorumPercent).to.equal(newQuorumParams.maxQuorumPercent);
+        expect(quorumParams.maxGroupSizeForMinQuorum).to.equal(newQuorumParams.maxGroupSizeForMinQuorum);
+        expect(quorumParams.minGroupSizeForMaxQuorum).to.equal(newQuorumParams.minGroupSizeForMaxQuorum);
+    });
+
+    it(`FUNCTION: setQuorumParams
+        TESTING: custom error: InvalidQuorumParams, InvalidGroupSizeParams
+        EXPECTED: should not allow the governor to set invalid quorum parameters`, async function () {
+        
+        const invalidMinQuorumPercent = 20;
+        const invalidMaxQuorumPercent = 60;
+        const invalidMaxGroupSizeForMinQuorum = 1025;
+        const invalidMinGroupSizeForMaxQuorum = 3;
+        
+        const quorumParams = {
+            minQuorumPercent: 25,
+            maxQuorumPercent: 50,
+            maxGroupSizeForMinQuorum: 200,
+            minGroupSizeForMaxQuorum: 30
+        };
+
+        await expect(voteManager.connect(governor).setQuorumParams(
+            invalidMinQuorumPercent,
+            quorumParams.maxQuorumPercent,
+            quorumParams.maxGroupSizeForMinQuorum,
+            quorumParams.minGroupSizeForMaxQuorum
+        )).to.be.revertedWithCustomError(
+            voteManager,
+            "InvalidQuorumParams"
+        );
+
+        await expect(voteManager.connect(governor).setQuorumParams(
+            quorumParams.minQuorumPercent,
+            invalidMaxQuorumPercent,
+            quorumParams.maxGroupSizeForMinQuorum,
+            quorumParams.minGroupSizeForMaxQuorum
+        )).to.be.revertedWithCustomError(
+            voteManager,
+            "InvalidQuorumParams"
+        );
+
+        await expect(voteManager.connect(governor).setQuorumParams(
+            quorumParams.minQuorumPercent,
+            quorumParams.maxQuorumPercent,
+            invalidMaxGroupSizeForMinQuorum,
+            quorumParams.minGroupSizeForMaxQuorum
+        )).to.be.revertedWithCustomError(
+            voteManager,
+            "InvalidGroupSizeParams"
+        );
+
+        await expect(voteManager.connect(governor).setQuorumParams(
+            quorumParams.minQuorumPercent,
+            quorumParams.maxQuorumPercent,
+            quorumParams.maxGroupSizeForMinQuorum,
+            invalidMinGroupSizeForMaxQuorum
+        )).to.be.revertedWithCustomError(
+            voteManager,
+            "InvalidGroupSizeParams"
+        );
+    });
+
+    it(`FUNCTION: setQuorumParams
+        TESTING: onlyOwner authorization (failure)
+        EXPECTED: should not allow a non-governor to set quorum parameters`, async function () {
+        const quorumParams = {
+            minQuorumPercent: 25,
+            maxQuorumPercent: 50,
+            maxGroupSizeForMinQuorum: 200,
+            minGroupSizeForMaxQuorum: 30
+        };
+        await expect(voteManager.connect(user1).setQuorumParams(
+            quorumParams.minQuorumPercent,
+            quorumParams.maxQuorumPercent,
+            quorumParams.maxGroupSizeForMinQuorum,
+            quorumParams.minGroupSizeForMaxQuorum
+        )).to.be.revertedWithCustomError(
+            voteManager,
+            "OwnableUnauthorizedAccount"
+        );
+    });
+
+    it(`FUNCTION: setVoteVerifier
+        TESTING: custom error: AddressCannotBeZero
+        EXPECTED: should not allow the governor to set the vote verifier to the zero address`, async function () {
+        await expect(voteManager.connect(governor).setVoteVerifier(ethers.ZeroAddress))
+            .to.be.revertedWithCustomError(voteManager, "AddressCannotBeZero");
+    });
+    
+    it(`FUNCTION: setVoteVerifier
+        TESTING: onlyOwner authorization (success)
+        EXPECTED: should allow the governor to set the vote verifier`, async function () {
+        await voteManager.connect(governor).setVoteVerifier(mockVoteVerifier.target);
+        expect(await voteManager.connect(governor).getVoteVerifier()).to.equal(mockVoteVerifier.target);
+    });
+    
+    it(`FUNCTION: setVoteVerifier
+        TESTING: onlyOwner authorization (failure)
+        EXPECTED: should not allow non-governor to set the vote verifier`, async function () {
+        await expect(voteManager.connect(user1).setVoteVerifier(mockVoteVerifier.target))
+            .to.be.revertedWithCustomError(voteManager, "OwnableUnauthorizedAccount");
+    });
+
+    it(`FUNCTION: setVoteVerifier
+        TESTING: custom error: AddressIsNotAContract
+        EXPECTED: should not allow the governor to set the vote verifier to an address that is not a contract`, async function () {
+        await expect(voteManager.connect(governor).setVoteVerifier(user1.address))
+            .to.be.revertedWithCustomError(voteManager, "AddressIsNotAContract");
+    });
+
+    it(`FUNCTION: setVoteVerifier
+        TESTING: custom error: AddressDoesNotSupportInterface
+        EXPECTED: should not allow the governor to set the vote verifier to an address not implementing the IVoteVerifier interface`, async function () {
+        await expect(voteManager.connect(governor).setVoteVerifier(membershipManager.target))
+            .to.be.revertedWithCustomError(voteManager, "AddressDoesNotSupportInterface");
+    });
+
+    it(`FUNCTION: verifyVote
+        TESTING: onlyOwner authorization (success), stored data: vote nullifier, event: VoteVerified
+        EXPECTED: should allow the governor to verify two different votes on the same proposal and emit event`, async function () {
+        
+        // deploy group NFT and initialize group root
+        await deployGroupNftAndInitRoot(governor, groupKey, nftName, nftSymbol, rootHash1);
+
+        // set the member count to 2 (ie., only two members can vote)
+        await voteManager.connect(governor).setMemberCount(groupKey, 2);
+        
+        // set the proposal submission verifier to the mock verifier and verify the first proposal
+        await setSubmissionVerifierAndVerifyProposal(governor, mockProposalVerifier.target, mockProposalProof, mockProposalPublicSignals1, proposalContextKey, rootHash1);
+       
+        // set the vote verifier to the mock verifier
+        await voteManager.connect(governor).setVoteVerifier(mockVoteVerifier.target);
+       
+        // verify a vote on the first proposal
+        expect(await voteManager.connect(governor).verifyVote(
+            mockProof,
+            mockPublicSignals1,
+            contextKey,
+            groupKey,
+            rootHash1
+        )).to.emit(voteManager, "VoteVerified").withArgs(
+            contextKey,
+            voteNullifier1,
+            voteChoiceNo,
+            groupKey,
+            rootHash1
+        );
+
+        // check that the vote nullifier is stored correctly
+        expect(await voteManager.connect(governor).getVoteNullifierStatus(voteNullifier1)).to.equal(true);
+
+        // verify a second vote on the same context with a different choice
+        expect(await voteManager.connect(governor).verifyVote(
+            mockProof,
+            mockPublicSignals2,
+            contextKey,
+            groupKey,
+            rootHash1
+        )).to.emit(voteManager, "VoteVerified").withArgs(
+            contextKey,
+            voteNullifier2,
+            voteChoiceYes,
+            groupKey,
+            rootHash1
+        );
+
+        // check that the second vote nullifier is stored correctly
+        expect(await voteManager.connect(governor).getVoteNullifierStatus(voteNullifier2)).to.equal(true);
+
+        // check that the first vote nullifier is still stored correctly
+        expect(await voteManager.connect(governor).getVoteNullifierStatus(voteNullifier1)).to.equal(true);
+    });
+
+    it(`FUNCTION: verifyVote
+        TESTING: custom error: TallyingInconsistent
+        EXPECTED: should not allow the governor to verify a vote if the vote count exceeds the group member count`, async function () {
+        
+         // deploy group NFT and initialize group root
+        await deployGroupNftAndInitRoot(governor, groupKey, nftName, nftSymbol, rootHash1);
+        
+        // set the member count to 1 (ie., only one member can vote)
+        await voteManager.connect(governor).setMemberCount(groupKey, 1);
+        
+        // set the proposal submission verifier to the mock verifier and verify a proposal
+        await setSubmissionVerifierAndVerifyProposal(governor, mockProposalVerifier.target, mockProposalProof, mockProposalPublicSignals1, proposalContextKey, rootHash1);
+       
+        // set vote verifier to the mock verifier and verify the first vote on the proposal
+        await setVoteVerifierAndVerifyVote(governor, mockVoteVerifier.target, mockProof, mockPublicSignals1, contextKey, groupKey, rootHash1);
+        
+        // verify a second vote on the same context with a different choice
+        await expect(voteManager.connect(governor).verifyVote(
+            mockProof,
+            mockPublicSignals2,
+            contextKey,
+            groupKey,
+            rootHash1
+        )).to.be.revertedWithCustomError(voteManager, "TallyingInconsistent");
+    });
+
+    it(`FUNCTION: verifyVote
+        TESTING: stored data: vote tally, passed status
+        EXPECTED: should store the correct tally and passed status after verifying 4 votes`, async function () {
+
+        // deploy group NFT and initialize group root
+        await deployGroupNftAndInitRoot(governor, groupKey, nftName, nftSymbol, rootHash1);
+
+        // set the member count to 4 (ie., only four members can vote)
+        await voteManager.connect(governor).setMemberCount(groupKey, 4);
+
+        // set the proposal submission verifier to the mock verifier and verify the first proposal
+        await setSubmissionVerifierAndVerifyProposal(governor, mockProposalVerifier.target, mockProposalProof, mockProposalPublicSignals1, proposalContextKey, rootHash1);
+
+        // set the vote verifier to the mock verifier and verify a vote on the first proposal
+        await setVoteVerifierAndVerifyVote(governor, mockVoteVerifier.target, mockProof, mockPublicSignals1, contextKey, groupKey, rootHash1);
+
+        const proposalResult = await voteManager.connect(governor).getProposalResult(contextKey);
+        expect(proposalResult.tally).to.deep.equal([1, 0, 0]);
+        expect(proposalResult.passed).to.equal(false);
+
+        // verify a second vote on the same context with a different choice
+        await voteManager.connect(governor).verifyVote(
+            mockProof,
+            mockPublicSignals2,
+            contextKey,
+            groupKey,
+            rootHash1
+        );
+
+        const proposalResult2 = await voteManager.connect(governor).getProposalResult(contextKey);
+        expect(proposalResult2.tally).to.deep.equal([1, 1, 0]);
+        expect(proposalResult2.passed).to.equal(false);
+
+        // verify a third vote on the same context with a different choice
+        await voteManager.connect(governor).verifyVote(
+            mockProof,
+            mockPublicSignals3,
+            contextKey, 
+            groupKey,
+            rootHash1
+        );
+
+        const proposalResult3 = await voteManager.connect(governor).getProposalResult(contextKey);
+        expect(proposalResult3.tally).to.deep.equal([1, 1, 1]);
+        expect(proposalResult3.passed).to.equal(false);
+
+        // verify a fourth vote on the same context with a yes choice
+        await voteManager.connect(governor).verifyVote(
+            mockProof,
+            mockPublicSignals4,
+            contextKey, 
+            groupKey,
+            rootHash1
+        );
+
+        const proposalResult4 = await voteManager.connect(governor).getProposalResult(contextKey);
+        expect(proposalResult4.tally).to.deep.equal([1, 2, 1]);
+        expect(proposalResult4.passed).to.equal(true);
+
+    });
+
+    it(`FUNCTION: verifyVote
+        TESTING: stored data: vote tally, passed status
+        EXPECTED: should not mark a proposal as passed if it has yes majority but has not reached quorum`, async function () {
+        
+        // deploy group NFT and initialize group root
+        await deployGroupNftAndInitRoot(governor, groupKey, nftName, nftSymbol, rootHash1);
+
+        // set the member count to 4 (ie., only 4 members can vote)
+        await voteManager.connect(governor).setMemberCount(groupKey, 4);
+
+        // set the proposal submission verifier to the mock verifier and verify the first proposal
+        await setSubmissionVerifierAndVerifyProposal(governor, mockProposalVerifier.target, mockProposalProof, mockProposalPublicSignals1, proposalContextKey, rootHash1);
+
+        // set the vote verifier to the mock verifier and verify a vote on the first proposal
+        await setVoteVerifierAndVerifyVote(governor, mockVoteVerifier.target, mockProof, mockPublicSignals2, contextKey, groupKey, rootHash1);
+
+        const proposalResult = await voteManager.connect(governor).getProposalResult(contextKey);
+        expect(proposalResult.tally).to.deep.equal([0, 1, 0 ]);
+        expect(proposalResult.passed).to.equal(false);
+    });
+
+    it(`FUNCTION: verifyVote
+        TESTING: event: VoteTallyUpdated
+        EXPECTED: should emit VoteTallyUpdated event with the correct parameters after verifying a vote`, async function () {
+
+        // deploy group NFT and initialize group root
+        await deployGroupNftAndInitRoot(governor, groupKey, nftName, nftSymbol, rootHash1);
+
+        // set the member count to 4 (ie., only four members can vote)
+        await voteManager.connect(governor).setMemberCount(groupKey, 4);
+
+        // set the proposal submission verifier to the mock verifier and verify the first proposal
+        await setSubmissionVerifierAndVerifyProposal(governor, mockProposalVerifier.target, mockProposalProof, mockProposalPublicSignals1, proposalContextKey, rootHash1);
+
+        // set the vote verifier to the mock verifier and verify a vote on the first proposal
+        await setVoteVerifierAndVerifyVote(governor, mockVoteVerifier.target, mockProof, mockPublicSignals1, contextKey, groupKey, rootHash1);
+
+        // verify a second vote and check the emitted event
+        const tx = await voteManager.connect(governor).verifyVote(
+            mockProof,
+            mockPublicSignals2,
+            contextKey,
+            groupKey,
+            rootHash1
+        );
+        const receipt = await tx.wait();
+
+        // get emitted events from the logs
+        const parsedEvents = [];
+        for (const log of receipt.logs) {
+            try {
+                const parsedLog = voteManager.interface.parseLog(log);
+                parsedEvents.push(parsedLog);
+            } catch (error) {
+                console.log("Could not parse log:", log, "Error:", error.message);
+            }
+        }
+        const VoteTallyUpdatedEvent = parsedEvents.filter((event) => event && event.name === "VoteTallyUpdated");
+
+        // should have emitted 1 VoteTallyUpdated event
+        const numEvents = VoteTallyUpdatedEvent.length;
+        expect(numEvents).to.equal(1, "Should have emitted 1 VoteTallyUpdated event");
+
+        const event = VoteTallyUpdatedEvent[0];
+        const eventVoteTally = event.args[1].map(t => Number(t));
+        const expectedVoteTally = [1, 1, 0];
+
+        expect(eventVoteTally).to.deep.equal(expectedVoteTally, "Vote tally in event should match expected tally after second vote");
+        expect(event.args[0]).to.equal(contextKey, "Context key in event should match expected context key");
+
+    });
+
+});

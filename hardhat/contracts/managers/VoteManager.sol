@@ -49,6 +49,9 @@ contract VoteManager is Initializable, OwnableUpgradeable, UUPSUpgradeable, IVot
     /// @notice Thrown if the vote choice in the public outputs does not match one of the expected values.
     error InvalidVoteChoice();
 
+    /// @notice Thrown if the tallying of votes is inconsistent, e.g., total votes exceed member count.
+    error TallyingInconsistent();
+
     // ====================================================================================================
     // GROUP PARAM ERRORS (memberCount, Quorum)
     // ====================================================================================================
@@ -135,11 +138,11 @@ contract VoteManager is Initializable, OwnableUpgradeable, UUPSUpgradeable, IVot
     /**
      * @notice Emitted when a vote tally is updated.
      * @param contextKey The context key associated with the vote.
-     * @param no The number of no votes.
-     * @param yes The number of yes votes.
-     * @param abstain The number of abstain votes.
+     * @param voteTally An array containing the counts of no, yes, and abstain votes.
+     *                  The order is: [noVotes, yesVotes, abstainVotes].
+     * @dev The vote tally is represented as a fixed-size array of three elements.
      */
-    event VoteTallyUpdated(bytes32 contextKey, uint256 no, uint256 yes, uint256 abstain);
+    event VoteTallyUpdated(bytes32 contextKey, uint256[3] voteTally);
 
     /**
      * @notice Emitted when a proposal's status is updated.
@@ -353,7 +356,7 @@ contract VoteManager is Initializable, OwnableUpgradeable, UUPSUpgradeable, IVot
         } else if ( inferredChoice == VoteTypes.VoteChoice.Abstain) {
             tally.abstain++;
         }
-        emit VoteTallyUpdated(contextKey, tally.no, tally.yes, tally.abstain);
+        emit VoteTallyUpdated(contextKey, [tally.no, tally.yes, tally.abstain]);
         
         // Update the proposal's Passed status
         _updateProposalStatus(contextKey, groupKey);
@@ -511,6 +514,11 @@ contract VoteManager is Initializable, OwnableUpgradeable, UUPSUpgradeable, IVot
      */
     function _computePassedStatus(VoteTypes.GroupParams memory params, VoteTypes.ProposalResult memory proposal) private pure returns (bool)  {    
         uint256 totalVotes = proposal.tally.no + proposal.tally.yes + proposal.tally.abstain;
+        if (totalVotes > params.memberCount) {
+            // If total votes exceed member count, it indicates an error in tallying.
+            // Reverting to prevent inconsistent state.
+            revert TallyingInconsistent();
+        }
         uint256 requiredVotes = _ceilDiv(params.memberCount * params.quorum, 100);
         
         bool hasReachedQuorum = totalVotes >= requiredVotes;
