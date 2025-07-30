@@ -52,7 +52,8 @@ export async function getLeavesByGroupId({ groupId }) {
     .schema("ignitionzk")
     .from("merkle_tree_leaves")
     .select("*")
-    .eq("group_id", groupId);
+    .eq("group_id", groupId)
+    .eq("is_active", true);
 
   if (error) throw new Error(error.message);
 
@@ -76,6 +77,7 @@ export async function getCommitmentArray({ groupId }) {
     .from("merkle_tree_leaves")
     .select("commitment_value")
     .eq("group_id", groupId)
+    .eq("is_active", true)
     .order("created_at", { ascending: true });
 
   if (error) throw new Error(error.message);

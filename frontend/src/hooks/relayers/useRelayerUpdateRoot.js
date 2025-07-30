@@ -27,7 +27,7 @@ import { supabase } from "../../services/supabase";
  */
 export function useRelayerUpdateRoot() {
   const updateMerkleRootMutation = useMutation({
-    mutationFn: async ({ treeVersion, rootValue, groupKey }) => {
+    mutationFn: async ({ treeVersion, rootValue, groupKey, memberCount }) => {
       // Get the current session to extract the JWT token
       const {
         data: { session },
@@ -52,6 +52,9 @@ export function useRelayerUpdateRoot() {
       if (!groupKey) {
         throw new Error("groupKey is required");
       }
+      if (!memberCount || memberCount <= 0) {
+        throw new Error("memberCount must be a positive integer");
+      }
 
       console.log("Initiating blockchain transaction...");
 
@@ -63,6 +66,7 @@ export function useRelayerUpdateRoot() {
             tree_version: treeVersion,
             root_value: rootValue,
             group_key: groupKey.toString(), // Convert to string as expected by edge function
+            member_count: memberCount.toString(), // Convert to string as expected by edge function
           },
           headers: {
             Authorization: `Bearer ${session.access_token}`,
