@@ -446,17 +446,16 @@ contract GovernanceManager is Initializable, UUPSUpgradeable, OwnableUpgradeable
      * @dev Only callable by the relayer.
      * @param proof The zk-SNARK proof to verify.
      * @param publicSignals The public signals associated with the proof.
-     * @param contextKey The pre-computed context hash (group, epoch).
      * @param groupKey The unique identifier for the voting group.
-     * @param currentRoot The current Merkle root from the MembershipManager contract.
+     * @param contextKey The pre-computed context hash (group, epoch, proposal).
      */
     function delegateVerifyVote(
         uint256[24] calldata proof,
         uint256[4] calldata publicSignals,
-        bytes32 contextKey,
         bytes32 groupKey,
-        bytes32 currentRoot
+        bytes32 contextKey
     ) external onlyRelayer {
+        bytes32 currentRoot = _getCurrentRoot(groupKey);
         voteManager.verifyVote(proof, publicSignals, contextKey, groupKey, currentRoot);
     }
 
