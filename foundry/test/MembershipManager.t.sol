@@ -15,10 +15,12 @@ import { IProposalManager } from "hardhat-contracts/interfaces/IProposalManager.
 import { IMembershipManager } from "hardhat-contracts/interfaces/IMembershipManager.sol";
 import { IProposalVerifier } from "hardhat-contracts/interfaces/IProposalVerifier.sol";
 import { ERC721IgnitionZK } from "hardhat-contracts/token/ERC721IgnitionZK.sol";
+import { MembershipVerifier } from "hardhat-contracts/verifiers/MembershipVerifier.sol";
 
 
 contract MembershipManagerTest is Test {
     MembershipManager membershipManager;
+    MembershipVerifier membershipVerifier;
     ERC721IgnitionZK nftImplementation;
 
     address governor = vm.addr(1);
@@ -36,11 +38,15 @@ contract MembershipManagerTest is Test {
         // deploy the MembershipManager implementation contract
         MembershipManager membershipManagerImpl = new MembershipManager();
 
+        // deploy the MembershipVerifier contract
+        membershipVerifier = new MembershipVerifier();
+
         // prepare the MembershipManager initialization data
         bytes memory initData = abi.encodeWithSelector(
             MembershipManager.initialize.selector,
             governor,
-            address(nftImplementation)
+            address(nftImplementation),
+            address(membershipVerifier)
         );
     	
         // deploy the MembershipManager UUPS proxy contract
@@ -58,7 +64,7 @@ contract MembershipManagerTest is Test {
      * @dev Fuzz test: tests deployment of group NFTs with various group keys
      * Assumes the group key is not zero.
      */
-    function testFuzz_deployGroupNft__withValidFuzzedGroupKey_Succeeds(bytes32 groupKey) public {
+    function testFuzz_deployGroupNft_SucceeedsWithAnyFuzzedGroupKey(bytes32 groupKey) public {
         vm.assume(groupKey != bytes32(0));
         vm.startPrank(governor);
 
@@ -87,7 +93,7 @@ contract MembershipManagerTest is Test {
      * @dev Fuzz test: tests deployment of group NFTs with various NFT symbols
      * Assumes the NFT symbol is within the valid length range (1-5 characters).
      */
-    function testFuzz_deployGroupNft__withValidFuzzedNftSymbol_Succeeds(string memory fuzzNftSymbol) public {
+    function testFuzz_deployGroupNft__SucceedsWithFuzzedNftSymbol(string memory fuzzNftSymbol) public {
         vm.startPrank(governor);
 
         // ensure the fuzzed symbol is within the valid length range
@@ -114,7 +120,7 @@ contract MembershipManagerTest is Test {
      * @dev Fuzz test: tests deployment of group NFTs with various NFT names.
      * Assumes the NFT name is within the valid length range (1-32 characters).
      */
-    function testFuzz_deployGroupNft_withValidFuzzedNftName_Succeeds(string memory fuzzNftName) public {
+    function testFuzz_deployGroupNft_SucceedsWithValidFuzzedNftName(string memory fuzzNftName) public {
         vm.startPrank(governor);
         
         // ensure the fuzzed name is within the valid length range
@@ -141,7 +147,7 @@ contract MembershipManagerTest is Test {
      * @dev Fuzz test: tests initialization of the root for a group with various group keys.
      * Assumes the group key is not zero.
      */
-    function testFuzz_initRoot_withValidFuzzedGroupKey_Succeeds(bytes32 groupKey) public {
+    function testFuzz_initRoot_SucceedsWithValidFuzzedGroupKey(bytes32 groupKey) public {
         vm.assume(groupKey != bytes32(0));
         vm.startPrank(governor);
 
@@ -169,7 +175,7 @@ contract MembershipManagerTest is Test {
      * @dev Fuzz test: tests initialization of the root for a group with various initial roots.
      * Assumes the initial root is not zero.
      */
-    function testFuzz_initRoot_withValidFuzzedInitialRoot_Succeeds(bytes32 initialRoot) public {
+    function testFuzz_initRoot_SucceedsWithValidFuzzedInitialRoot(bytes32 initialRoot) public {
         vm.assume(initialRoot != bytes32(0));
         vm.startPrank(governor);
 
@@ -197,7 +203,7 @@ contract MembershipManagerTest is Test {
      * @dev Fuzz test: tests setting a new root for a group with various group keys.
      * Assumes the group key is not zero.
      */
-    function testFuzz_setRoot_withValidFuzzedGroupKey_Succeeds(bytes32 groupKey) public {
+    function testFuzz_setRoot_SucceedsWithValidFuzzedGroupKey(bytes32 groupKey) public {
         vm.assume(groupKey != bytes32(0));
         vm.startPrank(governor);
 
@@ -227,7 +233,7 @@ contract MembershipManagerTest is Test {
      * @dev Fuzz test: tests setting a new root for a group with various new roots.
      * Assumes the new root is not zero.
      */
-    function testFuzz_setRoot_withValidFuzzedNewRoot_Succeeds(bytes32 newRoot) public {
+    function testFuzz_setRoot_SucceedsWithValidFuzzedNewRoot(bytes32 newRoot) public {
         vm.assume(newRoot != bytes32(0));
         vm.startPrank(governor);
 
@@ -257,7 +263,7 @@ contract MembershipManagerTest is Test {
      * @dev Fuzz test: tests minting NFTs to members with various member addresses.
      * Assumes the member address is not zero and is an EOA.
      */
-    function testFuzz_mintNftToMember_withValidFuzzedMemberAddress_Succeeds(address member) public {
+    function testFuzz_mintNftToMember_SucceedsWithValidFuzzedMemberAddress(address member) public {
         vm.assume(member != address(0));
         vm.assume(member.code.length == 0); 
         vm.startPrank(governor);
@@ -284,7 +290,7 @@ contract MembershipManagerTest is Test {
      * @dev Fuzz test: tests minting NFTs to a member using various group keys.
      * Assumes the member address is not zero and is an EOA.
      */
-    function testFuzz_mintNftToMember_withValidFuzzedGroupKey_Succeeds(bytes32 groupKey) public {
+    function testFuzz_mintNftToMember_SucceedsWithValidFuzzedGroupKey(bytes32 groupKey) public {
         vm.assume(groupKey != bytes32(0));
         vm.startPrank(governor);
         
