@@ -7,6 +7,7 @@ import InboxItem from "../components/InboxItem";
 import CustomDropdown from "../components/CustomDropdown";
 import MnemonicInput from "../components/MnemonicInput";
 import { useGetProposalsByGroupId } from "../hooks/queries/proposals/useGetActiveProposalsByGroupId";
+import { useGetPendingInboxProposals } from "../hooks/queries/proposals/useGetPendingInboxProposals";
 import { useGetUserGroups } from "../hooks/queries/groupMembers/useGetUserGroups";
 import { useGetProofsByGroupMemberId } from "../hooks/queries/proofs/useGetProofsByGroupMemberId";
 import { useVerifyMembership } from "../hooks/queries/proofs/useVerifyMembership";
@@ -109,14 +110,12 @@ const HiddenMessage = styled.div`
 
 const HiddenTitle = styled.h2`
   font-size: 2.4rem;
-  font-style: italic;
   margin-bottom: 0.8rem;
   color: var(--color-grey-300);
 `;
 
 const HiddenSubtitle = styled.p`
   font-size: 1.6rem;
-  font-style: italic;
   color: var(--color-grey-400);
   text-align: center;
   line-height: 1.4;
@@ -225,6 +224,11 @@ const LockIcon = styled.span`
 export default function Proofs() {
   const { userGroups, isLoading: isLoadingGroups } = useGetUserGroups();
   const { isLoading, proposals, error } = useGetProposalsByGroupId(userGroups);
+  const {
+    isLoading: isLoadingPending,
+    proposals: pendingProposals,
+    error: pendingError,
+  } = useGetPendingInboxProposals(userGroups);
   const groupMemberIds =
     userGroups?.map((group) => group.group_member_id) || [];
   const { proofs } = useGetProofsByGroupMemberId(groupMemberIds);
@@ -250,16 +254,10 @@ export default function Proofs() {
   const { commitmentArray, isLoading: isLoadingCommitments } =
     useGetCommitmentArray({ groupId: selectedGroupData?.group_id });
 
-  // Filter active proposals and then by selected group
-  const filteredProposals = proposals
-    ?.filter((proposal) => proposal.status_type === "active")
-    .filter((proposal) =>
-      selectedGroup === "" ? false : proposal.group_name === selectedGroup
-    )
-    .filter(
-      (proposal) =>
-        !proofs?.some((proof) => proof.proposal_id === proposal.proposal_id)
-    );
+  // Filter pending proposals by selected group
+  const filteredProposals = pendingProposals?.filter((proposal) =>
+    selectedGroup === "" ? false : proposal.group_name === selectedGroup
+  );
 
   // Filter verified proposals for activity history
   const verifiedProposals = proposals
@@ -267,7 +265,8 @@ export default function Proofs() {
       proofs?.some(
         (proof) =>
           proof.proposal_id === proposal.proposal_id &&
-          proof.is_verified === true
+          proof.is_verified === true &&
+          proof.circuit_id === "4cf28644-3d5c-4a09-b96d-d3138503ee7d"
       )
     )
     .filter((proposal) =>
@@ -355,10 +354,6 @@ export default function Proofs() {
   const handleMnemonicClose = () => {
     setShowMnemonicInput(false);
   };
-
-  // Check if the selected group is unlocked
-  const isGroupUnlocked =
-    selectedGroup === "" || unlockedGroups.has(selectedGroup);
 
   // Check if inbox is visible and group is unlocked (this means dropdown should be hidden)
   const shouldHideDropdown =
@@ -456,10 +451,10 @@ export default function Proofs() {
             <ProofHeader>
               <SectionTitle>Pending</SectionTitle>
             </ProofHeader>
-            {isLoading || isLoadingGroups ? (
+            {isLoadingPending || isLoadingGroups ? (
               <div>Loading...</div>
-            ) : error ? (
-              <div>Error: {error.message}</div>
+            ) : pendingError ? (
+              <div>Error: {pendingError.message}</div>
             ) : (
               <ActivityList>
                 {filteredProposals?.map((proposal) => (
