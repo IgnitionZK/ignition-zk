@@ -36,6 +36,7 @@ export const useCreateMerkleTreeRoot = ({ groupId } = {}) => {
 
     // Create new merkle tree with all commitments
     const { root } = await MerkleTreeService.createMerkleTree(allCommitments);
+    const memberCount = allCommitments.length;
 
     const currentTreeVersion = queryClient.getQueryData([
       "currentMerkleTreeRootVersion",
@@ -44,7 +45,7 @@ export const useCreateMerkleTreeRoot = ({ groupId } = {}) => {
     // Calculate the tree version
     const treeVersion = currentTreeVersion ? currentTreeVersion + 1 : 1;
 
-    return { root, treeVersion };
+    return { root, treeVersion, memberCount };
   };
 
   /**
@@ -70,19 +71,21 @@ export const useCreateMerkleTreeRoot = ({ groupId } = {}) => {
   }) => {
     try {
       // Step 1: Calculate new Merkle tree root (local computation)
-      const { root, treeVersion } = await calculateMerkleTreeRoot({
+      const { root, treeVersion, memberCount } = await calculateMerkleTreeRoot({
         newCommitment,
       });
 
       // Convert the groupId UUID to bytes32 format
       const groupKeyBytes32 = uuidToBytes32(groupId);
       console.log("[FRONTEND/useCreateMerkleTreeRoot] Group Key Bytes32:", groupKeyBytes32);
+      console.log("[FRONTEND/useCreateMerkleTreeRoot] Member Count:", memberCount);
 
       // Step 2: Update Merkle tree root on blockchain via relayer
       await updateMerkleRoot({
         treeVersion,
         rootValue: root,
         groupKey: groupKeyBytes32,
+        memberCount
       });
 
       if (onBlockchainSuccess) {
