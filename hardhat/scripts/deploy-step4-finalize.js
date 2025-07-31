@@ -14,15 +14,17 @@ async function main() {
 
   // Configuration - Update these addresses from previous steps
   const MEMBERSHIP_MANAGER_ADDRESS =
-    "0xD460Fbdc99738054D7e43F3BD742F12d7E6349dd"; // From Step 2
-  const PROPOSAL_MANAGER_ADDRESS = "0xDd96858994d97850D5a59A985a5CB2b6b2B14D8b"; // From Step 2
-  const GOVERNOR_ADDRESS = "0x96CebDEddF629537Ae5757fDB13AD3820A550f1D"; // From Step 3
+    "0x98EF3BaC5fFd2192B80c1520Ae69536a75EDB7b5"; // From Step 2
+  const PROPOSAL_MANAGER_ADDRESS = "0xb3Cf31751a079C1e3Dc770078167C874464BBCeE"; // From Step 2
+  const VOTE_MANAGER_ADDRESS = "0xF3642F24675bC9dbE8445cB28a4D4a3A765E7e5f"; // From Step 2 
+  const GOVERNOR_ADDRESS = "0x46c881E0ECA1f90d3132C11492b3f52b6840BbDb"; // From Step 3
   const OWNER_RELAYER = "0x5F909fd25A9F5e4f5a219318FdeD6C8124F6c1F1";
   const NFT_IMPLEMENTATION = "0x7C33a33561C0CFa6EECA18239A119d3FD3267B2A"; // From Step 1
 
   console.log("📋 Configuration:");
   console.log(`👥 MembershipManager: ${MEMBERSHIP_MANAGER_ADDRESS}`);
   console.log(`📄 ProposalManager: ${PROPOSAL_MANAGER_ADDRESS}`);
+  console.log(`📄 VoteManager: ${VOTE_MANAGER_ADDRESS}`);
   console.log(`🏛️  Governor: ${GOVERNOR_ADDRESS}`);
   console.log(`👤 Owner/Relayer: ${OWNER_RELAYER}`);
   console.log("");
@@ -31,6 +33,7 @@ async function main() {
   if (
     MEMBERSHIP_MANAGER_ADDRESS === ethers.ZeroAddress ||
     PROPOSAL_MANAGER_ADDRESS === ethers.ZeroAddress ||
+    VOTE_MANAGER_ADDRESS === ethers.ZeroAddress ||
     GOVERNOR_ADDRESS === ethers.ZeroAddress
   ) {
     console.error("❌ Please ensure all addresses are properly set!");
@@ -46,6 +49,10 @@ async function main() {
     const proposalManager = await ethers.getContractAt(
       "ProposalManager",
       PROPOSAL_MANAGER_ADDRESS
+    );
+    const voteManager = await ethers.getContractAt(
+      "VoteManager",
+      VOTE_MANAGER_ADDRESS
     );
     const governor = await ethers.getContractAt(
       "GovernanceManager",
@@ -75,19 +82,33 @@ async function main() {
     await transferProposalManagerTx.wait();
     console.log("✅ ProposalManager ownership transferred to Governor!");
 
-    console.log("\n🔧 Step 4c: Verifying setup...");
+    // Transfer ownership of VoteManager to Governor
+    console.log(
+      "🔧 Step 4c: Transferring VoteManager ownership to Governor..."
+    );
+    const transferVoteManagerTx = await voteManager.transferOwnership(
+      GOVERNOR_ADDRESS
+    );
+    console.log("⏳ Waiting for ownership transfer...");
+    await transferVoteManagerTx.wait();
+    console.log("✅ VoteManager ownership transferred to Governor!");
+
+    console.log("\n🔧 Step 4d: Verifying setup...");
     // Verify ownership
     const membershipManagerOwner = await membershipManager.owner();
     const proposalManagerOwner = await proposalManager.owner();
+    const voteManagerOwner = await voteManager.owner();
     const governorOwner = await governor.owner();
 
     console.log(`👥 MembershipManager owner: ${membershipManagerOwner}`);
     console.log(`📄 ProposalManager owner: ${proposalManagerOwner}`);
+    console.log(`🗳️  VoteManager owner: ${voteManagerOwner}`);
     console.log(`🏛️  Governor owner: ${governorOwner}`);
 
     if (
       membershipManagerOwner === GOVERNOR_ADDRESS &&
       proposalManagerOwner === GOVERNOR_ADDRESS &&
+      voteManagerOwner === GOVERNOR_ADDRESS &&
       governorOwner === OWNER_RELAYER
     ) {
       console.log("✅ Ownership verification successful!");
@@ -103,11 +124,13 @@ async function main() {
     console.log(`🔧 ERC721IgnitionZK (Implementation): ${NFT_IMPLEMENTATION}`);
     console.log(`👥 MembershipManager (Proxy): ${MEMBERSHIP_MANAGER_ADDRESS}`);
     console.log(`📄 ProposalManager (Proxy): ${PROPOSAL_MANAGER_ADDRESS}`);
+    console.log(`🗳️  VoteManager (Proxy): ${VOTE_MANAGER_ADDRESS}`);
     console.log(`🏛️  Governor (Proxy): ${GOVERNOR_ADDRESS}`);
     console.log(`👤 Owner/Relayer: ${OWNER_RELAYER}`);
     console.log("\n🔗 Contract Relationships:");
     console.log("• Governor owns MembershipManager");
     console.log("• Governor owns ProposalManager");
+    console.log("• Governor owns VoteManager");
     console.log("• Owner/Relayer owns Governor");
     console.log("• MembershipManager can deploy group NFTs");
     console.log("• Governor can delegate calls to MembershipManager");

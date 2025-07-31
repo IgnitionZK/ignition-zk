@@ -50,16 +50,17 @@ npx hardhat run scripts/deploy-step1-erc721.js --network <your-network>
 
 ### Step 2: Deploy MembershipManager and ProposalManager
 
-Update the addresses in `deploy-step2-membership-proposal-manager.js` with the addresses from Steps 0 and 1, then run:
+Update the addresses in `deploy-step2-managers.js` with the addresses from Steps 0 and 1, then run:
 
 ```bash
-npx hardhat run scripts/deploy-step2-membership-proposal-manager.js --network <your-network>
+npx hardhat run scripts/deploy-step2-managers.js --network <your-network>
 ```
 
 This deploys:
 
 - `MembershipManager` (UUPS proxy) - Manages group memberships and NFT deployments
 - `ProposalManager` (UUPS proxy) - Manages proposal submissions and claims
+- `VoteManager` (UUPS proxy) - Manages votes on proposals
 
 **Save the deployed addresses** - you'll need them for Step 3.
 

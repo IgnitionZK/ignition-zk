@@ -194,9 +194,9 @@ function GenerateCredentialsOverlay({ group, onClose }) {
       // Step 2-4: Use the createMerkleTreeRoot function to handle the complete flow
       await createMerkleTreeRoot({
         newCommitment: result.commitment,
-        onBlockchainSuccess: ({ root, treeVersion }) => {
+        onBlockchainSuccess: ({ root, treeVersion, memberCount }) => {
           console.log(
-            `Blockchain transaction confirmed. Root: ${root}, Version: ${treeVersion}`
+            `Blockchain transaction confirmed. Root: ${root}, Version: ${treeVersion}, Member Count: ${memberCount}`
           );
         },
         onDatabaseSuccess: ({ root, treeVersion }) => {

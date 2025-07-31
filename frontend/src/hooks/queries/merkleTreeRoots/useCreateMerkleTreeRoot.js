@@ -44,6 +44,9 @@ export const useCreateMerkleTreeRoot = ({ groupId } = {}) => {
 
     // Calculate the tree version
     const treeVersion = currentTreeVersion ? currentTreeVersion + 1 : 1;
+    console.log(
+      `[FRONTEND/useCreateMerkleTreeRoot] Current Tree Version: ${currentTreeVersion}, New Tree Version: ${treeVersion}`
+    );
 
     return { root, treeVersion, memberCount };
   };
@@ -79,6 +82,7 @@ export const useCreateMerkleTreeRoot = ({ groupId } = {}) => {
       const groupKeyBytes32 = uuidToBytes32(groupId);
       console.log("[FRONTEND/useCreateMerkleTreeRoot] Group Key Bytes32:", groupKeyBytes32);
       console.log("[FRONTEND/useCreateMerkleTreeRoot] Member Count:", memberCount);
+      console.log("[FRONTEND/useCreateMerkleTreeRoot] Tree Version:", treeVersion);
 
       // Step 2: Update Merkle tree root on blockchain via relayer
       await updateMerkleRoot({
@@ -89,7 +93,7 @@ export const useCreateMerkleTreeRoot = ({ groupId } = {}) => {
       });
 
       if (onBlockchainSuccess) {
-        onBlockchainSuccess({ root, treeVersion });
+        onBlockchainSuccess({ root, treeVersion, memberCount });
       }
 
       // Step 3: Insert the new Merkle tree root into database

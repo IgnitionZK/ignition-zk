@@ -14,13 +14,15 @@ async function main() {
 
   // Configuration - Update these addresses from previous steps
   const MEMBERSHIP_MANAGER_ADDRESS =
-    "0xD460Fbdc99738054D7e43F3BD742F12d7E6349dd"; // From Step 2
-  const PROPOSAL_MANAGER_ADDRESS = "0xDd96858994d97850D5a59A985a5CB2b6b2B14D8b"; // From Step 2
+    "0x98EF3BaC5fFd2192B80c1520Ae69536a75EDB7b5"; // From Step 2
+  const PROPOSAL_MANAGER_ADDRESS = "0xb3Cf31751a079C1e3Dc770078167C874464BBCeE"; // From Step 2
+  const VOTE_MANAGER_ADDRESS = "0xF3642F24675bC9dbE8445cB28a4D4a3A765E7e5f"; // From Step 2
   const OWNER_RELAYER = "0x5F909fd25A9F5e4f5a219318FdeD6C8124F6c1F1";
 
   console.log("📋 Configuration:");
   console.log(`👥 MembershipManager: ${MEMBERSHIP_MANAGER_ADDRESS}`);
   console.log(`📄 ProposalManager: ${PROPOSAL_MANAGER_ADDRESS}`);
+  console.log(`📄 VoteManager: ${VOTE_MANAGER_ADDRESS}`);
   console.log(`👤 Owner/Relayer: ${OWNER_RELAYER}`);
   console.log("");
 
@@ -37,6 +39,7 @@ async function main() {
         OWNER_RELAYER, // _relayer
         MEMBERSHIP_MANAGER_ADDRESS, // _membershipManager
         PROPOSAL_MANAGER_ADDRESS, // _proposalManager
+        VOTE_MANAGER_ADDRESS, // _voteManager
       ],
       {
         initializer: "initialize",

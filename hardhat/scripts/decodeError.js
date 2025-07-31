@@ -11,7 +11,7 @@ async function main() {
     }
     }
 
-    const selector = "0x6767c25c";
+    const selector = "0xd684e844";
 
     const errorSignaturesMM = [
         "OwnableUnauthorizedAccount()",
@@ -59,8 +59,30 @@ async function main() {
         "AddressDoesNotSupportInterface()",
         "KeyCannotBeZero()"
     ];
+
+    const errorSignaturesVM = [
+        "OwnableUnauthorizedAccount()",
+        "InvalidMerkleRoot()",
+        "RootNotYetInitialized()",
+        "InvalidContextHash()",
+        "VoteNullifierAlreadyUsed()",
+        "InvalidVoteProof(bytes32,bytes32)",
+        "InvalidVoteChoice()",
+        "TallyingInconsistent()",
+        "InvalidQuorumParams()",
+        "InvalidGroupSizeParams()",
+        "InvalidMemberCount()",
+        "QuorumCannotBeLowerThan25()",
+        "GroupParamsCannotBeZero()",
+        "InvalidXInput()",
+        "AddressIsNotAContract()",
+        "AddressDoesNotSupportInterface()",
+        "AddressCannotBeZero()",
+        "KeyCannotBeZero()"
+    ];
+        
     
-    findMatchingError(selector, errorSignaturesPM);
+    findMatchingError(selector, errorSignaturesVM);
 }
 
 main().catch(console.error);
