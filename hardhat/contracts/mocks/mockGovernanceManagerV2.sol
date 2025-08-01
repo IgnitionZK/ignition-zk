@@ -276,18 +276,21 @@ contract MockGovernanceManagerV2 is Initializable, UUPSUpgradeable, OwnableUpgra
      * @param initialRoot The initial Merkle root to set.
      * @param groupKey The unique identifier for the group.
      */
+    /*
     function delegateInitRoot(bytes32 initialRoot, bytes32 groupKey) external onlyRelayer {
         membershipManager.initRoot(initialRoot, groupKey);
     }
+    */
 
     /**
      * @notice Delegates the setRoot call to the membership manager.
      * @dev Only callable by the relayer.
+    * @param currentRoot The current Merkle root to verify against.
      * @param newRoot The new Merkle root to set.
      * @param groupKey The unique identifier for the group.
      */
-    function delegateSetRoot(bytes32 newRoot, bytes32 groupKey) external onlyRelayer {
-        membershipManager.setRoot(newRoot, groupKey);
+    function delegateSetRoot(bytes32 currentRoot, bytes32 newRoot, bytes32 groupKey) external onlyRelayer {
+        membershipManager.setRoot(currentRoot, newRoot, groupKey);
     }
 
     /**
@@ -679,7 +682,7 @@ contract MockGovernanceManagerV2 is Initializable, UUPSUpgradeable, OwnableUpgra
     }
 
     function dummyFunction() external pure returns (string memory) {
-        return "This is a dummy function ";
+        return "This is a dummy function";
     }
 
 }

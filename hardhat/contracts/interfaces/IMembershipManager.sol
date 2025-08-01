@@ -38,14 +38,15 @@ interface IMembershipManager {
      * @param initialRoot The initial Merkle root to set.
      * @param groupKey The unique identifier for the group.
      */
-    function initRoot(bytes32 initialRoot, bytes32 groupKey) external;
+    //function initRoot(bytes32 initialRoot, bytes32 groupKey) external;
 
     /**
      * @notice Updates the Merkle root for an existing group.
+     * @param currentRoot The current Merkle root to verify against.
      * @param newRoot The new Merkle root to set.
      * @param groupKey The unique identifier for the group.
      */
-    function setRoot(bytes32 newRoot, bytes32 groupKey) external;
+    function setRoot(bytes32 currentRoot, bytes32 newRoot, bytes32 groupKey) external;
     
     /** 
      * @notice Adds a new member to a specific group by minting an ERC721 token.
