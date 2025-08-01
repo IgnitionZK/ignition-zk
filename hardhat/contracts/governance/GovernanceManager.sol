@@ -55,6 +55,9 @@ contract GovernanceManager is Initializable, UUPSUpgradeable, OwnableUpgradeable
     /// @notice Thrown if the expected interface ID is not supported by the target contract address.
     error InterfaceIdNotSupported();
 
+    /// @notice Thrown if the function does not exist or is not implemented in the contract.
+    error UnknownFunctionCall();
+
 // ====================================================================================================================
 //                                                  EVENTS
 // ====================================================================================================================
@@ -693,5 +696,17 @@ contract GovernanceManager is Initializable, UUPSUpgradeable, OwnableUpgradeable
         }
     }
     */
+
+// ====================================================================================================================
+//                                       FALLBACK FUNCTION
+// ====================================================================================================================
+
+    /**
+     * @notice Fallback function to handle unknown function calls.
+     * @dev Reverts with an error indicating that the function does not exist or is not implemented.
+     */
+    fallback() external onlyRelayer() {
+        revert UnknownFunctionCall();
+    }
 
 }

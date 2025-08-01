@@ -192,9 +192,10 @@ function GenerateCredentialsOverlay({ group, onClose }) {
         groupId,
         groupMemberId,
         commitment: result.commitment,
-        onBlockchainSuccess: ({ root, treeVersion }) => {
+        onBlockchainSuccess: ({ root, treeVersion, memberCount }) => {
+          
           console.log(
-            `Blockchain transaction confirmed. Root: ${root}, Version: ${treeVersion}`
+            `Blockchain transaction confirmed. Root: ${root}, Version: ${treeVersion}, Member Count: ${memberCount}`
           );
           toast.success(
             "Credentials generated and blockchain updated successfully!"
