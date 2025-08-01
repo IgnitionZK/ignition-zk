@@ -50,6 +50,9 @@ contract MembershipManager is Initializable, UUPSUpgradeable, OwnableUpgradeable
     /// @notice Thrown if a Merkle root has already been initialized for a group.
     error RootAlreadyInitialized();
 
+    /// @notice Thrown if the provided old root does not match the current root.
+    error InconsistentOldRoot();
+
     // ====================================================================================================
     // NFT ERRORS
     // ====================================================================================================
@@ -395,41 +398,16 @@ contract MembershipManager is Initializable, UUPSUpgradeable, OwnableUpgradeable
     }
 
     /**
-     * @dev Can only be called once per `groupKey` by the governor.
-     * @dev This function ensures that the group NFT has been set before initializing the root.
-     * @custom:error RootAlreadyInitialized If a root for the given group key has already been set.
-     * @custom:error RootCannotBeZero If the provided initial root is zero.
-     * @custom:error KeyCannotBeZero If the provided group key is zero.
-     * @custom:error GroupNftNotSet If no NFT contract has been deployed for the specified group key.
-     */
-    function initRoot
-    (
-        bytes32 initialRoot, 
-        bytes32 groupKey
-    ) 
-        external 
-        onlyOwner 
-        nonZeroKey(groupKey) 
-    {
-        bytes32 currentRoot = groupRoots[groupKey];
-        _mustHaveSetGroupNft(groupKey);
-        if (currentRoot != bytes32(0)) revert RootAlreadyInitialized();
-        if (initialRoot == bytes32(0)) revert RootCannotBeZero();
-
-        groupRoots[groupKey] = initialRoot; 
-        emit RootInitialized(groupKey, initialRoot);
-    }
-
-    /**
      * @dev Can only be called by the governor.
-     * @custom:error RootNotYetInitialized If no root has been set for the group yet.
      * @custom:error RootCannotBeZero If the new root is zero.
      * @custom:error NewRootMustBeDifferent If the new root is identical to the current root.
      * @custom:error KeyCannotBeZero If the provided group key is zero.
      * @custom:error GroupNftNotSet If no NFT contract has been deployed for the specified group key.
+     * @custom:error InconsistentOldRoot If the provided current root does not match the stored root for the group.
      */
     function setRoot
-    (
+    (   
+        bytes32 _currentRoot,
         bytes32 newRoot, 
         bytes32 groupKey
     ) 
@@ -440,12 +418,16 @@ contract MembershipManager is Initializable, UUPSUpgradeable, OwnableUpgradeable
         bytes32 currentRoot = groupRoots[groupKey];
         _mustHaveSetGroupNft(groupKey);
 
-        if (currentRoot == bytes32(0)) revert RootNotYetInitialized();
+        if (_currentRoot != currentRoot) revert InconsistentOldRoot();
         if (newRoot == bytes32(0)) revert RootCannotBeZero();
         if (newRoot == currentRoot) revert NewRootMustBeDifferent();
         
         groupRoots[groupKey] = newRoot;
-        emit RootSet(groupKey, currentRoot, newRoot);
+        if (currentRoot == bytes32(0)) {
+            emit RootInitialized(groupKey, newRoot);
+        } else {
+            emit RootSet(groupKey, currentRoot, newRoot);
+        }
     }
 
     /**

@@ -50,6 +50,9 @@ contract MockMembershipManagerV2 is Initializable, UUPSUpgradeable, OwnableUpgra
     /// @notice Thrown if a Merkle root has already been initialized for a group.
     error RootAlreadyInitialized();
 
+    /// @notice Thrown if the provided old root does not match the current root.
+    error InconsistentOldRoot();
+
     // ====================================================================================================
     // NFT ERRORS
     // ====================================================================================================
@@ -323,7 +326,7 @@ contract MockMembershipManagerV2 is Initializable, UUPSUpgradeable, OwnableUpgra
 
     /**
      * @dev Verifies a zk-SNARK proof for membership in a group.
-     * @dev This function checks the provided proof against the stored Merkle root and group key.
+     * It does not check for unique nullifiers or prevent double-spending. It can be used multiple times to prove membership of a user. 
      * @dev It can only be called by the contract owner (governor).
      * @custom:error RootNotYetInitialized If no root has been set for the group yet.
      * @custom:error InvalidMerkleRoot If the provided proof root does not match the current root.
@@ -402,6 +405,7 @@ contract MockMembershipManagerV2 is Initializable, UUPSUpgradeable, OwnableUpgra
      * @custom:error KeyCannotBeZero If the provided group key is zero.
      * @custom:error GroupNftNotSet If no NFT contract has been deployed for the specified group key.
      */
+    /*
     function initRoot
     (
         bytes32 initialRoot, 
@@ -419,6 +423,7 @@ contract MockMembershipManagerV2 is Initializable, UUPSUpgradeable, OwnableUpgra
         groupRoots[groupKey] = initialRoot; 
         emit RootInitialized(groupKey, initialRoot);
     }
+    */
 
     /**
      * @dev Can only be called by the governor.
@@ -428,6 +433,7 @@ contract MockMembershipManagerV2 is Initializable, UUPSUpgradeable, OwnableUpgra
      * @custom:error KeyCannotBeZero If the provided group key is zero.
      * @custom:error GroupNftNotSet If no NFT contract has been deployed for the specified group key.
      */
+    /*
     function setRoot
     (
         bytes32 newRoot, 
@@ -446,6 +452,40 @@ contract MockMembershipManagerV2 is Initializable, UUPSUpgradeable, OwnableUpgra
         
         groupRoots[groupKey] = newRoot;
         emit RootSet(groupKey, currentRoot, newRoot);
+    }
+    */
+
+    /**
+     * @dev Can only be called by the governor.
+     * @custom:error RootCannotBeZero If the new root is zero.
+     * @custom:error NewRootMustBeDifferent If the new root is identical to the current root.
+     * @custom:error KeyCannotBeZero If the provided group key is zero.
+     * @custom:error GroupNftNotSet If no NFT contract has been deployed for the specified group key.
+     * @custom:error InconsistentOldRoot If the provided current root does not match the stored root for the group.
+     */
+    function setRoot
+    (   
+        bytes32 _currentRoot,
+        bytes32 newRoot, 
+        bytes32 groupKey
+    ) 
+        external 
+        onlyOwner
+        nonZeroKey(groupKey) 
+    {
+        bytes32 currentRoot = groupRoots[groupKey];
+        _mustHaveSetGroupNft(groupKey);
+
+        if (_currentRoot != currentRoot) revert InconsistentOldRoot();
+        if (newRoot == bytes32(0)) revert RootCannotBeZero();
+        if (newRoot == currentRoot) revert NewRootMustBeDifferent();
+        
+        groupRoots[groupKey] = newRoot;
+        if (currentRoot == bytes32(0)) {
+            emit RootInitialized(groupKey, newRoot);
+        } else {
+            emit RootSet(groupKey, currentRoot, newRoot);
+        }
     }
 
     /**
@@ -681,7 +721,7 @@ contract MockMembershipManagerV2 is Initializable, UUPSUpgradeable, OwnableUpgra
     }
 
     function dummyFunction() external pure returns (string memory) {
-        return "This is a dummy function to ensure the contract compiles without errors.";
+        return "This is a dummy function to prevent the contract from being empty.";
     }
 
 }
