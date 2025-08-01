@@ -14,6 +14,7 @@ import { IProposalManager } from "hardhat-contracts/interfaces/IProposalManager.
 import { IMembershipManager } from "hardhat-contracts/interfaces/IMembershipManager.sol";
 import { IProposalVerifier } from "hardhat-contracts/interfaces/IProposalVerifier.sol";
 import { ERC721IgnitionZK } from "hardhat-contracts/token/ERC721IgnitionZK.sol";
+import { MembershipVerifier } from "hardhat-contracts/verifiers/MembershipVerifier.sol";
 
 contract Dummy {
     function dummyFunction() external pure returns (string memory) {
@@ -26,6 +27,7 @@ contract ProposalManagerTest is Test {
     MockProposalClaimVerifier private mockProposalClaimVerifier;
     ProposalManager private proposalManager;
     MembershipManager private membershipManager;
+    MembershipVerifier private membershipVerifier;
     ERC721IgnitionZK private nftImplementation; 
     Dummy private dummy;
 
@@ -76,6 +78,7 @@ contract ProposalManagerTest is Test {
         // deploy the ProposalManager and MembershipManager implementation contracts
         ProposalManager proposalManagerImpl = new ProposalManager();
         MembershipManager membershipManagerImpl = new MembershipManager();
+        MembershipVerifier membershipVerifier = new MembershipVerifier();
       
         // prepare the calldata for ProposalManager initializer
         bytes memory initDataProposalManager = abi.encodeWithSelector(
@@ -89,7 +92,8 @@ contract ProposalManagerTest is Test {
         bytes memory initDataMembershipManager = abi.encodeWithSelector(
             MembershipManager.initialize.selector,
             governor, 
-            address(nftImplementation)
+            address(nftImplementation),
+            address(membershipVerifier)
         );
         
         // deploy proxy pointing to the implementation contract

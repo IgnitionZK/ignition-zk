@@ -9,10 +9,9 @@ import ConfirmationModal from "./ConfirmationModal";
 import Spinner from "./Spinner";
 // scripts
 import { ZkCredential } from "../scripts/generateCredentials-browser-safe";
-// queries
-import { useInsertLeaf } from "../hooks/queries/merkleTreeLeaves/useInsertLeaf";
+// hooks
 import { useGetGroupMemberId } from "../hooks/queries/groupMembers/useGetGroupMemberId";
-import { useCreateMerkleTreeRoot } from "../hooks/queries/merkleTreeRoots/useCreateMerkleTreeRoot";
+import { useAtomicCommitmentInsertion } from "../hooks/queries/merkleTreeRoots/useAtomicCommitmentInsertion";
 
 const Overlay = styled.div`
   position: fixed;
@@ -158,10 +157,9 @@ function GenerateCredentialsOverlay({ group, onClose }) {
 
   const groupId = group?.group_id;
 
-  const { insertLeaf, isLoading: isLoadingInsertLeaf } = useInsertLeaf();
   const { isLoading, groupMemberId } = useGetGroupMemberId({ groupId });
-  const { createMerkleTreeRoot, isLoading: isLoadingCreateMerkleTreeRoot } =
-    useCreateMerkleTreeRoot({ groupId });
+  const { insertCommitment, isLoading: isInsertingCommitment } =
+    useAtomicCommitmentInsertion();
 
   /**
    * Shows the generate confirmation modal
@@ -171,92 +169,66 @@ function GenerateCredentialsOverlay({ group, onClose }) {
   };
 
   /**
-   * Generates new credentials and updates the Merkle tree
-   *
-   * This function follows a "blockchain first, then database" approach:
-   * 1. Generates a new 12-word mnemonic and commitment
-   * 2. Calculates the new Merkle tree root (local computation)
-   * 3. Updates the Merkle tree root on the blockchain via relayer
-   * 4. Only if blockchain succeeds, inserts the commitment and root into the database
+   * Generates new credentials using the atomic commitment insertion
    */
   const handleGenerate = async () => {
     try {
       setIsGenerating(true);
+      console.log("Starting credential generation...");
 
       // Step 1: Generate credentials (local computation)
       const result = await ZkCredential.generateCredentials(128);
+      console.log("Generated credentials:", result);
 
       if (!groupMemberId) {
-        console.error("No group member ID available");
-        throw new Error("Group member ID is required to insert commitment");
+        throw new Error("Group member ID is required to generate credentials");
       }
 
-      // Step 2-4: Use the createMerkleTreeRoot function to handle the complete flow
-      await createMerkleTreeRoot({
-        newCommitment: result.commitment,
+      console.log("Group Member ID:", groupMemberId);
+      console.log("Group ID:", groupId);
+
+      // Step 2: Use the atomic commitment insertion
+      const dbResult = await insertCommitment({
+        groupId,
+        groupMemberId,
+        commitment: result.commitment,
         onBlockchainSuccess: ({ root, treeVersion, memberCount }) => {
+          
           console.log(
             `Blockchain transaction confirmed. Root: ${root}, Version: ${treeVersion}, Member Count: ${memberCount}`
           );
-        },
-        onDatabaseSuccess: ({ root, treeVersion }) => {
-          console.log(
-            `Database updated successfully. Root: ${root}, Version: ${treeVersion}`
+          toast.success(
+            "Credentials generated and blockchain updated successfully!"
           );
         },
         onError: (error) => {
-          console.error("Merkle tree operation failed:", error);
+          console.error("Commitment insertion failed:", error);
           throw error;
         },
       });
 
-      // Step 5: Insert the commitment into the merkle tree (separate from root insertion)
-      try {
-        await insertLeaf({
-          groupMemberId: groupMemberId,
-          commitment: result.commitment.toString(),
-          groupId: groupId,
-        });
+      console.log("Atomic commitment insertion completed:", dbResult);
 
-        console.log(
-          "Credentials generated and Merkle tree updated successfully"
-        );
-      } catch (dbError) {
-        console.error("Failed to insert commitment into database:", dbError);
-        // Note: Blockchain and root update succeeded but commitment insertion failed
-        // This is a critical error that needs manual intervention
-        throw new Error(
-          "Blockchain update succeeded but commitment insertion failed. Please contact support."
-        );
-      }
-
-      // Only set credentials after all operations are complete
+      // Step 3: Set credentials for display
       setCredentials(result);
     } catch (error) {
       console.error("Error generating credentials:", error);
-
-      // Clear credentials on failure to prevent inconsistent state
       setCredentials(null);
 
-      // Provide more specific error messages based on the error type
+      // Provide specific error messages based on the error type
       let errorMessage = "Failed to generate credentials. Please try again.";
 
       if (
-        error.message.includes(
-          "Blockchain update succeeded but commitment insertion failed"
-        )
+        error.message.includes("System is busy") ||
+        error.message.includes("lock timeout") ||
+        error.message.includes("please try again in a moment")
       ) {
-        errorMessage =
-          "Credentials were generated but there was a database error. Please contact support.";
-      } else if (error.message.includes("Edge function error")) {
-        errorMessage =
-          "Blockchain transaction failed. Please check your network connection and try again.";
-      } else if (error.message.includes("No authentication token")) {
-        errorMessage =
-          "Authentication error. Please log in again and try again.";
+        errorMessage = "System is busy. Please try again in a moment.";
       } else if (error.message.includes("Group member ID is required")) {
         errorMessage =
           "Group membership error. Please refresh the page and try again.";
+      } else if (error.message.includes("Commitment insertion failed")) {
+        errorMessage = "Database error. Please try again.";
       }
 
       toast.error(errorMessage);
@@ -362,8 +334,7 @@ function GenerateCredentialsOverlay({ group, onClose }) {
                   disabled={
                     isGenerating ||
                     isLoading ||
-                    isLoadingCreateMerkleTreeRoot ||
-                    isLoadingInsertLeaf ||
+                    isInsertingCommitment ||
                     !groupMemberId
                   }
                 >

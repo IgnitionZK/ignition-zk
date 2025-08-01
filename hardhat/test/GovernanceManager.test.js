@@ -123,6 +123,12 @@ describe("Governance Manager Unit Tests:", function () {
         // Get Contract Factory for GovernanceManager
         GovernanceManager = await ethers.getContractFactory("GovernanceManager");
 
+        // Get Contract Factory for VoteManager
+        VoteManager = await ethers.getContractFactory("VoteManager");
+
+        // Get Contract Factory for VoteVerifier
+        VoteVerifier = await ethers.getContractFactory("VoteVerifier");
+
         // Initialize variables
         groupId = '123e4567-e89b-12d3-a456-426614174000'; // Example UUID for group
         epochId = '123e4567-e89b-12d3-a456-426614174001'; // Example UUID for epoch
@@ -257,6 +263,25 @@ describe("Governance Manager Unit Tests:", function () {
             }
         );
         await proposalManager.waitForDeployment();
+
+        // Deploy the vote verifier
+        voteVerifier = await VoteVerifier.deploy();
+        await voteVerifier.waitForDeployment();
+
+        // Deploy the VoteManager UUPS Proxy (ERC‑1967) contract with the relayer as the initial owner
+
+        voteManager = await upgrades.deployProxy(
+            VoteManager,
+            [
+                deployerAddress, // _initialOwner
+                voteVerifier.target
+            ],
+            {
+                initializer: "initialize",
+                kind: "uups"
+            }
+        );
+        await voteManager.waitForDeployment();
         
         // Deploy the Governance UUPS Proxy (ERC‑1967) contract
         governanceManager = await upgrades.deployProxy(
@@ -265,7 +290,8 @@ describe("Governance Manager Unit Tests:", function () {
                 deployerAddress,  // _initialOwner
                 relayerAddress, // _relayer
                 membershipManager.target, // _membershipManager
-                proposalManager.target, // _proposalManager
+                proposalManager.target, // _proposalManager,
+                voteManager.target, // _voteManager
             ],
             {
                 initializer: "initialize",
@@ -279,6 +305,9 @@ describe("Governance Manager Unit Tests:", function () {
 
         // Tranfer ownership of ProposalManager to GovernanceManager
         await proposalManager.transferOwnership(governanceManager.target);
+
+        // Transfer ownership of VoteManager to GovernanceManager
+        await voteManager.transferOwnership(governanceManager.target);
 
     });
 

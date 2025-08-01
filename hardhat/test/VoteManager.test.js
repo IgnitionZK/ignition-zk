@@ -147,8 +147,10 @@ describe("Vote Manager Unit Tests:", function () {
         epochKey = Conversions.stringToBytes32(epochId);
         proposalKey = Conversions.stringToBytes32(proposalId);
         contextKey = await Conversions.computeVoteContextKey(groupId, epochId, proposalId);
+        
         proposalContextKey = await Conversions.computeContextKey(groupId, epochId);
         rootHash1 = Conversions.stringToBytes32("rootHash1");
+        
         rootHash2 = Conversions.stringToBytes32("rootHash2");
         submissionNullifier1 = Conversions.stringToBytes32("submissionNullifier1");
         submissionNullifier2 = Conversions.stringToBytes32("submissionNullifier2");
@@ -182,7 +184,7 @@ describe("Vote Manager Unit Tests:", function () {
             voteChoiceNo,
             rootHash1
         ];
-
+        
         // mock public signals with another vote choice and nullifier on the same context:
         mockPublicSignals2 = [
             contextKey,
@@ -350,6 +352,7 @@ describe("Vote Manager Unit Tests:", function () {
                 kind: "uups"
             }
         );
+        await voteManager.waitForDeployment();
     });
 
     
@@ -389,7 +392,7 @@ describe("Vote Manager Unit Tests:", function () {
         x1 = 30;
         x2 = 200;
         y1 = 50;
-        y2= 25;
+        y2 = 25;
         slopePositive = (y1 - y2) / (x2 - x1);
         return Math.floor(y1 - slopePositive * (x - x1));
     }
@@ -470,7 +473,7 @@ describe("Vote Manager Unit Tests:", function () {
     });
 
     it(`FUNCTIONALITY: upgradeability
-        TESTING: proxy data storage
+        TESTING: proxy data storage: nullifiers, quorum parameters
         EXPECTED: should preserve proxy data after upgrade`, async function () {
 
         // deploy group NFT and initialize group root
@@ -495,6 +498,23 @@ describe("Vote Manager Unit Tests:", function () {
         // check that the vote nullifier is stored correctly
         expect(await voteManager.connect(governor).getVoteNullifierStatus(voteNullifier1)).to.equal(true);
 
+        // check the intial values of the quorum parameters:
+        const quorumParamsInitial = await voteManager.connect(governor).getQuorumParams();
+        expect(quorumParamsInitial.minQuorumPercent).to.equal(25);
+        expect(quorumParamsInitial.maxQuorumPercent).to.equal(50);
+        expect(quorumParamsInitial.maxGroupSizeForMinQuorum).to.equal(200);
+        expect(quorumParamsInitial.minGroupSizeForMaxQuorum).to.equal(30);
+
+        // set the quorum parameters to a different value:
+        await voteManager.connect(governor).setQuorumParams(30, 40, 150, 10);
+
+        // check that the quorum parameters are stored correctly
+        const quorumParams = await voteManager.connect(governor).getQuorumParams();
+        expect(quorumParams.minQuorumPercent).to.equal(30);
+        expect(quorumParams.maxQuorumPercent).to.equal(40);
+        expect(quorumParams.maxGroupSizeForMinQuorum).to.equal(150);
+        expect(quorumParams.minGroupSizeForMaxQuorum).to.equal(10);
+
         // get the current proxy address and implementation address
         const proxyAddress = await voteManager.target;
         const implementationAddress = await upgrades.erc1967.getImplementationAddress(proxyAddress);
@@ -513,6 +533,13 @@ describe("Vote Manager Unit Tests:", function () {
 
         // Check if the vote nullifier is still stored correctly after the upgrade
         expect(await voteManagerV2.connect(governor).getVoteNullifierStatus(voteNullifier1)).to.equal(true);
+
+        // check that the quorum parameters are still stored correctly after the upgrade
+        const updatedQuorumParams = await voteManagerV2.connect(governor).getQuorumParams();
+        expect(updatedQuorumParams.minQuorumPercent).to.equal(30);
+        expect(updatedQuorumParams.maxQuorumPercent).to.equal(40);
+        expect(updatedQuorumParams.maxGroupSizeForMinQuorum).to.equal(150);
+        expect(updatedQuorumParams.minGroupSizeForMaxQuorum).to.equal(10);
     });
 
     it(`FUNCTION: getGroupParams
@@ -551,12 +578,12 @@ describe("Vote Manager Unit Tests:", function () {
         let expectedQuorumValues = [];
         let quorumValues = [];
         let expectedMemberCountValues = [];
-        for (i = 31; i < 200; i++ ) {
+        for (i = 31; i < 201; i++ ) {
             xValues.push(i);
 
             // calculate the expected quorum value via linear interpolation
             const interpolatedValue = await linearInterpolation(i);
-            expectedQuorumValues.push(interpolatedValue);
+            expectedQuorumValues.push(Number(interpolatedValue));
 
             // set the member count and get the group parameters
             await voteManager.connect(governor).setMemberCount(groupKey, i);
@@ -565,6 +592,13 @@ describe("Vote Manager Unit Tests:", function () {
             expectedMemberCountValues.push(params.memberCount);
         }
 
+        const diff = expectedQuorumValues.map((expected, index) => {
+            const actual = quorumValues[index];
+            return Number(expected) - Number(actual);
+        });
+        //console.log("min difference:", Math.min(...diff));
+        //console.log("max difference:", Math.max(...diff));
+        expect(diff.every(d => d === 0), `Quorum values do not match expected values for group sizes 31 to 199. Differences: ${diff}`);
         expect(quorumValues).to.deep.equal(expectedQuorumValues, `Quorum values do not match expected values for group sizes 31 to 199`);
         expect(xValues).to.deep.equal(expectedMemberCountValues, `Member count values do not match expected values for group sizes 31 to 199`);
         
@@ -997,4 +1031,295 @@ describe("Vote Manager Unit Tests:", function () {
 
     });
 
+    it(`FUNCTION: verifyVote
+        TESTING: custom error: RootNotYetInitialized
+        EXPECTED: should not allow the governor to verify a vote if the group root has not been initialized`, async function () {
+    
+        // set the member count to 2 (ie., only two members can vote)
+        await voteManager.connect(governor).setMemberCount(groupKey, 2);
+
+        // set the vote verifier to the mock verifier
+        await voteManager.connect(governor).setVoteVerifier(mockVoteVerifier.target);
+
+        await expect(voteManager.connect(governor).verifyVote(
+            mockProof,
+            mockPublicSignals1,
+            contextKey,
+            groupKey,
+            ethers.ZeroHash
+        )).to.be.revertedWithCustomError(voteManager, "RootNotYetInitialized");
+    })
+
+    it(`FUNCTION: verifyVote
+        TESTING: custom error: InvalidMerkleRoot
+        EXPECTED: should not allow the governor to verify a vote if the merkle root is not valid`, async function () {
+        // set the member count to 2 (ie., only two members can vote)
+        await voteManager.connect(governor).setMemberCount(groupKey, 2);
+
+        // set the vote verifier to the mock verifier
+        await voteManager.connect(governor).setVoteVerifier(mockVoteVerifier.target);
+
+        await expect(voteManager.connect(governor).verifyVote(
+            mockProof,
+            mockPublicSignals1,
+            contextKey,
+            groupKey,
+            rootHash2
+        )).to.be.revertedWithCustomError(voteManager, "InvalidMerkleRoot");
+    })
+
+    it(`FUNCTION: verifyVote
+        TESTING: custom error: VoteNullifierAlreadyUsed
+        EXPECTED: should not allow the governor to verify a vote if the vote nullifier has already been used`, async function () {
+
+        // set the member count to 2 (ie., only two members can vote)
+        await voteManager.connect(governor).setMemberCount(groupKey, 2);
+
+        // set the vote verifier to the mock verifier
+        await setVoteVerifierAndVerifyVote(governor, mockVoteVerifier.target, mockProof, mockPublicSignals1, contextKey, groupKey, rootHash1);
+
+        await expect(voteManager.connect(governor).getVoteNullifierStatus(voteNullifier1))
+            .to.eventually.equal(true, "Vote nullifier should be stored after first verification");
+        
+        // verify a second vote with the same nullifier
+        await expect(voteManager.connect(governor).verifyVote(
+            mockProof,
+            mockPublicSignals1,
+            contextKey,
+            groupKey,
+            rootHash1
+        )).to.be.revertedWithCustomError(voteManager, "VoteNullifierAlreadyUsed");
+
+        // verify another vote with a different nullifier
+        await expect(voteManager.connect(governor).verifyVote(
+            mockProof,
+            mockPublicSignals2,
+            contextKey,
+            groupKey,
+            rootHash1
+        )).to.emit(voteManager, "VoteVerified").withArgs(
+            contextKey,
+            voteNullifier2);
+
+        await expect(voteManager.connect(governor).getVoteNullifierStatus(voteNullifier2))
+            .to.eventually.equal(true, "Second vote nullifier should be stored after second verification");
+        
+        // check that the first vote nullifier is still stored correctly
+        await expect(voteManager.connect(governor).getVoteNullifierStatus(voteNullifier1))
+            .to.eventually.equal(true, "First vote nullifier should still be stored after second verification");
+
+        // verify another vote with the same nullifier as in publicSignals2
+        await expect(voteManager.connect(governor).verifyVote(
+            mockProof,
+            mockPublicSignals2,
+            contextKey,
+            groupKey,
+            rootHash1
+        )).to.be.revertedWithCustomError(voteManager, "VoteNullifierAlreadyUsed");
+
+    })
+
+    it(`FUNCTION: verifyVote
+        TESTING: custom error: InvalidContextHash
+        EXPECTED: should not allow the governor to verify a vote if the context hash is invalid`, async function () {
+
+        // set the member count to 2 (ie., only two members can vote)
+        await voteManager.connect(governor).setMemberCount(groupKey, 2);
+
+        // set the vote verifier to the mock verifier
+        await voteManager.connect(governor).setVoteVerifier(mockVoteVerifier.target);
+        
+        const invalidContextHash = Conversions.stringToBytes32("invalidContextHash");
+        
+        await expect(voteManager.connect(governor).verifyVote(
+            mockProof,
+            mockPublicSignals1,
+            invalidContextHash,
+            groupKey,
+            rootHash1
+        )).to.be.revertedWithCustomError(voteManager, "InvalidContextHash");
+
+    })
+
+    it(`FUNCTION: verifyVote
+        TESTING: custom error: InvalidVoteChoice
+        EXPECTED: should not allow the governor to verify a vote if the vote choice is invalid`, async function () {
+
+        // set the member count to 2 (ie., only two members can vote)
+        await voteManager.connect(governor).setMemberCount(groupKey, 2);
+
+        // set the vote verifier to the mock verifier
+        await voteManager.connect(governor).setVoteVerifier(mockVoteVerifier.target);
+
+        const invalidPublicSignals = [
+            contextKey,
+            voteNullifier1,
+            Conversions.stringToBigInt("invalidVoteChoice"), 
+            rootHash1
+        ];
+
+        await expect(voteManager.connect(governor).verifyVote(
+            mockProof,
+            invalidPublicSignals,
+            contextKey,
+            groupKey,
+            rootHash1
+        )).to.be.revertedWithCustomError(voteManager, "InvalidVoteChoice");
+
+    })
+
+    it(`FUNCTION: verifyVote (with real verifier and invalid proof)
+        TESTING: custom error: InvalidVoteProof
+        EXPECTED: should not allow the governor to verify a vote if the vote proof is invalid`, async function () {
+
+        // set the member count to 2 (ie., only two members can vote)
+        await voteManager.connect(governor).setMemberCount(groupKey, 2);
+
+        await expect(voteManager.connect(governor).verifyVote(
+            mockProof,
+            realPublicSignals,
+            realContextKey,
+            realGroupKey,
+            realRoot
+        )).to.be.revertedWithCustomError(voteManager, "InvalidVoteProof");
+
+    });
+
+    it(`FUNCTION: verifyVote (with real verifier)
+        TESTING: custom error: InvalidVoteProof
+        EXPECTED: should not allow the governor to verify a vote if the vote choice is invalid`, async function () {
+
+        // set the member count to 2 (ie., only two members can vote)
+        await voteManager.connect(governor).setMemberCount(groupKey, 2);
+        
+        // make a copy of the valid public signals
+        const invalidPublicSignals = [...realPublicSignals];
+
+        // modify the vote choice to an invalid value
+        invalidPublicSignals[2] = voteChoiceAbstain;
+        
+        // reverts with InvalidVoteProof instead of InvalidVoteChoice as the vote choice is bound to the proof
+        await expect(voteManager.connect(governor).verifyVote(
+            realProof,
+            invalidPublicSignals,
+            realContextKey,
+            realGroupKey,
+            realRoot
+        )).to.be.revertedWithCustomError(voteManager, "InvalidVoteProof");
+
+    });
+
+    it(`FUNCTION: verifyVote (with real verifier)
+        TESTING: custom error: InvalidContextHash
+        EXPECTED: should not allow the governor to verify a vote if the context hash is invalid`, async function () {
+
+        // set the member count to 2 (ie., only two members can vote)
+        await voteManager.connect(governor).setMemberCount(groupKey, 2);
+        
+        // make a copy of the valid public signals
+        const invalidPublicSignals = [...realPublicSignals];
+
+        // modify the vote choice to an invalid value
+        invalidPublicSignals[0] = Conversions.stringToBigInt("InvalidContextHash");
+
+        await expect(voteManager.connect(governor).verifyVote(
+            realProof,
+            invalidPublicSignals,
+            realContextKey,
+            realGroupKey,
+            realRoot
+        )).to.be.revertedWithCustomError(voteManager, "InvalidContextHash");
+
+    });
+
+    it(`FUNCTION: verifyVote (with real verifier)
+        TESTING: custom error: InvalidMerkleRoot
+        EXPECTED: should not allow the governor to verify a vote if the Merkle root is invalid`, async function () {
+
+        // set the member count to 2 (ie., only two members can vote)
+        await voteManager.connect(governor).setMemberCount(groupKey, 2);
+        
+        // make a copy of the valid public signals
+        const invalidPublicSignals = [...realPublicSignals];
+
+        // modify the vote choice to an invalid value
+        invalidPublicSignals[3] = Conversions.stringToBigInt("InvalidMerkleRoot");
+
+        await expect(voteManager.connect(governor).verifyVote(
+            realProof,
+            invalidPublicSignals,
+            realContextKey,
+            realGroupKey,
+            realRoot
+        )).to.be.revertedWithCustomError(voteManager, "InvalidMerkleRoot");
+
+    });
+
+    it(`FUNCTION: verifyVote (with real verifier)
+        TESTING: custom error: VoteNullifierAlreadyUsed
+        EXPECTED: should not allow the governor to verify a vote if the vote nullifier is already used`, async function () {
+
+        // set the member count to 2 (ie., only two members can vote)
+        await voteManager.connect(governor).setMemberCount(realGroupKey, 2);
+
+        await expect(voteManager.connect(governor).verifyVote(
+            realProof,
+            realPublicSignals,
+            realContextKey,
+            realGroupKey,
+            realRoot
+        )).to.emit(voteManager, "VoteVerified");
+
+        const nullifier = ethers.toBeHex(realPublicSignals[1], 32);
+        expect(await voteManager.connect(governor).getVoteNullifierStatus(nullifier))
+            .to.equal(true, "Vote nullifier should be stored after first verification");
+
+        await expect(voteManager.connect(governor).verifyVote(
+            realProof,
+            realPublicSignals,
+            realContextKey,
+            realGroupKey,
+            realRoot
+        )).to.revertedWithCustomError(voteManager, "VoteNullifierAlreadyUsed");
+    });
+
+
+    it(`FUNCTION: getVoteVerifier
+        TESTING: authorization (failure)
+        EXPECTED: should not allow a non-governor to get the current vote verifier address`, async function () {
+
+        await expect(voteManager.connect(user1).getVoteVerifier()).to.be.revertedWithCustomError(
+            voteManager,
+            "OwnableUnauthorizedAccount"
+        );
+    });
+
+    it(`FUNCTION: getProposalResult
+        TESTING: authorization (failure)
+        EXPECTED: should not allow a non-governor to get the current proposal result`, async function () {
+
+        await expect(voteManager.connect(user1).getProposalResult(contextKey)).to.be.revertedWithCustomError(
+            voteManager,
+            "OwnableUnauthorizedAccount"
+        );
+    });
+
+    it(`FUNCTION: getQuorumParams
+        TESTING: authorization (failure)
+        EXPECTED: should not allow a non-governor to get the current quorum parameters`, async function () {
+
+        await expect(voteManager.connect(user1).getQuorumParams()).to.be.revertedWithCustomError(
+            voteManager,
+            "OwnableUnauthorizedAccount"
+        );
+    });
+
+    it(`FUNCTION: getContractVersion
+        TESTING: authorization (success)
+        EXPECTED: should allow the governor to get the current contract version`, async function () {
+
+        expect(await voteManager.connect(governor).getContractVersion()).to.equal(1);
+    });
+
+    
 });

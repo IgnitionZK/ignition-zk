@@ -11,11 +11,12 @@ import { ERC165Upgradeable } from "@openzeppelin/contracts-upgradeable/utils/int
 // Interfaces:
 import { IVoteVerifier } from "../interfaces/IVoteVerifier.sol";
 import { IVoteManager } from "../interfaces/IVoteManager.sol";
+import { IVersioned } from "../interfaces/IVersioned.sol";
 
 // Complex Types:
 import { VoteTypes } from "../types/VoteTypes.sol";
 
-contract VoteManager is Initializable, OwnableUpgradeable, UUPSUpgradeable, IVoteManager, ERC165Upgradeable {
+contract VoteManager is Initializable, OwnableUpgradeable, UUPSUpgradeable, IVoteManager, ERC165Upgradeable, IVersioned {
 
 // ====================================================================================================================
 //                                                  CUSTOM ERRORS
@@ -73,6 +74,9 @@ contract VoteManager is Initializable, OwnableUpgradeable, UUPSUpgradeable, IVot
 
     /// @notice Thrown if the x input for linear interpolation is invalid.
     error InvalidXInput();
+
+    /// @notice Thrown if the inputs for the ceiling division are invalid.
+    error InvalidCeilInputs();
 
     // ====================================================================================================
     // GENERAL ERRORS
@@ -184,7 +188,7 @@ contract VoteManager is Initializable, OwnableUpgradeable, UUPSUpgradeable, IVot
     IVoteVerifier private voteVerifier;
 
     // ====================================================================================================
-    // QUORUM STATE VARIABLES
+    // STATE VARIABLES
     // ====================================================================================================
 
     /// @dev The quorum parameters, which include the minimum and maximum thresholds and group size parameters.
@@ -267,6 +271,7 @@ contract VoteManager is Initializable, OwnableUpgradeable, UUPSUpgradeable, IVot
             maxGroupSizeForMinQuorum: 200,
             minGroupSizeForMaxQuorum: 30
         });
+
     }
 
 // ====================================================================================================================
@@ -278,7 +283,7 @@ contract VoteManager is Initializable, OwnableUpgradeable, UUPSUpgradeable, IVot
      * @custom:error AddressIsNotAContract If the provided address is not a contract.
      * @custom:error AddressDoesNotSupportInterface If the provided address does not support the `verifyProof` function.
      */
-     function setVoteVerifier(address _voteVerifier) external onlyOwner nonZeroAddress(_voteVerifier) {
+     function setVoteVerifier(address _voteVerifier) external override onlyOwner nonZeroAddress(_voteVerifier) {
         if(_voteVerifier.code.length == 0) revert AddressIsNotAContract();
         if(!_supportsIVoteInterface(_voteVerifier)) revert AddressDoesNotSupportInterface();
 
@@ -317,8 +322,11 @@ contract VoteManager is Initializable, OwnableUpgradeable, UUPSUpgradeable, IVot
         if (currentRoot == bytes32(0)) revert RootNotYetInitialized();
         if (proofRoot != currentRoot) revert InvalidMerkleRoot();
 
+        // check that proposal exists
+        // would need to read the nullifier state in the ProposalManager contract
+
         // check that vote nullifier has not been used
-        if (voteNullifiers[contextKey]) revert VoteNullifierAlreadyUsed();
+        if (voteNullifiers[proofVoteNullifier]) revert VoteNullifierAlreadyUsed();
 
         // check that context is correct
         if (contextKey != proofContextHash) revert InvalidContextHash();
@@ -467,6 +475,10 @@ contract VoteManager is Initializable, OwnableUpgradeable, UUPSUpgradeable, IVot
         return quorumParams;
     }
 
+    function getContractVersion() external view onlyOwner returns (uint256) {
+        return 1; 
+    }
+
 // ====================================================================================================================
 //                                       PRIVATE HELPER FUNCTIONS
 // ====================================================================================================================
@@ -539,21 +551,22 @@ contract VoteManager is Initializable, OwnableUpgradeable, UUPSUpgradeable, IVot
     function _linearInterpolation(uint256 x) private view returns (uint256) {
         // y = y1 + slope * (x  - x1)
         // slope = (y2 - y1) / (x2 - x1)
+        uint256 yScalingFactor = 1e4; 
         uint256 x1 = quorumParams.minGroupSizeForMaxQuorum;
-        uint256 y1Scaled = quorumParams.maxQuorumPercent * 100;
+        uint256 y1Scaled = quorumParams.maxQuorumPercent * yScalingFactor;
         uint256 x2 = quorumParams.maxGroupSizeForMinQuorum;
-        uint256 y2Scaled = quorumParams.minQuorumPercent * 100;
+        uint256 y2Scaled = quorumParams.minQuorumPercent * yScalingFactor;
 
         // x should be between x1 and x2
         if (x <= x1 || x >= x2) revert InvalidXInput();
 
-        uint256 slopeScalingFactor = 1e18;
+        uint256 scalingFactor = 1e4;
         uint256 slopeNumeratorPositive = y1Scaled - y2Scaled;
         uint256 slopeDenominator =  x2 - x1;
-        uint256 slopePositiveScaled = slopeNumeratorPositive * slopeScalingFactor / slopeDenominator;
+        uint256 slopePositiveScaled = slopeNumeratorPositive * scalingFactor / slopeDenominator;
 
-        uint256 quorumScaled = y1Scaled - (slopePositiveScaled * (x - x1)) / slopeScalingFactor;
-        return quorumScaled / 100;
+        uint256 quorumScaled = y1Scaled - (slopePositiveScaled * (x - x1)) / scalingFactor;
+        return quorumScaled / scalingFactor;
     }
 
     /**
@@ -563,6 +576,7 @@ contract VoteManager is Initializable, OwnableUpgradeable, UUPSUpgradeable, IVot
      * @return uint256 The result of the ceiling division.
      */
     function _ceilDiv(uint256 a, uint256 b) private pure returns (uint256) {
+        if (a == 0 || b == 0) revert InvalidCeilInputs();  
         return (a + b - 1) / b;
     }
 
