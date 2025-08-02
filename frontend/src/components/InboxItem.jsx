@@ -366,6 +366,7 @@ function InboxItem({
           onClose={() => setShowMnemonicInput(false)}
           onSubmit={handleSubmitMnemonic}
           prePopulatedMnemonic={storedMnemonic}
+          selectedVote={selectedVote}
         />
       )}
 
