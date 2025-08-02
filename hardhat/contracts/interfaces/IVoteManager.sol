@@ -81,4 +81,10 @@ interface IVoteManager {
      */
     function getQuorumParams() external view returns (VoteTypes.QuorumParams memory params);
 
+    /**
+     * @notice Retrieves the current version of the VoteManager contract.
+     * @return The version string of the VoteManager contract.
+     */
+    function getContractVersion() external view returns (string memory);
+
 }

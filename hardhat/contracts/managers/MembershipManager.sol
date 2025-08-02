@@ -7,6 +7,7 @@ import { IERC165 } from "@openzeppelin/contracts/utils/introspection/IERC165.sol
 import { IERC721 } from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import { IMembershipManager } from "../interfaces/IMembershipManager.sol";
 import { IMembershipVerifier } from "../interfaces/IMembershipVerifier.sol";
+import { IVersioned } from "../interfaces/IVersioned.sol";
 
 // UUPS imports:
 import { UUPSUpgradeable } from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
@@ -26,7 +27,7 @@ import { Clones } from "@openzeppelin/contracts/proxy/Clones.sol";
  * It allows for initializing and updating Merkle roots, verifying proofs, managing group NFTs,
  * and adding/removing members. This contract acts as a factory for ERC721IgnitionZK NFT contracts.
  */
-contract MembershipManager is Initializable, UUPSUpgradeable, OwnableUpgradeable, IMembershipManager, ERC165Upgradeable {
+contract MembershipManager is Initializable, UUPSUpgradeable, OwnableUpgradeable, IMembershipManager, ERC165Upgradeable, IVersioned {
 
 // ====================================================================================================================
 //                                                  CUSTOM ERRORS
@@ -47,12 +48,6 @@ contract MembershipManager is Initializable, UUPSUpgradeable, OwnableUpgradeable
     /// @notice Thrown if a Merkle root has not been initialized for a group.
     error RootNotYetInitialized();
 
-    /// @notice Thrown if a Merkle root has already been initialized for a group.
-    error RootAlreadyInitialized();
-
-    /// @notice Thrown if the provided old root does not match the current root.
-    error InconsistentOldRoot();
-
     // ====================================================================================================
     // NFT ERRORS
     // ====================================================================================================
@@ -62,9 +57,6 @@ contract MembershipManager is Initializable, UUPSUpgradeable, OwnableUpgradeable
 
     /// @notice Thrown if a group NFT has already been set for a group.
     error GroupNftAlreadySet();
-
-    /// @notice Thrown if the NFT address is zero.
-    error NftAddressCannotBeZero();
 
     /// @notice Thrown if the NFT implementation does not support the ERC721 interface.
     error NftMustBeERC721();
@@ -403,11 +395,9 @@ contract MembershipManager is Initializable, UUPSUpgradeable, OwnableUpgradeable
      * @custom:error NewRootMustBeDifferent If the new root is identical to the current root.
      * @custom:error KeyCannotBeZero If the provided group key is zero.
      * @custom:error GroupNftNotSet If no NFT contract has been deployed for the specified group key.
-     * @custom:error InconsistentOldRoot If the provided current root does not match the stored root for the group.
      */
     function setRoot
     (   
-        bytes32 _currentRoot,
         bytes32 newRoot, 
         bytes32 groupKey
     ) 
@@ -418,7 +408,6 @@ contract MembershipManager is Initializable, UUPSUpgradeable, OwnableUpgradeable
         bytes32 currentRoot = groupRoots[groupKey];
         _mustHaveSetGroupNft(groupKey);
 
-        if (_currentRoot != currentRoot) revert InconsistentOldRoot();
         if (newRoot == bytes32(0)) revert RootCannotBeZero();
         if (newRoot == currentRoot) revert NewRootMustBeDifferent();
         
@@ -570,6 +559,14 @@ contract MembershipManager is Initializable, UUPSUpgradeable, OwnableUpgradeable
     function supportsInterface(bytes4 interfaceId) public view virtual override returns (bool) 
     {
         return interfaceId == type(IMembershipManager).interfaceId || super.supportsInterface(interfaceId);
+    }
+
+    /**
+     * @dev Returns the version of the contract.
+     * @return string The version of the contract.
+     */
+    function getContractVersion() external view override(IVersioned, IMembershipManager) onlyOwner returns (string memory) {
+        return "MembershipManager v1.0.0"; 
     }
     
 // ====================================================================================================================

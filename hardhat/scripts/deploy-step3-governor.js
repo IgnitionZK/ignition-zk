@@ -14,9 +14,9 @@ async function main() {
 
   // Configuration - Update these addresses from previous steps
   const MEMBERSHIP_MANAGER_ADDRESS =
-    "0x98EF3BaC5fFd2192B80c1520Ae69536a75EDB7b5"; // From Step 2
-  const PROPOSAL_MANAGER_ADDRESS = "0xb3Cf31751a079C1e3Dc770078167C874464BBCeE"; // From Step 2
-  const VOTE_MANAGER_ADDRESS = "0xF3642F24675bC9dbE8445cB28a4D4a3A765E7e5f"; // From Step 2
+    "0xCF5CA6bF90C299821e29CFcfAdA0C455cc19a3e5"; // From Step 2
+  const PROPOSAL_MANAGER_ADDRESS = "0x3793D365defd9039c16e75025D3793f04aa46E53"; // From Step 2
+  const VOTE_MANAGER_ADDRESS = "0x8Bc6CA09A18A0e43D561020C52AA93E8cB9C69D0"; // From Step 2
   const OWNER_RELAYER = "0x5F909fd25A9F5e4f5a219318FdeD6C8124F6c1F1";
 
   console.log("📋 Configuration:");

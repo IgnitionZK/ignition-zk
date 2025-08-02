@@ -6,6 +6,7 @@ import { IMembershipManager } from "../interfaces/IMembershipManager.sol";
 import { IProposalManager } from "../interfaces/IProposalManager.sol";
 import { IVoteManager } from "../interfaces/IVoteManager.sol";
 import { IERC165 } from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
+import { IVersioned } from "../interfaces/IVersioned.sol";
 
 // types
 import { VoteTypes } from "../types/VoteTypes.sol";
@@ -23,7 +24,7 @@ import { ERC165Upgradeable } from "@openzeppelin/contracts-upgradeable/utils/int
  * The contract is upgradeable and follows the UUPS pattern, ensuring that governance can adapt to future requirements.
  */
 
-contract MockGovernanceManagerV2 is Initializable, UUPSUpgradeable, OwnableUpgradeable, ERC165Upgradeable {
+contract MockGovernanceManagerV2 is Initializable, UUPSUpgradeable, OwnableUpgradeable, ERC165Upgradeable, IVersioned {
 
 // ====================================================================================================================
 //                                                  CUSTOM ERRORS
@@ -54,6 +55,9 @@ contract MockGovernanceManagerV2 is Initializable, UUPSUpgradeable, OwnableUpgra
 
     /// @notice Thrown if the expected interface ID is not supported by the target contract address.
     error InterfaceIdNotSupported();
+
+    /// @notice Thrown if the function does not exist or is not implemented in the contract.
+    error UnknownFunctionCall();
 
 // ====================================================================================================================
 //                                                  EVENTS
@@ -267,7 +271,7 @@ contract MockGovernanceManagerV2 is Initializable, UUPSUpgradeable, OwnableUpgra
         uint256[2] calldata publicSignals,
         bytes32 groupKey
     ) external onlyRelayer {
-        return membershipManager.verifyMembership(proof, publicSignals, groupKey);
+        membershipManager.verifyMembership(proof, publicSignals, groupKey);
     }
     
     /**
@@ -285,12 +289,11 @@ contract MockGovernanceManagerV2 is Initializable, UUPSUpgradeable, OwnableUpgra
     /**
      * @notice Delegates the setRoot call to the membership manager.
      * @dev Only callable by the relayer.
-    * @param currentRoot The current Merkle root to verify against.
      * @param newRoot The new Merkle root to set.
      * @param groupKey The unique identifier for the group.
      */
-    function delegateSetRoot(bytes32 currentRoot, bytes32 newRoot, bytes32 groupKey) external onlyRelayer {
-        membershipManager.setRoot(currentRoot, newRoot, groupKey);
+    function delegateSetRoot(bytes32 newRoot, bytes32 groupKey) external onlyRelayer {
+        membershipManager.setRoot(newRoot, groupKey);
     }
 
     /**
@@ -668,6 +671,14 @@ contract MockGovernanceManagerV2 is Initializable, UUPSUpgradeable, OwnableUpgra
         return address(voteManager);
     }
 
+    /**
+     * @dev Returns the version of the contract.
+     * @return string The version of the contract.
+     */
+    function getContractVersion() external view onlyRelayer() returns (string memory) {
+        return "GovernanceManager v1.0.0"; 
+    }
+
 // ====================================================================================================================
 //                                       PRIVATE HELPER FUNCTIONS
 // ====================================================================================================================
@@ -681,7 +692,35 @@ contract MockGovernanceManagerV2 is Initializable, UUPSUpgradeable, OwnableUpgra
         return membershipManager.getRoot(groupKey);
     }
 
-    function dummyFunction() external pure returns (string memory) {
+    /**
+     * @dev Checks if a contract supports a specific interface.
+     * @param target The address of the contract to check.
+     * @param interfaceId The interface ID to check for support.
+     * @return bool indicating whether the contract supports the specified interface.
+     */
+    /*
+    function _supportsInterface(address target, bytes4 interfaceId) private view returns (bool) {
+        try IERC165(target).supportsInterface(interfaceId) returns (bool supported) {
+            return supported;
+        } catch {
+            return false;
+        }
+    }
+    */
+
+// ====================================================================================================================
+//                                       FALLBACK FUNCTION
+// ====================================================================================================================
+
+    /**
+     * @notice Fallback function to handle unknown function calls.
+     * @dev Reverts with an error indicating that the function does not exist or is not implemented.
+     */
+    fallback() external {
+        revert UnknownFunctionCall();
+    }
+
+    function dummy() external pure returns (string memory) {
         return "This is a dummy function";
     }
 
