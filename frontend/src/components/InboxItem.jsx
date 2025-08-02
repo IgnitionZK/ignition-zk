@@ -5,7 +5,7 @@ import MnemonicInput from "./MnemonicInput";
 import BallotModal from "./BallotModal";
 import Spinner from "./Spinner";
 import toast from "react-hot-toast";
-import { useVerifyProposal } from "../hooks/queries/proofs/useVerifyProposal";
+import { useVerifyVote } from "../hooks/queries/proofs/useVerifyVote";
 import { useGetCommitmentArray } from "../hooks/queries/merkleTreeLeaves/useGetCommitmentArray";
 import { useInsertProof } from "../hooks/queries/proofs/useInsertProof";
 import { useGetUserGroups } from "../hooks/queries/groupMembers/useGetUserGroups";
@@ -116,7 +116,7 @@ function InboxItem({
       groupId: proposal.group_id,
     });
 
-  const { verifyProposal, isVerifying } = useVerifyProposal();
+  const { verifyVote, isVerifying } = useVerifyVote();
 
   const { insertProof } = useInsertProof();
 
@@ -255,27 +255,31 @@ function InboxItem({
       }
 
       // Get the proof and verification result
-      const { isValid, publicSignals } = await verifyProposal(
+      const { isValid, publicSignals, proof } = await verifyVote(
         commitmentArray,
         mnemonic,
         proposal.group_id,
         proposal.epoch_id,
-        proposal.title,
-        proposal.description,
-        proposal.payload,
-        proposal.funding || {},
-        proposal.metadata || {}
+        proposal.proposal_id,
+        selectedVote === "reject" ? 0 : selectedVote === "approve" ? 1 : 2 // 0 for Reject, 1 for Approve, 2 for Abstain
       );
 
       if (isValid) {
-        const nullifierHash = publicSignals[1]; // Second value in publicSignals is the proposal submission nullifier hash
+        const nullifierHash = publicSignals[1]; // Second value in publicSignals is the vote nullifier hash
+
+        // Convert proof and public signals to string arrays for database storage
+        // Both proof and publicSignals should now be arrays from the Solidity calldata
+        const proofArray = proof.map((p) => p.toString());
+        const publicSignalsArray = publicSignals.map((s) => s.toString());
 
         await insertProof({
           proposalId: proposal.proposal_id,
           groupId: proposal.group_id,
           groupMemberId: userGroupMemberId,
-          nullifierHash,
-          circuitType: "proposal",
+          nullifierHash: nullifierHash.toString(),
+          circuitType: "voting",
+          proof: proofArray,
+          publicSignals: publicSignalsArray,
         });
 
         // TODO: Store vote information when the API supports it

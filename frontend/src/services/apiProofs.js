@@ -8,6 +8,8 @@ import { supabase } from "./supabase";
  * @param {string} params.groupMemberId - The ID of the group member who created this proof
  * @param {string} params.nullifierHash - The nullifier hash of the proof
  * @param {string} params.circuitType - The type of circuit used (e.g., "proposal", "voting", "membership")
+ * @param {Array<string>} [params.proof] - The proof array (required for voting circuit)
+ * @param {Array<string>} [params.publicSignals] - The public signals array (required for voting circuit)
  * @returns {Promise<Object>} The inserted proof record
  * @throws {Error} If any required parameter is missing or if the database operation fails
  */
@@ -17,6 +19,8 @@ export async function insertProof({
   groupMemberId,
   nullifierHash,
   circuitType,
+  proof,
+  publicSignals,
 }) {
   console.log("🔍 insertProof called with parameters:", {
     proposalId,
@@ -24,6 +28,10 @@ export async function insertProof({
     groupMemberId,
     nullifierHash,
     circuitType,
+    proof: proof ? `${proof.length} elements` : undefined,
+    publicSignals: publicSignals
+      ? `${publicSignals.length} elements`
+      : undefined,
   });
 
   if (!proposalId) {
@@ -63,6 +71,18 @@ export async function insertProof({
     nullifier_hash: nullifierHash,
     is_verified: true,
   };
+
+  // Add proof and public_signals for voting circuit (required by database constraint)
+  if (circuitType === "voting") {
+    if (!proof) {
+      throw new Error("proof is required for voting circuit");
+    }
+    if (!publicSignals) {
+      throw new Error("publicSignals is required for voting circuit");
+    }
+    insertData.proof = proof;
+    insertData.public_signals = publicSignals;
+  }
 
   console.log("📝 insertProof - Data to be inserted:", insertData);
   console.log("🔗 insertProof - Circuit ID mapped:", circuitId);

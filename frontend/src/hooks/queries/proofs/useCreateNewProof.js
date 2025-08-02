@@ -218,12 +218,100 @@ export const useGenerateProof = () => {
     }
   };
 
+  /**
+   * Generates vote circuit input from commitment array and mnemonic
+   * @param {string[]} commitmentArray - Array of commitment values
+   * @param {string} mnemonic - Mnemonic phrase
+   * @param {string} groupId - Group ID value
+   * @param {string} epochId - Epoch ID value
+   * @param {string} proposalId - Proposal ID value
+   * @param {number} voteChoice - Vote choice (0 for No, 1 for Yes)
+   * @returns {Promise<Object>} Generated circuit input
+   * @throws {Error} If circuit input generation fails
+   */
+  const generateVoteCircuitInput = async (
+    commitmentArray,
+    mnemonic,
+    groupId,
+    epochId,
+    proposalId,
+    voteChoice
+  ) => {
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      const input = await ZKProofGenerator.generateVoteCircuitInput(
+        mnemonic,
+        commitmentArray,
+        groupId,
+        epochId,
+        proposalId,
+        voteChoice
+      );
+      setCircuitInput(input);
+      return input;
+    } catch (err) {
+      setError(err.message || "Failed to generate vote circuit input");
+      throw err;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  /**
+   * Generates a complete vote proof from raw inputs
+   * @param {string[]} commitmentArray - Array of commitment values
+   * @param {string} mnemonic - Mnemonic phrase
+   * @param {string} groupId - Group ID value
+   * @param {string} epochId - Epoch ID value
+   * @param {string} proposalId - Proposal ID value
+   * @param {number} voteChoice - Vote choice (0 for No, 1 for Yes)
+   * @returns {Promise<Object>} Object containing proof, public signals, and circuit type
+   * @throws {Error} If proof generation fails
+   */
+  const generateVoteProofFromInput = async (
+    commitmentArray,
+    mnemonic,
+    groupId,
+    epochId,
+    proposalId,
+    voteChoice
+  ) => {
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      // First generate the vote circuit input
+      const input = await generateVoteCircuitInput(
+        commitmentArray,
+        mnemonic,
+        groupId,
+        epochId,
+        proposalId,
+        voteChoice
+      );
+
+      // Then generate the proof using the circuit input
+      const { proof, publicSignals } = await generateProof(input, "vote");
+
+      return { proof, publicSignals, circuitType: "vote" };
+    } catch (err) {
+      setError(err.message || "Failed to generate vote proof from input");
+      throw err;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return {
     generateCircuitInput,
     generateMembershipCircuitInput,
+    generateVoteCircuitInput,
     generateProof,
     generateProofFromInput,
     generateMembershipProofFromInput,
+    generateVoteProofFromInput,
     isLoading,
     error,
     circuitInput,

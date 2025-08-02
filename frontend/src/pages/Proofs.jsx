@@ -287,18 +287,12 @@ export default function Proofs() {
       setStoredMnemonic(null);
     };
 
-    const handleVisibilityChange = () => {
-      if (document.hidden) {
-        setStoredMnemonic(null);
-      }
-    };
-
+    // Only clear mnemonic on beforeunload, not on visibility change
+    // This allows users to switch tabs without losing their mnemonic
     window.addEventListener("beforeunload", handleBeforeUnload);
-    document.addEventListener("visibilitychange", handleVisibilityChange);
 
     return () => {
       window.removeEventListener("beforeunload", handleBeforeUnload);
-      document.removeEventListener("visibilitychange", handleVisibilityChange);
       setStoredMnemonic(null);
     };
   }, []);
