@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import styled from "styled-components";
 import CustomButton from "./CustomButton";
 import ConfirmationModal from "./ConfirmationModal";
@@ -142,6 +142,7 @@ const Input = styled.input`
  * @param {string} props.confirmButtonHoverColor - Hover color for confirm button
  * @param {string} props.cancelButtonColor - Color for cancel button
  * @param {string} props.cancelButtonHoverColor - Hover color for cancel button
+ * @param {string} props.prePopulatedMnemonic - Pre-populated mnemonic phrase (words separated by spaces)
  * @param {Object} props.proposal - Legacy prop for backward compatibility
  */
 function MnemonicInput({
@@ -160,11 +161,41 @@ function MnemonicInput({
   confirmButtonHoverColor = "#818cf8",
   cancelButtonColor = "#f87171",
   cancelButtonHoverColor = "#ef4444",
+  prePopulatedMnemonic = null,
   // Legacy props for backward compatibility
   proposal = null,
 }) {
-  const [words, setWords] = useState(Array(wordCount).fill(""));
+  // Initialize words with pre-populated mnemonic if provided
+  const initializeWords = () => {
+    if (prePopulatedMnemonic) {
+      const mnemonicWords = prePopulatedMnemonic.split(" ");
+      const wordsArray = Array(wordCount).fill("");
+      mnemonicWords.forEach((word, index) => {
+        if (index < wordCount) {
+          wordsArray[index] = word;
+        }
+      });
+      return wordsArray;
+    }
+    return Array(wordCount).fill("");
+  };
+
+  const [words, setWords] = useState(initializeWords);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
+
+  // Update words when prePopulatedMnemonic changes
+  useEffect(() => {
+    if (prePopulatedMnemonic) {
+      const mnemonicWords = prePopulatedMnemonic.split(" ");
+      const wordsArray = Array(wordCount).fill("");
+      mnemonicWords.forEach((word, index) => {
+        if (index < wordCount) {
+          wordsArray[index] = word;
+        }
+      });
+      setWords(wordsArray);
+    }
+  }, [prePopulatedMnemonic, wordCount]);
 
   // Handle legacy proposal prop for backward compatibility
   const finalContextInfo =

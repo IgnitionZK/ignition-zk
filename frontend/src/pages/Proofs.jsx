@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import styled from "styled-components";
 
 // components
@@ -243,6 +243,7 @@ export default function Proofs() {
   const [showMnemonicInput, setShowMnemonicInput] = useState(false);
   const [unlockedGroups, setUnlockedGroups] = useState(new Set());
   const [localVerificationError, setLocalVerificationError] = useState(null);
+  const [storedMnemonic, setStoredMnemonic] = useState(null);
 
   const groupNames = userGroups?.map((group) => group.name) || [];
 
@@ -253,6 +254,28 @@ export default function Proofs() {
 
   const { commitmentArray, isLoading: isLoadingCommitments } =
     useGetCommitmentArray({ groupId: selectedGroupData?.group_id });
+
+  // Cleanup effect to clear mnemonic when component unmounts or user navigates away
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      setStoredMnemonic(null);
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        setStoredMnemonic(null);
+      }
+    };
+
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+      setStoredMnemonic(null);
+    };
+  }, []);
 
   // Filter pending proposals by selected group
   const filteredProposals = pendingProposals?.filter((proposal) =>
@@ -297,6 +320,8 @@ export default function Proofs() {
         setLocalVerificationError(null); // Clear any verification errors
         // Clear all unlocked groups so they need to re-enter mnemonic
         setUnlockedGroups(new Set());
+        // Clear stored mnemonic for security
+        setStoredMnemonic(null);
       }
     }
   };
@@ -332,6 +357,9 @@ export default function Proofs() {
           selectedGroup
         );
 
+        // Only store the mnemonic after successful verification
+        setStoredMnemonic(mnemonic);
+
         // Add the group to unlocked groups (only one group can be unlocked at a time)
         setUnlockedGroups(new Set([selectedGroup]));
 
@@ -348,6 +376,8 @@ export default function Proofs() {
 
       // Don't unlock the inbox if verification fails
       setIsInboxVisible(false);
+      // Ensure mnemonic is not stored if verification fails
+      setStoredMnemonic(null);
     }
   };
 
@@ -462,6 +492,7 @@ export default function Proofs() {
                     key={proposal.proposal_id}
                     proposal={proposal}
                     isVerified={false}
+                    storedMnemonic={storedMnemonic}
                   />
                 ))}
               </ActivityList>
@@ -481,6 +512,7 @@ export default function Proofs() {
                     proposal={proposal}
                     showSubmitButton={false}
                     isVerified={proposal.is_verified}
+                    storedMnemonic={storedMnemonic}
                   />
                 ))}
               </ActivityList>
