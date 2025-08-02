@@ -91,6 +91,7 @@ export const useAtomicCommitmentInsertion = () => {
           onBlockchainSuccess({
             root: root,
             treeVersion: treeVersion,
+            memberCount: rpcResult.member_count
           });
         }
 

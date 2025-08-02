@@ -475,9 +475,14 @@ contract VoteManager is Initializable, OwnableUpgradeable, UUPSUpgradeable, IVot
         return quorumParams;
     }
 
-    function getContractVersion() external view onlyOwner returns (uint256) {
-        return 1; 
+    /**
+     * @dev Returns the version of the contract.
+     * @return string The version of the contract.
+     */
+    function getContractVersion() external view override(IVersioned, IVoteManager) onlyOwner returns (string memory) {
+        return "VoteManager v1.0.0"; 
     }
+
 
 // ====================================================================================================================
 //                                       PRIVATE HELPER FUNCTIONS

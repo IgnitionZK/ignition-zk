@@ -11,7 +11,8 @@ async function main() {
     }
     }
 
-    const selector = "0xd684e844";
+    const selector = "0x6767c25c";
+           
 
     const errorSignaturesMM = [
         "OwnableUnauthorizedAccount()",
@@ -82,7 +83,7 @@ async function main() {
     ];
         
     
-    findMatchingError(selector, errorSignaturesVM);
+    findMatchingError(selector, errorSignaturesPM);
 }
 
 main().catch(console.error);

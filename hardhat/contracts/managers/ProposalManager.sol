@@ -7,6 +7,7 @@ import {IProposalVerifier} from "../interfaces/IProposalVerifier.sol";
 import {IProposalClaimVerifier} from "../interfaces/IProposalClaimVerifier.sol";
 import {IMembershipManager} from "../interfaces/IMembershipManager.sol";
 import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
+import {IVersioned} from "../interfaces/IVersioned.sol";
 
 // UUPS imports:
 import { UUPSUpgradeable } from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
@@ -15,7 +16,7 @@ import { OwnableUpgradeable } from "@openzeppelin/contracts-upgradeable/access/O
 import { ERC165Upgradeable } from "@openzeppelin/contracts-upgradeable/utils/introspection/ERC165Upgradeable.sol";
 
 // tracks proposal submissions and verifications (pre-vote phase)
-contract ProposalManager is Initializable, OwnableUpgradeable, UUPSUpgradeable, IProposalManager, ERC165Upgradeable {
+contract ProposalManager is Initializable, OwnableUpgradeable, UUPSUpgradeable, IProposalManager, ERC165Upgradeable, IVersioned {
 
 // ====================================================================================================================
 //                                                  CUSTOM ERRORS
@@ -344,6 +345,14 @@ contract ProposalManager is Initializable, OwnableUpgradeable, UUPSUpgradeable, 
         return interfaceId == type(IProposalManager).interfaceId || super.supportsInterface(interfaceId);
     }
     */
+
+    /**
+     * @dev Returns the version of the contract.
+     * @return string The version of the contract.
+     */
+    function getContractVersion() external view override(IVersioned, IProposalManager) onlyOwner returns (string memory) {
+        return "ProposalManager v1.0.0"; 
+    }
 
 // ====================================================================================================================
 //                                       PRIVATE HELPER FUNCTIONS

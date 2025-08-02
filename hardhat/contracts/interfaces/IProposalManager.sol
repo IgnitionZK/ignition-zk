@@ -74,6 +74,11 @@ interface IProposalManager {
      * @return bool indicating whether the claim nullifier has been used.
      */
     function getClaimNullifierStatus(bytes32 nullifier) external view returns (bool);
-    
 
+    /**
+     * @notice Retrieves the current version of the ProposalManager contract.
+     * @return The version string of the ProposalManager contract.
+     */
+    function getContractVersion() external view returns (string memory);
+    
 }

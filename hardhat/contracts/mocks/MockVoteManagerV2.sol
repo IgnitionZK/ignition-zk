@@ -11,11 +11,12 @@ import { ERC165Upgradeable } from "@openzeppelin/contracts-upgradeable/utils/int
 // Interfaces:
 import { IVoteVerifier } from "../interfaces/IVoteVerifier.sol";
 import { IVoteManager } from "../interfaces/IVoteManager.sol";
+import { IVersioned } from "../interfaces/IVersioned.sol";
 
 // Complex Types:
 import { VoteTypes } from "../types/VoteTypes.sol";
 
-contract MockVoteManagerV2 is Initializable, OwnableUpgradeable, UUPSUpgradeable, IVoteManager, ERC165Upgradeable {
+contract MockVoteManagerV2 is Initializable, OwnableUpgradeable, UUPSUpgradeable, IVoteManager, ERC165Upgradeable, IVersioned {
 
 // ====================================================================================================================
 //                                                  CUSTOM ERRORS
@@ -282,7 +283,7 @@ contract MockVoteManagerV2 is Initializable, OwnableUpgradeable, UUPSUpgradeable
      * @custom:error AddressIsNotAContract If the provided address is not a contract.
      * @custom:error AddressDoesNotSupportInterface If the provided address does not support the `verifyProof` function.
      */
-     function setVoteVerifier(address _voteVerifier) external onlyOwner nonZeroAddress(_voteVerifier) {
+     function setVoteVerifier(address _voteVerifier) external override onlyOwner nonZeroAddress(_voteVerifier) {
         if(_voteVerifier.code.length == 0) revert AddressIsNotAContract();
         if(!_supportsIVoteInterface(_voteVerifier)) revert AddressDoesNotSupportInterface();
 
@@ -474,6 +475,15 @@ contract MockVoteManagerV2 is Initializable, OwnableUpgradeable, UUPSUpgradeable
         return quorumParams;
     }
 
+    /**
+     * @dev Returns the version of the contract.
+     * @return string The version of the contract.
+     */
+    function getContractVersion() external view override(IVersioned, IVoteManager) onlyOwner returns (string memory) {
+        return "VoteManager v1.0.0"; 
+    }
+
+
 // ====================================================================================================================
 //                                       PRIVATE HELPER FUNCTIONS
 // ====================================================================================================================
@@ -591,8 +601,8 @@ contract MockVoteManagerV2 is Initializable, OwnableUpgradeable, UUPSUpgradeable
         }
     }
 
-    function dummyFunction() external pure returns (string memory) {
-        return "This is a dummy function ";
+    function dummy() external pure returns (string memory) {
+        return "This is a dummy function";
     }
 
 }

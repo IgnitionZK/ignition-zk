@@ -74,6 +74,7 @@ async function main() {
 
     await membershipManager.waitForDeployment();
     const membershipManagerAddress = await membershipManager.getAddress();
+    console.log("📦 MembershipManager deployed at:", membershipManagerAddress);
 
     // Deploy ProposalManager as UUPS proxy
 

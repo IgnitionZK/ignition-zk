@@ -170,6 +170,36 @@
       "address": "0x46c881E0ECA1f90d3132C11492b3f52b6840BbDb",
       "txHash": "0x4ddabdade390ab1c1b8d67bfda57c6bbdc9511443027a452984bcbbb3062159f",
       "kind": "uups"
+    },
+    {
+      "address": "0xfb4615a2E0A78C7DAd95756F30Fb85A9B963C441",
+      "txHash": "0xecb15ff1abbaa203531829cd246bcd34e0fca33c0f2cb5f5ec34c745aaadb3d3",
+      "kind": "uups"
+    },
+    {
+      "address": "0x3A74d660e5C4725AB2462805749eb8Fc1379Bd27",
+      "txHash": "0x2afca1d25dce56cb9cb38b53754294f6291465e8481842c7fbf4f3d975bcd357",
+      "kind": "uups"
+    },
+    {
+      "address": "0xCF5CA6bF90C299821e29CFcfAdA0C455cc19a3e5",
+      "txHash": "0xeac91ae47d14fdea7ed391246b5282c664ee1578ebc7266f7a9bdd4e76b46721",
+      "kind": "uups"
+    },
+    {
+      "address": "0x3793D365defd9039c16e75025D3793f04aa46E53",
+      "txHash": "0x56b55aeafa1ab51688aea465305c4fbd864b1598d472191a8ecbcc37bea53e1e",
+      "kind": "uups"
+    },
+    {
+      "address": "0x8Bc6CA09A18A0e43D561020C52AA93E8cB9C69D0",
+      "txHash": "0xf9b3256bf6fb9ca0800e4c751a3f67915206b978f64108e0ea964e57bfc56dbd",
+      "kind": "uups"
+    },
+    {
+      "address": "0xfa2DA157db72EB1666a03019C1286eDFAF6cEa5c",
+      "txHash": "0x8a380dd9527908c62fa409ed55d81184d4a3a9710601a8899127f0b7ee253481",
+      "kind": "uups"
     }
   ],
   "impls": {
@@ -2934,6 +2964,632 @@
             "numberOfBytes": "20"
           },
           "t_contract(IVoteManager)2676": {
+            "label": "contract IVoteManager",
+            "numberOfBytes": "20"
+          }
+        },
+        "namespaces": {
+          "erc7201:openzeppelin.storage.Ownable": [
+            {
+              "contract": "OwnableUpgradeable",
+              "label": "_owner",
+              "type": "t_address",
+              "src": "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol:24",
+              "offset": 0,
+              "slot": "0"
+            }
+          ],
+          "erc7201:openzeppelin.storage.Initializable": [
+            {
+              "contract": "Initializable",
+              "label": "_initialized",
+              "type": "t_uint64",
+              "src": "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol:69",
+              "offset": 0,
+              "slot": "0"
+            },
+            {
+              "contract": "Initializable",
+              "label": "_initializing",
+              "type": "t_bool",
+              "src": "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol:73",
+              "offset": 8,
+              "slot": "0"
+            }
+          ]
+        }
+      }
+    },
+    "f603d066a18cc5507af1470ae47f6a25db6e29045c9acc6641967fdfda461a13": {
+      "address": "0x23014a9e6E3ED362A79415D01F232AB1BB444fa7",
+      "txHash": "0x0108b6ec38da88f064ed534e28a36660ef70f7d25e46d6b039c6fb6dfb592043",
+      "layout": {
+        "solcVersion": "0.8.28",
+        "storage": [
+          {
+            "label": "groupRoots",
+            "offset": 0,
+            "slot": "0",
+            "type": "t_mapping(t_bytes32,t_bytes32)",
+            "contract": "MembershipManager",
+            "src": "contracts/managers/MembershipManager.sol:208"
+          },
+          {
+            "label": "groupNftAddresses",
+            "offset": 0,
+            "slot": "1",
+            "type": "t_mapping(t_bytes32,t_address)",
+            "contract": "MembershipManager",
+            "src": "contracts/managers/MembershipManager.sol:211"
+          },
+          {
+            "label": "nftImplementation",
+            "offset": 0,
+            "slot": "2",
+            "type": "t_address",
+            "contract": "MembershipManager",
+            "src": "contracts/managers/MembershipManager.sol:218"
+          },
+          {
+            "label": "membershipVerifier",
+            "offset": 0,
+            "slot": "3",
+            "type": "t_contract(IMembershipVerifier)9596",
+            "contract": "MembershipManager",
+            "src": "contracts/managers/MembershipManager.sol:221"
+          }
+        ],
+        "types": {
+          "t_address": {
+            "label": "address",
+            "numberOfBytes": "20"
+          },
+          "t_bool": {
+            "label": "bool",
+            "numberOfBytes": "1"
+          },
+          "t_struct(InitializableStorage)73_storage": {
+            "label": "struct Initializable.InitializableStorage",
+            "members": [
+              {
+                "label": "_initialized",
+                "type": "t_uint64",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "_initializing",
+                "type": "t_bool",
+                "offset": 8,
+                "slot": "0"
+              }
+            ],
+            "numberOfBytes": "32"
+          },
+          "t_struct(OwnableStorage)13_storage": {
+            "label": "struct OwnableUpgradeable.OwnableStorage",
+            "members": [
+              {
+                "label": "_owner",
+                "type": "t_address",
+                "offset": 0,
+                "slot": "0"
+              }
+            ],
+            "numberOfBytes": "32"
+          },
+          "t_uint64": {
+            "label": "uint64",
+            "numberOfBytes": "8"
+          },
+          "t_bytes32": {
+            "label": "bytes32",
+            "numberOfBytes": "32"
+          },
+          "t_contract(IMembershipVerifier)9596": {
+            "label": "contract IMembershipVerifier",
+            "numberOfBytes": "20"
+          },
+          "t_mapping(t_bytes32,t_address)": {
+            "label": "mapping(bytes32 => address)",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_bytes32,t_bytes32)": {
+            "label": "mapping(bytes32 => bytes32)",
+            "numberOfBytes": "32"
+          }
+        },
+        "namespaces": {
+          "erc7201:openzeppelin.storage.Ownable": [
+            {
+              "contract": "OwnableUpgradeable",
+              "label": "_owner",
+              "type": "t_address",
+              "src": "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol:24",
+              "offset": 0,
+              "slot": "0"
+            }
+          ],
+          "erc7201:openzeppelin.storage.Initializable": [
+            {
+              "contract": "Initializable",
+              "label": "_initialized",
+              "type": "t_uint64",
+              "src": "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol:69",
+              "offset": 0,
+              "slot": "0"
+            },
+            {
+              "contract": "Initializable",
+              "label": "_initializing",
+              "type": "t_bool",
+              "src": "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol:73",
+              "offset": 8,
+              "slot": "0"
+            }
+          ]
+        }
+      }
+    },
+    "2b4ff6a41cef63daed68e6c1c205863e7fa75dea47ca0452c67ebc77c38bf746": {
+      "address": "0xb24d25EF57bc0109397D676b06d53d228c45E041",
+      "txHash": "0x36498d09d30819017501ec6132d59ca09ba1c09082d2148e44d7f5f51c7cc348",
+      "layout": {
+        "solcVersion": "0.8.28",
+        "storage": [
+          {
+            "label": "submissionNullifiers",
+            "offset": 0,
+            "slot": "0",
+            "type": "t_mapping(t_bytes32,t_bool)",
+            "contract": "ProposalManager",
+            "src": "contracts/managers/ProposalManager.sol:123"
+          },
+          {
+            "label": "claimNullifiers",
+            "offset": 0,
+            "slot": "1",
+            "type": "t_mapping(t_bytes32,t_bool)",
+            "contract": "ProposalManager",
+            "src": "contracts/managers/ProposalManager.sol:126"
+          },
+          {
+            "label": "submissionVerifier",
+            "offset": 0,
+            "slot": "2",
+            "type": "t_contract(IProposalVerifier)9711",
+            "contract": "ProposalManager",
+            "src": "contracts/managers/ProposalManager.sol:130"
+          },
+          {
+            "label": "claimVerifier",
+            "offset": 0,
+            "slot": "3",
+            "type": "t_contract(IProposalClaimVerifier)9614",
+            "contract": "ProposalManager",
+            "src": "contracts/managers/ProposalManager.sol:133"
+          }
+        ],
+        "types": {
+          "t_address": {
+            "label": "address",
+            "numberOfBytes": "20"
+          },
+          "t_bool": {
+            "label": "bool",
+            "numberOfBytes": "1"
+          },
+          "t_struct(InitializableStorage)73_storage": {
+            "label": "struct Initializable.InitializableStorage",
+            "members": [
+              {
+                "label": "_initialized",
+                "type": "t_uint64",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "_initializing",
+                "type": "t_bool",
+                "offset": 8,
+                "slot": "0"
+              }
+            ],
+            "numberOfBytes": "32"
+          },
+          "t_struct(OwnableStorage)13_storage": {
+            "label": "struct OwnableUpgradeable.OwnableStorage",
+            "members": [
+              {
+                "label": "_owner",
+                "type": "t_address",
+                "offset": 0,
+                "slot": "0"
+              }
+            ],
+            "numberOfBytes": "32"
+          },
+          "t_uint64": {
+            "label": "uint64",
+            "numberOfBytes": "8"
+          },
+          "t_bytes32": {
+            "label": "bytes32",
+            "numberOfBytes": "32"
+          },
+          "t_contract(IProposalClaimVerifier)9614": {
+            "label": "contract IProposalClaimVerifier",
+            "numberOfBytes": "20"
+          },
+          "t_contract(IProposalVerifier)9711": {
+            "label": "contract IProposalVerifier",
+            "numberOfBytes": "20"
+          },
+          "t_mapping(t_bytes32,t_bool)": {
+            "label": "mapping(bytes32 => bool)",
+            "numberOfBytes": "32"
+          }
+        },
+        "namespaces": {
+          "erc7201:openzeppelin.storage.Ownable": [
+            {
+              "contract": "OwnableUpgradeable",
+              "label": "_owner",
+              "type": "t_address",
+              "src": "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol:24",
+              "offset": 0,
+              "slot": "0"
+            }
+          ],
+          "erc7201:openzeppelin.storage.Initializable": [
+            {
+              "contract": "Initializable",
+              "label": "_initialized",
+              "type": "t_uint64",
+              "src": "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol:69",
+              "offset": 0,
+              "slot": "0"
+            },
+            {
+              "contract": "Initializable",
+              "label": "_initializing",
+              "type": "t_bool",
+              "src": "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol:73",
+              "offset": 8,
+              "slot": "0"
+            }
+          ]
+        }
+      }
+    },
+    "936cbd34c661ea7c384b8076520a848cae2e4b7b68c91e89fe2da9f9cadf72a3": {
+      "address": "0x7eC0419529dB443aF05E43dEedc0eb2a302396E7",
+      "txHash": "0x1fe904fa450d44d17b3210f20026d84a4c27f758074111f01d8d899dff77514f",
+      "layout": {
+        "solcVersion": "0.8.28",
+        "storage": [
+          {
+            "label": "proposalResults",
+            "offset": 0,
+            "slot": "0",
+            "type": "t_mapping(t_bytes32,t_struct(ProposalResult)17162_storage)",
+            "contract": "VoteManager",
+            "src": "contracts/managers/VoteManager.sol:175"
+          },
+          {
+            "label": "voteNullifiers",
+            "offset": 0,
+            "slot": "1",
+            "type": "t_mapping(t_bytes32,t_bool)",
+            "contract": "VoteManager",
+            "src": "contracts/managers/VoteManager.sol:178"
+          },
+          {
+            "label": "groupParams",
+            "offset": 0,
+            "slot": "2",
+            "type": "t_mapping(t_bytes32,t_struct(GroupParams)17155_storage)",
+            "contract": "VoteManager",
+            "src": "contracts/managers/VoteManager.sol:181"
+          },
+          {
+            "label": "voteVerifier",
+            "offset": 0,
+            "slot": "3",
+            "type": "t_contract(IVoteVerifier)9830",
+            "contract": "VoteManager",
+            "src": "contracts/managers/VoteManager.sol:188"
+          },
+          {
+            "label": "quorumParams",
+            "offset": 0,
+            "slot": "4",
+            "type": "t_struct(QuorumParams)17172_storage",
+            "contract": "VoteManager",
+            "src": "contracts/managers/VoteManager.sol:196"
+          }
+        ],
+        "types": {
+          "t_address": {
+            "label": "address",
+            "numberOfBytes": "20"
+          },
+          "t_bool": {
+            "label": "bool",
+            "numberOfBytes": "1"
+          },
+          "t_struct(InitializableStorage)73_storage": {
+            "label": "struct Initializable.InitializableStorage",
+            "members": [
+              {
+                "label": "_initialized",
+                "type": "t_uint64",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "_initializing",
+                "type": "t_bool",
+                "offset": 8,
+                "slot": "0"
+              }
+            ],
+            "numberOfBytes": "32"
+          },
+          "t_struct(OwnableStorage)13_storage": {
+            "label": "struct OwnableUpgradeable.OwnableStorage",
+            "members": [
+              {
+                "label": "_owner",
+                "type": "t_address",
+                "offset": 0,
+                "slot": "0"
+              }
+            ],
+            "numberOfBytes": "32"
+          },
+          "t_uint64": {
+            "label": "uint64",
+            "numberOfBytes": "8"
+          },
+          "t_bytes32": {
+            "label": "bytes32",
+            "numberOfBytes": "32"
+          },
+          "t_contract(IVoteVerifier)9830": {
+            "label": "contract IVoteVerifier",
+            "numberOfBytes": "20"
+          },
+          "t_mapping(t_bytes32,t_bool)": {
+            "label": "mapping(bytes32 => bool)",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_bytes32,t_struct(GroupParams)17155_storage)": {
+            "label": "mapping(bytes32 => struct VoteTypes.GroupParams)",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_bytes32,t_struct(ProposalResult)17162_storage)": {
+            "label": "mapping(bytes32 => struct VoteTypes.ProposalResult)",
+            "numberOfBytes": "32"
+          },
+          "t_struct(GroupParams)17155_storage": {
+            "label": "struct VoteTypes.GroupParams",
+            "members": [
+              {
+                "label": "memberCount",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "quorum",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "1"
+              }
+            ],
+            "numberOfBytes": "64"
+          },
+          "t_struct(ProposalResult)17162_storage": {
+            "label": "struct VoteTypes.ProposalResult",
+            "members": [
+              {
+                "label": "tally",
+                "type": "t_struct(VoteTally)17149_storage",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "passed",
+                "type": "t_bool",
+                "offset": 0,
+                "slot": "3"
+              }
+            ],
+            "numberOfBytes": "128"
+          },
+          "t_struct(QuorumParams)17172_storage": {
+            "label": "struct VoteTypes.QuorumParams",
+            "members": [
+              {
+                "label": "minQuorumPercent",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "maxQuorumPercent",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "1"
+              },
+              {
+                "label": "maxGroupSizeForMinQuorum",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "2"
+              },
+              {
+                "label": "minGroupSizeForMaxQuorum",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "3"
+              }
+            ],
+            "numberOfBytes": "128"
+          },
+          "t_struct(VoteTally)17149_storage": {
+            "label": "struct VoteTypes.VoteTally",
+            "members": [
+              {
+                "label": "no",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "yes",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "1"
+              },
+              {
+                "label": "abstain",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "2"
+              }
+            ],
+            "numberOfBytes": "96"
+          },
+          "t_uint256": {
+            "label": "uint256",
+            "numberOfBytes": "32"
+          }
+        },
+        "namespaces": {
+          "erc7201:openzeppelin.storage.Ownable": [
+            {
+              "contract": "OwnableUpgradeable",
+              "label": "_owner",
+              "type": "t_address",
+              "src": "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol:24",
+              "offset": 0,
+              "slot": "0"
+            }
+          ],
+          "erc7201:openzeppelin.storage.Initializable": [
+            {
+              "contract": "Initializable",
+              "label": "_initialized",
+              "type": "t_uint64",
+              "src": "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol:69",
+              "offset": 0,
+              "slot": "0"
+            },
+            {
+              "contract": "Initializable",
+              "label": "_initializing",
+              "type": "t_bool",
+              "src": "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol:73",
+              "offset": 8,
+              "slot": "0"
+            }
+          ]
+        }
+      }
+    },
+    "134fae34d0e34fdcd608466f9796537e2d01e39dd9e364946ecde6995da1b467": {
+      "address": "0xbdF7fc98b0ad6C2FcbcFdcDF2982074D0d62B736",
+      "txHash": "0xcefdf8fadf8ee316e6b406d65b6124bbdfd0d6fe30a76ed08c6535150f23800e",
+      "layout": {
+        "solcVersion": "0.8.28",
+        "storage": [
+          {
+            "label": "relayer",
+            "offset": 0,
+            "slot": "0",
+            "type": "t_address",
+            "contract": "GovernanceManager",
+            "src": "contracts/governance/GovernanceManager.sol:96"
+          },
+          {
+            "label": "membershipManager",
+            "offset": 0,
+            "slot": "1",
+            "type": "t_contract(IMembershipManager)9578",
+            "contract": "GovernanceManager",
+            "src": "contracts/governance/GovernanceManager.sol:99"
+          },
+          {
+            "label": "proposalManager",
+            "offset": 0,
+            "slot": "2",
+            "type": "t_contract(IProposalManager)9693",
+            "contract": "GovernanceManager",
+            "src": "contracts/governance/GovernanceManager.sol:102"
+          },
+          {
+            "label": "voteManager",
+            "offset": 0,
+            "slot": "3",
+            "type": "t_contract(IVoteManager)9812",
+            "contract": "GovernanceManager",
+            "src": "contracts/governance/GovernanceManager.sol:105"
+          }
+        ],
+        "types": {
+          "t_address": {
+            "label": "address",
+            "numberOfBytes": "20"
+          },
+          "t_bool": {
+            "label": "bool",
+            "numberOfBytes": "1"
+          },
+          "t_struct(InitializableStorage)73_storage": {
+            "label": "struct Initializable.InitializableStorage",
+            "members": [
+              {
+                "label": "_initialized",
+                "type": "t_uint64",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "_initializing",
+                "type": "t_bool",
+                "offset": 8,
+                "slot": "0"
+              }
+            ],
+            "numberOfBytes": "32"
+          },
+          "t_struct(OwnableStorage)13_storage": {
+            "label": "struct OwnableUpgradeable.OwnableStorage",
+            "members": [
+              {
+                "label": "_owner",
+                "type": "t_address",
+                "offset": 0,
+                "slot": "0"
+              }
+            ],
+            "numberOfBytes": "32"
+          },
+          "t_uint64": {
+            "label": "uint64",
+            "numberOfBytes": "8"
+          },
+          "t_contract(IMembershipManager)9578": {
+            "label": "contract IMembershipManager",
+            "numberOfBytes": "20"
+          },
+          "t_contract(IProposalManager)9693": {
+            "label": "contract IProposalManager",
+            "numberOfBytes": "20"
+          },
+          "t_contract(IVoteManager)9812": {
             "label": "contract IVoteManager",
             "numberOfBytes": "20"
           }

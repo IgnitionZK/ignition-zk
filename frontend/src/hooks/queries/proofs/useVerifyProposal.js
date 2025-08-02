@@ -4,13 +4,6 @@ import { useGenerateProof } from "./useCreateNewProof";
 import { ZKProofGenerator } from "../../../scripts/generateZKProof";
 import { useRelayerVerifyProposal } from "../../relayers/useRelayerVerifyProposal";
 
-// ABI for the ProposalVerifier contract
-const PROPOSAL_VERIFIER_ABI = [
-  "function verifyProof(uint256[24] calldata _proof, uint256[5] calldata _pubSignals) public view returns (bool)",
-];
-
-const PROPOSAL_VERIFIER_ADDRESS = "0x684F9113f63b15A683E2a75C62787bCaEed8156C";
-
 /**
  * Custom hook for verifying proposal submission using zero-knowledge proofs
  * @returns {Object} An object containing the verification function and state
@@ -133,14 +126,6 @@ export function useVerifyProposal() {
         epochKey: epochId.toString(),
       });
 
-      // Create contract instance
-      /*
-      const contract = new ethers.Contract(
-        PROPOSAL_VERIFIER_ADDRESS,
-        PROPOSAL_VERIFIER_ABI,
-        provider
-      );
-      */
       // Verify the proof using the relayer
       console.log("Verifying proposal with relayer...");
       console.log("Group ID: ", groupId);

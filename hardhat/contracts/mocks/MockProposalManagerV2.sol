@@ -7,6 +7,7 @@ import {IProposalVerifier} from "../interfaces/IProposalVerifier.sol";
 import {IProposalClaimVerifier} from "../interfaces/IProposalClaimVerifier.sol";
 import {IMembershipManager} from "../interfaces/IMembershipManager.sol";
 import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
+import {IVersioned} from "../interfaces/IVersioned.sol";
 
 // UUPS imports:
 import { UUPSUpgradeable } from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
@@ -15,7 +16,7 @@ import { OwnableUpgradeable } from "@openzeppelin/contracts-upgradeable/access/O
 import { ERC165Upgradeable } from "@openzeppelin/contracts-upgradeable/utils/introspection/ERC165Upgradeable.sol";
 
 // tracks proposal submissions and verifications (pre-vote phase)
-contract MockProposalManagerV2 is Initializable, OwnableUpgradeable, UUPSUpgradeable, IProposalManager, ERC165Upgradeable {
+contract MockProposalManagerV2 is Initializable, OwnableUpgradeable, UUPSUpgradeable, IProposalManager, ERC165Upgradeable, IVersioned {
 
 // ====================================================================================================================
 //                                                  CUSTOM ERRORS
@@ -169,7 +170,7 @@ contract MockProposalManagerV2 is Initializable, OwnableUpgradeable, UUPSUpgrade
     }
 
     /**
-     * @notice Initializes the MembershipManager contract.
+     * @notice Initializes the ProposalManager contract.
      * @dev This function replaces the constructor for upgradeable contracts and is called once
      * after the proxy is deployed. It sets the initial verifier and governor.
      * @param _governor The address of the governor (DAO) contract.
@@ -312,7 +313,7 @@ contract MockProposalManagerV2 is Initializable, OwnableUpgradeable, UUPSUpgrade
         return address(submissionVerifier);
     }
 
-     /**
+    /**
      * @dev Only callable by the owner (governor).
      */
     function getProposalClaimVerifier() external view onlyOwner returns (address) {
@@ -326,7 +327,7 @@ contract MockProposalManagerV2 is Initializable, OwnableUpgradeable, UUPSUpgrade
         return submissionNullifiers[nullifier];
     }
 
-     /**
+    /**
      * @dev Only callable by the owner (governor).
      */
     function getClaimNullifierStatus(bytes32 nullifier) external view onlyOwner returns (bool) {
@@ -338,9 +339,19 @@ contract MockProposalManagerV2 is Initializable, OwnableUpgradeable, UUPSUpgrade
      * @param interfaceId The interface identifier to check.
      * @return bool True if the interface is supported, false otherwise.
      */
+    /*
     function supportsInterface(bytes4 interfaceId) public view virtual override returns (bool) 
     {
         return interfaceId == type(IProposalManager).interfaceId || super.supportsInterface(interfaceId);
+    }
+    */
+
+    /**
+     * @dev Returns the version of the contract.
+     * @return string The version of the contract.
+     */
+    function getContractVersion() external view override(IVersioned, IProposalManager) onlyOwner returns (string memory) {
+        return "ProposalManager v1.0.0"; 
     }
 
 // ====================================================================================================================
@@ -381,7 +392,7 @@ contract MockProposalManagerV2 is Initializable, OwnableUpgradeable, UUPSUpgrade
 
 
     function dummy() external pure returns (string memory) {
-        return "This is a dummy function to ensure the contract compiles without errors.";
+        return "This is a dummy function";
     }
 
 

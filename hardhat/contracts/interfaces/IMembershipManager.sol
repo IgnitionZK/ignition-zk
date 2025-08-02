@@ -42,11 +42,10 @@ interface IMembershipManager {
 
     /**
      * @notice Updates the Merkle root for an existing group.
-     * @param currentRoot The current Merkle root to verify against.
      * @param newRoot The new Merkle root to set.
      * @param groupKey The unique identifier for the group.
      */
-    function setRoot(bytes32 currentRoot, bytes32 newRoot, bytes32 groupKey) external;
+    function setRoot(bytes32 newRoot, bytes32 groupKey) external;
     
     /** 
      * @notice Adds a new member to a specific group by minting an ERC721 token.
@@ -104,6 +103,12 @@ interface IMembershipManager {
      * @return The maximum batch size for member additions.
      */
     function getMaxMembersBatch() external view returns (uint256);
+
+    /**
+     * @notice Retrieves the current version of the MembershipManager contract.
+     * @return The version string of the MembershipManager contract.
+     */
+    function getContractVersion() external view returns (string memory);
     
 // ====================================================================================================================
 //                                       EXTERNAL HELPER FUNCTIONS

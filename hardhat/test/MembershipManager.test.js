@@ -504,46 +504,30 @@ describe("Membership Manager Unit Tests:", function () {
         await membershipManager.connect(governor).deployGroupNft(groupKey, nftName, nftSymbol);
         
         // Initialize root for the group
-        await expect(membershipManager.connect(governor).setRoot(ethers.ZeroHash, rootHash, groupKey))
+        await expect(membershipManager.connect(governor).setRoot(rootHash, groupKey))
             .to.emit(membershipManager, "RootInitialized")
             .withArgs(groupKey, rootHash);
         const storedRoot = await membershipManager.connect(governor).getRoot(groupKey);
         expect(storedRoot).to.equal(rootHash, "Root hash should match the initialized value");
 
         // set a new root for the group
-        await expect(membershipManager.connect(governor).setRoot(storedRoot, rootHash2, groupKey))
+        await expect(membershipManager.connect(governor).setRoot(rootHash2, groupKey))
             .to.emit(membershipManager, "RootSet")
             .withArgs(groupKey, storedRoot, rootHash2);
             
         const updatedRoot = await membershipManager.connect(governor).getRoot(groupKey);
         expect(updatedRoot).to.equal(rootHash2, "Root hash should match the new value");
     });
-    
-    it(`FUNCTION: setRoot NEW!!!
-        TESTING: custom error: InconsistentOldRoot
-        EXPECTED: should not allow the governor to set the root of a group if the provided current root does not match the onchain value`, async function () {
-
-        // Deploy group NFT first
-        await membershipManager.connect(governor).deployGroupNft(groupKey, nftName, nftSymbol);
-
-        // Initialize root for the group
-        await expect(membershipManager.connect(governor).setRoot(rootHash2, rootHash, groupKey))
-            .to.be.revertedWithCustomError(
-                membershipManager,
-                "InconsistentOldRoot"
-            );
-
-    });
 
     it(`FUNCTION: setRoot NEW!!!
-        TESTING: custom error: InconsistentOldRoot
+        TESTING: authorization: onlyOwner (failure)
         EXPECTED: should not allow a non-governor to set the root of a group`, async function () {
 
         // Deploy group NFT first
         await membershipManager.connect(governor).deployGroupNft(groupKey, nftName, nftSymbol);
 
         // Initialize root for the group
-        await expect(membershipManager.connect(user1).setRoot(ethers.ZeroHash, rootHash, groupKey))
+        await expect(membershipManager.connect(user1).setRoot(rootHash, groupKey))
             .to.be.revertedWithCustomError(
                 membershipManager,
                 "OwnableUnauthorizedAccount"
@@ -1506,6 +1490,15 @@ describe("Membership Manager Unit Tests:", function () {
         await expect(membershipManager.connect(user1).getMaxMembersBatch()).to.be.revertedWithCustomError(
             MembershipManager,
             "OwnableUnauthorizedAccount"
+        );
+    });
+
+    it(`FUNCTION: getContractVersion
+        TESTING: onlyOwner authorization (success)
+        EXPECTED: should allow the governor to view the current contract version`, async function () {
+        expect(await membershipManager.connect(governor).getContractVersion()).to.equal(
+            "MembershipManager v1.0.0",
+            "Should return the correct contract version"
         );
     });
 

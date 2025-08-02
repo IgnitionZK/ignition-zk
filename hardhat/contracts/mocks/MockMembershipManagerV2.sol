@@ -7,6 +7,7 @@ import { IERC165 } from "@openzeppelin/contracts/utils/introspection/IERC165.sol
 import { IERC721 } from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import { IMembershipManager } from "../interfaces/IMembershipManager.sol";
 import { IMembershipVerifier } from "../interfaces/IMembershipVerifier.sol";
+import { IVersioned } from "../interfaces/IVersioned.sol";
 
 // UUPS imports:
 import { UUPSUpgradeable } from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
@@ -26,7 +27,7 @@ import { Clones } from "@openzeppelin/contracts/proxy/Clones.sol";
  * It allows for initializing and updating Merkle roots, verifying proofs, managing group NFTs,
  * and adding/removing members. This contract acts as a factory for ERC721IgnitionZK NFT contracts.
  */
-contract MockMembershipManagerV2 is Initializable, UUPSUpgradeable, OwnableUpgradeable, IMembershipManager, ERC165Upgradeable {
+contract MockMembershipManagerV2 is Initializable, UUPSUpgradeable, OwnableUpgradeable, IMembershipManager, ERC165Upgradeable, IVersioned {
 
 // ====================================================================================================================
 //                                                  CUSTOM ERRORS
@@ -47,12 +48,6 @@ contract MockMembershipManagerV2 is Initializable, UUPSUpgradeable, OwnableUpgra
     /// @notice Thrown if a Merkle root has not been initialized for a group.
     error RootNotYetInitialized();
 
-    /// @notice Thrown if a Merkle root has already been initialized for a group.
-    error RootAlreadyInitialized();
-
-    /// @notice Thrown if the provided old root does not match the current root.
-    error InconsistentOldRoot();
-
     // ====================================================================================================
     // NFT ERRORS
     // ====================================================================================================
@@ -62,9 +57,6 @@ contract MockMembershipManagerV2 is Initializable, UUPSUpgradeable, OwnableUpgra
 
     /// @notice Thrown if a group NFT has already been set for a group.
     error GroupNftAlreadySet();
-
-    /// @notice Thrown if the NFT address is zero.
-    error NftAddressCannotBeZero();
 
     /// @notice Thrown if the NFT implementation does not support the ERC721 interface.
     error NftMustBeERC721();
@@ -398,74 +390,14 @@ contract MockMembershipManagerV2 is Initializable, UUPSUpgradeable, OwnableUpgra
     }
 
     /**
-     * @dev Can only be called once per `groupKey` by the governor.
-     * @dev This function ensures that the group NFT has been set before initializing the root.
-     * @custom:error RootAlreadyInitialized If a root for the given group key has already been set.
-     * @custom:error RootCannotBeZero If the provided initial root is zero.
-     * @custom:error KeyCannotBeZero If the provided group key is zero.
-     * @custom:error GroupNftNotSet If no NFT contract has been deployed for the specified group key.
-     */
-    /*
-    function initRoot
-    (
-        bytes32 initialRoot, 
-        bytes32 groupKey
-    ) 
-        external 
-        onlyOwner 
-        nonZeroKey(groupKey) 
-    {
-        bytes32 currentRoot = groupRoots[groupKey];
-        _mustHaveSetGroupNft(groupKey);
-        if (currentRoot != bytes32(0)) revert RootAlreadyInitialized();
-        if (initialRoot == bytes32(0)) revert RootCannotBeZero();
-
-        groupRoots[groupKey] = initialRoot; 
-        emit RootInitialized(groupKey, initialRoot);
-    }
-    */
-
-    /**
-     * @dev Can only be called by the governor.
-     * @custom:error RootNotYetInitialized If no root has been set for the group yet.
-     * @custom:error RootCannotBeZero If the new root is zero.
-     * @custom:error NewRootMustBeDifferent If the new root is identical to the current root.
-     * @custom:error KeyCannotBeZero If the provided group key is zero.
-     * @custom:error GroupNftNotSet If no NFT contract has been deployed for the specified group key.
-     */
-    /*
-    function setRoot
-    (
-        bytes32 newRoot, 
-        bytes32 groupKey
-    ) 
-        external 
-        onlyOwner
-        nonZeroKey(groupKey) 
-    {
-        bytes32 currentRoot = groupRoots[groupKey];
-        _mustHaveSetGroupNft(groupKey);
-
-        if (currentRoot == bytes32(0)) revert RootNotYetInitialized();
-        if (newRoot == bytes32(0)) revert RootCannotBeZero();
-        if (newRoot == currentRoot) revert NewRootMustBeDifferent();
-        
-        groupRoots[groupKey] = newRoot;
-        emit RootSet(groupKey, currentRoot, newRoot);
-    }
-    */
-
-    /**
      * @dev Can only be called by the governor.
      * @custom:error RootCannotBeZero If the new root is zero.
      * @custom:error NewRootMustBeDifferent If the new root is identical to the current root.
      * @custom:error KeyCannotBeZero If the provided group key is zero.
      * @custom:error GroupNftNotSet If no NFT contract has been deployed for the specified group key.
-     * @custom:error InconsistentOldRoot If the provided current root does not match the stored root for the group.
      */
     function setRoot
     (   
-        bytes32 _currentRoot,
         bytes32 newRoot, 
         bytes32 groupKey
     ) 
@@ -476,7 +408,6 @@ contract MockMembershipManagerV2 is Initializable, UUPSUpgradeable, OwnableUpgra
         bytes32 currentRoot = groupRoots[groupKey];
         _mustHaveSetGroupNft(groupKey);
 
-        if (_currentRoot != currentRoot) revert InconsistentOldRoot();
         if (newRoot == bytes32(0)) revert RootCannotBeZero();
         if (newRoot == currentRoot) revert NewRootMustBeDifferent();
         
@@ -629,6 +560,14 @@ contract MockMembershipManagerV2 is Initializable, UUPSUpgradeable, OwnableUpgra
     {
         return interfaceId == type(IMembershipManager).interfaceId || super.supportsInterface(interfaceId);
     }
+
+    /**
+     * @dev Returns the version of the contract.
+     * @return string The version of the contract.
+     */
+    function getContractVersion() external view override(IVersioned, IMembershipManager) onlyOwner returns (string memory) {
+        return "MembershipManager v1.0.0"; 
+    }
     
 // ====================================================================================================================
 //                                       EXTERNAL HELPER FUNCTIONS
@@ -720,8 +659,8 @@ contract MockMembershipManagerV2 is Initializable, UUPSUpgradeable, OwnableUpgra
         }
     }
 
-    function dummyFunction() external pure returns (string memory) {
-        return "This is a dummy function to prevent the contract from being empty.";
+    function dummy() external pure returns (string memory) {
+        return "This is a dummy function";
     }
 
 }
