@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import styled from "styled-components";
 import CustomButton from "./CustomButton";
 import ConfirmationModal from "./ConfirmationModal";
@@ -17,7 +17,7 @@ const Overlay = styled.div`
 `;
 
 const Modal = styled.div`
-  background: #232328;
+  background: var(--color-grey-800);
   border-radius: 12px;
   padding: 32px 24px 24px 24px;
   min-width: 340px;
@@ -29,7 +29,7 @@ const Modal = styled.div`
 `;
 
 const Title = styled.h2`
-  color: #a5b4fc;
+  color: #ffffff;
   font-size: 2.2rem;
   font-weight: 700;
   margin-bottom: 8px;
@@ -44,30 +44,39 @@ const Subtitle = styled.p`
 `;
 
 const ContextInfo = styled.div`
-  background: rgba(165, 180, 252, 0.1);
+  background: var(--color-grey-700);
   padding: 1.6rem;
   border-radius: 0.8rem;
-  border: 1px solid rgba(165, 180, 252, 0.2);
+  border: 1px solid var(--color-grey-600);
   margin-bottom: 2.4rem;
   width: 100%;
 `;
 
 const ContextTitle = styled.h3`
-  color: #fff;
+  color: #ffffff;
   font-size: 1.8rem;
   font-weight: 500;
   margin-bottom: 0.8rem;
 `;
 
 const ContextSubtitle = styled.p`
-  color: var(--color-grey-300);
+  color: #ffffff;
   font-size: 1.4rem;
   margin-bottom: 0.8rem;
 `;
 
 const ContextDescription = styled.p`
-  color: var(--color-grey-300);
+  color: #ffffff;
   font-size: 1.4rem;
+  line-height: 1.4;
+`;
+
+const WarningText = styled.p`
+  color: var(--color-red-400);
+  font-size: 1.3rem;
+  font-weight: 500;
+  margin-top: 1.2rem;
+  text-align: center;
   line-height: 1.4;
 `;
 
@@ -75,7 +84,7 @@ const MnemonicGrid = styled.div`
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: 16px 32px;
-  background: #44444a;
+  background: var(--color-grey-700);
   border-radius: 10px;
   padding: 24px 16px;
   margin-bottom: 28px;
@@ -99,7 +108,7 @@ const WordInput = styled.div`
 `;
 
 const WordIndex = styled.span`
-  color: #a5b4fc;
+  color: #ffffff;
   font-size: 1.1rem;
   font-weight: 700;
   min-width: 22px;
@@ -107,10 +116,10 @@ const WordIndex = styled.span`
 `;
 
 const Input = styled.input`
-  background: #232328;
-  border: 1px solid rgba(165, 180, 252, 0.2);
+  background: var(--color-grey-800);
+  border: 1px solid var(--color-grey-500);
   border-radius: 6px;
-  color: #fff;
+  color: #ffffff;
   padding: 8px 12px;
   font-size: 1.1rem;
   width: 100%;
@@ -118,8 +127,8 @@ const Input = styled.input`
 
   &:focus {
     outline: none;
-    border-color: #a5b4fc;
-    box-shadow: 0 0 0 2px rgba(165, 180, 252, 0.2);
+    border-color: #ffffff;
+    box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.2);
   }
 `;
 
@@ -142,6 +151,7 @@ const Input = styled.input`
  * @param {string} props.confirmButtonHoverColor - Hover color for confirm button
  * @param {string} props.cancelButtonColor - Color for cancel button
  * @param {string} props.cancelButtonHoverColor - Hover color for cancel button
+ * @param {string} props.prePopulatedMnemonic - Pre-populated mnemonic phrase (words separated by spaces)
  * @param {Object} props.proposal - Legacy prop for backward compatibility
  */
 function MnemonicInput({
@@ -160,11 +170,42 @@ function MnemonicInput({
   confirmButtonHoverColor = "#818cf8",
   cancelButtonColor = "#f87171",
   cancelButtonHoverColor = "#ef4444",
+  prePopulatedMnemonic = null,
+  selectedVote = null,
   // Legacy props for backward compatibility
   proposal = null,
 }) {
-  const [words, setWords] = useState(Array(wordCount).fill(""));
+  // Initialize words with pre-populated mnemonic if provided
+  const initializeWords = () => {
+    if (prePopulatedMnemonic) {
+      const mnemonicWords = prePopulatedMnemonic.split(" ");
+      const wordsArray = Array(wordCount).fill("");
+      mnemonicWords.forEach((word, index) => {
+        if (index < wordCount) {
+          wordsArray[index] = word;
+        }
+      });
+      return wordsArray;
+    }
+    return Array(wordCount).fill("");
+  };
+
+  const [words, setWords] = useState(initializeWords);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
+
+  // Update words when prePopulatedMnemonic changes
+  useEffect(() => {
+    if (prePopulatedMnemonic) {
+      const mnemonicWords = prePopulatedMnemonic.split(" ");
+      const wordsArray = Array(wordCount).fill("");
+      mnemonicWords.forEach((word, index) => {
+        if (index < wordCount) {
+          wordsArray[index] = word;
+        }
+      });
+      setWords(wordsArray);
+    }
+  }, [prePopulatedMnemonic, wordCount]);
 
   // Handle legacy proposal prop for backward compatibility
   const finalContextInfo =
@@ -212,18 +253,41 @@ function MnemonicInput({
   const renderContextInfo = () => {
     if (!finalContextInfo) return null;
 
+    // Check if this is a voting context (has selectedVote)
+    const isVotingContext = !!selectedVote;
+
     return (
       <ContextInfo>
         {finalContextInfo.title && (
           <ContextTitle>{finalContextInfo.title}</ContextTitle>
         )}
-        {finalContextInfo.groupName && (
+        {/* Only show group name and description if NOT in voting context */}
+        {!isVotingContext && finalContextInfo.groupName && (
           <ContextSubtitle>{finalContextInfo.groupName}</ContextSubtitle>
         )}
-        {finalContextInfo.description && (
+        {!isVotingContext && finalContextInfo.description && (
           <ContextDescription>
             {finalContextInfo.description}
           </ContextDescription>
+        )}
+        {selectedVote && (
+          <ContextDescription
+            style={{
+              fontSize: "1.6rem",
+              fontWeight: "500",
+              textAlign: "center",
+              marginTop: "1.2rem",
+            }}
+          >
+            <strong>Selected Vote:</strong>{" "}
+            {selectedVote.charAt(0).toUpperCase() + selectedVote.slice(1)}
+          </ContextDescription>
+        )}
+        {/* Only show warning if in voting context */}
+        {isVotingContext && (
+          <WarningText>
+            ⚠️ Warning: Once submitted, this action cannot be undone.
+          </WarningText>
         )}
       </ContextInfo>
     );

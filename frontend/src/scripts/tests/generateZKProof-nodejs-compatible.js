@@ -60,11 +60,7 @@ export class ZKProofGenerator {
     );
   }
   static get #VOTE_VKEY_PATH() {
-    return join(
-      this.#getPublicDir(),
-      "vote_circuit",
-      "vote_circuit_key.json"
-    );
+    return join(this.#getPublicDir(), "vote_circuit", "vote_circuit_key.json");
   }
 
   // Proposal circuit paths
@@ -112,10 +108,10 @@ export class ZKProofGenerator {
       "proposal_claim_circuit_key.json"
     );
   }
-  
+
   static async #getFieldModulusForBn128() {
     const bn128 = await buildBn128();
-    const fieldModulus = bn128.Fr.p; 
+    const fieldModulus = bn128.Fr.p;
     console.log("FM: ", fieldModulus, "type: ", typeof fieldModulus);
     return fieldModulus;
   }
@@ -271,7 +267,9 @@ export class ZKProofGenerator {
       mnemonic,
       commitmentArray
     );
-    const groupHashBigInt = this.#moduloReduction(this.#hashStrToBigInt(groupId));
+    const groupHashBigInt = this.#moduloReduction(
+      this.#hashStrToBigInt(groupId)
+    );
     console.log("Group Hash BigInt:", groupHashBigInt);
 
     const circuitInput = {
@@ -322,19 +320,27 @@ export class ZKProofGenerator {
 
     console.log("Merkle Proof Input:", merkleProofInput);
 
-    const groupHashBigInt = this.#moduloReduction(this.#hashStrToBigInt(groupId));
-    const epochHashBigInt = this.#moduloReduction(this.#hashStrToBigInt(epochId));
-    const proposalTitleBigInt = this.#moduloReduction(this.#hashStrToBigInt(proposalTitle));
-    const proposalDescriptionBigInt = this.#moduloReduction(this.#hashStrToBigInt(proposalDescription));
-    const proposalPayloadBigInt = this.#moduloReduction(this.#hashStrToBigInt(
-      this.#deterministicStringify(proposalPayload)
-    ));
-    const proposalFundingBigInt = this.#moduloReduction(this.#hashStrToBigInt(
-      this.#deterministicStringify(proposalFunding)
-    ));
-    const proposalMetadataBigInt = this.#moduloReduction(this.#hashStrToBigInt(
-      this.#deterministicStringify(proposalMetadata)
-    ));
+    const groupHashBigInt = this.#moduloReduction(
+      this.#hashStrToBigInt(groupId)
+    );
+    const epochHashBigInt = this.#moduloReduction(
+      this.#hashStrToBigInt(epochId)
+    );
+    const proposalTitleBigInt = this.#moduloReduction(
+      this.#hashStrToBigInt(proposalTitle)
+    );
+    const proposalDescriptionBigInt = this.#moduloReduction(
+      this.#hashStrToBigInt(proposalDescription)
+    );
+    const proposalPayloadBigInt = this.#moduloReduction(
+      this.#hashStrToBigInt(this.#deterministicStringify(proposalPayload))
+    );
+    const proposalFundingBigInt = this.#moduloReduction(
+      this.#hashStrToBigInt(this.#deterministicStringify(proposalFunding))
+    );
+    const proposalMetadataBigInt = this.#moduloReduction(
+      this.#hashStrToBigInt(this.#deterministicStringify(proposalMetadata))
+    );
 
     console.log("Group Hash BigInt:", groupHashBigInt);
     console.log("Epoch Hash BigInt:", epochHashBigInt);
@@ -385,7 +391,6 @@ export class ZKProofGenerator {
     return circuitInput;
   }
 
-  
   static async generateProposalClaimCircuitInput(
     mnemonic,
     commitmentArray,
@@ -395,14 +400,18 @@ export class ZKProofGenerator {
     proposalSubmissionHash
   ) {
     console.log("Generating Proposal Claim Circuit Input...");
-  
+
     const merkleProofInput = await this.generateMerkleProofInput(
       mnemonic,
       commitmentArray
     );
 
-    const groupHashBigInt = this.#moduloReduction(this.#hashStrToBigInt(groupId));
-    const epochHashBigInt = this.#moduloReduction(this.#hashStrToBigInt(epochId));
+    const groupHashBigInt = this.#moduloReduction(
+      this.#hashStrToBigInt(groupId)
+    );
+    const epochHashBigInt = this.#moduloReduction(
+      this.#hashStrToBigInt(epochId)
+    );
     console.log("Group Hash BigInt:", groupHashBigInt);
     console.log("Epoch Hash BigInt:", epochHashBigInt);
 
@@ -410,11 +419,14 @@ export class ZKProofGenerator {
     const proposalClaimHashBigInt = BigInt(proposalClaimHash);
     const proposalSubmissionHashBigInt = BigInt(proposalSubmissionHash);
     console.log("Proposal Claim Hash BigInt:", proposalClaimHashBigInt);
-    console.log("Proposal Submission Hash BigInt:", proposalSubmissionHashBigInt);
-    
+    console.log(
+      "Proposal Submission Hash BigInt:",
+      proposalSubmissionHashBigInt
+    );
+
     const poseidon = await this.#getPoseidon();
     const F = poseidon.F;
-    
+
     const proposalContextHash = F.toObject(
       poseidon([groupHashBigInt, epochHashBigInt])
     );
@@ -424,7 +436,7 @@ export class ZKProofGenerator {
       proposalClaimNullifier: proposalClaimHashBigInt.toString(),
       proposalSubmissionNullifier: proposalSubmissionHashBigInt.toString(),
       proposalContextHash: proposalContextHash.toString(),
-      identityNullifier: merkleProofInput.identityNullifier
+      identityNullifier: merkleProofInput.identityNullifier,
     };
     console.log("Circuit Input for Proposal Claim:", circuitInput);
 
@@ -432,7 +444,7 @@ export class ZKProofGenerator {
   }
 
   static async generateVoteCircuitInput(
-    mnemonic, 
+    mnemonic,
     commitmentArray,
     groupId,
     epochId,
@@ -440,7 +452,7 @@ export class ZKProofGenerator {
     voteChoice
   ) {
     console.log("Generating vote circuit input...");
-  
+
     // Generate identity credentials
     const merkleProofInput = await this.generateMerkleProofInput(
       mnemonic,
@@ -448,34 +460,39 @@ export class ZKProofGenerator {
     );
 
     // Compute context hashes
-    const groupHashBigInt = this.#moduloReduction(this.#hashStrToBigInt(groupId));
-    const epochHashBigInt = this.#moduloReduction(this.#hashStrToBigInt(epochId));
-    const proposalHashBigInt = this.#moduloReduction(this.#hashStrToBigInt(proposalId));
+    const groupHashBigInt = this.#moduloReduction(
+      this.#hashStrToBigInt(groupId)
+    );
+    const epochHashBigInt = this.#moduloReduction(
+      this.#hashStrToBigInt(epochId)
+    );
+    const proposalHashBigInt = this.#moduloReduction(
+      this.#hashStrToBigInt(proposalId)
+    );
     console.log("Group Hash BigInt:", groupHashBigInt);
     console.log("Epoch Hash BigInt:", epochHashBigInt);
     console.log("Proposal Hash BigInt:", proposalHashBigInt);
-  
+
     const circuitInput = {
       // Public inputs
       root: merkleProofInput.root,
       // Private inputs
       voteChoice: voteChoice.toString(),
       identityTrapdoor: merkleProofInput.identityTrapdoor,
-      identityNullifier:  merkleProofInput.identityNullifier,
+      identityNullifier: merkleProofInput.identityNullifier,
       pathElements: merkleProofInput.pathElements,
       pathIndices: merkleProofInput.pathIndices.map((index) =>
         index.toString()
       ),
       groupHash: groupHashBigInt.toString(),
       epochHash: epochHashBigInt.toString(),
-      proposalHash: proposalHashBigInt.toString()
+      proposalHash: proposalHashBigInt.toString(),
     };
-  
+
     console.log("Circuit Input for Vote circuit:", circuitInput);
 
     return circuitInput;
   }
-  
 
   /**
    * Generates a zero-knowledge proof for the specified circuit input.
@@ -619,8 +636,12 @@ export class ZKProofGenerator {
    * @returns {Promise<string>} The computed context key as a hex string.
    */
   static async computeContextKey(groupKey, epochKey) {
-    const groupHashBigInt = this.#moduloReduction(this.#hashStrToBigInt(groupKey));
-    const epochHashBigInt = this.#moduloReduction(this.#hashStrToBigInt(epochKey));
+    const groupHashBigInt = this.#moduloReduction(
+      this.#hashStrToBigInt(groupKey)
+    );
+    const epochHashBigInt = this.#moduloReduction(
+      this.#hashStrToBigInt(epochKey)
+    );
 
     const poseidon = await this.#getPoseidon();
     const F = poseidon.F;
@@ -632,6 +653,34 @@ export class ZKProofGenerator {
     return ethers.toBeHex(contextHashBigInt);
   }
 
+  /**
+   * Computes the vote context key using Poseidon hash from groupKey, epochKey, and proposalKey.
+   * This matches the voteContextHash computed in the vote circuit.
+   * @param {string} groupKey - The group key string.
+   * @param {string} epochKey - The epoch key string.
+   * @param {string} proposalKey - The proposal key string.
+   * @returns {Promise<string>} The computed vote context key as a hex string.
+   */
+  static async computeVoteContextKey(groupKey, epochKey, proposalKey) {
+    const groupHashBigInt = this.#moduloReduction(
+      this.#hashStrToBigInt(groupKey)
+    );
+    const epochHashBigInt = this.#moduloReduction(
+      this.#hashStrToBigInt(epochKey)
+    );
+    const proposalHashBigInt = this.#moduloReduction(
+      this.#hashStrToBigInt(proposalKey)
+    );
+
+    const poseidon = await this.#getPoseidon();
+    const F = poseidon.F;
+    const voteContextHashBigInt = F.toObject(
+      poseidon([groupHashBigInt, epochHashBigInt, proposalHashBigInt])
+    );
+
+    // Convert to hex string for better compatibility with ethers.js
+    return ethers.toBeHex(voteContextHashBigInt);
+  }
 
   /**
    * Computes a Poseidon hash of the input values.

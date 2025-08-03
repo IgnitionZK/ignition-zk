@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import styled from "styled-components";
 
 // components
@@ -6,6 +6,9 @@ import PageHeader from "../components/PageHeader";
 import InboxItem from "../components/InboxItem";
 import CustomDropdown from "../components/CustomDropdown";
 import MnemonicInput from "../components/MnemonicInput";
+import Spinner from "../components/Spinner";
+
+//hooks
 import { useGetProposalsByGroupId } from "../hooks/queries/proposals/useGetActiveProposalsByGroupId";
 import { useGetPendingInboxProposals } from "../hooks/queries/proposals/useGetPendingInboxProposals";
 import { useGetUserGroups } from "../hooks/queries/groupMembers/useGetUserGroups";
@@ -214,6 +217,28 @@ const LockIcon = styled.span`
   font-size: 1.2rem;
 `;
 
+// Loading Overlay Styles
+const LoadingOverlay = styled.div`
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.8);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 1001;
+`;
+
+const LoadingText = styled.p`
+  color: #fff;
+  font-size: 1.8rem;
+  margin-top: 16px;
+  text-align: center;
+`;
+
 /**
  * Proofs component displays a list of pending and verified proposals for the user's groups.
  * It allows filtering proposals by group and shows different sections for pending and verified items.
@@ -243,6 +268,8 @@ export default function Proofs() {
   const [showMnemonicInput, setShowMnemonicInput] = useState(false);
   const [unlockedGroups, setUnlockedGroups] = useState(new Set());
   const [localVerificationError, setLocalVerificationError] = useState(null);
+  const [storedMnemonic, setStoredMnemonic] = useState(null);
+  const [showLoadingOverlay, setShowLoadingOverlay] = useState(false);
 
   const groupNames = userGroups?.map((group) => group.name) || [];
 
@@ -253,6 +280,22 @@ export default function Proofs() {
 
   const { commitmentArray, isLoading: isLoadingCommitments } =
     useGetCommitmentArray({ groupId: selectedGroupData?.group_id });
+
+  // Cleanup effect to clear mnemonic when component unmounts or user navigates away
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      setStoredMnemonic(null);
+    };
+
+    // Only clear mnemonic on beforeunload, not on visibility change
+    // This allows users to switch tabs without losing their mnemonic
+    window.addEventListener("beforeunload", handleBeforeUnload);
+
+    return () => {
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+      setStoredMnemonic(null);
+    };
+  }, []);
 
   // Filter pending proposals by selected group
   const filteredProposals = pendingProposals?.filter((proposal) =>
@@ -297,6 +340,8 @@ export default function Proofs() {
         setLocalVerificationError(null); // Clear any verification errors
         // Clear all unlocked groups so they need to re-enter mnemonic
         setUnlockedGroups(new Set());
+        // Clear stored mnemonic for security
+        setStoredMnemonic(null);
       }
     }
   };
@@ -304,6 +349,7 @@ export default function Proofs() {
   const handleMnemonicSubmit = async (mnemonic) => {
     setShowMnemonicInput(false);
     setLocalVerificationError(null);
+    setShowLoadingOverlay(true);
 
     try {
       if (!commitmentArray) {
@@ -332,6 +378,9 @@ export default function Proofs() {
           selectedGroup
         );
 
+        // Only store the mnemonic after successful verification
+        setStoredMnemonic(mnemonic);
+
         // Add the group to unlocked groups (only one group can be unlocked at a time)
         setUnlockedGroups(new Set([selectedGroup]));
 
@@ -348,6 +397,10 @@ export default function Proofs() {
 
       // Don't unlock the inbox if verification fails
       setIsInboxVisible(false);
+      // Ensure mnemonic is not stored if verification fails
+      setStoredMnemonic(null);
+    } finally {
+      setShowLoadingOverlay(false);
     }
   };
 
@@ -462,6 +515,7 @@ export default function Proofs() {
                     key={proposal.proposal_id}
                     proposal={proposal}
                     isVerified={false}
+                    storedMnemonic={storedMnemonic}
                   />
                 ))}
               </ActivityList>
@@ -481,6 +535,7 @@ export default function Proofs() {
                     proposal={proposal}
                     showSubmitButton={false}
                     isVerified={proposal.is_verified}
+                    storedMnemonic={storedMnemonic}
                   />
                 ))}
               </ActivityList>
@@ -503,6 +558,23 @@ export default function Proofs() {
           confirmationMessage={`Are you sure you want to unlock the inbox for "${selectedGroup}"? This will require your mnemonic phrase verification.`}
           showConfirmation={true}
         />
+      )}
+
+      {/* Loading Overlay */}
+      {showLoadingOverlay && (
+        <LoadingOverlay>
+          <Spinner />
+          <LoadingText>Verifying membership...</LoadingText>
+          <LoadingText
+            style={{
+              fontSize: "1.4rem",
+              marginTop: "0.8rem",
+              color: "var(--color-grey-300)",
+            }}
+          >
+            This may take a few moments.
+          </LoadingText>
+        </LoadingOverlay>
       )}
     </PageContainer>
   );

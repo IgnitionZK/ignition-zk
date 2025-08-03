@@ -2,10 +2,10 @@ import styled from "styled-components";
 import { useState } from "react";
 import CustomButton from "./CustomButton";
 import MnemonicInput from "./MnemonicInput";
-import ConfirmationModal from "./ConfirmationModal";
+import BallotModal from "./BallotModal";
 import Spinner from "./Spinner";
 import toast from "react-hot-toast";
-import { useVerifyProposal } from "../hooks/queries/proofs/useVerifyProposal";
+import { useVerifyVote } from "../hooks/queries/proofs/useVerifyVote";
 import { useGetCommitmentArray } from "../hooks/queries/merkleTreeLeaves/useGetCommitmentArray";
 import { useInsertProof } from "../hooks/queries/proofs/useInsertProof";
 import { useGetUserGroups } from "../hooks/queries/groupMembers/useGetUserGroups";
@@ -100,11 +100,13 @@ function InboxItem({
   proposal = {},
   showSubmitButton = true,
   isVerified = false,
+  storedMnemonic = null,
 }) {
   const [showMnemonicInput, setShowMnemonicInput] = useState(false);
   const [hasSubmittedProof, setHasSubmittedProof] = useState(false);
-  const [showSubmitConfirm, setShowSubmitConfirm] = useState(false);
+  const [showBallotModal, setShowBallotModal] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [selectedVote, setSelectedVote] = useState(null);
   const { userGroups } = useGetUserGroups();
 
   console.log(proposal);
@@ -114,7 +116,7 @@ function InboxItem({
       groupId: proposal.group_id,
     });
 
-  const { verifyProposal, isVerifying } = useVerifyProposal();
+  const { verifyVote, isVerifying } = useVerifyVote();
 
   const { insertProof } = useInsertProof();
 
@@ -221,16 +223,18 @@ function InboxItem({
   };
 
   const handleVote = () => {
-    setShowSubmitConfirm(true);
+    setShowBallotModal(true);
   };
 
-  const handleConfirmSubmit = () => {
-    setShowSubmitConfirm(false);
+  const handleBallotConfirm = (vote) => {
+    setSelectedVote(vote);
+    setShowBallotModal(false);
     setShowMnemonicInput(true);
   };
 
-  const handleCancelSubmit = () => {
-    setShowSubmitConfirm(false);
+  const handleBallotCancel = () => {
+    setShowBallotModal(false);
+    setSelectedVote(null);
   };
 
   const handleSubmitMnemonic = async (mnemonic) => {
@@ -246,35 +250,49 @@ function InboxItem({
         throw new Error("Could not find your group member ID for this group");
       }
 
+      if (!selectedVote) {
+        throw new Error("No vote selected");
+      }
+
       // Get the proof and verification result
-      const { isValid, publicSignals } = await verifyProposal(
+      const { isValid, publicSignals, proof } = await verifyVote(
         commitmentArray,
         mnemonic,
         proposal.group_id,
         proposal.epoch_id,
-        proposal.title,
-        proposal.description,
-        proposal.payload,
-        proposal.funding || {},
-        proposal.metadata || {}
+        proposal.proposal_id,
+        selectedVote === "reject" ? 0 : selectedVote === "approve" ? 1 : 2 // 0 for Reject, 1 for Approve, 2 for Abstain
       );
 
       if (isValid) {
-        const nullifierHash = publicSignals[1]; // Second value in publicSignals is the proposal submission nullifier hash
+        const nullifierHash = publicSignals[1]; // Second value in publicSignals is the vote nullifier hash
+
+        // Convert proof and public signals to string arrays for database storage
+        // Both proof and publicSignals should now be arrays from the Solidity calldata
+        const proofArray = proof.map((p) => p.toString());
+        const publicSignalsArray = publicSignals.map((s) => s.toString());
 
         await insertProof({
           proposalId: proposal.proposal_id,
           groupId: proposal.group_id,
           groupMemberId: userGroupMemberId,
-          nullifierHash,
-          circuitType: "proposal",
+          nullifierHash: nullifierHash.toString(),
+          circuitType: "voting",
+          proof: proofArray,
+          publicSignals: publicSignalsArray,
         });
+
+        // TODO: Store vote information when the API supports it
+        console.log("Vote selected:", selectedVote);
         setHasSubmittedProof(true);
+        toast.success(`Vote submitted successfully: ${selectedVote}`);
       }
     } catch (error) {
       console.error("Error submitting proof:", error);
+      toast.error("Failed to submit vote. Please try again.");
     } finally {
       setIsSubmitting(false);
+      setSelectedVote(null); // Reset selected vote
     }
   };
 
@@ -351,23 +369,16 @@ function InboxItem({
           proposal={proposal}
           onClose={() => setShowMnemonicInput(false)}
           onSubmit={handleSubmitMnemonic}
+          prePopulatedMnemonic={storedMnemonic}
+          selectedVote={selectedVote}
         />
       )}
 
-      <ConfirmationModal
-        isOpen={showSubmitConfirm}
-        title="Submit Vote"
-        message={`Are you sure you want to submit a zero-knowledge proof for the proposal "${
-          proposal.title || "Untitled Proposal"
-        }"? This action will verify your membership and submit your vote anonymously.`}
-        confirmText="Submit"
-        cancelText="Cancel"
-        confirmButtonColor="#a5b4fc"
-        confirmButtonHoverColor="#818cf8"
-        cancelButtonColor="var(--color-grey-600)"
-        cancelButtonHoverColor="var(--color-grey-500)"
-        onConfirm={handleConfirmSubmit}
-        onCancel={handleCancelSubmit}
+      <BallotModal
+        isOpen={showBallotModal}
+        proposalTitle={proposal.title || "Untitled Proposal"}
+        onConfirm={handleBallotConfirm}
+        onCancel={handleBallotCancel}
       />
 
       {/* Loading Overlay */}
