@@ -457,12 +457,21 @@ contract GovernanceManager is Initializable, UUPSUpgradeable, OwnableUpgradeable
      */
     function delegateVerifyVote(
         uint256[24] calldata proof,
-        uint256[4] calldata publicSignals,
+        uint256[5] calldata publicSignals,
         bytes32 groupKey,
         bytes32 contextKey
     ) external onlyRelayer {
+        bytes32 proofSubmissionNullifier = bytes32(publicSignals[4]);
+        bool isProposalSubmitted = _getProposalSubmissionNullifierStatus(proofSubmissionNullifier);
         bytes32 currentRoot = _getCurrentRoot(groupKey);
-        voteManager.verifyVote(proof, publicSignals, contextKey, groupKey, currentRoot);
+        voteManager.verifyVote(
+            proof, 
+            publicSignals, 
+            contextKey, 
+            groupKey, 
+            currentRoot, 
+            isProposalSubmitted
+        );
     }
 
     /**
@@ -690,6 +699,15 @@ contract GovernanceManager is Initializable, UUPSUpgradeable, OwnableUpgradeable
      */
     function _getCurrentRoot(bytes32 groupKey) private view returns(bytes32) {
         return membershipManager.getRoot(groupKey);
+    }
+
+    /**
+     * @dev Checks if a proposal submission nullifier has been used.
+     * @param nullifier The submission nullifier to check.
+     * @return bool indicating whether the submission nullifier has been used.
+     */
+    function _getProposalSubmissionNullifierStatus(bytes32 nullifier) private view returns (bool) {
+        return proposalManager.getSubmissionNullifierStatus(nullifier);
     }
 
     /**

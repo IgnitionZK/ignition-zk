@@ -170,10 +170,10 @@ describe("Membership Manager Unit Tests:", function () {
         await mockAttackerERC721.waitForDeployment();
     });
 
-    async function deployGroupNftAndInitRoot(signer, group, nftName, nftSymbol, root) {
+    async function deployGroupNftAndSetRoot(signer, group, nftName, nftSymbol, root) {
         // Deploy group NFT and initialize group root
         await membershipManager.connect(signer).deployGroupNft(group, nftName, nftSymbol);
-        await membershipManager.connect(signer).initRoot(root, group);
+        await membershipManager.connect(signer).setRoot(root, group);
     }
 
     async function deployNft_MintToMember_getClone(signer, groupKey, nftName, nftSymbol) {
@@ -275,7 +275,7 @@ describe("Membership Manager Unit Tests:", function () {
         EXPECTED: should preserve proxy data after upgrade`, async function () {
 
         // deploy group NFT and initialize group root
-        await deployGroupNftAndInitRoot(governor, groupKey, nftName, nftSymbol, rootHash);
+        await deployGroupNftAndSetRoot(governor, groupKey, nftName, nftSymbol, rootHash);
 
         // check that the root for the groupKey is stored correctly
         expect(await membershipManager.connect(governor).getRoot(groupKey)).to.equal(rootHash);
@@ -331,13 +331,6 @@ describe("Membership Manager Unit Tests:", function () {
             .to.be.revertedWithCustomError(membershipManager, "AddressIsNotAContract");
     });
 
-    it(`FUNCTION: setMembershipVerifier
-        TESTING: custom error: AddressDoesNotSupportInterface
-        EXPECTED: should not allow the governor to set the membership verifier to an address not implementing the IMembershipVerifier interface`, async function () {
-        await expect(membershipManager.connect(governor).setMembershipVerifier(membershipManager.target))
-            .to.be.revertedWithCustomError(membershipManager, "AddressDoesNotSupportInterface");
-    });
-
     it(`FUNCTION verifyMembership (with mock membership verifier): 
         TESTING: custom error: InvalidContextHash
         EXPECTED: should not allow the governor to verify a proof with an invalid context key`, async function () {
@@ -345,7 +338,7 @@ describe("Membership Manager Unit Tests:", function () {
         const invalidKey = Conversions.stringToBytes32("invalidGroupKey");
 
         // deploy group NFT and initialize group root
-        await deployGroupNftAndInitRoot(governor, invalidKey, nftName, nftSymbol, rootHash);
+        await deployGroupNftAndSetRoot(governor, invalidKey, nftName, nftSymbol, rootHash);
 
         // set the membership verifier to the mock verifier
         await membershipManager.connect(governor).setMembershipVerifier(mockMembershipVerifier.target);
@@ -362,7 +355,7 @@ describe("Membership Manager Unit Tests:", function () {
         EXPECTED: should not allow the governor to verify a membership with a root different than the current root`, async function () {
 
         // deploy group NFT and initialize group root
-        await deployGroupNftAndInitRoot(governor, groupKey, nftName, nftSymbol, rootHash);
+        await deployGroupNftAndSetRoot(governor, groupKey, nftName, nftSymbol, rootHash);
 
         // set the membership verifier to the mock verifier
         await membershipManager.connect(governor).setMembershipVerifier(mockMembershipVerifier.target);
@@ -396,7 +389,7 @@ describe("Membership Manager Unit Tests:", function () {
         EXPECTED: should not allow non-governor to verify membership`, async function () {
 
         // deploy group NFT and initialize group root
-        await deployGroupNftAndInitRoot(governor, groupKey, nftName, nftSymbol, rootHash);
+        await deployGroupNftAndSetRoot(governor, groupKey, nftName, nftSymbol, rootHash);
 
         // set the membership verifier to the mock verifier
         await membershipManager.connect(governor).setMembershipVerifier(mockMembershipVerifier.target);
@@ -413,7 +406,7 @@ describe("Membership Manager Unit Tests:", function () {
         EXPECTED: should not let governor verify membership with an invalid proof`, async function () {
 
         // deploy group NFT and initialize group root
-        await deployGroupNftAndInitRoot(governor, groupKey, nftName, nftSymbol, rootHash);
+        await deployGroupNftAndSetRoot(governor, groupKey, nftName, nftSymbol, rootHash);
 
         // set the membership verifier to the mock verifier
         await membershipManager.connect(governor).setMembershipVerifier(mockMembershipVerifier.target);
@@ -432,7 +425,7 @@ describe("Membership Manager Unit Tests:", function () {
         TESTING: zero proof inputs handling
         EXPECTED: should not allow the governor to verify membership with a zero proof`, async function () {
         // deploy group NFT and initialize group root
-        await deployGroupNftAndInitRoot(governor, groupKey, nftName, nftSymbol, rootHash);
+        await deployGroupNftAndSetRoot(governor, groupKey, nftName, nftSymbol, rootHash);
         
         const zeroProof = new Array(24).fill(0);
 
@@ -447,7 +440,7 @@ describe("Membership Manager Unit Tests:", function () {
         TESTING: event: ProofVerified, stored data: group root
         EXPECTED: should allow the governor to verify membership with a valid proof`, async function () {
         // deploy group NFT and initialize group root
-        await deployGroupNftAndInitRoot(governor, realGroupKey, nftName, nftSymbol, realRoot);
+        await deployGroupNftAndSetRoot(governor, realGroupKey, nftName, nftSymbol, realRoot);
 
         await expect(membershipManager.connect(governor).verifyMembership(
             realProof,
@@ -464,7 +457,7 @@ describe("Membership Manager Unit Tests:", function () {
         TESTING: custom error: InvalidMerkleRoot
         EXPECTED: should not allow the governor to verify membership with a valid proof and an invalid root in the public signals`, async function () {
         // deploy group NFT and initialize group root
-        await deployGroupNftAndInitRoot(governor, realGroupKey, nftName, nftSymbol, realRoot);
+        await deployGroupNftAndSetRoot(governor, realGroupKey, nftName, nftSymbol, realRoot);
 
         // increment the first public signal (root) to make it invalid
         const invalidPublicSignals = [...realPublicSignals];
@@ -482,7 +475,7 @@ describe("Membership Manager Unit Tests:", function () {
         TESTING: custom error: InvalidGroupKey
         EXPECTED: should not allow the governor to verify membership with a valid proof and an invalid group hash in the public signals`, async function () {
         // deploy group NFT and initialize group root
-        await deployGroupNftAndInitRoot(governor, realGroupKey, nftName, nftSymbol, realRoot);
+        await deployGroupNftAndSetRoot(governor, realGroupKey, nftName, nftSymbol, realRoot);
 
         // increment the second public signal (group key) to make it invalid
         const invalidPublicSignals = [...realPublicSignals];
@@ -496,7 +489,7 @@ describe("Membership Manager Unit Tests:", function () {
 
     });
 
-    it(`FUNCTION: setRoot NEW!!!
+    it(`FUNCTION: setRoot
         TESTING: event: RootInitialized, RootSet, stored data: root hash
         EXPECTED: should allow the governor to initialize or set the root of a group and emit event`, async function () {
         
@@ -519,7 +512,7 @@ describe("Membership Manager Unit Tests:", function () {
         expect(updatedRoot).to.equal(rootHash2, "Root hash should match the new value");
     });
 
-    it(`FUNCTION: setRoot NEW!!!
+    it(`FUNCTION: setRoot
         TESTING: authorization: onlyOwner (failure)
         EXPECTED: should not allow a non-governor to set the root of a group`, async function () {
 
@@ -536,85 +529,39 @@ describe("Membership Manager Unit Tests:", function () {
     });
         
 
-
-    it(`FUNCTION: initRoot
-        TESTING: event: RootInitialized, stored data: root hash
-        EXPECTED: should allow the governor to initialize the root of a group and emit event`, async function () {
-        
-        // Deploy group NFT first
-        await membershipManager.connect(governor).deployGroupNft(groupKey, nftName, nftSymbol);
-        
-        // Initialize root for the group
-        await expect(membershipManager.connect(governor).initRoot(rootHash, groupKey))
-            .to.emit(membershipManager, "RootInitialized")
-            .withArgs(groupKey, rootHash);
-        const storedRoot = await membershipManager.connect(governor).getRoot(groupKey);
-        expect(storedRoot).to.equal(rootHash, "Root hash should match the initialized value");
-    });
-
-    it(`FUNCTION: initRoot
+    it(`FUNCTION: setRoot
         TESTING: custom error: GroupNftNotSet
-        EXPECTED: should not allow the governor to initialize the root of a group without an existing deployed group NFT`, async function () {
+        EXPECTED: should not allow the governor to set the root of a group without an existing deployed group NFT`, async function () {
        
         // Attempt to initialize root for a group without a deployed NFT
-        await expect(membershipManager.connect(governor).initRoot(rootHash, groupKey))
+        await expect(membershipManager.connect(governor).setRoot(rootHash, groupKey))
             .to.revertedWithCustomError(
                 MembershipManager,
                 "GroupNftNotSet"
             );
     });
 
-    it(`FUNCTION: initRoot
-        TESTING: custom error: RootAlreadyInitialized
-        EXPECTED: should not allow the governor to initialize the root of the same group again`, async function () {
-        
-        // deploy group NFT and initialize group root
-        await deployGroupNftAndInitRoot(governor, groupKey, nftName, nftSymbol, rootHash);
-
-        // Attempt to re-initialize the group with a different root hash
-        await expect(
-            membershipManager.connect(governor).initRoot(rootHash2, groupKey)
-        ).to.be.revertedWithCustomError(
-            MembershipManager,
-            "RootAlreadyInitialized"
-        );
-    });
-
-    it(`FUNCTION: initRoot
-        TESTING: onlyOwner authorization (failure)
-        EXPECTED: should not allow non-governor to initialize the root of a group`, async function () {
-        await membershipManager.connect(governor).deployGroupNft(groupKey, nftName, nftSymbol);
-        
-        // Attempt to initialize root by a non-governor
-        await expect(
-            membershipManager.connect(user1).initRoot(rootHash, groupKey)
-        ).to.be.revertedWithCustomError(
-            MembershipManager,
-            "OwnableUnauthorizedAccount"
-        );
-    });
-
-    it(`FUNCTION: initRoot
+    it(`FUNCTION: setRoot
         TESTING: custom error: RootCannotBeZero
-        EXPECTED: should not allow the governor to initialize the group with a zero root hash`, async function () {
+        EXPECTED: should not allow the governor to set the group with a zero root hash`, async function () {
         await membershipManager.connect(governor).deployGroupNft(groupKey, nftName, nftSymbol);
-        
+
         // Attempt to initialize root with a zero hash
         await expect(
-            membershipManager.connect(governor).initRoot(ethers.ZeroHash, groupKey)
+            membershipManager.connect(governor).setRoot(ethers.ZeroHash, groupKey)
         ).to.be.revertedWithCustomError(
             MembershipManager,
             "RootCannotBeZero"
         );
     });    
 
-    it(`FUNCTION: initRoot
+    it(`FUNCTION: setRoot
         TESTING: stored data: root hash
-        EXPECTED: should store two different root hashes after calling initRoot for two different groups`, async function () {
+        EXPECTED: should store two different root hashes after calling setRoot for two different groups`, async function () {
         
         // Deploy group NFT and initialize group root
-        await deployGroupNftAndInitRoot(governor, groupKey, nftName, nftSymbol, rootHash);
-        await deployGroupNftAndInitRoot(governor, groupKey2, nftName2, nftSymbol2, rootHash2);
+        await deployGroupNftAndSetRoot(governor, groupKey, nftName, nftSymbol, rootHash);
+        await deployGroupNftAndSetRoot(governor, groupKey2, nftName2, nftSymbol2, rootHash2);
 
         const storedRoot1 = await membershipManager.connect(governor).getRoot(groupKey);
         const storedRoot2 = await membershipManager.connect(governor).getRoot(groupKey2);
@@ -624,81 +571,12 @@ describe("Membership Manager Unit Tests:", function () {
         expect(storedRoot1).to.not.equal(storedRoot2, "Root hashes for different groups should be different");
     });
 
-
-    it(`FUNCTION: setRoot
-        TESTING: event: RootSet, stored data: root hash
-        EXPECTED: should allow the governor to set a new root for an existing group and emit event`, async function () {
-        
-        // Deploy group NFT and initialize group root
-        await deployGroupNftAndInitRoot(governor, groupKey, nftName, nftSymbol, rootHash);
-
-        // Set a new root for the group
-        await expect(membershipManager.connect(governor).setRoot(rootHash2, groupKey))
-            .to.emit(membershipManager, "RootSet")
-            .withArgs(groupKey, rootHash, rootHash2);
-        
-        // Check if the root has been updated
-        const storedRoot = await membershipManager.connect(governor).getRoot(groupKey);
-        expect(storedRoot).to.equal(rootHash2, "Root hash should match the new value");
-    });
-
-    it(`FUNCTION: setRoot
-        TESTING: stored data: root hash
-        EXPECTED: should store the new root hash after calling setRoot a second time`, async function () {
-        
-        // Deploy group NFT and initialize group root
-        await deployGroupNftAndInitRoot(governor, groupKey, nftName, nftSymbol, rootHash);
-
-        // Set a new root for the group
-        await membershipManager.connect(governor).setRoot(rootHash2, groupKey);
-
-        // Check if the root has been updated
-        expect(await membershipManager.connect(governor).getRoot(groupKey)).to.equal(rootHash2, "Root hash should match the new value");
-
-        // Set another new root for the group
-        const newRootHash = Conversions.stringToBytes32("anotherNewRootHash");
-        await membershipManager.connect(governor).setRoot(newRootHash, groupKey);
-
-        // Check if the root has been updated again
-        expect(await membershipManager.connect(governor).getRoot(groupKey)).to.equal(newRootHash, "Root hash should match the new value");
-    });
-
     
-    it(`FUNCTION: setRoot
-        TESTING: custom error: RootNotYetInitialized
-        EXPECTED: should not allow the governor to set a new root for a group that has not been initialized`, async function () {
-        // deploy group NFT without initializing root
-        await membershipManager.connect(governor).deployGroupNft(groupKey, nftName, nftSymbol);
-
-        // Attempt to set root for a group without an initialized root
-        await expect(
-            membershipManager.connect(governor).setRoot(rootHash2, groupKey)
-        ).to.be.revertedWithCustomError(
-            MembershipManager,
-            "RootNotYetInitialized"
-        );
-    });
-
-    it(`FUNCTION: setRoot
-        TESTING: custom error: RootCannotBeZero
-        EXPECTED: should not allow the governor to set a zero root hash for an existing group`, async function () {
-        // deploy group NFT and initialize group root
-        await deployGroupNftAndInitRoot(governor, groupKey, nftName, nftSymbol, rootHash);
-
-        // Attempt to set root with a zero hash
-        await expect(
-            membershipManager.connect(governor).setRoot(ethers.ZeroHash, groupKey)
-        ).to.be.revertedWithCustomError(
-            MembershipManager,
-            "RootCannotBeZero"
-        );
-    });
-
     it(`FUNCTION: setRoot
         TESTING: custom error: NewRootMustBeDifferent
         EXPECTED: should not allow the governor to set a root that is the same as the current root`, async function () {
         // deploy group NFT and initialize group root
-        await deployGroupNftAndInitRoot(governor, groupKey, nftName, nftSymbol, rootHash);
+        await deployGroupNftAndSetRoot(governor, groupKey, nftName, nftSymbol, rootHash);
 
         // Attempt to set the same root again
         await expect(
@@ -709,17 +587,6 @@ describe("Membership Manager Unit Tests:", function () {
         );
     }); 
 
-    it(`FUNCTION: setRoot
-        TESTING: onlyOwner authorization (failure)
-        EXPECTED: should not allow non-governor to set a new root for an existing group`, async function () {
-        // deploy group NFT and initialize group root
-        await deployGroupNftAndInitRoot(governor, groupKey, nftName, nftSymbol, rootHash);
-
-        // Attempt to set root by a non-governor
-        await expect(
-            membershipManager.connect(user1).setRoot(rootHash2, groupKey)
-        ).to.be.reverted;
-    });
 
     it(`FUNCTION: deployGroupNft
         TESTING: event: GroupNftDeployed
@@ -1229,68 +1096,6 @@ describe("Membership Manager Unit Tests:", function () {
             .withArgs(groupKey, user1Address, anyUint); 
     });
 
-    /*
-    it("verifyProof: should not allow the governor to verify an invalid proof", async function () {
-        await membershipManager.connect(governor).deployGroupNft(groupKey, nftName, nftSymbol);
-        await membershipManager.connect(governor).initRoot(rootHash, groupKey);
-        await expect(membershipManager.connect(governor).verifyProof(invalidProof, invalidPublicSignals, groupKey))
-            .to.be.revertedWithCustomError(
-                membershipManager,
-                "InvalidProof"
-            )
-            .withArgs(groupKey, invalidPublicSignals[0]);
-    });
-
-    it("verifyProof: should not allow the governor to verify a proof with an uninitialized group root", async function () {
-        const user1Address = await user1.getAddress();
-        await membershipManager.connect(governor).deployGroupNft(groupKey, nftName, nftSymbol);
-        // Attempt to verify proof without initializing the group root
-        await expect(
-            membershipManager.connect(governor).verifyProof(invalidProof, invalidPublicSignals, groupKey)
-        ).to.be.revertedWithCustomError(
-            membershipManager,
-            "RootNotYetInitialized"
-        );
-    });
-      
-    it("verifyProof: should allow the governor to verify a valid proof and emit event", async function () {
-        
-        await membershipManager.connect(governor).deployGroupNft(validGroupKey, nftName, nftSymbol);
-        await membershipManager.connect(governor).initRoot(validRoot, validGroupKey);
-        await expect(membershipManager.connect(governor).verifyProof(validProof, validPublicSignals, validGroupKey))
-            .to.emit(membershipManager, "ProofVerified")
-            .withArgs(validGroupKey, validPublicNullifier);
-    });
-
-    it("verifyProof: should store the nullifier after a successful proof verification", async function () {
-        await membershipManager.connect(governor).deployGroupNft(validGroupKey, nftName, nftSymbol);
-        await membershipManager.connect(governor).initRoot(validRoot, validGroupKey);
-        await membershipManager.connect(governor).verifyProof(validProof, validPublicSignals, validGroupKey);
-        const nullifier = ethers.toBeHex(validPublicNullifier, 32);
-        const isNullifierUsed = await membershipManager.connect(governor).getNullifierStatus(validGroupKey, nullifier);
-        expect(isNullifierUsed).to.be.true;
-    });
-
-    it("verifyProof: should not allow the governor to verify a proof with an already used nullifier", async function () {
-        await membershipManager.connect(governor).deployGroupNft(validGroupKey, nftName, nftSymbol);
-        await membershipManager.connect(governor).initRoot(validRoot, validGroupKey);
-        await membershipManager.connect(governor).verifyProof(validProof, validPublicSignals, validGroupKey);
-        await expect(membershipManager.connect(governor).verifyProof(validProof, validPublicSignals, validGroupKey))
-            .to.be.revertedWithCustomError(
-                membershipManager,
-                "NullifierAlreadyUsed"
-            );
-    });
-
-    it("verifyProof: should not allow non-governor to verify a proof", async function () {
-        await membershipManager.connect(governor).deployGroupNft(validGroupKey, nftName, nftSymbol);
-        await membershipManager.connect(governor).initRoot(validRoot, validGroupKey);
-        await expect(
-            membershipManager.connect(user1).verifyProof(validProof, validPublicSignals, validGroupKey)
-        ).to.be.reverted;
-    });
-    */
-
     it(`FUNCTIONALITY: NFT transfer
         TESTING: Soulbound NFT transfer restrictions (transferFrom()), custom error: TransferNotAllowed
         EXPECTED: should not allow the owner of the NFT (EOA) to transfer it`, async function () {
@@ -1407,7 +1212,7 @@ describe("Membership Manager Unit Tests:", function () {
         TESTING: onlyOwner authorization (failure)
         EXPECTED: should not allow non-governor to get the root for an existing group`, async function () {
         // deploy group NFT and initialize group root
-        await deployGroupNftAndInitRoot(governor, groupKey, nftName, nftSymbol, rootHash);
+        await deployGroupNftAndSetRoot(governor, groupKey, nftName, nftSymbol, rootHash);
 
         // Attempt to get root by a non-governor
         await expect(
@@ -1422,7 +1227,7 @@ describe("Membership Manager Unit Tests:", function () {
         TESTING: onlyOwner authorization (success)
         EXPECTED: should allow the governor to get the root for an existing group`, async function () {
         // deploy group NFT and initialize group root
-        await deployGroupNftAndInitRoot(governor, groupKey, nftName, nftSymbol, rootHash);
+        await deployGroupNftAndSetRoot(governor, groupKey, nftName, nftSymbol, rootHash);
 
         // Attempt to get root by the governor
         expect( await membershipManager.connect(governor).getRoot(groupKey)).to.equal(rootHash, "Should return the correct root hash");

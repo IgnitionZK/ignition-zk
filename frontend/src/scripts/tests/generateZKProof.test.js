@@ -162,7 +162,13 @@ for (const user of users) {
     groupId,
     epochId,
     proposalId,
-    voteChoice
+    voteChoice,
+    proposalTitle,
+    proposalDescription,
+    proposalPayload,
+    proposalFunding,
+    proposalMetadata,
+    proposalSubmissionHash
   );
 
   const { 

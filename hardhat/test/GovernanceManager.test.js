@@ -44,6 +44,7 @@ describe("Governance Manager Unit Tests:", function () {
     let groupKey;
     let epochKey;
     let contextKey;
+    let voteContextKey;
 
     // roots
     let rootHash1;
@@ -71,6 +72,7 @@ describe("Governance Manager Unit Tests:", function () {
     let mockPublicSignals2;
     let mockClaimPublicSignals1;
     let mockClaimPublicSignals2;
+    let mockVotePublicSignals1;
 
     // real proof inputs
     let realGroupId;
@@ -132,17 +134,24 @@ describe("Governance Manager Unit Tests:", function () {
         // Initialize variables
         groupId = '123e4567-e89b-12d3-a456-426614174000'; // Example UUID for group
         epochId = '123e4567-e89b-12d3-a456-426614174001'; // Example UUID for epoch
+        proposalId = '123e4567-e89b-12d3-a456-426614174002'; // Example UUID for proposal
         groupKey = Conversions.stringToBytes32(groupId);
         epochKey = Conversions.stringToBytes32(epochId);
         contextKey = await Conversions.computeContextKey(groupId, epochId);
+        voteContextKey = await Conversions.computeVoteContextKey(groupId, epochId, proposalId);
         rootHash1 = Conversions.stringToBytes32("rootHash1");
         rootHash2 = Conversions.stringToBytes32("rootHash2");
         submissionNullifier1 = Conversions.stringToBytes32("submissionNullifier1");
         submissionNullifier2 = Conversions.stringToBytes32("submissionNullifier2");
         claimNullifier1 = Conversions.stringToBytes32("claimNullifier1");
         claimNullifier2 = Conversions.stringToBytes32("claimNullifier2");
+        voteNullifier1 = Conversions.stringToBytes32("voteNullifier1");
+        voteNullifier2 = Conversions.stringToBytes32("voteNullifier2");
         contentHash1 = Conversions.stringToBytes32("contentHash1");
         contentHash2 = Conversions.stringToBytes32("contentHash2");
+        voteChoiceNo = 19014214495641488759237505126948346942972912379615652741039992445865937985820n;
+        voteChoiceYes = 18586133768512220936620570745912940619677854269274689475585506675881198879027n;
+        voteChoiceAbstain = 8645981980787649023086883978738420856660271013038108762834452721572614684349n;
         nftName = "Test Group NFT";
         nftSymbol = "TGNFT";  
         nftName2 = "Test Group NFT 2";
@@ -184,6 +193,15 @@ describe("Governance Manager Unit Tests:", function () {
             contextKey
         ];
 
+        // mock public signals with one vote choice and nullifier:
+        mockVotePublicSignals1 = [
+            voteContextKey,
+            voteNullifier1,
+            voteChoiceNo,
+            rootHash1,
+            submissionNullifier1
+        ];
+
         // Real submission proof inputs (CHANGE VALUES)
         realGroupId = '97dca094-bdd7-419b-a91a-5ea1f2aa0537';
         realEpochId = '2935f80b-9cbd-4000-8342-476b97148ee7';
@@ -200,6 +218,8 @@ describe("Governance Manager Unit Tests:", function () {
         proofContentHash = ethers.toBeHex(realPublicSignals[4], 32);
 
         // Real claim proof inputs (ADD VALUES)
+
+        // Real vote proof inputs (ADD VALUES)
         
     });
 
@@ -364,10 +384,10 @@ describe("Governance Manager Unit Tests:", function () {
         return mockProposalManager;
     }
 
-    async function deployGroupNftAndInitRoot() {
+    async function deployGroupNftAndSetRoot() {
         // Deploy the group NFT and initialize the root
         await governanceManager.connect(relayer).delegateDeployGroupNft(groupKey, nftName, nftSymbol);
-        await governanceManager.connect(relayer).delegateInitRoot(rootHash1, groupKey);
+        await governanceManager.connect(relayer).delegateSetRoot(rootHash1, groupKey);
     }
 
     async function setMockSubmissionVerifierAndVerifyProposal() {
@@ -613,31 +633,18 @@ describe("Governance Manager Unit Tests:", function () {
             .to.be.revertedWithCustomError(governanceManager, "AddressCannotBeZero");
     });
 
-    it(`FUNCTION: delegateInitGroup
-        TESTING: onlyRelayer authorization (success), event: RootInitialized
-        EXPECTED: should allow the relayer to initialize a new group and emit event`, async function () {
-        await governanceManager.connect(relayer).delegateDeployGroupNft(groupKey, nftName, nftSymbol);
-        await expect(governanceManager.connect(relayer).delegateInitRoot(rootHash1, groupKey)).to.emit(
-            membershipManager, 
-            "RootInitialized"
-        );
-    });
-
-    it(`FUNCTION: delegateInitGroup
-        TESTING: onlyRelayer authorization (failure)
-        EXPECTED: should not allow non-relayer to initialize a new group`, async function () {
-        await governanceManager.connect(relayer).delegateDeployGroupNft(groupKey, nftName, nftSymbol);
-        await expect(governanceManager.connect(deployer).delegateInitRoot(rootHash1, groupKey)).to.be.revertedWithCustomError(
-            governanceManager, 
-            "OnlyRelayerAllowed"
-        );
-    });
-
     it(`FUNCTION: delegateSetRoot
         TESTING: onlyRelayer authorization (success), event: RootSet, stored data: root
         EXPECTED: should allow the relayer to set a new root and emit event`, async function () {
         await governanceManager.connect(relayer).delegateDeployGroupNft(groupKey, nftName, nftSymbol);
-        await governanceManager.connect(relayer).delegateInitRoot(rootHash1, groupKey);
+        await expect(governanceManager.connect(relayer).delegateSetRoot(rootHash1, groupKey))
+            .to.emit(membershipManager, 
+                "RootInitialized"
+            ).withArgs(groupKey,rootHash1);
+        // Check that the root has been set correctly
+        const currentRoot = await governanceManager.connect(relayer).delegateGetRoot(groupKey);
+        expect(currentRoot).to.equal(rootHash1, "The current root should be set to the new root");
+    
         await expect(governanceManager.connect(relayer).delegateSetRoot(rootHash2, groupKey))
             .to.emit(
                 membershipManager, 
@@ -645,15 +652,15 @@ describe("Governance Manager Unit Tests:", function () {
             ).withArgs(groupKey, rootHash1, rootHash2);
 
         // Check that the root has been updated
-        const currentRoot = await governanceManager.connect(relayer).delegateGetRoot(groupKey);
-        expect(currentRoot).to.equal(rootHash2, "The current root should be updated to the new root");
+        const updatedRoot = await governanceManager.connect(relayer).delegateGetRoot(groupKey);
+        expect(updatedRoot).to.equal(rootHash2, "The current root should be updated to the new root");
     });
 
     it(`FUNCTION: delegateSetRoot
         TESTING: onlyRelayer authorization (failure)
         EXPECTED: should not allow non-relayer to set a new root`, async function () {
         await governanceManager.connect(relayer).delegateDeployGroupNft(groupKey, nftName, nftSymbol);
-        await governanceManager.connect(relayer).delegateInitRoot(rootHash1, groupKey);
+        await governanceManager.connect(relayer).delegateSetRoot(rootHash1, groupKey);
         await expect(governanceManager.connect(deployer).delegateSetRoot(rootHash2, groupKey))
             .to.be.revertedWithCustomError(
                 governanceManager, 
@@ -828,7 +835,7 @@ describe("Governance Manager Unit Tests:", function () {
         TESTING: onlyRelayer authorization (success), event: ProposalVerified
         EXPECTED: should allow the relayer to verify a proposal submission proof and emit event`, async function () {
         // Deploy the group NFT and initialize the root
-        await deployGroupNftAndInitRoot();
+        await deployGroupNftAndSetRoot();
 
         // Set the submission verifier to the mock one that returns a valid proof
         await governanceManager.connect(deployer).delegateSetProposalSubmissionVerifier(mockProposalVerifier.target);
@@ -850,7 +857,7 @@ describe("Governance Manager Unit Tests:", function () {
         TESTING: onlyRelayer authorization (success), custom error: InvalidSubmissionProof
         EXPECTED: should not verify an invalid proposal submission proof`, async function () {
         // Deploy the group NFT and initialize the root
-        await deployGroupNftAndInitRoot();
+        await deployGroupNftAndSetRoot();
 
         // Set the submission verifier to the mock one that returns a valid proof
         await governanceManager.connect(deployer).delegateSetProposalSubmissionVerifier(mockProposalVerifier.target);
@@ -875,7 +882,7 @@ describe("Governance Manager Unit Tests:", function () {
         TESTING: onlyRelayer authorization (failure)
         EXPECTED: should not allow a non-relayer to verify a submission proof`, async function () {
         // Deploy the group NFT and initialize the root
-        await deployGroupNftAndInitRoot();
+        await deployGroupNftAndSetRoot();
 
         // Set the submission verifier to the mock one that returns a valid proof
         await governanceManager.connect(deployer).delegateSetProposalSubmissionVerifier(mockProposalVerifier.target);
@@ -896,7 +903,7 @@ describe("Governance Manager Unit Tests:", function () {
         TESTING: onlyRelayer authorization (success), event: ProposalClaimVerified
         EXPECTED: should allow the relayer to verify a proposal claim proof and emit event`, async function () {
         // Deploy the group NFT and initialize the root
-        await deployGroupNftAndInitRoot();
+        await deployGroupNftAndSetRoot();
 
         // Set the submission verifier to the mock one that returns a valid proof and submit a proposal
         await setMockSubmissionVerifierAndVerifyProposal();
@@ -919,7 +926,7 @@ describe("Governance Manager Unit Tests:", function () {
         TESTING: onlyRelayer authorization (success), custom error: InvalidClaimProof
         EXPECTED: should not verify an invalid proposal claim proof`, async function () {
         // Deploy the group NFT and initialize the root
-        await deployGroupNftAndInitRoot();
+        await deployGroupNftAndSetRoot();
 
         // Set the submission verifier to the mock one that returns a valid proof and submit a proposal
         await setMockSubmissionVerifierAndVerifyProposal();
@@ -946,7 +953,7 @@ describe("Governance Manager Unit Tests:", function () {
         TESTING: onlyRelayer authorization (failure)
         EXPECTED: should not allow a non-relayer to verify a claim proof`, async function () {
         // Deploy the group NFT and initialize the root
-        await deployGroupNftAndInitRoot();
+        await deployGroupNftAndSetRoot();
 
         // Set the submission verifier to the mock one that returns a valid proof and submit a proposal 
         await setMockSubmissionVerifierAndVerifyProposal();
@@ -1079,7 +1086,7 @@ describe("Governance Manager Unit Tests:", function () {
         TESTING: onlyRelayer authorization (success), stored data: root
         EXPECTED: should allow the relayer to get the root of a group`, async function () {
         // Deploy the group NFT and initialize the root
-        await deployGroupNftAndInitRoot();
+        await deployGroupNftAndSetRoot();
 
         const root = await governanceManager.connect(relayer).delegateGetRoot(groupKey);
         expect(root).to.equal(rootHash1);
@@ -1089,7 +1096,7 @@ describe("Governance Manager Unit Tests:", function () {
         TESTING: onlyRelayer authorization (failure)
         EXPECTED: should not allow non-relayer to get the root of a group`, async function () {
         // Deploy the group NFT and initialize the root
-        await deployGroupNftAndInitRoot();
+        await deployGroupNftAndSetRoot();
         // Attempt to get the root via the deployer
         await expect(governanceManager.connect(deployer).delegateGetRoot(groupKey))
             .to.be.revertedWithCustomError(
@@ -1201,7 +1208,7 @@ describe("Governance Manager Unit Tests:", function () {
         TESTING: onlyRelayer authorization (success), stored data: nullifier status
         EXPECTED: should allow the relayer to get TRUE as the nullifier status of a used nullifier`, async function () {
         // Deploy the group NFT and initialize the root
-        await deployGroupNftAndInitRoot();
+        await deployGroupNftAndSetRoot();
 
         // Set the submission verifier to the mock one that returns a valid proof and submit a proposal
         await setMockSubmissionVerifierAndVerifyProposal();
@@ -1240,7 +1247,7 @@ describe("Governance Manager Unit Tests:", function () {
         TESTING: onlyRelayer authorization (success), stored data: claim nullifier status
         EXPECTED: should allow the relayer to get TRUE as the claim nullifier status of a used nullifier`, async function () {
         // Deploy the group NFT and initialize the root
-        await deployGroupNftAndInitRoot();
+        await deployGroupNftAndSetRoot();
 
         // Set the submission verifier to the mock one that returns a valid proof and submit a proposal
         await setMockSubmissionVerifierAndVerifyProposal();
@@ -1327,6 +1334,24 @@ describe("Governance Manager Unit Tests:", function () {
                 governanceManager, 
                 "OwnableUnauthorizedAccount"
             );
+    });
+
+
+    it(`FUNCTION: delegateVerifyVote
+        TESTING: custom error: ProposalHasNotBeenSubmitted
+        EXPECTED: should not allow the relayer to verify a vote if the proposal has not been submitted`, async function () {
+        
+        await deployGroupNftAndSetRoot();
+
+        await expect(governanceManager.connect(relayer).delegateVerifyVote(
+            mockProof,
+            mockVotePublicSignals1,
+            groupKey,
+            voteContextKey
+        )).to.be.revertedWithCustomError(
+            voteManager, 
+            "ProposalHasNotBeenSubmitted"
+        );
     });
 
 })

@@ -47,6 +47,9 @@ contract VoteManager is Initializable, OwnableUpgradeable, UUPSUpgradeable, IVot
     /// @param proofVoteNullifier The nullifier associated with the vote proof.
     error InvalidVoteProof(bytes32 contextKey, bytes32 proofVoteNullifier);
 
+    /// @notice Thrown if a proposal has not been submitted before voting.
+    error ProposalHasNotBeenSubmitted();
+
     /// @notice Thrown if the vote choice in the public outputs does not match one of the expected values.
     error InvalidVoteChoice();
 
@@ -86,7 +89,7 @@ contract VoteManager is Initializable, OwnableUpgradeable, UUPSUpgradeable, IVot
     error AddressIsNotAContract();
 
     /// @notice Thrown if the provided address does not support the IVoteVerifier interface.
-    error AddressDoesNotSupportInterface();
+    //error AddressDoesNotSupportInterface();
 
     /// @notice Thrown if the provided address is zero.
     error AddressCannotBeZero();
@@ -281,11 +284,10 @@ contract VoteManager is Initializable, OwnableUpgradeable, UUPSUpgradeable, IVot
      * @dev This function can only be called by the contract owner (governor).
      * @custom:error AddressCannotBeZero If the provided verifier address is zero.
      * @custom:error AddressIsNotAContract If the provided address is not a contract.
-     * @custom:error AddressDoesNotSupportInterface If the provided address does not support the `verifyProof` function.
      */
      function setVoteVerifier(address _voteVerifier) external override onlyOwner nonZeroAddress(_voteVerifier) {
         if(_voteVerifier.code.length == 0) revert AddressIsNotAContract();
-        if(!_supportsIVoteInterface(_voteVerifier)) revert AddressDoesNotSupportInterface();
+        //if(!_supportsIVoteInterface(_voteVerifier)) revert AddressDoesNotSupportInterface();
 
         voteVerifier = IVoteVerifier(_voteVerifier);
         emit VoteVerifierAddressSet(_voteVerifier);
@@ -294,6 +296,9 @@ contract VoteManager is Initializable, OwnableUpgradeable, UUPSUpgradeable, IVot
     /**
      * @dev This function can only be called by the contract owner (governor).
      * @custom:error InvalidMerkleRoot If the provided Merkle root does not match the current root.
+     * @custom:error InvalidVoteChoice If the vote choice in the public outputs does not match one of the expected values.
+     * @custom:error InvalidVoteProof If the provided proof is invalid.
+     * @custom:error ProposalHasNotBeenSubmitted If the proposal has not been submitted before voting.
      * @custom:error InvalidContextHash If the provided context key does not match the proof context hash.
      * @custom:error VoteNullifierAlreadyUsed If the vote nullifier has already been used.
      * @custom:error RootNotYetInitialized If the current root has not been initialized.
@@ -302,10 +307,11 @@ contract VoteManager is Initializable, OwnableUpgradeable, UUPSUpgradeable, IVot
      */
     function verifyVote(
         uint256[24] calldata proof,
-        uint256[4] calldata publicSignals,
+        uint256[5] calldata publicSignals,
         bytes32 contextKey,
         bytes32 groupKey,
-        bytes32 currentRoot
+        bytes32 currentRoot,
+        bool isProposalSubmitted
     ) 
         external 
         onlyOwner
@@ -317,13 +323,14 @@ contract VoteManager is Initializable, OwnableUpgradeable, UUPSUpgradeable, IVot
         bytes32 proofVoteNullifier = bytes32(publicSignals[1]);
         uint256 proofVoteChoiceHash = publicSignals[2];
         bytes32 proofRoot = bytes32(publicSignals[3]);
+        //bytes32 proofSubmissionNullifier = bytes32(publicSignals[4]);
 
         // check root
         if (currentRoot == bytes32(0)) revert RootNotYetInitialized();
         if (proofRoot != currentRoot) revert InvalidMerkleRoot();
 
-        // check that proposal exists
-        // would need to read the nullifier state in the ProposalManager contract
+        // check that proposal has been submitted and verified
+        if (!isProposalSubmitted) revert ProposalHasNotBeenSubmitted();
 
         // check that vote nullifier has not been used
         if (voteNullifiers[proofVoteNullifier]) revert VoteNullifierAlreadyUsed();
@@ -583,22 +590,6 @@ contract VoteManager is Initializable, OwnableUpgradeable, UUPSUpgradeable, IVot
     function _ceilDiv(uint256 a, uint256 b) private pure returns (uint256) {
         if (a == 0 || b == 0) revert InvalidCeilInputs();  
         return (a + b - 1) / b;
-    }
-
-    /**
-     * @dev Checks if the provided address supports the `verifyProof` function for proposal submissions.
-     * @param _address The address to check.
-     * @return bool True if the address supports the IProposalVerifier interface, false otherwise.
-     */
-    function _supportsIVoteInterface(address _address) private view returns (bool) {
-        uint256[24] memory dummyProof = [uint256(1), 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24];
-        uint256[4] memory dummyPublicSignals = [uint256(1), 2, 3, 4];
-
-        try IVoteVerifier(_address).verifyProof(dummyProof, dummyPublicSignals) returns (bool) {
-            return true;
-        } catch {
-            return false;
-        }
     }
 
 }
