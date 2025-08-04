@@ -1069,7 +1069,6 @@ describe("Governance Manager Unit Tests:", function () {
         EXPECTED: should not allow the relayer to verify a vote if the proposal has not been submitted`, async function () {
         
         await deployGroupNftAndSetRoot();
-
         await expect(governanceManager.connect(relayer).delegateVerifyVote(
             mockProof,
             mockVotePublicSignals1,
@@ -1079,6 +1078,46 @@ describe("Governance Manager Unit Tests:", function () {
             voteManager, 
             "ProposalHasNotBeenSubmitted"
         );
+    });
+
+    it(`FUNCTION: delegateVerifyVote
+        TESTING: onlyRelayer authorization (success), event: VoteVerified
+        EXPECTED: should allow the relayer to verify a vote proof and emit event`, async function () {
+        // Deploy the group NFT and initialize the root
+        await governanceManager.connect(relayer).delegateDeployGroupNft(realGroupKey, nftName, nftSymbol);
+        await governanceManager.connect(relayer).delegateSetRoot(realRoot, realGroupKey);
+        await governanceManager.connect(relayer).delegateSetMemberCount(realGroupKey, 1);
+
+        // submit and verify a proposal
+        expect(await governanceManager.connect(relayer).delegateVerifyProposal(
+            realProposalProof, 
+            realProposalPublicSignals, 
+            realGroupKey,
+            realProposalContextKey
+        )).to.emit(
+            proposalManager, 
+            "SubmissionVerified"
+        ).withArgs(
+            realProposalContextKey, 
+            proposalProofSubmissionNullifier, 
+            proposalProofClaimNullifier, 
+            proposalProofContentHash
+        );
+
+        // verify a vote on the submitted proposal
+        expect(await governanceManager.connect(relayer).delegateVerifyVote(
+            realVoteProof,
+            realVotePublicSignals,
+            realGroupKey,
+            realVoteContextKey
+        )).to.emit(
+            voteManager, 
+            "VoteVerified"
+        ).withArgs(
+            realVoteContextKey, 
+            voteProofNullifier
+        );
+
     });
 
 })
