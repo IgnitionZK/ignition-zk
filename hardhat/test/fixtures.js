@@ -14,6 +14,7 @@ async function setUpFixtures() {
     const ProposalManager = await ethers.getContractFactory("ProposalManager");
     const VoteVerifier = await ethers.getContractFactory("VoteVerifier");
     const VoteManager = await ethers.getContractFactory("VoteManager");
+    const GovernanceManager = await ethers.getContractFactory("GovernanceManager");
     const MockMembershipVerifier = await ethers.getContractFactory("MockMembershipVerifier");
     const MockProposalVerifier = await ethers.getContractFactory("MockProposalVerifier");
     const MockProposalClaimVerifier = await ethers.getContractFactory("MockProposalClaimVerifier");
@@ -337,6 +338,7 @@ async function setUpFixtures() {
         ProposalVerifier,
         ProposalClaimVerifier,
         ProposalManager,
+        GovernanceManager,
         VoteVerifier,
         VoteManager,
         MockProposalVerifier,
@@ -400,11 +402,13 @@ async function setUpFixtures() {
         proposalVerifier: null,
         proposalClaimVerifier: null,
         proposalManager: null,
+        governanceManager: null,
         voteVerifier: null,
         voteManager: null,
         mockProposalVerifier: null,
         mockProposalClaimVerifier: null,
-        mockVoteVerifier: null
+        mockVoteVerifier: null,
+        mockMembershipVerifier: null
     }
 }
 
@@ -491,6 +495,23 @@ async function deployFixtures() {
         }
     );
     await fixtures.voteManager.waitForDeployment();
+
+    // Deploy the Governance UUPS Proxy (ERC‑1967) contract
+    fixtures.governanceManager = await upgrades.deployProxy(
+        fixtures.GovernanceManager, 
+        [
+            await fixtures.deployer.getAddress(),  // _initialOwner
+            await fixtures.relayer.getAddress(), // _relayer
+            fixtures.membershipManager.target, // _membershipManager
+            fixtures.proposalManager.target, // _proposalManager,
+            fixtures.voteManager.target, // _voteManager
+        ],
+        {
+            initializer: "initialize",
+            kind: "uups"
+        }
+    );
+    await fixtures.governanceManager.waitForDeployment();
 
     return fixtures;
 }

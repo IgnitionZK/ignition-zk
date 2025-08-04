@@ -144,62 +144,6 @@ contract MembershipManagerTest is Test {
     }
 
     /**
-     * @dev Fuzz test: tests initialization of the root for a group with various group keys.
-     * Assumes the group key is not zero.
-     */
-    function testFuzz_initRoot_SucceedsWithValidFuzzedGroupKey(bytes32 groupKey) public {
-        vm.assume(groupKey != bytes32(0));
-        vm.startPrank(governor);
-
-        // deploy the group NFT first
-        membershipManager.deployGroupNft(
-            groupKey,
-            mockNftName,
-            mockNftSymbol
-        );
-
-        // check the emitted event
-        vm.expectEmit(true, true, false, false);
-        emit MembershipManager.RootInitialized(groupKey, mockRootHash);
-
-        // initialize the root for the group
-        membershipManager.initRoot(mockRootHash, groupKey);
-
-        bytes32 actualRoot = membershipManager.getRoot(groupKey);
-        assertEq(actualRoot, mockRootHash, "Root does not match the expected value");
-
-        vm.stopPrank();
-    }
-
-    /**
-     * @dev Fuzz test: tests initialization of the root for a group with various initial roots.
-     * Assumes the initial root is not zero.
-     */
-    function testFuzz_initRoot_SucceedsWithValidFuzzedInitialRoot(bytes32 initialRoot) public {
-        vm.assume(initialRoot != bytes32(0));
-        vm.startPrank(governor);
-
-        // deploy the group NFT first
-        membershipManager.deployGroupNft(
-            mockGroupKey,
-            mockNftName,
-            mockNftSymbol
-        );
-
-        // check the emitted event
-        vm.expectEmit(true, true, false, false);
-        emit MembershipManager.RootInitialized(mockGroupKey, initialRoot);
-
-        // initialize the root for the group
-        membershipManager.initRoot(initialRoot, mockGroupKey);
-
-        bytes32 actualRoot = membershipManager.getRoot(mockGroupKey);
-        assertEq(actualRoot, initialRoot, "Root does not match the expected value");
-
-        vm.stopPrank();
-    }
-
-    /**
      * @dev Fuzz test: tests setting a new root for a group with various group keys.
      * Assumes the group key is not zero.
      */
@@ -215,7 +159,10 @@ contract MembershipManagerTest is Test {
         );
 
         // initialize the root for the group
-        membershipManager.initRoot(mockRootHash, groupKey);
+        // check the emitted event for setting the root
+        vm.expectEmit(true, true, false, false);
+        emit MembershipManager.RootInitialized(groupKey, mockRootHash);
+        membershipManager.setRoot(mockRootHash, groupKey);
 
         // check the emitted event for setting the root
         vm.expectEmit(true, true, true, false);
@@ -245,7 +192,7 @@ contract MembershipManagerTest is Test {
         );
         
         // initialize the root for the group
-        membershipManager.initRoot(mockRootHash, mockGroupKey);
+        membershipManager.setRoot(mockRootHash, mockGroupKey);
 
         // check the emitted event for setting the root
         vm.expectEmit(true, true, true, false);
