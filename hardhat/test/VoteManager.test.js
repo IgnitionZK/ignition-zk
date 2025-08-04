@@ -1,366 +1,55 @@
 const { ethers, upgrades, keccak256 , toUtf8Bytes, HashZero} = require("hardhat");
 const { expect } = require("chai");
 const { Conversions } = require("./utils.js");
+const { setUpFixtures, deployFixtures } = require("./fixtures");
 
 describe("Vote Manager Unit Tests:", function () {
-    
-    // Managers
-    let MembershipManager;
-    let membershipManager;
-    let ProposalManager;
-    let proposalManager;
-    let voteManager;
-    let VoteManager;
-    
-    // Verifiers
-    let MembershipVerifier;
-    let membershipVerifier;
-    let ProposalVerifier;
-    let proposalVerifier;
-    let ProposalClaimVerifier;
-    let proposalClaimVerifier;
-    let voteVerifier;
-    let VoteVerifier;
-    let MockProposalVerifier;
-    let mockProposalVerifier;
-    let MockProposalClaimVerifier;
-    let mockProposalClaimVerifier;
-    let MockVoteVerifier;
-    let mockVoteVerifier;
 
-    // NFT Implementation
-    let NFTImplementation;
-    let nftImplementation;
-
-    // Signers
-    let deployer;
-    let governor;
-    let relayer; 
-    let user1;
-
-    // Variables for testing
-    let groupId;
-    let epochId;
-    let proposalId;
-    let groupKey;
-    let epochKey;
-    let proposalKey;
-    let voteContextKey;
-    let proposalContextKey;
-
-    // roots
-    let rootHash1;
-    let rootHash2;
-
-    // nullifiers
-    let submissionNullifier1;
-    let submissionNullifier2;
-    let claimNullifier1;
-    let claimNullifier2;
-    let voteNullifier1;
-    let voteNullifier2;
-    let voteNullifier3;
-    let voteNullifier4;
-
-    // content hashes
-    let contentHash1;
-    let contentHash2;
-
-    // vote choice
-    let voteChoiceNo;
-    let voteChoiceYes;
-    let voteChoiceAbstain;
-
-    // NFT metadata
-    let nftName;
-    let nftSymbol;
-    let nftName2;
-    let nftSymbol2;
-
-    // mock proof inputs
-    let mockProof;
-    let mockPublicSignals1;
-    let mockPublicSignals2;
-    let mockPublicSignals3;
-    let mockPublicSignals4;
-    let mockProposalProof;
-    let mockProposalPublicSignals1;
-
-    // real proof inputs
-    let realRoot;
-    let realGroupId;
-    let realEpochId;
-    let realProposalId;
-    let realGroupKey;
-    let realEpochKey;
-    let realProposalKey;
-    let realContextKey;
-    let proofContextHash;
-    let proofVoteNullifier;
-    let proofVoteChoice;
-    let proofRoot;
-    let proofSubmissionNullifier;
-    let realProof;
-    let realPublicSignals;
+    let fixtures;
 
     // RUN ONCE BEFORE ALL TESTS
     before(async function () {
-        [deployer, governor, relayer, user1] = await ethers.getSigners();
 
-        // Get Contract Factory for MembershipManager
-        MembershipManager = await ethers.getContractFactory("MembershipManager");  
+        fixtures = await setUpFixtures();
 
-        // Get Contract Factory for NFT implementation
-        NFTImplementation = await ethers.getContractFactory("ERC721IgnitionZK");
-
-        // Get Contract Factory for MembershipVerifier
-        MembershipVerifier = await ethers.getContractFactory("MembershipVerifier");
-
-        // Get Contract Factory for ProposalVerifier
-        ProposalVerifier = await ethers.getContractFactory("ProposalVerifier");
-
-        // Get Contract Factory for MockProposalVerifier (verifyProof returns true/false)
-        MockProposalVerifier = await ethers.getContractFactory("MockProposalVerifier");
-
-        // Get Contract Factory for ProposalClaimVerifier
-        ProposalClaimVerifier = await ethers.getContractFactory("ProposalClaimVerifier");
-
-        // Get Contract Factory for MockProposalClaimVerifier
-        MockProposalClaimVerifier = await ethers.getContractFactory("MockProposalClaimVerifier");
-
-        // Get Contract Factory for ProposalManager
-        ProposalManager = await ethers.getContractFactory("ProposalManager");
-
-        // Get Contract Factory for VoteVerifier
-        VoteVerifier = await ethers.getContractFactory("VoteVerifier");
-
-        // Get Contract Factory for MockVoteVerifier
-        MockVoteVerifier = await ethers.getContractFactory("MockVoteVerifier");
-
-        // Get Contract Factory for VoteManager
-        VoteManager = await ethers.getContractFactory("VoteManager");
-
-        // Initialize variables
-        groupId = '123e4567-e89b-12d3-a456-426614174000'; // Example UUID for group
-        epochId = '123e4567-e89b-12d3-a456-426614174001'; // Example UUID for epoch
-        proposalId = '123e4567-e89b-12d3-a456-426614174002'; // Example UUID for proposal
-        groupKey = Conversions.stringToBytes32(groupId);
-        epochKey = Conversions.stringToBytes32(epochId);
-        proposalKey = Conversions.stringToBytes32(proposalId);
-        voteContextKey = await Conversions.computeVoteContextKey(groupId, epochId, proposalId);
-        
-        proposalContextKey = await Conversions.computeContextKey(groupId, epochId);
-        rootHash1 = Conversions.stringToBytes32("rootHash1");
-        
-        rootHash2 = Conversions.stringToBytes32("rootHash2");
-        submissionNullifier1 = Conversions.stringToBytes32("submissionNullifier1");
-        submissionNullifier2 = Conversions.stringToBytes32("submissionNullifier2");
-        claimNullifier1 = Conversions.stringToBytes32("claimNullifier1");
-        voteNullifier1 = Conversions.stringToBytes32("voteNullifier1");
-        voteNullifier2 = Conversions.stringToBytes32("voteNullifier2");
-        voteNullifier3 = Conversions.stringToBytes32("voteNullifier3");
-        voteNullifier4 = Conversions.stringToBytes32("voteNullifier4");
-        contentHash1 = Conversions.stringToBytes32("contentHash1");
-        contentHash2 = Conversions.stringToBytes32("contentHash2");
-        voteChoiceNo = 19014214495641488759237505126948346942972912379615652741039992445865937985820n;
-        voteChoiceYes = 18586133768512220936620570745912940619677854269274689475585506675881198879027n;
-        voteChoiceAbstain = 8645981980787649023086883978738420856660271013038108762834452721572614684349n;
-        nftName = "Test Group NFT";
-        nftSymbol = "TGNFT";  
-        nftName2 = "Test Group NFT 2";
-        nftSymbol2 = "TGNFT2";  
-
-        // mock proof inputs:
-        mockProof = [
-            1, 2, 3, 4, 5, 6,
-            7, 8, 9, 10, 11, 12,
-            13, 14, 15, 16, 17, 18,
-            19, 20, 21, 22, 23, 24
-        ];
-        
-        // mock public signals with one vote choice and nullifier:
-        mockPublicSignals1 = [
-            voteContextKey,
-            voteNullifier1,
-            voteChoiceNo,
-            rootHash1,
-            submissionNullifier1
-        ];
-        
-        // mock public signals with another vote choice and nullifier on the same context:
-        mockPublicSignals2 = [
-            voteContextKey,
-            voteNullifier2,
-            voteChoiceYes,
-            rootHash1,
-            submissionNullifier1
-        ];
-
-        // mock public signals with another vote choice and nullifier on the same context:
-        mockPublicSignals3 = [
-            voteContextKey,
-            voteNullifier3,
-            voteChoiceAbstain,
-            rootHash1,
-            submissionNullifier1
-        ];
-
-        // mock public signals with another vote and nullifier on the same context:
-        mockPublicSignals4 = [
-            voteContextKey,
-            voteNullifier4,
-            voteChoiceYes,
-            rootHash1,
-            submissionNullifier1
-        ];
-
-        // mock proof inputs:
-        mockProposalProof = [
-            1, 2, 3, 4, 5, 6,
-            7, 8, 9, 10, 11, 12,
-            13, 14, 15, 16, 17, 18,
-            19, 20, 21, 22, 23, 24
-        ];
-        
-        mockProposalPublicSignals1 = [
-            proposalContextKey,
-            submissionNullifier1,
-            claimNullifier1,
-            rootHash1, 
-            contentHash1
-        ];
-
-        // Real submission proof inputs 
-        realGroupId = '21fae0f7-096f-4c8f-8515-93b9f247582d';
-        realEpochId = '06134393-4412-4e46-9534-85186ea7bbe8';
-        realProposalId = '5b18c981-c040-4672-bf60-67e1301d3e27';
-        realGroupKey = Conversions.stringToBytes32(realGroupId);
-        realEpochKey = Conversions.stringToBytes32(realEpochId);
-        realProposalKey = Conversions.stringToBytes32(realProposalId);
-        realContextKey = await Conversions.computeVoteContextKey(realGroupId, realEpochId, realProposalId);
-        realRoot = ethers.toBeHex(8382028473019880437532291517957501217880306914202305497790783762876650668442n);
-        realProof = [
-            189735893241011753788612289794015149210207199258621036148184829419097508560n,
-            17171872476066740978576709771733947447350251925359720632924521125981371058986n,
-            6959446371436353248108058931547412959845237274217394645843161207438976403098n,
-            13053389797114611259139175327096868673669713404282382329463170162732213450288n,
-            14994772132880978102372368071430914241116854448287823523197793252284899327900n,
-            12668642396473385438510609998199146098277282509497822492430297541202519139214n,
-            15855473328418959070560022884695986629973237600879686417585015708071635549396n,
-            1849602699936368480164426517915325589026615464156043968950638177666218147928n,
-            21730041603394437838382904633191394329485300446292030255056023273439716296618n,
-            3293501494591433328762465539372868739087211955835781789093725583597656127265n,
-            7614203553100022728469705650589155636366235399350800285561152856315912200697n,
-            18318941323029776504270696698634945558724444560624568214224855447189066140399n,
-            3103890193635031226566270615187961346150955985469367044642403907200966109422n,
-            17566155047561621990328050308658323800896424960371973042495134763053247519717n,
-            8365195188463780739250321040819913578563016496220999919138362385009833755792n,
-            15608837747785659966833994940802294972197576715817595224189060134791661175006n,
-            9947915468715299550526046525633833630436367851595022310411961647626869742673n,
-            14675813785817491637287564075752357318602953975839964078458804221244643806336n,
-            11101586298072150491803447937655092900884173871837601558505151390566993955588n,
-            3470316667468339479389105745822266474346445214269916376968692796644987886267n,
-            9656040154698143158772926452981249992301449955832112082963009737787619610525n,
-            13152332682125919977709048836226281407521882260578142953666311830533435242119n,
-            14697699302074971314657472041277248916916534860896707297911775422385604831641n,
-            10660335185851144346379250010307575871420841485601296470346485291509455874813n
-        ];
-
-        realPublicSignals = [
-            12417957784691345063069918387226828600187557829716594172267574950900505522223n,
-            21007579385376765008226274111057452106701207043545364523489130415023884686357n,
-            18586133768512220936620570745912940619677854269274689475585506675881198879027n,
-            8382028473019880437532291517957501217880306914202305497790783762876650668442n,
-            11437135861965939255357707860095145538920168988595282139508950839172378710733n
-        ];
-        proofContextHash = ethers.toBeHex(realPublicSignals[0], 32);
-        proofVoteNullifier = ethers.toBeHex(realPublicSignals[1], 32);
-        proofVoteChoice = ethers.toBeHex(realPublicSignals[2], 32);
-        proofRoot = ethers.toBeHex(realPublicSignals[3], 32);
-        proofSubmissionNullifier = ethers.toBeHex(realPublicSignals[4], 32);
-    });
+        ({
+            // Signers
+            governor, user1, deployer, relayer,
+            
+            // Test constants
+            groupKey, epochKey, proposalKey, 
+            voteContextKey, proposalContextKey,
+            rootHash1, rootHash2,
+            voteNullifier1, voteNullifier2, voteNullifier3, voteNullifier4,
+            submissionNullifier1, submissionNullifier2,
+            claimNullifier1, claimNullifier2,
+            contentHash1, contentHash2,
+            voteChoiceNo, voteChoiceYes, voteChoiceAbstain,
+            nftName, nftSymbol, nftName2, nftSymbol2,
+            mockProof, mockVotePublicSignals1, mockVotePublicSignals2, mockVotePublicSignals3, mockVotePublicSignals4,
+            mockProposalProof, mockProposalPublicSignals1,
+            realGroupId, realEpochId, realProposalId, 
+            realGroupKey, realEpochKey, realProposalKey, 
+            realProposalContextKey, realVoteContextKey, realRoot, 
+            realVoteProof, realVotePublicSignals, voteProofContextHash, voteProofNullifier, voteProofChoice, voteProofRoot, voteProofSubmissionNullifier,
+            realProposalProof, realProposalPublicSignals, proposalProofContextHash, proposalProofSubmissionNullifier, proposalProofClaimNullifier, proposalProofRoot, proposalProofContentHash
+        } = fixtures);
+       
+        });
 
     // RUN BEFORE EACH TEST
     beforeEach(async function () {
 
-        // Deploy the NFT implementation minimal proxy (Clones EIP‑1167) contract
-        nftImplementation = await NFTImplementation.deploy();
-        await nftImplementation.waitForDeployment();
+        const deployedFixtures = await deployFixtures();
 
-        // Deploy the MembershipVerifier contract
-        membershipVerifier = await MembershipVerifier.deploy();
-        await membershipVerifier.waitForDeployment();
+        ({
+            voteManager, mockVoteVerifier, voteVerifier,
+            membershipManager, membershipVerifier,
+            proposalManager, proposalVerifier, proposalClaimVerifier,
+            mockProposalVerifier, mockProposalClaimVerifier
+        } = deployedFixtures);
 
-        // Deploy the MembershipMannager UUPS Proxy (ERC‑1967) contract
-        membershipManager = await upgrades.deployProxy(
-            MembershipManager, 
-            [
-                await governor.getAddress(),
-                nftImplementation.target,
-                membershipVerifier.target
-            ],
-            {
-                initializer: "initialize",
-                kind: "uups"
-            }
-        );
-        await membershipManager.waitForDeployment();
-
-        // Deploy ProposalVerifier contract
-        proposalVerifier = await ProposalVerifier.deploy();
-        await proposalVerifier.waitForDeployment();
-
-        // Deploy MockProposalVerifier contract
-        mockProposalVerifier = await MockProposalVerifier.deploy();
-        await mockProposalVerifier.waitForDeployment();
-
-        // Deploy ProposalClaimVerifier contract
-        proposalClaimVerifier = await ProposalClaimVerifier.deploy();
-        await proposalClaimVerifier.waitForDeployment();
-
-        // Deploy MockProposalClaimVerifier contract
-        mockProposalClaimVerifier = await MockProposalClaimVerifier.deploy();
-        await mockProposalClaimVerifier.waitForDeployment();
-
-        // Deploy ProposalManager UUPS Proxy (ERC‑1967) contract
-        proposalManager = await upgrades.deployProxy(
-            ProposalManager, 
-            [
-                await governor.getAddress(),
-                proposalVerifier.target, 
-                proposalClaimVerifier.target
-            ],
-            {
-                initializer: "initialize",
-                kind: "uups"
-            }
-        );
-        await proposalManager.waitForDeployment();
-
-
-        // Deploy VoteVerifier contract
-        voteVerifier = await VoteVerifier.deploy();
-        await voteVerifier.waitForDeployment();
-
-        // Deploy MockVoteVerifier contract
-        mockVoteVerifier = await MockVoteVerifier.deploy();
-        await mockVoteVerifier.waitForDeployment();
-
-        // Deploy VoteManager UUPS Proxy (ERC‑1967) contract
-        voteManager = await upgrades.deployProxy(
-            VoteManager,
-            [
-                await governor.getAddress(),
-                voteVerifier.target
-            ],
-            {
-                initializer: "initialize",
-                kind: "uups"
-            }
-        );
-        await voteManager.waitForDeployment();
     });
-
     
     async function deployGroupNftAndSetRoot(signer, group, nftName, nftSymbol, root) {
         // Deploy group NFT and initialize group root
@@ -488,7 +177,7 @@ describe("Vote Manager Unit Tests:", function () {
         await voteManager.connect(governor).setMemberCount(groupKey, 1);
    
         // set the proposal submission verifier to the mock verifier and verify the first proposal
-        await setSubmissionVerifierAndVerifyProposal(governor, mockProposalVerifier.target, mockProposalProof, mockProposalPublicSignals1, proposalContextKey, rootHash1);
+        await setSubmissionVerifierAndVerifyProposal(governor, mockProposalVerifier.target, mockProof, mockProposalPublicSignals1, proposalContextKey, rootHash1);
        
         // set the vote verifier to the mock verifier and verify a vote on the first proposal
         await voteManager.connect(governor).setVoteVerifier(mockVoteVerifier.target);
@@ -496,7 +185,7 @@ describe("Vote Manager Unit Tests:", function () {
         // verify a vote on the first proposal
         await voteManager.connect(governor).verifyVote(
             mockProof,
-            mockPublicSignals1,
+            mockVotePublicSignals1,
             voteContextKey,
             groupKey,
             rootHash1,
@@ -828,7 +517,7 @@ describe("Vote Manager Unit Tests:", function () {
         await voteManager.connect(governor).setMemberCount(groupKey, 2);
         
         // set the proposal submission verifier to the mock verifier and verify the first proposal
-        await setSubmissionVerifierAndVerifyProposal(governor, mockProposalVerifier.target, mockProposalProof, mockProposalPublicSignals1, proposalContextKey, rootHash1);
+        await setSubmissionVerifierAndVerifyProposal(governor, mockProposalVerifier.target, mockProof, mockProposalPublicSignals1, proposalContextKey, rootHash1);
        
         // set the vote verifier to the mock verifier
         await voteManager.connect(governor).setVoteVerifier(mockVoteVerifier.target);
@@ -836,7 +525,7 @@ describe("Vote Manager Unit Tests:", function () {
         // verify a vote on the first proposal
         expect(await voteManager.connect(governor).verifyVote(
             mockProof,
-            mockPublicSignals1,
+            mockVotePublicSignals1,
             voteContextKey,
             groupKey,
             rootHash1,
@@ -855,7 +544,7 @@ describe("Vote Manager Unit Tests:", function () {
         // verify a second vote on the same context with a different choice
         expect(await voteManager.connect(governor).verifyVote(
             mockProof,
-            mockPublicSignals2,
+            mockVotePublicSignals2,
             voteContextKey,
             groupKey,
             rootHash1,
@@ -886,15 +575,15 @@ describe("Vote Manager Unit Tests:", function () {
         await voteManager.connect(governor).setMemberCount(groupKey, 1);
         
         // set the proposal submission verifier to the mock verifier and verify a proposal
-        await setSubmissionVerifierAndVerifyProposal(governor, mockProposalVerifier.target, mockProposalProof, mockProposalPublicSignals1, proposalContextKey, rootHash1);
+        await setSubmissionVerifierAndVerifyProposal(governor, mockProposalVerifier.target, mockProof, mockProposalPublicSignals1, proposalContextKey, rootHash1);
        
         // set vote verifier to the mock verifier and verify the first vote on the proposal
-        await setVoteVerifierAndVerifyVote(governor, mockVoteVerifier.target, mockProof, mockPublicSignals1, voteContextKey, groupKey, rootHash1);
+        await setVoteVerifierAndVerifyVote(governor, mockVoteVerifier.target, mockProof, mockVotePublicSignals1, voteContextKey, groupKey, rootHash1);
         
         // verify a second vote on the same context with a different choice
         await expect(voteManager.connect(governor).verifyVote(
             mockProof,
-            mockPublicSignals2,
+            mockVotePublicSignals2,
             voteContextKey,
             groupKey,
             rootHash1,
@@ -913,10 +602,10 @@ describe("Vote Manager Unit Tests:", function () {
         await voteManager.connect(governor).setMemberCount(groupKey, 4);
 
         // set the proposal submission verifier to the mock verifier and verify the first proposal
-        await setSubmissionVerifierAndVerifyProposal(governor, mockProposalVerifier.target, mockProposalProof, mockProposalPublicSignals1, proposalContextKey, rootHash1);
+        await setSubmissionVerifierAndVerifyProposal(governor, mockProposalVerifier.target, mockProof, mockProposalPublicSignals1, proposalContextKey, rootHash1);
 
         // set the vote verifier to the mock verifier and verify a vote on the first proposal
-        await setVoteVerifierAndVerifyVote(governor, mockVoteVerifier.target, mockProof, mockPublicSignals1, voteContextKey, groupKey, rootHash1);
+        await setVoteVerifierAndVerifyVote(governor, mockVoteVerifier.target, mockProof, mockVotePublicSignals1, voteContextKey, groupKey, rootHash1);
 
         const proposalResult = await voteManager.connect(governor).getProposalResult(voteContextKey);
         expect(proposalResult.tally).to.deep.equal([1, 0, 0]);
@@ -925,7 +614,7 @@ describe("Vote Manager Unit Tests:", function () {
         // verify a second vote on the same context with a different choice
         await voteManager.connect(governor).verifyVote(
             mockProof,
-            mockPublicSignals2,
+            mockVotePublicSignals2,
             voteContextKey,
             groupKey,
             rootHash1,
@@ -939,7 +628,7 @@ describe("Vote Manager Unit Tests:", function () {
         // verify a third vote on the same context with a different choice
         await voteManager.connect(governor).verifyVote(
             mockProof,
-            mockPublicSignals3,
+            mockVotePublicSignals3,
             voteContextKey, 
             groupKey,
             rootHash1,
@@ -953,7 +642,7 @@ describe("Vote Manager Unit Tests:", function () {
         // verify a fourth vote on the same context with a yes choice
         await voteManager.connect(governor).verifyVote(
             mockProof,
-            mockPublicSignals4,
+            mockVotePublicSignals4,
             voteContextKey, 
             groupKey,
             rootHash1,
@@ -977,10 +666,10 @@ describe("Vote Manager Unit Tests:", function () {
         await voteManager.connect(governor).setMemberCount(groupKey, 4);
 
         // set the proposal submission verifier to the mock verifier and verify the first proposal
-        await setSubmissionVerifierAndVerifyProposal(governor, mockProposalVerifier.target, mockProposalProof, mockProposalPublicSignals1, proposalContextKey, rootHash1);
+        await setSubmissionVerifierAndVerifyProposal(governor, mockProposalVerifier.target, mockProof, mockProposalPublicSignals1, proposalContextKey, rootHash1);
 
         // set the vote verifier to the mock verifier and verify a vote on the first proposal
-        await setVoteVerifierAndVerifyVote(governor, mockVoteVerifier.target, mockProof, mockPublicSignals2, voteContextKey, groupKey, rootHash1);
+        await setVoteVerifierAndVerifyVote(governor, mockVoteVerifier.target, mockProof, mockVotePublicSignals2, voteContextKey, groupKey, rootHash1);
 
         const proposalResult = await voteManager.connect(governor).getProposalResult(voteContextKey);
         expect(proposalResult.tally).to.deep.equal([0, 1, 0 ]);
@@ -998,15 +687,15 @@ describe("Vote Manager Unit Tests:", function () {
         await voteManager.connect(governor).setMemberCount(groupKey, 4);
 
         // set the proposal submission verifier to the mock verifier and verify the first proposal
-        await setSubmissionVerifierAndVerifyProposal(governor, mockProposalVerifier.target, mockProposalProof, mockProposalPublicSignals1, proposalContextKey, rootHash1);
+        await setSubmissionVerifierAndVerifyProposal(governor, mockProposalVerifier.target, mockProof, mockProposalPublicSignals1, proposalContextKey, rootHash1);
 
         // set the vote verifier to the mock verifier and verify a vote on the first proposal
-        await setVoteVerifierAndVerifyVote(governor, mockVoteVerifier.target, mockProof, mockPublicSignals1, voteContextKey, groupKey, rootHash1);
+        await setVoteVerifierAndVerifyVote(governor, mockVoteVerifier.target, mockProof, mockVotePublicSignals1, voteContextKey, groupKey, rootHash1);
 
         // verify a second vote and check the emitted event
         const tx = await voteManager.connect(governor).verifyVote(
             mockProof,
-            mockPublicSignals2,
+            mockVotePublicSignals2,
             voteContextKey,
             groupKey,
             rootHash1,
@@ -1051,7 +740,7 @@ describe("Vote Manager Unit Tests:", function () {
 
         await expect(voteManager.connect(governor).verifyVote(
             mockProof,
-            mockPublicSignals1,
+            mockVotePublicSignals1,
             voteContextKey,
             groupKey,
             ethers.ZeroHash,
@@ -1070,7 +759,7 @@ describe("Vote Manager Unit Tests:", function () {
 
         await expect(voteManager.connect(governor).verifyVote(
             mockProof,
-            mockPublicSignals1,
+            mockVotePublicSignals1,
             voteContextKey,
             groupKey,
             rootHash2,
@@ -1086,7 +775,7 @@ describe("Vote Manager Unit Tests:", function () {
         await voteManager.connect(governor).setMemberCount(groupKey, 2);
 
         // set the vote verifier to the mock verifier
-        await setVoteVerifierAndVerifyVote(governor, mockVoteVerifier.target, mockProof, mockPublicSignals1, voteContextKey, groupKey, rootHash1);
+        await setVoteVerifierAndVerifyVote(governor, mockVoteVerifier.target, mockProof, mockVotePublicSignals1, voteContextKey, groupKey, rootHash1);
 
         await expect(voteManager.connect(governor).getVoteNullifierStatus(voteNullifier1))
             .to.eventually.equal(true, "Vote nullifier should be stored after first verification");
@@ -1094,7 +783,7 @@ describe("Vote Manager Unit Tests:", function () {
         // verify a second vote with the same nullifier
         await expect(voteManager.connect(governor).verifyVote(
             mockProof,
-            mockPublicSignals1,
+            mockVotePublicSignals1,
             voteContextKey,
             groupKey,
             rootHash1,
@@ -1104,7 +793,7 @@ describe("Vote Manager Unit Tests:", function () {
         // verify another vote with a different nullifier
         await expect(voteManager.connect(governor).verifyVote(
             mockProof,
-            mockPublicSignals2,
+            mockVotePublicSignals2,
             voteContextKey,
             groupKey,
             rootHash1,
@@ -1123,7 +812,7 @@ describe("Vote Manager Unit Tests:", function () {
         // verify another vote with the same nullifier as in publicSignals2
         await expect(voteManager.connect(governor).verifyVote(
             mockProof,
-            mockPublicSignals2,
+            mockVotePublicSignals2,
             voteContextKey,
             groupKey,
             rootHash1,
@@ -1146,7 +835,7 @@ describe("Vote Manager Unit Tests:", function () {
         
         await expect(voteManager.connect(governor).verifyVote(
             mockProof,
-            mockPublicSignals1,
+            mockVotePublicSignals1,
             invalidContextHash,
             groupKey,
             rootHash1,
@@ -1193,8 +882,8 @@ describe("Vote Manager Unit Tests:", function () {
 
         await expect(voteManager.connect(governor).verifyVote(
             mockProof,
-            realPublicSignals,
-            realContextKey,
+            realVotePublicSignals,
+            realVoteContextKey,
             realGroupKey,
             realRoot,
             true // isProposalSubmitted
@@ -1210,20 +899,22 @@ describe("Vote Manager Unit Tests:", function () {
         await voteManager.connect(governor).setMemberCount(groupKey, 2);
         
         // make a copy of the valid public signals
-        const invalidPublicSignals = [...realPublicSignals];
-
+        const invalidPublicSignals = [...realVotePublicSignals];
+        
         // modify the vote choice to an invalid value
         invalidPublicSignals[2] = voteChoiceAbstain;
         
         // reverts with InvalidVoteProof instead of InvalidVoteChoice as the vote choice is bound to the proof
-        await expect(voteManager.connect(governor).verifyVote(
-            realProof,
-            invalidPublicSignals,
-            realContextKey,
-            realGroupKey,
-            realRoot,
-            true // isProposalSubmitted
-        )).to.be.revertedWithCustomError(voteManager, "InvalidVoteProof");
+        await expect(
+            voteManager.connect(governor).verifyVote(
+                realVoteProof,
+                invalidPublicSignals,
+                realVoteContextKey,
+                realGroupKey,
+                realRoot,
+                true // isProposalSubmitted
+            )
+        ).to.be.revertedWithCustomError(voteManager, "InvalidVoteProof");
 
     });
 
@@ -1235,15 +926,15 @@ describe("Vote Manager Unit Tests:", function () {
         await voteManager.connect(governor).setMemberCount(groupKey, 2);
         
         // make a copy of the valid public signals
-        const invalidPublicSignals = [...realPublicSignals];
+        const invalidPublicSignals = [...realVotePublicSignals];
 
         // modify the vote choice to an invalid value
         invalidPublicSignals[0] = Conversions.stringToBigInt("InvalidContextHash");
 
         await expect(voteManager.connect(governor).verifyVote(
-            realProof,
+            realVoteProof,
             invalidPublicSignals,
-            realContextKey,
+            realVoteContextKey,
             realGroupKey,
             realRoot,
             true // isProposalSubmitted
@@ -1259,15 +950,15 @@ describe("Vote Manager Unit Tests:", function () {
         await voteManager.connect(governor).setMemberCount(groupKey, 2);
         
         // make a copy of the valid public signals
-        const invalidPublicSignals = [...realPublicSignals];
+        const invalidPublicSignals = [...realVotePublicSignals];
 
         // modify the vote choice to an invalid value
         invalidPublicSignals[3] = Conversions.stringToBigInt("InvalidMerkleRoot");
 
         await expect(voteManager.connect(governor).verifyVote(
-            realProof,
+            realVoteProof,
             invalidPublicSignals,
-            realContextKey,
+            realVoteContextKey,
             realGroupKey,
             realRoot,
             true // isProposalSubmitted
@@ -1283,22 +974,22 @@ describe("Vote Manager Unit Tests:", function () {
         await voteManager.connect(governor).setMemberCount(realGroupKey, 2);
 
         await expect(voteManager.connect(governor).verifyVote(
-            realProof,
-            realPublicSignals,
-            realContextKey,
+            realVoteProof,
+            realVotePublicSignals,
+            realVoteContextKey,
             realGroupKey,
             realRoot,
             true // isProposalSubmitted
         )).to.emit(voteManager, "VoteVerified");
 
-        const nullifier = ethers.toBeHex(realPublicSignals[1], 32);
+        const nullifier = ethers.toBeHex(realVotePublicSignals[1], 32);
         expect(await voteManager.connect(governor).getVoteNullifierStatus(nullifier))
             .to.equal(true, "Vote nullifier should be stored after first verification");
 
         await expect(voteManager.connect(governor).verifyVote(
-            realProof,
-            realPublicSignals,
-            realContextKey,
+            realVoteProof,
+            realVotePublicSignals,
+            realVoteContextKey,
             realGroupKey,
             realRoot,
             true // isProposalSubmitted
@@ -1313,9 +1004,9 @@ describe("Vote Manager Unit Tests:", function () {
         await voteManager.connect(governor).setMemberCount(groupKey, 2);
 
         await expect(voteManager.connect(governor).verifyVote(
-            realProof,
-            realPublicSignals,
-            realContextKey,
+            realVoteProof,
+            realVotePublicSignals,
+            realVoteContextKey,
             realGroupKey,
             realRoot,
             false // isProposalSubmitted
