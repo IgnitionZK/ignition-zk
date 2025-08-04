@@ -80,14 +80,37 @@ export default function Proposals() {
     ...(userGroups?.map((group) => group.name) || []),
   ];
 
-  // Filter active proposals and then by selected group
-  const filteredProposals = proposals
+  // Filter active proposals that have proposal proofs, then by selected group
+  const activeProposals = proposals
     ?.filter((proposal) => proposal.status_type === "active")
     .filter((proposal) =>
       selectedGroup === "All Groups"
         ? true
         : proposal.group_name === selectedGroup
     );
+
+  const filteredProposals = activeProposals
+    // Get unique proposals, ensuring we get the proposal circuit row for each
+    ?.reduce((acc, proposal) => {
+      const existingIndex = acc.findIndex(
+        (p) => p.proposal_id === proposal.proposal_id
+      );
+
+      if (existingIndex === -1) {
+        // First time seeing this proposal_id
+        if (proposal.circuit_id === "a1a0a504-e3aa-4e5d-bb9f-bbd98aefbd52") {
+          acc.push(proposal);
+        }
+      } else {
+        // We already have this proposal_id, but check if current row is the proposal circuit
+        if (proposal.circuit_id === "a1a0a504-e3aa-4e5d-bb9f-bbd98aefbd52") {
+          // Replace the existing entry with the proposal circuit row
+          acc[existingIndex] = proposal;
+        }
+      }
+
+      return acc;
+    }, []);
 
   if (showCreateProposal) {
     return (
@@ -132,7 +155,10 @@ export default function Proposals() {
         ) : (
           <ActivityList>
             {filteredProposals?.map((proposal) => (
-              <ProposalItem key={proposal.proposal_id} proposal={proposal} />
+              <ProposalItem
+                key={`active-${proposal.proposal_id}`}
+                proposal={proposal}
+              />
             ))}
           </ActivityList>
         )}
@@ -146,16 +172,51 @@ export default function Proposals() {
           <div>Error: {error.message}</div>
         ) : (
           <ActivityList>
-            {proposals
-              ?.filter((proposal) => proposal.status_type !== "active")
-              .filter((proposal) =>
-                selectedGroup === "All Groups"
-                  ? true
-                  : proposal.group_name === selectedGroup
-              )
-              .map((proposal) => (
-                <ProposalItem key={proposal.proposal_id} proposal={proposal} />
-              ))}
+            {(() => {
+              const historyProposals = proposals
+                ?.filter((proposal) => proposal.status_type !== "active")
+                .filter((proposal) =>
+                  selectedGroup === "All Groups"
+                    ? true
+                    : proposal.group_name === selectedGroup
+                );
+
+              const filteredHistoryProposals = historyProposals
+                // Get unique proposals, ensuring we get the proposal circuit row for each
+                ?.reduce((acc, proposal) => {
+                  const existingIndex = acc.findIndex(
+                    (p) => p.proposal_id === proposal.proposal_id
+                  );
+
+                  if (existingIndex === -1) {
+                    // First time seeing this proposal_id
+                    if (
+                      proposal.circuit_id ===
+                      "a1a0a504-e3aa-4e5d-bb9f-bbd98aefbd52"
+                    ) {
+                      acc.push(proposal);
+                    }
+                  } else {
+                    // We already have this proposal_id, but check if current row is the proposal circuit
+                    if (
+                      proposal.circuit_id ===
+                      "a1a0a504-e3aa-4e5d-bb9f-bbd98aefbd52"
+                    ) {
+                      // Replace the existing entry with the proposal circuit row
+                      acc[existingIndex] = proposal;
+                    }
+                  }
+
+                  return acc;
+                }, []);
+
+              return filteredHistoryProposals?.map((proposal) => (
+                <ProposalItem
+                  key={`history-${proposal.proposal_id}`}
+                  proposal={proposal}
+                />
+              ));
+            })()}
           </ActivityList>
         )}
       </Section>
