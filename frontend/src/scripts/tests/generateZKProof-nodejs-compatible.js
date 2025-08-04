@@ -449,7 +449,13 @@ export class ZKProofGenerator {
     groupId,
     epochId,
     proposalId,
-    voteChoice
+    voteChoice,
+    proposalTitle,
+    proposalDescription,
+    proposalPayload,
+    proposalFunding,
+    proposalMetadata,
+    proposalSubmissionNullifier
   ) {
     console.log("Generating vote circuit input...");
 
@@ -473,6 +479,22 @@ export class ZKProofGenerator {
     console.log("Epoch Hash BigInt:", epochHashBigInt);
     console.log("Proposal Hash BigInt:", proposalHashBigInt);
 
+    const proposalTitleBigInt = this.#moduloReduction(
+      this.#hashStrToBigInt(proposalTitle)
+    );
+    const proposalDescriptionBigInt = this.#moduloReduction(
+      this.#hashStrToBigInt(proposalDescription)
+    );
+    const proposalPayloadBigInt = this.#moduloReduction(
+      this.#hashStrToBigInt(this.#deterministicStringify(proposalPayload))
+    );
+    const proposalFundingBigInt = this.#moduloReduction(
+      this.#hashStrToBigInt(this.#deterministicStringify(proposalFunding))
+    );
+    const proposalMetadataBigInt = this.#moduloReduction(
+      this.#hashStrToBigInt(this.#deterministicStringify(proposalMetadata))
+    );
+
     const circuitInput = {
       // Public inputs
       root: merkleProofInput.root,
@@ -487,6 +509,12 @@ export class ZKProofGenerator {
       groupHash: groupHashBigInt.toString(),
       epochHash: epochHashBigInt.toString(),
       proposalHash: proposalHashBigInt.toString(),
+      proposalTitleHash: proposalTitleBigInt.toString(),
+      proposalDescriptionHash: proposalDescriptionBigInt.toString(),
+      proposalPayloadHash: proposalPayloadBigInt.toString(),
+      proposalMetadataHash: proposalMetadataBigInt.toString(),
+      proposalFundingHash: proposalFundingBigInt.toString(),
+      proposalSubmissionNullifier: proposalSubmissionNullifier.toString()
     };
 
     console.log("Circuit Input for Vote circuit:", circuitInput);

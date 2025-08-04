@@ -50,6 +50,13 @@ template VoteProof(treeLevels) {
     signal input epochHash; 
     signal input proposalHash; 
 
+    signal input proposalTitleHash;
+    signal input proposalDescriptionHash;
+    signal input proposalPayloadHash;
+    signal input proposalMetadataHash; 
+    signal input proposalFundingHash;
+    signal input proposalSubmissionNullifier;
+
     // 1. Membership verification
     /**
      * @notice member: the MembershipProof component that verifies if the identity is a member of the group.
@@ -124,6 +131,31 @@ template VoteProof(treeLevels) {
     component voteChoiceHasher = Poseidon(1);
     voteChoiceHasher.inputs[0] <== voteChoice;
     onChainVerifiableVoteChoiceHash <== voteChoiceHasher.out;
+
+    // 5. Proposal submission nullifier verification
+
+    signal computedProposalContentHash;
+    component proposalContentHash = Poseidon(5);
+    proposalContentHash.inputs[0] <== proposalTitleHash;
+    proposalContentHash.inputs[1] <== proposalDescriptionHash;
+    proposalContentHash.inputs[2] <== proposalFundingHash; 
+    proposalContentHash.inputs[3] <== proposalMetadataHash; 
+    proposalContentHash.inputs[4] <== proposalPayloadHash;
+    computedProposalContentHash <== proposalContentHash.out;
+
+    signal computedProposalContextHash;
+    component proposalContextHash = Poseidon(2);
+    proposalContextHash.inputs[0] <== groupHash;
+    proposalContextHash.inputs[1] <== epochHash;
+    computedProposalContextHash <== proposalContextHash.out;
+
+    signal computedProposalSubmissionNullifier;
+    component submissionNullifierHash = Poseidon(2);
+    submissionNullifierHash.inputs[0] <== computedProposalContextHash;
+    submissionNullifierHash.inputs[1] <== computedProposalContentHash;
+    computedProposalSubmissionNullifier <== submissionNullifierHash.out;
+
+    computedProposalSubmissionNullifier === proposalSubmissionNullifier;
 }
 
-component main {public [root]} = VoteProof(10); 
+component main {public [root, proposalSubmissionNullifier]} = VoteProof(10); 

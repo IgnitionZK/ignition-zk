@@ -40,25 +40,25 @@ contract VoteVerifier {
     
     // Verification Key data
     uint32 constant n         = 16384;
-    uint16 constant nPublic   = 4;
-    uint16 constant nLagrange = 4;
+    uint16 constant nPublic   = 5;
+    uint16 constant nLagrange = 5;
     
-    uint256 constant Qmx  = 6509351337380632389189533293769345691331892488596377831279840217369810773698;
-    uint256 constant Qmy  = 20236371313701470873007311908013520801220924863298741282632849945159177837140;
-    uint256 constant Qlx  = 3217701681698072578272503486902599388325968127599659687274660596255280513863;
-    uint256 constant Qly  = 6497267329073475213486370141428617213660119313601908644337707265845403210924;
-    uint256 constant Qrx  = 11694946815069650510818421602433069323725504272667961275546094561324989392049;
-    uint256 constant Qry  = 4633136417978245811139080756122718064219270306945422991821745260115590717955;
-    uint256 constant Qox  = 1097899523263160908416805321666188011281881019399218040012358612970025812568;
-    uint256 constant Qoy  = 18653927492626900957429601994284803693556512852718172359964012118075994536375;
-    uint256 constant Qcx  = 21853769253363425549950296397978247143288584328908419121254832126815492183707;
-    uint256 constant Qcy  = 15784531897642629904810074902330754633104954586624858126592984635917942956817;
-    uint256 constant S1x  = 18929191688439959934062112315887250556535270315484592509176893594818454072288;
-    uint256 constant S1y  = 11700525703298896967479554185246073877150780950248448094604395158633813790732;
-    uint256 constant S2x  = 15148421856342163708083302069060191469921512772651475158263792869551552181536;
-    uint256 constant S2y  = 2772536751148651180332605474489422807054149798554580354794163664589475640358;
-    uint256 constant S3x  = 12448047020781444738544099110183817306132906815847511974970160476486036566282;
-    uint256 constant S3y  = 485607283179461185307024213969057575077897750197404688609533032825532616435;
+    uint256 constant Qmx  = 18285681691258666363648202575600971240006690443787330625264689358240285915122;
+    uint256 constant Qmy  = 5572581236182263758931016543743758413598830221205257217837660843958736294058;
+    uint256 constant Qlx  = 2687088297864829136603649011011622236911588110467140808112509892696363437403;
+    uint256 constant Qly  = 4523635762867922891425222131734751266519778725360605453117317224102413014085;
+    uint256 constant Qrx  = 2095988537199848843356138497756997142285221457287003857587824466526563907919;
+    uint256 constant Qry  = 21309883866934709658246959664478618460648336055431377275827046132620266941408;
+    uint256 constant Qox  = 16525257808191317617470218078337895079866144018223294300295146441670231992417;
+    uint256 constant Qoy  = 16008636445202526229239139344746824811536774432276101678380516637959519458604;
+    uint256 constant Qcx  = 750574685352000800095206038784325830995484215744326756427444840435904223011;
+    uint256 constant Qcy  = 16447668518269538623884911826042647520773709138352678257580717708945194003526;
+    uint256 constant S1x  = 1665676382479984263471068098731705644620561713923972956898240196123572084753;
+    uint256 constant S1y  = 2167990444756437002687270499174737886496030279317994975507148704544222533348;
+    uint256 constant S2x  = 5802364284181022804969325607055970863330559434435806445322180212479995462940;
+    uint256 constant S2y  = 9614261281948387657114850635412085921952607852514128934653907021821935362212;
+    uint256 constant S3x  = 21831737115011296502506641830378650769606624799168708650327100747202087789428;
+    uint256 constant S3y  = 9014509438163756568060802876616066651364248162077726315033993893205448360990;
     uint256 constant k1   = 2;
     uint256 constant k2   = 3;
     uint256 constant X2x1 = 12162926275010107821417086553760861934065845606081231188020364549341243249980;
@@ -120,11 +120,13 @@ contract VoteVerifier {
     
     uint16 constant pEval_l4 = 896;
     
+    uint16 constant pEval_l5 = 928;
     
     
-    uint16 constant lastMem = 928;
+    
+    uint16 constant lastMem = 960;
 
-    function verifyProof(uint256[24] calldata _proof, uint256[4] calldata _pubSignals) public view returns (bool) {
+    function verifyProof(uint256[24] calldata _proof, uint256[5] calldata _pubSignals) public view returns (bool) {
         assembly {
             /////////
             // Computes the inverse using the extended euclidean algorithm
@@ -245,14 +247,16 @@ contract VoteVerifier {
                 
                 mstore(add(mIn, 608), calldataload(add(pPublic, 96)))
                 
-                mstore(add(mIn, 640 ), calldataload(pA))
-                mstore(add(mIn, 672 ), calldataload(add(pA, 32)))
-                mstore(add(mIn, 704 ), calldataload(pB))
-                mstore(add(mIn, 736 ), calldataload(add(pB, 32)))
-                mstore(add(mIn, 768 ), calldataload(pC))
-                mstore(add(mIn, 800 ), calldataload(add(pC, 32)))
+                mstore(add(mIn, 640), calldataload(add(pPublic, 128)))
                 
-                beta := mod(keccak256(mIn, 832), q) 
+                mstore(add(mIn, 672 ), calldataload(pA))
+                mstore(add(mIn, 704 ), calldataload(add(pA, 32)))
+                mstore(add(mIn, 736 ), calldataload(pB))
+                mstore(add(mIn, 768 ), calldataload(add(pB, 32)))
+                mstore(add(mIn, 800 ), calldataload(pC))
+                mstore(add(mIn, 832 ), calldataload(add(pC, 32)))
+                
+                beta := mod(keccak256(mIn, 864), q) 
                 mstore(add(pMem, pBeta), beta)
 
                 // challenges.gamma
@@ -435,9 +439,30 @@ contract VoteVerifier {
                     )
                 )
                 
+                w := mulmod(w, w1, q)
                 
                 
-                inverseArray(add(pMem, pZhInv), 5 )
+                mstore(
+                    add(pMem, pEval_l5), 
+                    mulmod(
+                        n, 
+                        mod(
+                            add(
+                                sub(
+                                    mload(add(pMem, pXi)), 
+                                    w
+                                ), 
+                                q
+                            ),
+                            q
+                        ), 
+                        q
+                    )
+                )
+                
+                
+                
+                inverseArray(add(pMem, pZhInv), 6 )
                 
                 let zh := mload(add(pMem, pZh))
                 w := 1
@@ -507,6 +532,24 @@ contract VoteVerifier {
                 )
                 
                 
+                w := mulmod(w, w1, q)
+                
+                
+                
+                mstore(
+                    add(pMem, pEval_l5), 
+                    mulmod(
+                        w,
+                        mulmod(
+                            mload(add(pMem, pEval_l5)),
+                            zh,
+                            q
+                        ),
+                        q
+                    )
+                )
+                
+                
                 
 
 
@@ -568,6 +611,21 @@ contract VoteVerifier {
                             mulmod(
                                 mload(add(pMem, pEval_l4)),
                                 calldataload(add(pPub, 96)),
+                                q
+                            )
+                        ),
+                        q
+                    ),
+                    q
+                )
+                 
+                pl := mod(
+                    add(
+                        sub(
+                            pl,  
+                            mulmod(
+                                mload(add(pMem, pEval_l5)),
+                                calldataload(add(pPub, 128)),
                                 q
                             )
                         ),

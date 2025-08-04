@@ -115,7 +115,7 @@ contract MembershipManager is Initializable, UUPSUpgradeable, OwnableUpgradeable
 
     /// @notice Thrown if the provided address does not support the required interface.
     /// @dev This is used to check if the address supports the `verifyProof` function
-    error AddressDoesNotSupportInterface();
+    //error AddressDoesNotSupportInterface();
     
 // ====================================================================================================================
 //                                                  EVENTS
@@ -306,11 +306,10 @@ contract MembershipManager is Initializable, UUPSUpgradeable, OwnableUpgradeable
      * @dev This function can only be called by the contract owner (governor).
      * @custom:error AddressCannotBeZero If the provided verifier address is zero.
      * @custom:error AddressIsNotAContract If the provided address is not a contract.
-     * @custom:error AddressDoesNotSupportInterface If the provided address does not support the `verifyProof` function.
      */
     function setMembershipVerifier(address _membershipVerifier) external onlyOwner nonZeroAddress(_membershipVerifier) {
         if(_membershipVerifier.code.length == 0) revert AddressIsNotAContract();
-        if(!_supportsIMembershipInterface(_membershipVerifier)) revert AddressDoesNotSupportInterface();
+        //if(!_supportsIMembershipInterface(_membershipVerifier)) revert AddressDoesNotSupportInterface();
 
         membershipVerifier = IMembershipVerifier(_membershipVerifier);
         emit MembershipVerifierSet(_membershipVerifier);
@@ -643,20 +642,5 @@ contract MembershipManager is Initializable, UUPSUpgradeable, OwnableUpgradeable
         return nftAddress;
     }
 
-    /**
-     * @dev Checks if the provided address supports the `verifyProof` function for membership verification.
-     * @param _address The address to check.
-     * @return bool True if the address supports the IMembershipVerifier interface, false otherwise.
-     */
-    function _supportsIMembershipInterface(address _address) private view returns (bool) {
-        uint256[24] memory dummyProof = [uint256(1), 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24];
-        uint256[2] memory dummyPublicSignals = [uint256(1), 2];
-
-        try IMembershipVerifier(_address).verifyProof(dummyProof, dummyPublicSignals) returns (bool) {
-            return true;
-        } catch {
-            return false;
-        }
-    }
 
 }

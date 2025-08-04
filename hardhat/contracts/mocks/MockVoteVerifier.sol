@@ -11,7 +11,7 @@ contract MockVoteVerifier is IVoteVerifier {
         isValid = _isValid;
     }
 
-    function verifyProof(uint256[24] calldata _proof, uint256[4] calldata _pubSignals) public view returns (bool) {
+    function verifyProof(uint256[24] calldata _proof, uint256[5] calldata _pubSignals) public view returns (bool) {
         return isValid;
     }
 

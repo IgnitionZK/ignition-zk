@@ -1,326 +1,58 @@
 const { ethers, upgrades, keccak256 , toUtf8Bytes, HashZero} = require("hardhat");
 const { expect } = require("chai");
 const { Conversions } = require("./utils.js");
+const { setUpFixtures, deployFixtures } = require("./fixtures");
 
 describe("Proposal Manager Unit Tests:", function () {
+
+    let fixtures;
     
-    // Managers
-    let MembershipManager;
-    let membershipManager;
-    let ProposalManager;
-    let proposalManager;
-    
-    // Verifiers
-    let MembershipVerifier;
-    let membershipVerifier;
-    let ProposalVerifier;
-    let proposalVerifier;
-    let ProposalClaimVerifier;
-    let proposalClaimVerifier;
-    let MockProposalVerifier;
-    let mockProposalVerifier;
-    let MockProposalVerifierV2;
-    let mockProposalVerifierV2;
-    let MockProposalClaimVerifier;
-    let mockProposalClaimVerifier;
-
-    // NFT Implementation
-    let NFTImplementation;
-    let nftImplementation;
-
-    // Signers
-    let deployer;
-    let governor;
-    let relayer; 
-    let user1;
-
-    // Variables for testing
-    let groupId;
-    let epochId;
-    let groupKey;
-    let epochKey;
-    let contextKey;
-
-    // roots
-    let rootHash1;
-    let rootHash2;
-
-    // nullifiers
-    let submissionNullifier1;
-    let submissionNullifier2;
-    let claimNullifier1;
-    let claimNullifier2;
-
-    // content hashes
-    let contentHash1;
-    let contentHash2;
-
-    // NFT metadata
-    let nftName;
-    let nftSymbol;
-    let nftName2;
-    let nftSymbol2;
-
-    // mock proof inputs
-    let mockProof;
-    let mockPublicSignals1;
-    let mockPublicSignals2;
-    let mockClaimPublicSignals1;
-    let mockClaimPublicSignals2;
-
-    // real proof inputs
-    let realRoot;
-    let realGroupId;
-    let realEpochId;
-    let realGroupKey;
-    let realEpochKey;
-    let realContextKey;
-    let proofContextHash;
-    let proofSubmissionNullifier;
-    let proofClaimNullifier;
-    let proofContentHash;
-    let proofRoot;
-    let realProof
-    let realPublicSignals;
-    let realClaimProof;
-    let realClaimPublicSignals;
-
-
     // RUN ONCE BEFORE ALL TESTS
     before(async function () {
-        [deployer, governor, relayer, user1] = await ethers.getSigners();
 
-        // Get Contract Factory for MembershipManager
-        MembershipManager = await ethers.getContractFactory("MembershipManager");  
+        fixtures = await setUpFixtures();
+        ({
+            // Signers
+            governor, user1, deployer, relayer,
 
-        // Get Contract Factory for NFT implementation
-        NFTImplementation = await ethers.getContractFactory("ERC721IgnitionZK");
-
-        // Get Contract Factory for MembershipVerifier
-        MembershipVerifier = await ethers.getContractFactory("MembershipVerifier");
-
-        // Get Contract Factory for ProposalVerifier
-        ProposalVerifier = await ethers.getContractFactory("ProposalVerifier");
-
-        // Get Contract Factory for MockProposalVerifier (verifyProof returns true/false)
-        MockProposalVerifier = await ethers.getContractFactory("MockProposalVerifier");
-
-        // Get Contract Factory for MockProposalVerifierV2 (verifyProof reverts)
-        MockProposalVerifierV2 = await ethers.getContractFactory("MockProposalVerifierV2");
-
-        // Get Contract Factory for ProposalClaimVerifier
-        ProposalClaimVerifier = await ethers.getContractFactory("ProposalClaimVerifier");
-
-        // Get Contract Factory for MockProposalClaimVerifier
-        MockProposalClaimVerifier = await ethers.getContractFactory("MockProposalClaimVerifier");
-
-        // Get Contract Factory for ProposalManager
-        ProposalManager = await ethers.getContractFactory("ProposalManager");
-
-        // Initialize variables
-        groupId = '123e4567-e89b-12d3-a456-426614174000'; // Example UUID for group
-        epochId = '123e4567-e89b-12d3-a456-426614174001'; // Example UUID for epoch
-        groupKey = Conversions.stringToBytes32(groupId);
-        epochKey = Conversions.stringToBytes32(epochId);
-        contextKey = await Conversions.computeContextKey(groupId, epochId);
-        rootHash1 = Conversions.stringToBytes32("rootHash1");
-        rootHash2 = Conversions.stringToBytes32("rootHash2");
-        submissionNullifier1 = Conversions.stringToBytes32("submissionNullifier1");
-        submissionNullifier2 = Conversions.stringToBytes32("submissionNullifier2");
-        claimNullifier1 = Conversions.stringToBytes32("claimNullifier1");
-        claimNullifier2 = Conversions.stringToBytes32("claimNullifier2");
-        contentHash1 = Conversions.stringToBytes32("contentHash1");
-        contentHash2 = Conversions.stringToBytes32("contentHash2");
-        nftName = "Test Group NFT";
-        nftSymbol = "TGNFT";  
-        nftName2 = "Test Group NFT 2";
-        nftSymbol2 = "TGNFT2";  
-
-        // mock proof inputs:
-        mockProof = [
-            1, 2, 3, 4, 5, 6,
-            7, 8, 9, 10, 11, 12,
-            13, 14, 15, 16, 17, 18,
-            19, 20, 21, 22, 23, 24
-        ];
-        
-        mockPublicSignals1 = [
-            contextKey,
-            submissionNullifier1,
-            claimNullifier1,
-            rootHash1, 
-            contentHash1
-        ];
-
-        mockPublicSignals2 = [
-            contextKey,
-            submissionNullifier2,
-            claimNullifier2,
-            rootHash2, 
-            contentHash2
-        ];
-
-        mockClaimPublicSignals1 = [
-            claimNullifier1,
-            submissionNullifier1,
-            contextKey
-        ];
-
-        mockClaimPublicSignals2 = [
-            claimNullifier2,
-            submissionNullifier2,
-            contextKey
-        ];
-
-        // Real submission proof inputs 
-        realGroupId = '21fae0f7-096f-4c8f-8515-93b9f247582d';
-        realEpochId = '06134393-4412-4e46-9534-85186ea7bbe8';
-        realGroupKey = Conversions.stringToBytes32(realGroupId);
-        realEpochKey = Conversions.stringToBytes32(realEpochId);
-        realContextKey = await Conversions.computeContextKey(realGroupId, realEpochId);
-        realRoot = ethers.toBeHex(8382028473019880437532291517957501217880306914202305497790783762876650668442n);
-        realProof =  [
-            4160082357726907288154962751768800619364547905185501987938567395992963626756n,
-            8625191419888166001787288936525491236965189171168431531580450179034558022628n,
-            8663426768450541325893863068057652087373433414669976966805392185357166988298n,
-            4370380180872603991303613753283339003660679138439446445411511540846534579473n,
-            14535668297481111487584752732259061609062369960463252113342295661612480217875n,
-            13464746825577454986616840409467983179939738709257645654324715365483280308240n,
-            12482547363391314789048825926158576636653280918225939537422051376247206025379n,
-            6425173490738242109124751003607921391818549286250922120905300269803872297520n,
-            21867122944002752806844061013556642734340120630422574202220999464430872253739n,
-            18303335069190759842167583153896225853680476424013584621050786623335449686685n,
-            6227545735508585745608419115002984035075442362970894397791904138026328673325n,
-            14382361922826105148392868704816988202231434486726405491561867922774534631091n,
-            9552428347965547746691501869392784606122155596379513751104949012052750544211n,
-            2302755567771284608940437217367815749744276219766254297504221627205993546298n,
-            19871946349315711705904003513613176206359316972300765120626593295263110998032n,
-            3323578654821101975665354060651301996026442820081832378114947301446748033323n,
-            3010626687343341210674142569935787964497430514255055837156821427657034889090n,
-            20814825545369736445078060111030960560292045692197797944294659313624178305723n,
-            8809555674879872451626294962074150505479982682178138755219803710877310372357n,
-            1551989834106132465664208243483421133538165958314739599389780100567667732048n,
-            712496314335736147322087972926575111220098174587906109568858392078735395668n,
-            2011994745874617327408216421498351059169876092504697566598493992683855101105n,
-            17407614594591813575087546676494537031868753905141623450388448398354606953774n,
-            19925841242912817942652827919213205403554809012254685308740983652900643995042n
-        ];
-
-        realPublicSignals = [
-            10784837327942539940262199572332172861641502897581390099206106957093606019065n,
-            11437135861965939255357707860095145538920168988595282139508950839172378710733n,
-            18657539368208857675267473580234674446480662122335439399989949196824462772537n,
-            8382028473019880437532291517957501217880306914202305497790783762876650668442n,
-            4227634804796440866596074335636719855117858676967569745568900499808312409208n
-        ];
-        proofContextHash = ethers.toBeHex(realPublicSignals[0], 32);
-        proofSubmissionNullifier = ethers.toBeHex(realPublicSignals[1], 32);
-        proofClaimNullifier = ethers.toBeHex(realPublicSignals[2], 32);
-        proofRoot = ethers.toBeHex(realPublicSignals[3], 32);
-        proofContentHash = ethers.toBeHex(realPublicSignals[4], 32);
-
-        // Real claim proof inputs
-        realClaimProof = [       
-            17022331385491674352656711953572521334764478826855946644636639963938221138413n,
-            13337814841785982322066856443939408100968278096512154546697259056428429584094n,
-            8883627696396774374357596422972368278011072566085500716483555474754647564880n,
-            5438389370482609175775618075204450083954805113708375793323243869015057601338n,
-            6374740200591525703549142787463554041675631437883820441502575678351557131796n,
-            13387079409746748113007800474053907895840107982340179099597766196784974628091n,
-            20629616285169984666713518995120722745602095075070123925245113269902058659715n,
-            10839288422678664499811083521520036398385931316745759488209591614033422711300n,
-            9179551507929582257092430526783606917123042311680961270553288412408483991n,
-            4644079564805158252918109860134909564745972357973182387883736159551091614454n,
-            4836649542050320363278663492077397639479099273406457765089203615520299906911n,
-            14821584109745652907827166850740593603967080112453213443093852511391780831164n,
-            8776842109124755821482698920281245695037982148421048179581669504061849457375n,
-            17249709923036293211235032073846080957568089077345548342437778640774874525220n,
-            12787412407414482081427135293389433704689940515527535533457097261196022783631n,
-            5193929429869679588142346251997675979203081582481432677113650182748612673264n,
-            5724811214610435675026298931259868477631400132202027438663902112076766389553n,
-            10987109609173640378042984797428872255421003208080005028994376853078165031572n,
-            13819930228950491354084334551567566975985914459182249330260977602831388358273n,
-            10419181180601177277516732109696985589616135635552566285580719655557627216936n,
-            19474163458552574499479589850520692943944105435988781409290709534298908192326n,
-            11336422004633526528374124157024614104309973643386717948558256508497276422392n,
-            15534725659224339149667733889992013871633648659281584426665332857365408128934n,
-            7141974369526416983448047383179455418470281347379905821373483403101987276473n
-        ];      
-        realClaimPublicSignals = [
-            18657539368208857675267473580234674446480662122335439399989949196824462772537n,
-            11437135861965939255357707860095145538920168988595282139508950839172378710733n,
-            10784837327942539940262199572332172861641502897581390099206106957093606019065n
-        ];
-
+            // Test constants
+            groupKey, epochKey, proposalKey, 
+            voteContextKey, proposalContextKey,
+            rootHash1, rootHash2,
+            voteNullifier1, voteNullifier2, voteNullifier3, voteNullifier4,
+            submissionNullifier1, submissionNullifier2,
+            claimNullifier1, claimNullifier2,
+            contentHash1, contentHash2,
+            voteChoiceNo, voteChoiceYes, voteChoiceAbstain,
+            nftName, nftSymbol, nftName2, nftSymbol2,
+            mockProof, mockVotePublicSignals1, mockVotePublicSignals2, mockVotePublicSignals3, mockVotePublicSignals4,
+            mockProposalPublicSignals1, mockProposalPublicSignals2, mockClaimPublicSignals1, mockClaimPublicSignals2,
+            realGroupId, realEpochId, realProposalId, 
+            realGroupKey, realEpochKey, realProposalKey, 
+            realProposalContextKey, realVoteContextKey, realRoot, 
+            realVoteProof, realVotePublicSignals, voteProofContextHash, voteProofNullifier, voteProofChoice, voteProofRoot, voteProofSubmissionNullifier,
+            realProposalProof, realProposalPublicSignals, proposalProofContextHash, proposalProofSubmissionNullifier, proposalProofClaimNullifier, proposalProofRoot, proposalProofContentHash,
+            realClaimProof, realClaimPublicSignals
+        } = fixtures);
     });
 
     // RUN BEFORE EACH TEST
     beforeEach(async function () {
+    
+        const deployedFixtures = await deployFixtures();
 
-        // Deploy the NFT implementation minimal proxy (Clones EIP‑1167) contract
-        nftImplementation = await NFTImplementation.deploy();
-        await nftImplementation.waitForDeployment();
-
-        // Deploy the MembershipVerifier contract
-        membershipVerifier = await MembershipVerifier.deploy();
-        await membershipVerifier.waitForDeployment();
-
-        // Deploy the MembershipMannager UUPS Proxy (ERC‑1967) contract
-        membershipManager = await upgrades.deployProxy(
-            MembershipManager, 
-            [
-                await governor.getAddress(),
-                nftImplementation.target,
-                membershipVerifier.target
-            ],
-            {
-                initializer: "initialize",
-                kind: "uups"
-            }
-        );
-        await membershipManager.waitForDeployment();
-
-        // Deploy ProposalVerifier contract
-        proposalVerifier = await ProposalVerifier.deploy();
-        await proposalVerifier.waitForDeployment();
-
-        // Deploy MockProposalVerifier contract
-        mockProposalVerifier = await MockProposalVerifier.deploy();
-        await mockProposalVerifier.waitForDeployment();
-
-        // Deploy MockProposalVerifierV2 contract
-        mockProposalVerifierV2 = await MockProposalVerifierV2.deploy();
-        await mockProposalVerifierV2.waitForDeployment();
-
-        // Deploy ProposalClaimVerifier contract
-        proposalClaimVerifier = await ProposalClaimVerifier.deploy();
-        await proposalClaimVerifier.waitForDeployment();
-
-        // Deploy MockProposalClaimVerifier contract
-        mockProposalClaimVerifier = await MockProposalClaimVerifier.deploy();
-        await mockProposalClaimVerifier.waitForDeployment();
-
-        // Deploy ProposalManager UUPS Proxy (ERC‑1967) contract
-        proposalManager = await upgrades.deployProxy(
-            ProposalManager, 
-            [
-                await governor.getAddress(),
-                proposalVerifier.target, 
-                proposalClaimVerifier.target
-            ],
-            {
-                initializer: "initialize",
-                kind: "uups"
-            }
-        );
-        await proposalManager.waitForDeployment();
+        ({
+            membershipManager, proposalManager, voteManager, governanceManager, 
+            membershipVerifier, proposalVerifier, proposalClaimVerifier, voteVerifier,
+            mockMembershipVerifier, mockProposalVerifier, mockProposalClaimVerifier, mockVoteVerifier
+        } = deployedFixtures);
     });
 
     
-    async function deployGroupNftAndInitRoot(signer, group, nftName, nftSymbol, root) {
+    async function deployGroupNftAndSetRoot(signer, group, nftName, nftSymbol, root) {
         // Deploy group NFT and initialize group root
         await membershipManager.connect(signer).deployGroupNft(group, nftName, nftSymbol);
-        await membershipManager.connect(signer).initRoot(root, group);
+        await membershipManager.connect(signer).setRoot(root, group);
     }
 
     async function setSubmissionVerifierAndVerifyProposal(signer, verifier, proof, publicSignals, contextKey, root) {
@@ -342,7 +74,7 @@ describe("Proposal Manager Unit Tests:", function () {
         return await proposalManager.connect(signer).verifyProposalClaim(
             proof,
             publicSignals,
-            contextKey
+            proposalContextKey
         );
     }
 
@@ -430,10 +162,10 @@ describe("Proposal Manager Unit Tests:", function () {
         EXPECTED: should preserve proxy data after upgrade`, async function () {
 
         // deploy group NFT and initialize group root
-        await deployGroupNftAndInitRoot(governor, groupKey, nftName, nftSymbol, rootHash1);
+        await deployGroupNftAndSetRoot(governor, groupKey, nftName, nftSymbol, rootHash1);
 
         // set the proposal submission verifier to the mock verifier and verify the first proposal
-        await setSubmissionVerifierAndVerifyProposal(governor, mockProposalVerifier.target, mockProof, mockPublicSignals1, contextKey, rootHash1);
+        await setSubmissionVerifierAndVerifyProposal(governor, mockProposalVerifier.target, mockProof, mockProposalPublicSignals1, proposalContextKey, rootHash1);
 
         // check that the submission nullifier is stored correctly
         expect(await proposalManager.connect(governor).getSubmissionNullifierStatus(submissionNullifier1)).to.equal(true);
@@ -503,13 +235,6 @@ describe("Proposal Manager Unit Tests:", function () {
             .to.be.revertedWithCustomError(proposalManager, "AddressIsNotAContract");
     });
 
-    it(`FUNCTION: setProposalSubmissionVerifier
-        TESTING: custom error: AddressDoesNotSupportInterface
-        EXPECTED: should not allow the governor to set the submission verifier to an address not implementing the IProposalVerifier interface`, async function () {
-        await expect(proposalManager.connect(governor).setProposalSubmissionVerifier(membershipManager.target))
-            .to.be.revertedWithCustomError(proposalManager, "AddressDoesNotSupportInterface");
-    });
-
     it(`FUNCTION: setProposalClaimVerifier
         TESTING: custom error: AddressCannotBeZero
         EXPECTED: should not allow the governor to set the proposal claim verifier to the zero address`, async function () {
@@ -538,14 +263,6 @@ describe("Proposal Manager Unit Tests:", function () {
             .to.be.revertedWithCustomError(proposalManager, "AddressIsNotAContract");
     });
 
-    it(`FUNCTION: setProposalClaimVerifier
-        TESTING: custom error: AddressDoesNotSupportInterface
-        EXPECTED: should not allow the governor to set the claim verifier to an address not implementing the IProposalClaimVerifier interface`, async function () {
-        await expect(proposalManager.connect(governor).setProposalClaimVerifier(membershipManager.target))
-            .to.be.revertedWithCustomError(proposalManager, "AddressDoesNotSupportInterface");
-    });
-
-
     it(`FUNCTION: getProposalClaimVerifier
         TESTING: onlyOwner authorization (success)
         EXPECTED: should allow the governor to view the address of the proposal claim verifier contract`, async function () {
@@ -566,14 +283,14 @@ describe("Proposal Manager Unit Tests:", function () {
         EXPECTED: should store two submission nullifiers after verifying two different proposals`, async function () {
         
         // deploy group NFT and initialize group root
-        await deployGroupNftAndInitRoot(governor, groupKey, nftName, nftSymbol, rootHash1);
+        await deployGroupNftAndSetRoot(governor, groupKey, nftName, nftSymbol, rootHash1);
 
         // set the proposal submission verifier to the mock verifier and verify the first proposal
-        const tx = await setSubmissionVerifierAndVerifyProposal(governor, mockProposalVerifier.target, mockProof, mockPublicSignals1, contextKey, rootHash1);  
+        const tx = await setSubmissionVerifierAndVerifyProposal(governor, mockProposalVerifier.target, mockProof, mockProposalPublicSignals1, proposalContextKey, rootHash1);
 
         // expect the event to be emitted with the correct arguments
-        await expect(tx).to.emit(proposalManager, "SubmissionVerified").withArgs(contextKey, submissionNullifier1, claimNullifier1, contentHash1);
-        
+        await expect(tx).to.emit(proposalManager, "SubmissionVerified").withArgs(proposalContextKey, submissionNullifier1, claimNullifier1, contentHash1);
+
         // check if the submission nullifier status is stored correctly
         expect(await proposalManager.connect(governor).getSubmissionNullifierStatus(submissionNullifier1)).to.equal(true);
 
@@ -583,13 +300,13 @@ describe("Proposal Manager Unit Tests:", function () {
         // verify the second proposal with a different root and submission nullifier
         const tx2 = await proposalManager.connect(governor).verifyProposal(
             mockProof,
-            mockPublicSignals2,
-            contextKey,
+            mockProposalPublicSignals2,
+            proposalContextKey,
             rootHash2
         );
 
         // expect the event to be emitted with the correct arguments
-        await expect(tx2).to.emit(proposalManager, "SubmissionVerified").withArgs(contextKey, submissionNullifier2, claimNullifier2, contentHash2);
+        await expect(tx2).to.emit(proposalManager, "SubmissionVerified").withArgs(proposalContextKey, submissionNullifier2, claimNullifier2, contentHash2);
         
         // check if the submission nullifier status is stored correctly
         expect(await proposalManager.connect(governor).getSubmissionNullifierStatus(submissionNullifier2)).to.equal(true);
@@ -603,16 +320,16 @@ describe("Proposal Manager Unit Tests:", function () {
         EXPECTED: should not allow the governor to verify a proposal with a used submission nullifier`, async function () {
         
         // deploy group NFT and initialize group root
-        await deployGroupNftAndInitRoot(governor, groupKey, nftName, nftSymbol, rootHash1);
+        await deployGroupNftAndSetRoot(governor, groupKey, nftName, nftSymbol, rootHash1);
 
         // set the proposal submission verifier to the mock verifier and verify the first proposal
-        await setSubmissionVerifierAndVerifyProposal(governor, mockProposalVerifier.target, mockProof, mockPublicSignals1, contextKey, rootHash1);
+        await setSubmissionVerifierAndVerifyProposal(governor, mockProposalVerifier.target, mockProof, mockProposalPublicSignals1, proposalContextKey, rootHash1);
 
         // try to verify the same proposal again with the same submission nullifier
         await expect(proposalManager.connect(governor).verifyProposal(
             mockProof,
-            mockPublicSignals1,
-            contextKey,
+            mockProposalPublicSignals1,
+            proposalContextKey,
             rootHash1
         )).to.be.revertedWithCustomError(proposalManager, "SubmissionNullifierAlreadyUsed");
     });
@@ -622,14 +339,14 @@ describe("Proposal Manager Unit Tests:", function () {
         EXPECTED: should not allow the governor to verify a proposal with an invalid context key`, async function () {
         
         // deploy group NFT and initialize group root
-        await deployGroupNftAndInitRoot(governor, groupKey, nftName, nftSymbol, rootHash1);
+        await deployGroupNftAndSetRoot(governor, groupKey, nftName, nftSymbol, rootHash1);
 
         // set the proposal submission verifier to the mock verifier
         await proposalManager.connect(governor).setProposalSubmissionVerifier(mockProposalVerifier.target);
         
         await expect(proposalManager.connect(governor).verifyProposal(
             mockProof,
-            mockPublicSignals1,
+            mockProposalPublicSignals1,
             Conversions.stringToBytes32("invalidContextKey"), 
             rootHash1
         )).to.be.revertedWithCustomError(proposalManager, "InvalidContextHash");
@@ -640,15 +357,15 @@ describe("Proposal Manager Unit Tests:", function () {
         EXPECTED: should not allow the governor to verify a proposal with a root different than the current root`, async function () {
         
         // deploy group NFT and initialize group root
-        await deployGroupNftAndInitRoot(governor, groupKey, nftName, nftSymbol, rootHash1);
+        await deployGroupNftAndSetRoot(governor, groupKey, nftName, nftSymbol, rootHash1);
         
         // set the proposal submission verifier to the mock verifier
         await proposalManager.connect(governor).setProposalSubmissionVerifier(mockProposalVerifier.target);
         
         await expect(proposalManager.connect(governor).verifyProposal(
             mockProof,
-            mockPublicSignals1,
-            contextKey,
+            mockProposalPublicSignals1,
+            proposalContextKey,
             rootHash2
         )).to.be.revertedWithCustomError(proposalManager, "InvalidMerkleRoot");
     });
@@ -665,8 +382,8 @@ describe("Proposal Manager Unit Tests:", function () {
         
         await expect(proposalManager.connect(governor).verifyProposal(
             mockProof,
-            mockPublicSignals1,
-            contextKey,
+            mockProposalPublicSignals1,
+            proposalContextKey,
             ethers.ZeroHash
         )).to.be.revertedWithCustomError(proposalManager, "RootNotYetInitialized");
     });
@@ -676,15 +393,15 @@ describe("Proposal Manager Unit Tests:", function () {
         EXPECTED: should not allow non-governor to verify a proposal`, async function () {
         
         // deploy group NFT and initialize group root
-        await deployGroupNftAndInitRoot(governor, groupKey, nftName, nftSymbol, rootHash1);
+        await deployGroupNftAndSetRoot(governor, groupKey, nftName, nftSymbol, rootHash1);
 
         // set the proposal submission verifier to the mock verifier
         await proposalManager.connect(governor).setProposalSubmissionVerifier(mockProposalVerifier.target);
         
         await expect(proposalManager.connect(user1).verifyProposal(
             mockProof,
-            mockPublicSignals1,
-            contextKey,
+            mockProposalPublicSignals1,
+            proposalContextKey,
             rootHash1
         )).to.be.revertedWithCustomError(proposalManager, "OwnableUnauthorizedAccount");
     });
@@ -694,7 +411,7 @@ describe("Proposal Manager Unit Tests:", function () {
         EXPECTED: should not let governor verify a proposal with an invalid proof`, async function () {
 
         // deploy group NFT and initialize group root
-        await deployGroupNftAndInitRoot(governor, groupKey, nftName, nftSymbol, rootHash1);
+        await deployGroupNftAndSetRoot(governor, groupKey, nftName, nftSymbol, rootHash1);
         
         // set the proposal submission verifier to the mock verifier
         await proposalManager.connect(governor).setProposalSubmissionVerifier(mockProposalVerifier.target);
@@ -704,10 +421,10 @@ describe("Proposal Manager Unit Tests:", function () {
         
         await expect(proposalManager.connect(governor).verifyProposal(
             mockProof,
-            mockPublicSignals1,
-            contextKey,
+            mockProposalPublicSignals1,
+            proposalContextKey,
             rootHash1
-        )).to.be.revertedWithCustomError(proposalManager, "InvalidSubmissionProof").withArgs(contextKey, submissionNullifier1);
+        )).to.be.revertedWithCustomError(proposalManager, "InvalidSubmissionProof").withArgs(proposalContextKey, submissionNullifier1);
     });
 
     it(`FUNCTION: verifyProposal (with mock submission verifier)
@@ -715,11 +432,11 @@ describe("Proposal Manager Unit Tests:", function () {
         EXPECTED: should not allow the governor to verify a proposal with a submission nullifier already used in another context`, async function () {
         
         // deploy group NFT and initialize group root
-        await deployGroupNftAndInitRoot(governor, groupKey, nftName, nftSymbol, rootHash1);
+        await deployGroupNftAndSetRoot(governor, groupKey, nftName, nftSymbol, rootHash1);
 
         // set the proposal submission verifier to the mock verifier and verify the first proposal
-        await setSubmissionVerifierAndVerifyProposal(governor, mockProposalVerifier.target, mockProof, mockPublicSignals1, contextKey, rootHash1);
- 
+        await setSubmissionVerifierAndVerifyProposal(governor, mockProposalVerifier.target, mockProof, mockProposalPublicSignals1, proposalContextKey, rootHash1);
+
         const publicSignals = [
             Conversions.stringToBytes32("contextKey2"),
             submissionNullifier1,
@@ -741,53 +458,53 @@ describe("Proposal Manager Unit Tests:", function () {
         TESTING: zero proof inputs handling
         EXPECTED: should not allow the governor to verify a proposal with a zero proof`, async function () {
         // deploy group NFT and initialize group root
-        await deployGroupNftAndInitRoot(governor, groupKey, nftName, nftSymbol, rootHash1);
+        await deployGroupNftAndSetRoot(governor, groupKey, nftName, nftSymbol, rootHash1);
         
         const zeroProof = new Array(24).fill(0);
 
         await expect(proposalManager.connect(governor).verifyProposal(
             zeroProof,
-            mockPublicSignals1,
-            contextKey,
+            mockProposalPublicSignals1,
+            proposalContextKey,
             rootHash1
-        )).to.be.revertedWithCustomError(proposalManager, "InvalidSubmissionProof").withArgs(contextKey, submissionNullifier1);
+        )).to.be.revertedWithCustomError(proposalManager, "InvalidSubmissionProof").withArgs(proposalContextKey, submissionNullifier1);
     });
 
     it(`FUNCTION: verifyProposal (with real verifier & real proof)
         TESTING: event: SubmissionVerified, stored data: submissionNullifier
         EXPECTED: should allow the governor to verify a proposal with a valid proof`, async function () {
-        await deployGroupNftAndInitRoot(governor, realGroupKey, nftName, nftSymbol, realRoot);
+        await deployGroupNftAndSetRoot(governor, realGroupKey, nftName, nftSymbol, realRoot);
         await expect(proposalManager.connect(governor).verifyProposal(
-            realProof,
-            realPublicSignals,
-            realContextKey,
+            realProposalProof,
+            realProposalPublicSignals,
+            realProposalContextKey,
             realRoot
         )).to.emit(proposalManager, "SubmissionVerified").withArgs(
-            proofContextHash,
-            proofSubmissionNullifier,
-            proofClaimNullifier,
-            proofContentHash
+            proposalProofContextHash,
+            proposalProofSubmissionNullifier,
+            proposalProofClaimNullifier,
+            proposalProofContentHash
         );
 
-        const submissionNullifierStatus = await proposalManager.connect(governor).getSubmissionNullifierStatus(proofSubmissionNullifier);
+        const submissionNullifierStatus = await proposalManager.connect(governor).getSubmissionNullifierStatus(proposalProofSubmissionNullifier);
         expect(submissionNullifierStatus).to.equal(true, "Submission nullifier status should be true after verification");
     });
 
     it(`FUNCTION: verifyProposal (with real verifier, valid proof, invalid public signals)
         TESTING: custom error: InvalidContextHash
         EXPECTED: should not allow the governor to verify a proposal with a valid proof array and an invalid context key in the public signals`, async function () {
-        await deployGroupNftAndInitRoot(governor, realGroupKey, nftName, nftSymbol, realRoot);
+        await deployGroupNftAndSetRoot(governor, realGroupKey, nftName, nftSymbol, realRoot);
 
         // change one value in the public signals to make the proof invalid
-        const invalidPublicSignals = [...realPublicSignals];
+        const invalidPublicSignals = [...realProposalPublicSignals];
 
         // increment the first public signal (context key) to make it invalid
         invalidPublicSignals[0] = invalidPublicSignals[0] + BigInt(1);
         
         await expect(proposalManager.connect(governor).verifyProposal(
-            realProof,
+            realProposalProof,
             invalidPublicSignals,
-            realContextKey,
+            realProposalContextKey,
             realRoot
         )).to.be.revertedWithCustomError(proposalManager, "InvalidContextHash");
     });
@@ -795,21 +512,21 @@ describe("Proposal Manager Unit Tests:", function () {
     it(`FUNCTION: verifyProposal (with real verifier, valid proof, invalid public signals)
         TESTING: custom error: InvalidSubmissionProof
         EXPECTED: should not allow the governor to verify a proposal with a valid proof array and an invalid submission nullifier in the public signals`, async function () {
-        await deployGroupNftAndInitRoot(governor, realGroupKey, nftName, nftSymbol, realRoot);
+        await deployGroupNftAndSetRoot(governor, realGroupKey, nftName, nftSymbol, realRoot);
 
         // change one value in the public signals to make the proof invalid
-        const invalidPublicSignals = [...realPublicSignals];
+        const invalidPublicSignals = [...realProposalPublicSignals];
 
         // increment the second public signal (submission nullifier) to make it invalid
         invalidPublicSignals[1] = invalidPublicSignals[1] + BigInt(1);
         
         await expect(proposalManager.connect(governor).verifyProposal(
-            realProof,
+            realProposalProof,
             invalidPublicSignals,
-            realContextKey,
+            realProposalContextKey,
             realRoot
         )).to.be.revertedWithCustomError(proposalManager, "InvalidSubmissionProof").withArgs(
-            realContextKey,
+            realProposalContextKey,
             invalidPublicSignals[1]
         );
     });
@@ -817,21 +534,21 @@ describe("Proposal Manager Unit Tests:", function () {
     it(`FUNCTION: verifyProposal (with real verifier, valid proof, invalid public signals)
         TESTING: custom error: InvalidSubmissionProof
         EXPECTED: should not allow the governor to verify a proposal with a valid proof array and an invalid claim nullifier in the public signals`, async function () {
-        await deployGroupNftAndInitRoot(governor, realGroupKey, nftName, nftSymbol, realRoot);
+        await deployGroupNftAndSetRoot(governor, realGroupKey, nftName, nftSymbol, realRoot);
 
         // change one value in the public signals to make the proof invalid
-        const invalidPublicSignals = [...realPublicSignals];
+        const invalidPublicSignals = [...realProposalPublicSignals];
 
         // increment the third public signal (claim nullifier) to make it invalid
         invalidPublicSignals[2] = invalidPublicSignals[2] + BigInt(1);
         
         await expect(proposalManager.connect(governor).verifyProposal(
-            realProof,
+            realProposalProof,
             invalidPublicSignals,
-            realContextKey,
+            realProposalContextKey,
             realRoot
         )).to.be.revertedWithCustomError(proposalManager, "InvalidSubmissionProof").withArgs(
-            realContextKey,
+            realProposalContextKey,
             invalidPublicSignals[1]
         );
     });
@@ -839,18 +556,18 @@ describe("Proposal Manager Unit Tests:", function () {
     it(`FUNCTION: verifyProposal (with real verifier, valid proof, invalid public signals)
         TESTING: custom error: InvalidMerkleRoot
         EXPECTED: should not allow the governor to verify a proposal with a valid proof array and an invalid root in the public signals`, async function () {
-        await deployGroupNftAndInitRoot(governor, realGroupKey, nftName, nftSymbol, realRoot);
+        await deployGroupNftAndSetRoot(governor, realGroupKey, nftName, nftSymbol, realRoot);
 
         // change one value in the public signals to make the proof invalid
-        const invalidPublicSignals = [...realPublicSignals];
+        const invalidPublicSignals = [...realProposalPublicSignals];
 
         // increment the 4th public signal (claim nullifier) to make it invalid
         invalidPublicSignals[3] = invalidPublicSignals[3] + BigInt(1);
         
         await expect(proposalManager.connect(governor).verifyProposal(
-            realProof,
+            realProposalProof,
             invalidPublicSignals,
-            realContextKey,
+            realProposalContextKey,
             realRoot
         )).to.be.revertedWithCustomError(proposalManager, "InvalidMerkleRoot");
     });
@@ -858,21 +575,21 @@ describe("Proposal Manager Unit Tests:", function () {
     it(`FUNCTION: verifyProposal (with real verifier, valid proof, invalid public signals)
         TESTING: custom error: InvalidSubmissionProof
         EXPECTED: should not allow the governor to verify a proposal with a valid proof array and an invalid content hash in the public signals`, async function () {
-        await deployGroupNftAndInitRoot(governor, realGroupKey, nftName, nftSymbol, realRoot);
+        await deployGroupNftAndSetRoot(governor, realGroupKey, nftName, nftSymbol, realRoot);
 
         // change one value in the public signals to make the proof invalid
-        const invalidPublicSignals = [...realPublicSignals];
+        const invalidPublicSignals = [...realProposalPublicSignals];
 
         // increment the 5th public signal (content hash) to make it invalid
         invalidPublicSignals[4] = invalidPublicSignals[4] + BigInt(1);
         
         await expect(proposalManager.connect(governor).verifyProposal(
-            realProof,
+            realProposalProof,
             invalidPublicSignals,
-            realContextKey,
+            realProposalContextKey,
             realRoot
         )).to.be.revertedWithCustomError(proposalManager, "InvalidSubmissionProof").withArgs(
-            realContextKey,
+            realProposalContextKey,
             invalidPublicSignals[1]
         );
     });
@@ -882,7 +599,7 @@ describe("Proposal Manager Unit Tests:", function () {
         EXPECTED: should not allow the governor to verify a proposal claim for a non-submitted proposal`, async function () {
         
         // deploy group NFT and initialize group root
-        await deployGroupNftAndInitRoot(governor, groupKey, nftName, nftSymbol, rootHash1);
+        await deployGroupNftAndSetRoot(governor, groupKey, nftName, nftSymbol, rootHash1);
         
         // set the proposal claim verifier to the mock verifier
         await proposalManager.connect(governor).setProposalClaimVerifier(mockProposalClaimVerifier.target);
@@ -892,7 +609,7 @@ describe("Proposal Manager Unit Tests:", function () {
             proposalManager.connect(governor).verifyProposalClaim(
                 mockProof,
                 mockClaimPublicSignals1,
-                contextKey
+                proposalContextKey
             )
         ).to.be.revertedWithCustomError(proposalManager, "ProposalHasNotBeenSubmitted");
     });
@@ -901,10 +618,10 @@ describe("Proposal Manager Unit Tests:", function () {
         TESTING: custom error: InvalidContextHash 
         EXPECTED: should not allow the governor to verify a proposal claim with a wrong contextKey`, async function () {
         // deploy group NFT and initialize group root
-        await deployGroupNftAndInitRoot(governor, groupKey, nftName, nftSymbol, rootHash1);
+        await deployGroupNftAndSetRoot(governor, groupKey, nftName, nftSymbol, rootHash1);
         
         // set the proposal submission verifier to the mock verifier and verify the first proposal
-        await setSubmissionVerifierAndVerifyProposal(governor, mockProposalVerifier.target, mockProof, mockPublicSignals1, contextKey, rootHash1);
+        await setSubmissionVerifierAndVerifyProposal(governor, mockProposalVerifier.target, mockProof, mockProposalPublicSignals1, proposalContextKey, rootHash1);
 
         // set the proposal claim verifier to the mock verifier
         await proposalManager.connect(governor).setProposalClaimVerifier(mockProposalClaimVerifier.target);
@@ -923,11 +640,11 @@ describe("Proposal Manager Unit Tests:", function () {
         TESTING: event: ClaimVerified, stored data: claimNullifier
         EXPECTED: should allow the governor to verify a proposal claim for a submitted proposal`, async function () {
         // deploy group NFT and initialize group root
-        await deployGroupNftAndInitRoot(governor, groupKey, nftName, nftSymbol, rootHash1);
+        await deployGroupNftAndSetRoot(governor, groupKey, nftName, nftSymbol, rootHash1);
         
         // set the proposal submission verifier to the mock verifier and verify the first proposal
-        await setSubmissionVerifierAndVerifyProposal(governor, mockProposalVerifier.target, mockProof, mockPublicSignals1, contextKey, rootHash1);
-        
+        await setSubmissionVerifierAndVerifyProposal(governor, mockProposalVerifier.target, mockProof, mockProposalPublicSignals1, proposalContextKey, rootHash1);
+
         // set the proposal claim verifier to the mock verifier
         await proposalManager.connect(governor).setProposalClaimVerifier(mockProposalClaimVerifier.target);
         
@@ -935,9 +652,9 @@ describe("Proposal Manager Unit Tests:", function () {
         await expect(proposalManager.connect(governor).verifyProposalClaim(
             mockProof,
             mockClaimPublicSignals1,
-            contextKey
+            proposalContextKey
         )).to.emit(proposalManager, "ClaimVerified").withArgs(
-            contextKey,
+            proposalContextKey,
             claimNullifier1,
             submissionNullifier1
         );
@@ -951,10 +668,10 @@ describe("Proposal Manager Unit Tests:", function () {
         EXPECTED: should not allow the governor to verify a proposal claim for a claimed proposal`, async function () {
         
         // deploy group NFT and initialize group root
-        await deployGroupNftAndInitRoot(governor, groupKey, nftName, nftSymbol, rootHash1);
+        await deployGroupNftAndSetRoot(governor, groupKey, nftName, nftSymbol, rootHash1);
 
         // set the proposal submission verifier to the mock verifier and verify the first proposal
-        await setSubmissionVerifierAndVerifyProposal(governor, mockProposalVerifier.target, mockProof, mockPublicSignals1, contextKey, rootHash1);
+        await setSubmissionVerifierAndVerifyProposal(governor, mockProposalVerifier.target, mockProof, mockProposalPublicSignals1, proposalContextKey, rootHash1);
 
         // set the proposal claim verifier to the mock verifier
         await proposalManager.connect(governor).setProposalClaimVerifier(mockProposalClaimVerifier.target);
@@ -963,9 +680,9 @@ describe("Proposal Manager Unit Tests:", function () {
         await expect(proposalManager.connect(governor).verifyProposalClaim(
             mockProof,
             mockClaimPublicSignals1,
-            contextKey
+            proposalContextKey
         )).to.emit(proposalManager, "ClaimVerified").withArgs(
-            contextKey,
+            proposalContextKey,
             claimNullifier1,
             submissionNullifier1
         );
@@ -974,7 +691,7 @@ describe("Proposal Manager Unit Tests:", function () {
         await expect(proposalManager.connect(governor).verifyProposalClaim(
             mockProof,
             mockClaimPublicSignals1,
-            contextKey
+            proposalContextKey
         )).to.be.revertedWithCustomError(proposalManager, "ProposalHasAlreadyBeenClaimed");
 
     });
@@ -983,11 +700,11 @@ describe("Proposal Manager Unit Tests:", function () {
         TESTING: onlyOwner authorization 
         EXPECTED: should not allow non-governor to verify a proposal claim`, async function () {
         // deploy group NFT and initialize group root
-        await deployGroupNftAndInitRoot(governor, groupKey, nftName, nftSymbol, rootHash1);
+        await deployGroupNftAndSetRoot(governor, groupKey, nftName, nftSymbol, rootHash1);
         
         // set the proposal submission verifier to the mock verifier and verify the first proposal
-        await setSubmissionVerifierAndVerifyProposal(governor, mockProposalVerifier.target, mockProof, mockPublicSignals1, contextKey, rootHash1);
-        
+        await setSubmissionVerifierAndVerifyProposal(governor, mockProposalVerifier.target, mockProof, mockProposalPublicSignals1, proposalContextKey, rootHash1);
+
         // set the proposal claim verifier to the mock verifier
         await proposalManager.connect(governor).setProposalClaimVerifier(mockProposalClaimVerifier.target); 
         
@@ -995,7 +712,7 @@ describe("Proposal Manager Unit Tests:", function () {
         await expect(proposalManager.connect(user1).verifyProposalClaim(
             mockProof,
             mockClaimPublicSignals1,
-            contextKey
+            proposalContextKey
         )).to.be.revertedWithCustomError(proposalManager, "OwnableUnauthorizedAccount");
     });
 
@@ -1003,10 +720,10 @@ describe("Proposal Manager Unit Tests:", function () {
         TESTING: custom error: InvalidClaimProof
         EXPECTED: should not allow governor to verify a proposal claim with an invalid proof`, async function () {
         // deploy group NFT and initialize group root
-        await deployGroupNftAndInitRoot(governor, groupKey, nftName, nftSymbol, rootHash1);
+        await deployGroupNftAndSetRoot(governor, groupKey, nftName, nftSymbol, rootHash1);
 
         // set the proposal submission verifier to the mock verifier and verify the first proposal
-        await setSubmissionVerifierAndVerifyProposal(governor, mockProposalVerifier.target, mockProof, mockPublicSignals1, contextKey, rootHash1);
+        await setSubmissionVerifierAndVerifyProposal(governor, mockProposalVerifier.target, mockProof, mockProposalPublicSignals1, proposalContextKey, rootHash1);
 
         // set the proposal claim verifier to the mock verifier
         await proposalManager.connect(governor).setProposalClaimVerifier(mockProposalClaimVerifier.target);
@@ -1018,46 +735,46 @@ describe("Proposal Manager Unit Tests:", function () {
         await expect(proposalManager.connect(governor).verifyProposalClaim(
             mockProof,
             mockClaimPublicSignals1,
-            contextKey
+            proposalContextKey
         )).to.be.revertedWithCustomError(proposalManager, "InvalidClaimProof");
     });
 
     it(`FUNCTION: verifyProposalClaim (with real verifier & real proof)
         TESTING: event: ClaimVerified, stored data: claimNullifier
         EXPECTED: should allow the governor to verify a proposal claim with a valid proof`, async function () {
-        await deployGroupNftAndInitRoot(governor, realGroupKey, nftName, nftSymbol, realRoot);
+        await deployGroupNftAndSetRoot(governor, realGroupKey, nftName, nftSymbol, realRoot);
         await proposalManager.connect(governor).verifyProposal(
-            realProof,
-            realPublicSignals,
-            realContextKey,
+            realProposalProof,
+            realProposalPublicSignals,
+            realProposalContextKey,
             realRoot
         );
 
-        const submissionNullifierStatus = await proposalManager.connect(governor).getSubmissionNullifierStatus(proofSubmissionNullifier);
+        const submissionNullifierStatus = await proposalManager.connect(governor).getSubmissionNullifierStatus(proposalProofSubmissionNullifier);
         expect(submissionNullifierStatus).to.equal(true, "Submission nullifier status should be true after verification");
 
         await expect(proposalManager.connect(governor).verifyProposalClaim(
             realClaimProof,
             realClaimPublicSignals,
-            realContextKey
+            realProposalContextKey
         )).to.emit(proposalManager, "ClaimVerified").withArgs(
-            proofContextHash,
-            proofClaimNullifier,
-            proofSubmissionNullifier
+            proposalProofContextHash,
+            proposalProofClaimNullifier,
+            proposalProofSubmissionNullifier
         );
 
-        const claimNullifierStatus = await proposalManager.connect(governor).getClaimNullifierStatus(proofClaimNullifier);
+        const claimNullifierStatus = await proposalManager.connect(governor).getClaimNullifierStatus(proposalProofClaimNullifier);
         expect(claimNullifierStatus).to.equal(true, "Claim nullifier status should be true after verification");
     });
 
     it(`FUNCTION: verifyProposalClaim (with real verifier, real proof, invalid public signals)
         TESTING: custom error: InvalidClaimProof
         EXPECTED: should not allow the governor to verify a proposal claim with a valid proof and an invalid claim nullifier in the public signals`, async function () {
-        await deployGroupNftAndInitRoot(governor, realGroupKey, nftName, nftSymbol, realRoot);
+        await deployGroupNftAndSetRoot(governor, realGroupKey, nftName, nftSymbol, realRoot);
         await proposalManager.connect(governor).verifyProposal(
-            realProof,
-            realPublicSignals,
-            realContextKey,
+            realProposalProof,
+            realProposalPublicSignals,
+            realProposalContextKey,
             realRoot
         );
 
@@ -1068,22 +785,22 @@ describe("Proposal Manager Unit Tests:", function () {
         await expect(proposalManager.connect(governor).verifyProposalClaim(
             realClaimProof,
             invalidClaimPublicSignals,
-            realContextKey
+            realProposalContextKey
         )).to.be.revertedWithCustomError(proposalManager, "InvalidClaimProof").withArgs(
-            realContextKey,
+            realProposalContextKey,
             invalidClaimPublicSignals[0],
-            proofSubmissionNullifier
+            proposalProofSubmissionNullifier
         );
     });
 
     it(`FUNCTION: verifyProposalClaim (with real verifier, real proof, invalid public signals)
         TESTING: custom error: ProposalHasNotBeenSubmitted
         EXPECTED: should not allow the governor to verify a proposal claim with a valid proof and an invalid submission nullifier in the public signals`, async function () {
-        await deployGroupNftAndInitRoot(governor, realGroupKey, nftName, nftSymbol, realRoot);
+        await deployGroupNftAndSetRoot(governor, realGroupKey, nftName, nftSymbol, realRoot);
         await proposalManager.connect(governor).verifyProposal(
-            realProof,
-            realPublicSignals,
-            realContextKey,
+            realProposalProof,
+            realProposalPublicSignals,
+            realProposalContextKey,
             realRoot
         );
 
@@ -1098,18 +815,18 @@ describe("Proposal Manager Unit Tests:", function () {
         await expect(proposalManager.connect(governor).verifyProposalClaim(
             realClaimProof,
             invalidClaimPublicSignals,
-            realContextKey
+            realProposalContextKey
         )).to.be.revertedWithCustomError(proposalManager, "ProposalHasNotBeenSubmitted");
     });
 
     it(`FUNCTION: verifyProposalClaim (with real verifier, real proof, invalid public signals)
         TESTING: custom error: InvalidContextHash
         EXPECTED: should not allow the governor to verify a proposal claim with a valid proof and an invalid context hash in the public signals`, async function () {
-        await deployGroupNftAndInitRoot(governor, realGroupKey, nftName, nftSymbol, realRoot);
+        await deployGroupNftAndSetRoot(governor, realGroupKey, nftName, nftSymbol, realRoot);
         await proposalManager.connect(governor).verifyProposal(
-            realProof,
-            realPublicSignals,
-            realContextKey,
+            realProposalProof,
+            realProposalPublicSignals,
+            realProposalContextKey,
             realRoot
         );
 
@@ -1120,7 +837,7 @@ describe("Proposal Manager Unit Tests:", function () {
         await expect(proposalManager.connect(governor).verifyProposalClaim(
             realClaimProof,
             invalidClaimPublicSignals,
-            realContextKey
+            realProposalContextKey
         )).to.be.revertedWithCustomError(proposalManager, "InvalidContextHash");
     });
 
@@ -1128,14 +845,14 @@ describe("Proposal Manager Unit Tests:", function () {
         TESTING: stored data: claimNullifier
         EXPECTED: should store two claim nullifiers after verifying two different proposal claims`, async function () {
         // deploy group NFT and initialize group root for the first proposal
-        await deployGroupNftAndInitRoot(governor, groupKey, nftName, nftSymbol, rootHash1);
+        await deployGroupNftAndSetRoot(governor, groupKey, nftName, nftSymbol, rootHash1);
 
         // set the proposal submission verifier to the mock verifier and verify the first proposal
-        await setSubmissionVerifierAndVerifyProposal(governor, mockProposalVerifier.target, mockProof, mockPublicSignals1, contextKey, rootHash1);
-        
+        await setSubmissionVerifierAndVerifyProposal(governor, mockProposalVerifier.target, mockProof, mockProposalPublicSignals1, proposalContextKey, rootHash1);
+
         // set the proposal claim verifier to the mock verifier and verify the first proposal claim
-        await setClaimVerifierAndVerifyClaim(governor, mockProposalClaimVerifier.target, mockProof, mockClaimPublicSignals1, contextKey, rootHash1);
-       
+        await setClaimVerifierAndVerifyClaim(governor, mockProposalClaimVerifier.target, mockProof, mockClaimPublicSignals1, proposalContextKey, rootHash1);
+
         // check if the claim nullifier status is stored correctly
         expect(await proposalManager.connect(governor).getClaimNullifierStatus(claimNullifier1)).to.equal(true);
 
@@ -1145,8 +862,8 @@ describe("Proposal Manager Unit Tests:", function () {
         // verify the second proposal
         await proposalManager.connect(governor).verifyProposal(
             mockProof,
-            mockPublicSignals2,
-            contextKey,
+            mockProposalPublicSignals2,
+            proposalContextKey,
             rootHash2
         );
 
@@ -1154,7 +871,7 @@ describe("Proposal Manager Unit Tests:", function () {
         await proposalManager.connect(governor).verifyProposalClaim(
             mockProof,
             mockClaimPublicSignals2,
-            contextKey
+            proposalContextKey
         );
         // check if the claim nullifier status is stored correctly
         expect(await proposalManager.connect(governor).getClaimNullifierStatus(claimNullifier2)).to.equal(true);
@@ -1166,13 +883,13 @@ describe("Proposal Manager Unit Tests:", function () {
         TESTING: onlyOwner authorization
         EXPECTED: should not allow non-governor to check the status of a proposal claim nullifier`, async function () {
         // deploy group NFT and initialize group root for the first proposal
-        await deployGroupNftAndInitRoot(governor, groupKey, nftName, nftSymbol, rootHash1);
+        await deployGroupNftAndSetRoot(governor, groupKey, nftName, nftSymbol, rootHash1);
        
         // set the proposal submission verifier to the mock verifier and verify the first proposal
-        await setSubmissionVerifierAndVerifyProposal(governor, mockProposalVerifier.target, mockProof, mockPublicSignals1, contextKey, rootHash1);
+        await setSubmissionVerifierAndVerifyProposal(governor, mockProposalVerifier.target, mockProof, mockProposalPublicSignals1, proposalContextKey, rootHash1);
         
         // set the proposal claim verifier to the mock verifier and verify the first proposal claim
-        await setClaimVerifierAndVerifyClaim(governor, mockProposalClaimVerifier.target, mockProof, mockClaimPublicSignals1, contextKey, rootHash1);
+        await setClaimVerifierAndVerifyClaim(governor, mockProposalClaimVerifier.target, mockProof, mockClaimPublicSignals1, proposalContextKey, rootHash1);
        
         // check if the claim nullifier status is stored correctly
         await expect(proposalManager.connect(user1).getClaimNullifierStatus(claimNullifier1)).to.be.revertedWithCustomError(proposalManager, "OwnableUnauthorizedAccount");
@@ -1182,11 +899,11 @@ describe("Proposal Manager Unit Tests:", function () {
         TESTING: onlyOwner authorization
         EXPECTED: should not allow non-governor to check the status of a proposal submission nullifier`, async function () {
         // deploy group NFT and initialize group root for the first proposal
-        await deployGroupNftAndInitRoot(governor, groupKey, nftName, nftSymbol, rootHash1);
+        await deployGroupNftAndSetRoot(governor, groupKey, nftName, nftSymbol, rootHash1);
         
        // set the proposal submission verifier to the mock verifier and verify the first proposal
-        await setSubmissionVerifierAndVerifyProposal(governor, mockProposalVerifier.target, mockProof, mockPublicSignals1, contextKey, rootHash1);
-       
+        await setSubmissionVerifierAndVerifyProposal(governor, mockProposalVerifier.target, mockProof, mockProposalPublicSignals1, proposalContextKey, rootHash1);
+
         // check if the submission nullifier status is stored correctly
         await expect(proposalManager.connect(user1).getSubmissionNullifierStatus(submissionNullifier1))
             .to.be.revertedWithCustomError(proposalManager, "OwnableUnauthorizedAccount");

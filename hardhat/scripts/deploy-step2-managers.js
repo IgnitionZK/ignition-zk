@@ -1,8 +1,6 @@
 const { ethers, upgrades } = require("hardhat");
 
 async function main() {
-  console.log("🚀 Step 2: Deploying MembershipManager as UUPS Proxy...\n");
-
   // Get the signer
   const [deployer] = await ethers.getSigners();
   console.log("📝 Deploying with account:", deployer.address);
@@ -22,7 +20,7 @@ async function main() {
   const PROPOSAL_CLAIM_VERIFIER_ADDRESS =
     "0x7a2ED32E1C83981F7160fFb61275a9d29b007d9e"; // From Step 0 - UPDATE THIS
   const VOTE_VERIFIER_ADDRESS = 
-    "0xBb51a539D9Fe3cC15abd7bd49cc0572DFe2Fc87b"; // From Step 0 - UPDATE THIS
+    "0x1FC190Ad4A867B8d334b16838A6569a05f301dC2"; // From Step 0 - UPDATE THIS
   const GOVERNOR_PLACEHOLDER = "0x5F909fd25A9F5e4f5a219318FdeD6C8124F6c1F1";
 
   console.log("📋 Configuration:");
