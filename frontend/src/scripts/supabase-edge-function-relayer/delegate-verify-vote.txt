@@ -4,18 +4,15 @@ import { verify } from "https://deno.land/x/djwt@v2.7/mod.ts";
 // CORS headers configuration
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type",
-  "Access-Control-Allow-Methods": "POST, OPTIONS", // Allowed methods
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Methods": "POST, OPTIONS"
 };
 // GovernanceManager Proxy address. This is the address of your deployed proxy contract.
-const GOVERNANCE_MANAGER_PROXY_ADDRESS = Deno.env.get(
-  "GOVERNOR_CONTRACT_ADDRESS"
-);
+const GOVERNANCE_MANAGER_PROXY_ADDRESS = Deno.env.get("GOVERNOR_CONTRACT_ADDRESS");
 // ABI for the delegateVerifyVote function on GovernanceManager.
 // This ABI must match the function signature in your GovernanceManager contract.
 const GOVERNANCE_MANAGER_ABI = [
-  "function delegateVerifyVote(uint256[24] calldata proof, uint256[4] calldata publicSignals, bytes32 groupKey, bytes32 contextKey)",
+  "function delegateVerifyVote(uint256[24] calldata proof, uint256[5] calldata publicSignals, bytes32 groupKey, bytes32 contextKey)"
 ];
 // Declare these variables globally to avoid re-initializing them on every request.
 let provider;
@@ -29,190 +26,146 @@ try {
   const privateKey = Deno.env.get("RELAYER_PRIVATE_KEY");
   const jwtSecretString = Deno.env.get("SUPA_JWT_SECRET"); // Get JWT secret as a string // Ensure environment variables are set.
   if (!rpcUrl) {
-    throw new Error(
-      "SEPOLIA_RPC_URL environment variable is not set. Please configure it in Supabase secrets."
-    );
+    throw new Error("SEPOLIA_RPC_URL environment variable is not set. Please configure it in Supabase secrets.");
   }
   if (!privateKey) {
-    throw new Error(
-      "RELAYER_PRIVATE_KEY environment variable is not set. Please configure it in Supabase secrets."
-    );
+    throw new Error("RELAYER_PRIVATE_KEY environment variable is not set. Please configure it in Supabase secrets.");
   }
   if (!jwtSecretString) {
-    throw new Error(
-      "SUPA_JWT_SECRET environment variable is not set. Please configure it in Supabase secrets."
-    );
+    throw new Error("SUPA_JWT_SECRET environment variable is not set. Please configure it in Supabase secrets.");
   } // Use Web Crypto API's subtle.importKey directly to create the CryptoKey
-  jwtCryptoKey = await crypto.subtle.importKey(
-    "raw",
-    new TextEncoder().encode(jwtSecretString),
-    {
-      name: "HMAC",
-      hash: "SHA-256",
-    },
-    true,
-    ["verify"] // usages: only for verification
+  jwtCryptoKey = await crypto.subtle.importKey("raw", new TextEncoder().encode(jwtSecretString), {
+    name: "HMAC",
+    hash: "SHA-256"
+  }, true, [
+    "verify"
+  ] // usages: only for verification
   ); // Create a JSON RPC provider using the provided RPC URL.
   provider = new ethers.JsonRpcProvider(rpcUrl); // Create a wallet instance from the relayer's private key, connected to the provider.
   wallet = new ethers.Wallet(privateKey, provider); // Create a contract instance, connected to the wallet for signing transactions.
-  contract = new ethers.Contract(
-    GOVERNANCE_MANAGER_PROXY_ADDRESS,
-    GOVERNANCE_MANAGER_ABI,
-    wallet
-  );
-  console.log(
-    "Ethers provider, wallet, and contract initialized successfully for delegate-verify-vote."
-  );
+  contract = new ethers.Contract(GOVERNANCE_MANAGER_PROXY_ADDRESS, GOVERNANCE_MANAGER_ABI, wallet);
+  console.log("Ethers provider, wallet, and contract initialized successfully for delegate-verify-vote.");
 } catch (error) {
   console.error("Failed to initialize Ethers or JWT key:", error.message);
 }
 // Main handler for the Supabase Edge Function.
-serve(async (req) => {
+serve(async (req)=>{
   // Handle CORS preflight requests (OPTIONS method)
   if (req.method === "OPTIONS") {
     return new Response("ok", {
-      headers: corsHeaders, // Return success with CORS headers
+      headers: corsHeaders
     });
   } // Check if Ethers components were successfully initialized.
   if (!provider || !wallet || !contract || !jwtCryptoKey) {
-    return new Response(
-      JSON.stringify({
-        error:
-          "Edge function initialization failed. Check server logs and environment variables.",
-      }),
-      {
-        status: 500,
-        headers: {
-          ...corsHeaders,
-          "Content-Type": "application/json",
-        },
+    return new Response(JSON.stringify({
+      error: "Edge function initialization failed. Check server logs and environment variables."
+    }), {
+      status: 500,
+      headers: {
+        ...corsHeaders,
+        "Content-Type": "application/json"
       }
-    );
+    });
   } // Only allow POST requests for the actual logic.
   if (req.method !== "POST") {
-    return new Response(
-      JSON.stringify({
-        error: "Method Not Allowed. Only POST requests are accepted.",
-      }),
-      {
-        status: 405,
-        headers: {
-          ...corsHeaders,
-          "Content-Type": "application/json",
-        },
+    return new Response(JSON.stringify({
+      error: "Method Not Allowed. Only POST requests are accepted."
+    }), {
+      status: 405,
+      headers: {
+        ...corsHeaders,
+        "Content-Type": "application/json"
       }
-    );
+    });
   }
   try {
     // Enforce JWT verification
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
-      return new Response(
-        JSON.stringify({
-          error: "Authorization header missing.",
-        }),
-        {
-          status: 401,
-          headers: {
-            ...corsHeaders,
-            "Content-Type": "application/json",
-          },
+      return new Response(JSON.stringify({
+        error: "Authorization header missing."
+      }), {
+        status: 401,
+        headers: {
+          ...corsHeaders,
+          "Content-Type": "application/json"
         }
-      );
+      });
     }
     const jwt = authHeader.split("Bearer ")[1];
     if (!jwt) {
-      return new Response(
-        JSON.stringify({
-          error: "Bearer token missing from Authorization header.",
-        }),
-        {
-          status: 401,
-          headers: {
-            ...corsHeaders,
-            "Content-Type": "application/json",
-          },
+      return new Response(JSON.stringify({
+        error: "Bearer token missing from Authorization header."
+      }), {
+        status: 401,
+        headers: {
+          ...corsHeaders,
+          "Content-Type": "application/json"
         }
-      );
+      });
     }
     let userId;
     try {
       // Use the pre-created jwtCryptoKey for verification
       const payload = await verify(jwt, jwtCryptoKey, "HS256");
       if (typeof payload.sub !== "string") {
-        throw new Error(
-          "Invalid JWT payload: 'sub' (user ID) is not a string."
-        );
+        throw new Error("Invalid JWT payload: 'sub' (user ID) is not a string.");
       }
       userId = payload.sub; // Extract user ID from the payload
       console.log(`JWT verified for user: ${userId}`);
     } catch (e) {
       console.error("JWT verification failed:", e.message);
-      return new Response(
-        JSON.stringify({
-          error: `Unauthorized: Invalid JWT. ${e.message}`,
-        }),
-        {
-          status: 401,
-          headers: {
-            ...corsHeaders,
-            "Content-Type": "application/json",
-          },
+      return new Response(JSON.stringify({
+        error: `Unauthorized: Invalid JWT. ${e.message}`
+      }), {
+        status: 401,
+        headers: {
+          ...corsHeaders,
+          "Content-Type": "application/json"
         }
-      );
+      });
     } // Parse the request body to get proof, public_signals, group_key, and the pre-computed context_key.
     const { proof, public_signals, group_key, context_key } = await req.json(); // LOG: Data received by edge function
     console.log("[RELAYER/EdgeFunction] Data received:", {
       proof,
       public_signals,
       group_key,
-      context_key,
+      context_key
     }); // Validate required parameters.
     if (!proof || !public_signals || !group_key || !context_key) {
-      return new Response(
-        JSON.stringify({
-          error:
-            "Missing required parameters: 'proof', 'public_signals', 'group_key' or 'context_key' in request body.",
-        }),
-        {
-          status: 400,
-          headers: {
-            ...corsHeaders,
-            "Content-Type": "application/json",
-          },
+      return new Response(JSON.stringify({
+        error: "Missing required parameters: 'proof', 'public_signals', 'group_key' or 'context_key' in request body."
+      }), {
+        status: 400,
+        headers: {
+          ...corsHeaders,
+          "Content-Type": "application/json"
         }
-      );
-    } // NOTE: The public signals length is 4 for verifyVote, not 5.
-    if (proof.length !== 24 || public_signals.length !== 4) {
-      return new Response(
-        JSON.stringify({
-          error: `Invalid proof or public_signals length. Expected proof[24] and public_signals[4], but received proof[${proof.length}] and public_signals[${public_signals.length}].`,
-        }),
-        {
-          status: 400,
-          headers: {
-            ...corsHeaders,
-            "Content-Type": "application/json",
-          },
+      });
+    } // NOTE: The public signals length is 5 for verifyVote (includes proposalSubmissionNullifier).
+    if (proof.length !== 24 || public_signals.length !== 5) {
+      return new Response(JSON.stringify({
+        error: `Invalid proof or public_signals length. Expected proof[24] and public_signals[5], but received proof[${proof.length}] and public_signals[${public_signals.length}].`
+      }), {
+        status: 400,
+        headers: {
+          ...corsHeaders,
+          "Content-Type": "application/json"
         }
-      );
+      });
     } // group_key is already a bytes32 hash and a field element
     const bytes32GroupKey = group_key; // Use the pre-computed context_key directly // Ensure it's a valid bytes32 string if it's coming from client as string
     const bytes32ContextKey = ethers.zeroPadValue(context_key, 32); // LOG: Data converted to BigInt
     console.log("[RELAYER/EdgeFunction] Data as BigInt:", {
-      proofBigInt: proof.map((item) => BigInt(item)),
-      publicSignalsBigInt: public_signals.map((item) => BigInt(item)),
+      proofBigInt: proof.map((item)=>BigInt(item)),
+      publicSignalsBigInt: public_signals.map((item)=>BigInt(item))
     }); // Convert proof and publicSignal string inputs to BigInts
-    const proofBigInt = proof.map((item) => BigInt(item));
-    const publicSignalsBigInt = public_signals.map((item) => BigInt(item));
+    const proofBigInt = proof.map((item)=>BigInt(item));
+    const publicSignalsBigInt = public_signals.map((item)=>BigInt(item));
     console.log(`Received request to verify vote proof for user ${userId}:`);
     console.log(`   Proof (Solidity) BigInt: ${proofBigInt}`);
-    console.log(
-      `   Public signals (Solidity) BigInt: '${publicSignalsBigInt}'`
-    );
-    console.log(
-      `   Group Key (bytes32 with modulo reduction): '${bytes32GroupKey}'`
-    );
+    console.log(`   Public signals (Solidity) BigInt: '${publicSignalsBigInt}'`);
+    console.log(`   Group Key (bytes32 with modulo reduction): '${bytes32GroupKey}'`);
     console.log(`   Received Context Key (bytes32): '${bytes32ContextKey}'`);
     let transactionResponse;
     let actionPerformed;
@@ -220,62 +173,42 @@ serve(async (req) => {
       proofBigInt,
       publicSignalsBigInt,
       bytes32GroupKey,
-      bytes32ContextKey,
-    }); // Call the delegateVerifyVote function on the GovernanceManager contract
-    transactionResponse = await contract.delegateVerifyVote(
-      proofBigInt,
-      publicSignalsBigInt,
-      bytes32GroupKey,
       bytes32ContextKey
-    );
+    }); // Call the delegateVerifyVote function on the GovernanceManager contract
+    transactionResponse = await contract.delegateVerifyVote(proofBigInt, publicSignalsBigInt, bytes32GroupKey, bytes32ContextKey);
     actionPerformed = "delegateVerifyVote";
-    console.log(
-      "[RELAYER/EdgeFunction] Transaction response:",
-      transactionResponse
-    );
-    console.log(
-      `Transaction sent. Transaction Hash: ${transactionResponse.hash}`
-    );
+    console.log("[RELAYER/EdgeFunction] Transaction response:", transactionResponse);
+    console.log(`Transaction sent. Transaction Hash: ${transactionResponse.hash}`);
     const receipt = await transactionResponse.wait();
     if (!receipt) {
-      throw new Error(
-        "Transaction receipt not found. The transaction might not have been mined successfully or timed out."
-      );
+      throw new Error("Transaction receipt not found. The transaction might not have been mined successfully or timed out.");
     }
-    console.log(
-      `Transaction successfully mined. Block Number: ${receipt.blockNumber}, Gas Used: ${receipt.gasUsed}`
-    ); // Return a success response with transaction details.
-    return new Response(
-      JSON.stringify({
-        message: `Vote verified successfully via ${actionPerformed}.`,
-        transactionHash: transactionResponse.hash,
-        actionPerformed: actionPerformed,
-        blockNumber: receipt.blockNumber.toString(),
-        gasUsed: receipt.gasUsed.toString(),
-      }),
-      {
-        status: 200,
-        headers: {
-          ...corsHeaders,
-          "Content-Type": "application/json",
-        },
+    console.log(`Transaction successfully mined. Block Number: ${receipt.blockNumber}, Gas Used: ${receipt.gasUsed}`); // Return a success response with transaction details.
+    return new Response(JSON.stringify({
+      message: `Vote verified successfully via ${actionPerformed}.`,
+      transactionHash: transactionResponse.hash,
+      actionPerformed: actionPerformed,
+      blockNumber: receipt.blockNumber.toString(),
+      gasUsed: receipt.gasUsed.toString()
+    }), {
+      status: 200,
+      headers: {
+        ...corsHeaders,
+        "Content-Type": "application/json"
       }
-    );
+    });
   } catch (error) {
     // Catch any errors during the process and return an error response.
     console.error("Error in relayer-verify-vote Edge Function:", error);
-    return new Response(
-      JSON.stringify({
-        error: error.message || "An unknown internal server error occurred.",
-        stack: error.stack, // Include stack trace for debugging
-      }),
-      {
-        status: 500,
-        headers: {
-          ...corsHeaders,
-          "Content-Type": "application/json",
-        },
+    return new Response(JSON.stringify({
+      error: error.message || "An unknown internal server error occurred.",
+      stack: error.stack
+    }), {
+      status: 500,
+      headers: {
+        ...corsHeaders,
+        "Content-Type": "application/json"
       }
-    );
+    });
   }
 });
