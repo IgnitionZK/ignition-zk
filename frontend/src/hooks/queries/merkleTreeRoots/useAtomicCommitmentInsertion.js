@@ -1,7 +1,6 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "../../../services/supabase";
 import { MerkleTreeService } from "../../../scripts/merkleTreeService";
-import { uuidToBytes32 } from "../../../scripts/utils/uuidToBytes32";
 import { insertMerkleTreeRoot } from "../../../services/apiMerkleTreeRoots";
 import { toggleMerkleTreeRootActive } from "../../../services/apiMerkleTreeRoots";
 

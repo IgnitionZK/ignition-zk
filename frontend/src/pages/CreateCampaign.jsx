@@ -8,6 +8,7 @@ import toast from "react-hot-toast";
 import { useGetUserGroups } from "../hooks/queries/groupMembers/useGetUserGroups";
 import { useGetEpochsByGroupId } from "../hooks/queries/epochs/useGetEpochsByGroupId";
 import { useInsertEpoch } from "../hooks/queries/epochs/useInsertEpoch";
+import { useValidateGroupCredentials } from "../hooks/queries/groups/useValidateGroupCredentials";
 import CustomButton from "../components/CustomButton";
 import CustomDropdown from "../components/CustomDropdown";
 import PageHeader from "../components/PageHeader";
@@ -207,6 +208,20 @@ export default function CreateCampaign({ onCancel }) {
     error: epochsError,
   } = useGetEpochsByGroupId(selectedGroupObject?.group_id);
 
+  // Validate group credentials completion
+  const {
+    isLoading: isValidatingCredentials,
+    isValid: areCredentialsValid,
+    totalMembers,
+    commitmentsCount,
+    message: credentialsMessage,
+    error: credentialsError,
+  } = useValidateGroupCredentials(
+    selectedGroupObject?.erc721_contract_address,
+    selectedGroupObject?.group_id,
+    !!selectedGroupObject?.erc721_contract_address
+  );
+
   const {
     insertEpoch,
     isLoading: isInserting,
@@ -405,6 +420,17 @@ export default function CreateCampaign({ onCancel }) {
     newErrors.duration = validateField("duration", duration);
     newErrors.startDate = validateField("startDate", startDate);
 
+    // Add credentials validation error if applicable
+    if (
+      selectedGroupObject?.erc721_contract_address &&
+      !areCredentialsValid &&
+      !isValidatingCredentials
+    ) {
+      newErrors.credentials =
+        credentialsMessage ||
+        "All group members must generate credentials before creating a campaign";
+    }
+
     setErrors(newErrors);
     setTouched({
       selectedGroup: true,
@@ -421,6 +447,10 @@ export default function CreateCampaign({ onCancel }) {
 
     // Validate all fields
     if (!validateAllFields()) {
+      // Show toast error for credentials validation
+      if (errors.credentials) {
+        toast.error(errors.credentials);
+      }
       return;
     }
 
@@ -613,6 +643,56 @@ export default function CreateCampaign({ onCancel }) {
             {touched.selectedGroup && errors.selectedGroup && (
               <ErrorMessage>{errors.selectedGroup}</ErrorMessage>
             )}
+
+            {/* Credentials validation status */}
+            {selectedGroupObject?.erc721_contract_address && (
+              <div style={{ marginTop: "1.2rem" }}>
+                {isValidatingCredentials && (
+                  <div
+                    style={{
+                      color: "var(--color-grey-400)",
+                      fontSize: "1.2rem",
+                      marginTop: "0.4rem",
+                    }}
+                  >
+                    Checking group credentials status...
+                  </div>
+                )}
+
+                {!isValidatingCredentials && credentialsError && (
+                  <div
+                    style={{
+                      color: "var(--color-red-400)",
+                      fontSize: "1.2rem",
+                      marginTop: "0.4rem",
+                    }}
+                  >
+                    Error checking credentials: {credentialsError}
+                  </div>
+                )}
+
+                {!isValidatingCredentials && !credentialsError && (
+                  <div
+                    style={{
+                      color: areCredentialsValid
+                        ? "var(--color-green-400)"
+                        : "var(--color-red-400)",
+                      fontSize: "1.2rem",
+                      marginTop: "0.4rem",
+                      fontWeight: "500",
+                    }}
+                  >
+                    {areCredentialsValid
+                      ? `✅ ${credentialsMessage}`
+                      : `❌ ${credentialsMessage}`}
+                  </div>
+                )}
+
+                {errors.credentials && (
+                  <ErrorMessage>{errors.credentials}</ErrorMessage>
+                )}
+              </div>
+            )}
           </FormField>
 
           <FormField>
@@ -695,6 +775,11 @@ export default function CreateCampaign({ onCancel }) {
             textColor="#232328"
             hoverColor="#818cf8"
             onClick={handleSubmit}
+            disabled={
+              selectedGroupObject?.erc721_contract_address &&
+              !areCredentialsValid &&
+              !isValidatingCredentials
+            }
           >
             Create
           </CustomButton>
