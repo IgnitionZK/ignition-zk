@@ -35,7 +35,10 @@
         * [Step 2.2 Proposal Creation](#step-22-proposal-creation)
         * [Step 2.3 Anonymous Verifiable Submissions](#step-23-anonymous-verifiable-submissions)
     * [Phase 3: Anonymous Voting](#phase-3-anonymous-voting)
-    * [Phase 4: Proposal Execution](#phase-4-proposal-execution)
+        * [Step 3.1 Voting Phase](#step-31-voting-phase)
+        * [Step 3.2 Anonymous Vote Submissions](#step-32-anonymous-vote-submissions)
+        * [Step 3.3 Vote Tally Reveal](#step-33-vote-tally-reveal)
+    * [Phase 4: Proposal Funding Claims](#phase-4-proposal-funding-claims)
 
 ## Introducing IgnitionZK 
 
@@ -157,6 +160,7 @@ Implementation Contract: [ERC721IgnitionZK](hardhat/contracts/token/ERC721Igniti
 * ERC721 Token name and symbol defined by the user in the UI
 </details>
 
+<!--
 <details>
 <summary>
     <strong>Data Flow</strong>
@@ -169,6 +173,7 @@ Implementation Contract: [ERC721IgnitionZK](hardhat/contracts/token/ERC721Igniti
     * **Off-chain:** in `ignitionzk.groups`
     * **On-chain:** in `MembershipManager`'s `groupNftAddresses` mapping.
 </details>
+-->
 
 #### Step 1.2 ERC721 Membership NFTs
 
@@ -183,10 +188,12 @@ The appointed administrator of a new DAO group extends invitations to the initia
 * **Burnable:** When a member's affiliation with the real-world group ceases, their active DAO participation is terminated through the burning of their corresponding membership NFT.
 </details>
 
+<!--
 <details>
 <summary>
     <strong>Data Flow</strong>
 </summary>
+
 
 1. DAO Administrator enters members' addresses on the UI
 2. Relayer calls `GovernanceManager.delegateMintNftToMember`
@@ -194,6 +201,7 @@ The appointed administrator of a new DAO group extends invitations to the initia
 4. The MembershipManager mints a new ERC721 membership NFT directly to each invited member's wallet.
 5. These new DAO members are recorded via anonymized `group_member_id`s **off-chain** within ` ignitionzk.group_members`; there is **no on-chain storage** of individual member addresses or IDs.
 </details>
+-->
 
 #### Step 1.3 Member ZK Credential Generation
 
@@ -214,6 +222,7 @@ The cryptographic steps involved in securely generating a unique Zero-Knowledge 
 5. **Identity commmitment:** The final public identity commitment is calculated as a Poseidon hash of these two private components: `commitment = Poseidon(trapdoor, nullifier)`
 </details>
 
+<!--
 <details>
 <summary>
     <strong>Data Flow</strong>
@@ -225,6 +234,7 @@ The cryptographic steps involved in securely generating a unique Zero-Knowledge 
 4. Upon clicking "Generate Credentials," the member is securely presented with their newly generated mnemonic phrase.
 5. The member's newly formed identity commitment is then stored off-chain in `ignitionzk.merkle_tree_leaves` (this commitment later contributes to the Merkle tree root on-chain).
 </details>
+-->
 
 #### Step 1.4 Merkle Tree Creation 
 
@@ -244,6 +254,7 @@ Following the generation of a new member's identity commitment, the DAO's Merkle
 5.  **Root Storage:** The newly computed Merkle root is securely saved both off-chain and on-chain within the MembershipManager contract.
 </details>
 
+<!--
 <details>
 <summary>
     <strong>Data Flow</strong>
@@ -256,6 +267,7 @@ Following the generation of a new member's identity commitment, the DAO's Merkle
     * **Subsequent updates:** If a Merkle root for the DAO already exists, the Relayer calls `governanceManager.delegateSetRoot` which in turn calls `MembershipManager.setRoot`.
 4. The new Merkle root is stored on-chain in the Membership Manager's `groupRoots` mapping.
 </details>
+-->
 
 #### Step 1.5 Member Verification
 
@@ -288,11 +300,11 @@ Once all initial members have generated their credentials, the DAO is ready to e
 
 This request immediately triggers an approval vote by the rest of the DAO. If the members approve the request, the campaign officially begins on the specified start date and proceeds through three distinct phases:
 
-1. **Proposal Submission**: Members can formally submit new ideas and initiatives for consideration.
+1. **Proposal Submission Phase**: Members can formally submit new ideas and initiatives for consideration.
 
-2. **Voting**: The DAO members vote on the submitted proposals using their ZK credentials.
+2. **Voting Phase**: The DAO members vote on the submitted proposals using their ZK credentials.
 
-3. **Timelock / Review**: A final review period ensures the integrity and security of the approved proposals before execution.
+3. **Timelock / Review Phase**: A final review period ensures the integrity and security of the approved proposals before execution.
 
 IgnitionZK's governance model is built for flexibility and agility:
 
@@ -314,6 +326,8 @@ The proposal document is then submitted to IPFS (InterPlanetary File System), an
 
 #### Step 2.3 Verifiable Anonymous Submissions
 
+![Proposal submission](frontend/src/assets/proposal_submission.png)
+
 To ensure the integrity of the submission process while preserving the anonymity of creators, IgnitionZK uses a zero-knowledge proof (ZKP) circuit. This ZKP guarantees three critical conditions without revealing any private information about the proposer:
 
 * **Verified Membership**: The proof confirms that the individual submitting the proposal is a verified member of the DAO.
@@ -325,7 +339,57 @@ To ensure the integrity of the submission process while preserving the anonymity
 Finally, each successful ZK submission generates a unique claim nullifier. This nullifier serves as a key that will later allow the legitimate proposal creator to anonymously claim any rewards if their proposal is approved by the DAO.
 
 ### **Phase 3:** Anonymous Voting
-### **Phase 4:** Proposal Execution
+
+#### Step 3.1 Voting Phase
+
+Once the proposal submission phase concludes, all verified proposals become available for voting in the app's Inbox section. To ensure the integrity of the governance cycle, the voter base is locked in at the campaign's start. Only members who had generated their ZK credentials at that time are eligible to vote, and no new members can be added until the campaign has ended.
+
+#### Step 3.2 Anonymous Vote Submissions
+
+![Vote casting](frontend/src/assets/vote_casting.png)
+
+
+Voting is conducted confidentially and independently for each proposal, with every vote (Yes, No, or Abstain) submitted anonymously through a Zero-Knowledge Proof (ZKP). The ZK circuit provides a guarantee of the voting process by ensuring:
+
+* **Verified Participation**: Only verified DAO members are eligible to cast a vote.
+
+* **Vote Uniqueness**: Each member can vote only once per proposal, preventing duplicate votes.
+
+* **Valid Vote Content**: The vote cast is a valid choice (Yes, No, or Abstain).
+
+* **Correct Proposal Binding**: The vote is securely linked to its intended proposal, preventing votes from being misdirected or miscounted.
+
+#### Step 3.3 Vote Tally Reveal
+
+To maintain the anonymity of voters throughout the voting phase, vote proofs are kept off-chain. Only after the voting period concludes are these proofs submitted on-chain for verification. This process ensures that the final tally is only revealed at the very end, preventing any real-time vote-tallying that could influence the outcome of the vote.
+
+**Proposal Status**
+
+For a proposal to be officially marked as accepted, it must meet three key requirements:
+
+* **Quorum**: The total number of votes cast must meet a specified quorum threshold.
+* **Majority**: A simple majority of "Yes" votes must be achieved.
+* **Minimum Size**: The DAO's membership must exceed a minimum size threshold (currently set to 2 members).
+
+The proposal status is computed every time a new verified vote is tallied onchain.
+
+<details>
+<summary>
+    <strong>Dynamic Quorum Calculation</strong>
+</summary>
+
+The required quorum is not a fixed number; it is set dynamically onchain and scales with the size of the DAO to ensure that participation is always meaningful. The tiers below outline how the quorum is determined, using the terms "small," "medium," and "large" to denote relative differences in DAO size:
+
+* **Small DAOs**: A flat 50% quorum is required to pass a proposal.
+* **Medium DAOs**: The quorum is linearly interpolated based on the group's size, balancing participation with efficiency.
+* **Large DAOs**: The quorum requirement scales down to 25%, making governance more agile for larger groups.
+
+![Quorum](frontend/src/assets/quorumplot.jpg)
+</details>
+
+
+
+### **Phase 4:** Proposal Claims
 
 
 
