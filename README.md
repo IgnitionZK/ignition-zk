@@ -31,8 +31,14 @@
         * [Step 1.4 Merkle Tree Creation](#step-14-merkle-tree-creation)
         * [Step 1.5 Member Verification](#step-14-member-verification)
     * [Phase 2: Anonymous Proposal Submissions](#phase-2-anonymous-proposal-submissions)
+        * [Step 2.1 The Governance "Campaign"](#step-21-the-governance-campaign)
+        * [Step 2.2 Proposal Creation](#step-22-proposal-creation)
+        * [Step 2.3 Anonymous Verifiable Submissions](#step-23-anonymous-verifiable-submissions)
     * [Phase 3: Anonymous Voting](#phase-3-anonymous-voting)
-    * [Phase 4: Proposal Execution](#phase-4-proposal-execution)
+        * [Step 3.1 Voting Phase](#step-31-voting-phase)
+        * [Step 3.2 Anonymous Vote Submissions](#step-32-anonymous-vote-submissions)
+        * [Step 3.3 Vote Tally Reveal](#step-33-vote-tally-reveal)
+    * [Phase 4: Proposal Funding Claims](#phase-4-proposal-funding-claims)
 
 ## Introducing IgnitionZK 
 
@@ -74,8 +80,9 @@ The Circom circuits are the mathematical backbone of IgnitionZK's privacy logic.
 | Circuit | Summary | Verification Context | Included | Input Signals | Public Output Signals | Circuit Constraints | On-Chain Constraints |
 |---|---|---|---|---|---|---|---|
 | [Membership](zk/circuits/membership/membership_circuit.circom) | Private verification of DAO membership via ZK credentials & Merkle proofs. | Per-DAO | | <ul><li>`root`<li>`group hash`<li>`identity trapdoor`<li>`identity nullifier`<li>`path elements`<li>`path indices`</ul> | <ul><li>`root`<li>`group hash`<li>`membership nullifier`</ul> | `isMember === 1` | Unique `membership nullifier` |
-| [Proposal Submission](zk/circuits/proposal/proposal_circuit.circom) | Private submission of funding proposals from verified DAO members, with content validation & deduplication. | Per-DAO, Per-EPOCH | Membership Proof | <ul><li>Membership inputs<li>`proposal content hash`<li>`proposal title hash`<li>`proposal description hash`<li>`proposal payload hash`<li>`epoch hash`</ul> | <ul><li>`proposal context hash`<li>`proposal nullifier`<li>`root`<li>`proposal content hash`</ul> | `isMember === 1`<br>`Poseidon(title, desc, payload) === ContentHash` | Unique `proposal nullifier` |
-| [Voting](zk/circuits/voting/voting_circuit.circom) | Confidential voting by verified DAO members, with content validation & deduplication. | Per-DAO, Per-EPOCH, Per-PROPOSAL | Membership Proof | <ul><li>Membership inputs</ul> | ... | ... | Unique `voting nullifier` |
+| [Proposal Submission](zk/circuits/proposal/proposal_circuit.circom) | Private submission of funding proposals from verified DAO members, with content validation & deduplication. | Per-DAO, Per-EPOCH | Membership Proof | <ul><li>Membership inputs<li>`proposal content hash`<li>`proposal title hash`<li>`proposal description hash`<li>`proposal payload hash`<li>`proposal metadata hash`<li> `proposal funding hash` <li>`epoch hash`</ul> | <ul><li>`proposal context hash`<li>`proposal submission nullifier` <li>`proposal claim nullifier`<li>`root`<li>`proposal content hash`</ul> | `isMember === 1`<br>`Poseidon(title, desc, payload) === ContentHash` | Unique `proposal submission nullifier` |
+| [Vote](zk/circuits/vote/vote_circuit.circom) | Confidential voting by verified DAO members, with content validation, submisison nullifier and vote uniqueness verification. | Per-DAO, Per-EPOCH, Per-PROPOSAL | Membership Proof | <ul><li>Membership inputs <li> `vote choice` <li> `epoch hash` <li> `proposal hash`<li> `proposal submission nullifier` <li>`proposal title hash`<li>`proposal description hash`<li>`proposal payload hash`<li>`proposal metadata hash`<li> `proposal funding hash`</ul> | <ul><li> `vote context hash` <li> `vote nullifier` <li> `onchain verifiable vote choice hash` <li> `root` <li> `submission nullifier`</ul> | `isValidVoteChoice === 1` &`computedProposalSubmissionNullifier === proposalSubmissionNullifier` | Unique `vote nullifier` |
+| [Proposal Claim](zk/circuits/proposal-claim/proposal_claim_circuit.circom) | Confidential verification that a reward claim for an accepted proposal is made by its original anonymous creator. | Per-PROPOSAL, Per-Submitter | Membership Proof | <ul><li>Membership inputs <li>`proposal submisison nullifer` <li>`proposal claim nullifier` <li>`proposal context hash` <li>`identity nullifier` </ul> | <li>`proposal submisison nullifer` <li>`proposal claim nullifier` <li>`proposal context hash` | `computedClaimNullifier === proposalClaimNullifier` | Unique `claim nullifier` |
 </details>
 
 ### ZK Off-Chain Tooling
@@ -115,13 +122,15 @@ This layer provides the foundational smart contract architecture, ensuring the f
 
 | Smart Contract | Function | Type | Stores | Responsibilities | Owner |
 |---|---|---|---|---|---|
-| [Membership Manager](hardhat/contracts/managers/MembershipManager.sol) | ZK Engine | UUPS ERC-1967 | <ul><li>Merkle roots</ul>| <ul><li>Deploy Group NFTs<li>Manage DAO members</ul> | Governance Mgr
-| [Proposal Manager](hardhat/contracts/managers/ProposalManager.sol)  | ZK Engine | UUPS ERC-1967 | <ul><li>Proposal Nullifiers<li>Content Hash</ul> | <ul><li>Verify proposal submissions</ul> | Governance Mgr
-| [Voting Manager](hardhat/contracts/managers/VotingManager.sol) | ZK Engine | UUPS ERC-1967 | <ul><li>Vote Nullifiers<li>Content Hash</ul> | <ul><li>Verify vote validity</ul> | Governance Mgr
-| [Proposal Verifier](hardhat/contracts/verifiers/ProposalVerifier.sol) |  ZK Engine | Immutable | | <ul><li>Verify proposal proofs (via PM)</ul> | Unrestricted
-| [Voting Verifier](hardhat/contracts/verifiers/VotingVerifier.sol) | ZK Engine | Immutable | | <ul><li>Verify voting proofs (via VM)</ul> | Unrestricted
+| [Membership Manager](hardhat/contracts/managers/MembershipManager.sol) | ZK Engine | UUPS ERC-1967 | <ul><li>Merkle roots</ul>| <ul><li>Deploy Group NFTs<li>Manage DAO members <li> Verify DAO membership </ul> | Governance Mgr
+| [Proposal Manager](hardhat/contracts/managers/ProposalManager.sol)  | ZK Engine | UUPS ERC-1967 | <ul><li>Proposal submission nullifiers <li> Proposal claim nullifiers</ul> | <ul><li>Verify proposal submissions <li>Verify proposal claims</ul> | Governance Mgr
+| [Vote Manager](hardhat/contracts/managers/VoteManager.sol) | ZK Engine | UUPS ERC-1967 | <ul><li>Vote Nullifiers<li>Proposal results: tally, passed status<li> quorum parameters <li> group member count and quorum </ul> | <ul><li>Verify vote validity <li> Store and update proposal status </ul> | Governance Mgr
+| [Membership Verifier](hardhat/contracts/verifiers/MembershipVerifier.sol) |  ZK Engine | Immutable | | <ul><li>Verify DAO membership claims (via MM)</ul> | Unrestricted
+| [Proposal Submission Verifier](hardhat/contracts/verifiers/ProposalVerifier.sol) |  ZK Engine | Immutable | | <ul><li>Verify proposal submission proofs (via PM)</ul> | Unrestricted
+| [Proposal Claim Verifier](hardhat/contracts/verifiers/ProposalVerifier.sol) |  ZK Engine | Immutable | | <ul><li>Verify proposal claim proofs (via PM)</ul> | Unrestricted
+| [Vote Verifier](hardhat/contracts/verifiers/VoteVerifier.sol) | ZK Engine | Immutable | | <ul><li>Verify voting proofs (via VM)</ul> | Unrestricted
 | [ERC721IgnitionZK](hardhat/contracts/token/ERC721IgnitionZK.sol) | NFT Factory  | Clone EIP-1167 | | <ul><li>Deploy NFT Clones for DAOs</ul> | Membership Mgr
-| [Governance Manager](hardhat/contracts/governance/GovernanceManager.sol)  | Governance | UUPS ERC-1967 |.. | <ul><li>Delegate calls to Managers</ul> | Multi-sig
+| [Governance Manager](hardhat/contracts/governance/GovernanceManager.sol)  | Governance | UUPS ERC-1967 | | <ul><li>Delegate calls to Managers via the relayer </ul> | Multi-sig
 | Treasury Manager | Treasury | ... | ... | ... | Governance Mgr
 | Grant Module | Funding Module | ... | ... | ... | Governance Mgr
 | Quadratic Funding Module | Funding Module | ... | ... | ... | Governance Mgr
@@ -151,6 +160,7 @@ Implementation Contract: [ERC721IgnitionZK](hardhat/contracts/token/ERC721Igniti
 * ERC721 Token name and symbol defined by the user in the UI
 </details>
 
+<!--
 <details>
 <summary>
     <strong>Data Flow</strong>
@@ -163,6 +173,7 @@ Implementation Contract: [ERC721IgnitionZK](hardhat/contracts/token/ERC721Igniti
     * **Off-chain:** in `ignitionzk.groups`
     * **On-chain:** in `MembershipManager`'s `groupNftAddresses` mapping.
 </details>
+-->
 
 #### Step 1.2 ERC721 Membership NFTs
 
@@ -177,10 +188,12 @@ The appointed administrator of a new DAO group extends invitations to the initia
 * **Burnable:** When a member's affiliation with the real-world group ceases, their active DAO participation is terminated through the burning of their corresponding membership NFT.
 </details>
 
+<!--
 <details>
 <summary>
     <strong>Data Flow</strong>
 </summary>
+
 
 1. DAO Administrator enters members' addresses on the UI
 2. Relayer calls `GovernanceManager.delegateMintNftToMember`
@@ -188,6 +201,7 @@ The appointed administrator of a new DAO group extends invitations to the initia
 4. The MembershipManager mints a new ERC721 membership NFT directly to each invited member's wallet.
 5. These new DAO members are recorded via anonymized `group_member_id`s **off-chain** within ` ignitionzk.group_members`; there is **no on-chain storage** of individual member addresses or IDs.
 </details>
+-->
 
 #### Step 1.3 Member ZK Credential Generation
 
@@ -208,6 +222,7 @@ The cryptographic steps involved in securely generating a unique Zero-Knowledge 
 5. **Identity commmitment:** The final public identity commitment is calculated as a Poseidon hash of these two private components: `commitment = Poseidon(trapdoor, nullifier)`
 </details>
 
+<!--
 <details>
 <summary>
     <strong>Data Flow</strong>
@@ -219,6 +234,7 @@ The cryptographic steps involved in securely generating a unique Zero-Knowledge 
 4. Upon clicking "Generate Credentials," the member is securely presented with their newly generated mnemonic phrase.
 5. The member's newly formed identity commitment is then stored off-chain in `ignitionzk.merkle_tree_leaves` (this commitment later contributes to the Merkle tree root on-chain).
 </details>
+-->
 
 #### Step 1.4 Merkle Tree Creation 
 
@@ -238,6 +254,7 @@ Following the generation of a new member's identity commitment, the DAO's Merkle
 5.  **Root Storage:** The newly computed Merkle root is securely saved both off-chain and on-chain within the MembershipManager contract.
 </details>
 
+<!--
 <details>
 <summary>
     <strong>Data Flow</strong>
@@ -250,6 +267,7 @@ Following the generation of a new member's identity commitment, the DAO's Merkle
     * **Subsequent updates:** If a Merkle root for the DAO already exists, the Relayer calls `governanceManager.delegateSetRoot` which in turn calls `MembershipManager.setRoot`.
 4. The new Merkle root is stored on-chain in the Membership Manager's `groupRoots` mapping.
 </details>
+-->
 
 #### Step 1.5 Member Verification
 
@@ -271,14 +289,107 @@ When a DAO member wants to perform an action, like submitting or voting on a pro
 
 ### **Phase 2:** Anonymous Proposal Submissions
 
-#### Step 2.1 Campaign Creation 
+IgnitionZK is designed to ensure that the governance of a DAO authentically represents its real-world community. To achieve this, every member of a DAO must first complete a one-time process of generating their zero-knowledge (ZK) credentials. This foundational step verifies the identity of each member, establishing a secure and verifiable basis for all future governance activities.
+
+
+#### Step 2.1 The Governance "Campaign"
 
 ![Campaign creation](frontend/src/assets/campaign_illustration.png)
 
-#### Step 2.2 Proposal Submission
+Once all initial members have generated their credentials, the DAO is ready to engage in governance. The core of this process is the "campaign," which represents a complete, self-contained governance cycle. Any member can initiate a campaign by submitting a campaign creation request.
+
+This request immediately triggers an approval vote by the rest of the DAO. If the members approve the request, the campaign officially begins on the specified start date and proceeds through three distinct phases:
+
+1. **Proposal Submission Phase**: Members can formally submit new ideas and initiatives for consideration.
+
+2. **Voting Phase**: The DAO members vote on the submitted proposals using their ZK credentials.
+
+3. **Timelock / Review Phase**: A final review period ensures the integrity and security of the approved proposals before execution.
+
+IgnitionZK's governance model is built for flexibility and agility:
+
+* **On-Demand Cycles**: the DAOs can create campaigns on a need-by-need basis, allowing them to respond quickly to new challenges or opportunities without being constrained by fixed governance cycles.
+
+* **Customizable Duration**: Each campaign can have a custom start date and duration. This allows the DAO to tailor governance cycles to the urgency and complexity of the proposals at hand, ensuring efficient decision-making.
+
+#### Step 2.2 Proposal Creation
+
+Once a campaign's start date is reached, the proposal submission phase is activated. To ensure clarity and consistency across all submissions, every DAO defines a specific proposal template that members must use. This standardization is crucial for maintaining a fair and consistent review process for every proposal.
+
+A member can create a proposal by:
+
+1. Selecting the active campaign for their group.
+2. Filling out core details in the user interface, such as the title, description, proposal type (e.g., funding, non-funding), and the amount of funding requested.
+3. Uploading their proposal document.
+
+The proposal document is then submitted to IPFS (InterPlanetary File System), and its unique identifier (CID) is used along with the proposal details to create a unique proposal content hash.
+
+#### Step 2.3 Verifiable Anonymous Submissions
+
+![Proposal submission](frontend/src/assets/proposal_submission.png)
+
+To ensure the integrity of the submission process while preserving the anonymity of creators, IgnitionZK uses a zero-knowledge proof (ZKP) circuit. This ZKP guarantees three critical conditions without revealing any private information about the proposer:
+
+* **Verified Membership**: The proof confirms that the individual submitting the proposal is a verified member of the DAO.
+
+* **Submission Uniqueness**: It validates that the proposal is not a duplicate within the campaign. A submission nullifier, derived from the proof, is used to prevent the same proposal from being submitted more than once.
+
+* **Content Integrity**: The proof verifies that the proposal content hash correctly represents the submitted proposal and its details.
+
+Finally, each successful ZK submission generates a unique claim nullifier. This nullifier serves as a key that will later allow the legitimate proposal creator to anonymously claim any rewards if their proposal is approved by the DAO.
 
 ### **Phase 3:** Anonymous Voting
-### **Phase 4:** Proposal Execution
+
+#### Step 3.1 Voting Phase
+
+Once the proposal submission phase concludes, all verified proposals become available for voting in the app's Inbox section. To ensure the integrity of the governance cycle, the voter base is locked in at the campaign's start. Only members who had generated their ZK credentials at that time are eligible to vote, and no new members can be added until the campaign has ended.
+
+#### Step 3.2 Anonymous Vote Submissions
+
+![Vote casting](frontend/src/assets/vote_casting.png)
+
+
+Voting is conducted confidentially and independently for each proposal, with every vote (Yes, No, or Abstain) submitted anonymously through a Zero-Knowledge Proof (ZKP). The ZK circuit provides a guarantee of the voting process by ensuring:
+
+* **Verified Participation**: Only verified DAO members are eligible to cast a vote.
+
+* **Vote Uniqueness**: Each member can vote only once per proposal, preventing duplicate votes.
+
+* **Valid Vote Content**: The vote cast is a valid choice (Yes, No, or Abstain).
+
+* **Correct Proposal Binding**: The vote is securely linked to its intended proposal, preventing votes from being misdirected or miscounted.
+
+#### Step 3.3 Vote Tally Reveal
+
+To maintain the anonymity of voters throughout the voting phase, vote proofs are kept off-chain. Only after the voting period concludes are these proofs submitted on-chain for verification. This process ensures that the final tally is only revealed at the very end, preventing any real-time vote-tallying that could influence the outcome of the vote.
+
+**Proposal Status**
+
+For a proposal to be officially marked as accepted, it must meet three key requirements:
+
+* **Quorum**: The total number of votes cast must meet a specified quorum threshold.
+* **Majority**: A simple majority of "Yes" votes must be achieved.
+* **Minimum Size**: The DAO's membership must exceed a minimum size threshold (currently set to 2 members).
+
+The proposal status is computed every time a new verified vote is tallied onchain.
+
+<details>
+<summary>
+    <strong>Dynamic Quorum Calculation</strong>
+</summary>
+
+The required quorum is not a fixed number; it is set dynamically onchain and scales with the size of the DAO to ensure that participation is always meaningful. The tiers below outline how the quorum is determined, using the terms "small," "medium," and "large" to denote relative differences in DAO size:
+
+* **Small DAOs**: A flat 50% quorum is required to pass a proposal.
+* **Medium DAOs**: The quorum is linearly interpolated based on the group's size, balancing participation with efficiency.
+* **Large DAOs**: The quorum requirement scales down to 25%, making governance more agile for larger groups.
+
+![Quorum](frontend/src/assets/quorumplot.jpg)
+</details>
+
+
+
+### **Phase 4:** Proposal Claims
 
 
 
