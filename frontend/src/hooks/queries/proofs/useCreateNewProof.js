@@ -225,7 +225,13 @@ export const useGenerateProof = () => {
    * @param {string} groupId - Group ID value
    * @param {string} epochId - Epoch ID value
    * @param {string} proposalId - Proposal ID value
-   * @param {number} voteChoice - Vote choice (0 for No, 1 for Yes)
+   * @param {number} voteChoice - Vote choice (0 for No, 1 for Yes, 2 for Abstain)
+   * @param {string} proposalTitle - Proposal title
+   * @param {string} proposalDescription - Proposal description
+   * @param {Object} proposalPayload - Proposal payload object
+   * @param {Object} proposalFunding - Proposal funding object
+   * @param {Object} proposalMetadata - Proposal metadata object
+   * @param {string} proposalSubmissionNullifier - Proposal submission nullifier hash
    * @returns {Promise<Object>} Generated circuit input
    * @throws {Error} If circuit input generation fails
    */
@@ -235,7 +241,13 @@ export const useGenerateProof = () => {
     groupId,
     epochId,
     proposalId,
-    voteChoice
+    voteChoice,
+    proposalTitle,
+    proposalDescription,
+    proposalPayload,
+    proposalFunding,
+    proposalMetadata,
+    proposalSubmissionNullifier
   ) => {
     setIsLoading(true);
     setError(null);
@@ -247,7 +259,13 @@ export const useGenerateProof = () => {
         groupId,
         epochId,
         proposalId,
-        voteChoice
+        voteChoice,
+        proposalTitle,
+        proposalDescription,
+        proposalPayload,
+        proposalFunding,
+        proposalMetadata,
+        proposalSubmissionNullifier
       );
       setCircuitInput(input);
       return input;
@@ -266,7 +284,13 @@ export const useGenerateProof = () => {
    * @param {string} groupId - Group ID value
    * @param {string} epochId - Epoch ID value
    * @param {string} proposalId - Proposal ID value
-   * @param {number} voteChoice - Vote choice (0 for No, 1 for Yes)
+   * @param {number} voteChoice - Vote choice (0 for No, 1 for Yes, 2 for Abstain)
+   * @param {string} proposalTitle - Proposal title
+   * @param {string} proposalDescription - Proposal description
+   * @param {Object} proposalPayload - Proposal payload object
+   * @param {Object} proposalFunding - Proposal funding object
+   * @param {Object} proposalMetadata - Proposal metadata object
+   * @param {string} proposalSubmissionNullifier - Proposal submission nullifier hash
    * @returns {Promise<Object>} Object containing proof, public signals, and circuit type
    * @throws {Error} If proof generation fails
    */
@@ -276,7 +300,13 @@ export const useGenerateProof = () => {
     groupId,
     epochId,
     proposalId,
-    voteChoice
+    voteChoice,
+    proposalTitle,
+    proposalDescription,
+    proposalPayload,
+    proposalFunding,
+    proposalMetadata,
+    proposalSubmissionNullifier
   ) => {
     setIsLoading(true);
     setError(null);
@@ -289,7 +319,13 @@ export const useGenerateProof = () => {
         groupId,
         epochId,
         proposalId,
-        voteChoice
+        voteChoice,
+        proposalTitle,
+        proposalDescription,
+        proposalPayload,
+        proposalFunding,
+        proposalMetadata,
+        proposalSubmissionNullifier
       );
 
       // Then generate the proof using the circuit input

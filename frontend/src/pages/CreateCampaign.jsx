@@ -437,24 +437,25 @@ export default function CreateCampaign({ onCancel }) {
     const epoch_name = eventName;
     const epoch_start_time = startDate;
 
-    insertEpoch(
-      { group_id, epoch_duration, epoch_name, epoch_start_time },
-      {
-        onSuccess: () => {
-          // Close confirmation modal and form
-          setShowConfirmationModal(false);
-          onCancel && onCancel();
-          // Show success toast
-          toast.success(`Campaign "${eventName}" created successfully!`);
-        },
-        onError: (error) => {
-          // Close confirmation modal but keep form open
-          setShowConfirmationModal(false);
-          // Show error toast
-          toast.error(`Failed to create campaign: ${error.message}`);
-        },
-      }
-    );
+    insertEpoch({
+      group_id,
+      epoch_duration,
+      epoch_name,
+      epoch_start_time,
+      onSuccess: () => {
+        // Close confirmation modal and form
+        setShowConfirmationModal(false);
+        onCancel && onCancel();
+        // Show success toast
+        toast.success(`Campaign "${eventName}" created successfully!`);
+      },
+      onError: (error) => {
+        // Close confirmation modal but keep form open
+        setShowConfirmationModal(false);
+        // Show error toast
+        toast.error(`Failed to create campaign: ${error.message}`);
+      },
+    });
   };
 
   const handleCancelConfirmation = () => {

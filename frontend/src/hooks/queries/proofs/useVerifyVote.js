@@ -28,7 +28,13 @@ export function useVerifyVote() {
    * @param {string} groupId - Group ID for proof generation
    * @param {string} epochId - Epoch ID for proof generation
    * @param {string} proposalId - Proposal ID for proof generation
-   * @param {number} voteChoice - Vote choice (0 for No, 1 for Yes)
+   * @param {number} voteChoice - Vote choice (0 for No, 1 for Yes, 2 for Abstain)
+   * @param {string} proposalTitle - Proposal title
+   * @param {string} proposalDescription - Proposal description
+   * @param {Object} proposalPayload - Proposal payload object
+   * @param {Object} proposalFunding - Proposal funding object
+   * @param {Object} proposalMetadata - Proposal metadata object
+   * @param {string} proposalSubmissionNullifier - Proposal submission nullifier hash
    * @returns {Promise<{isValid: boolean, publicSignals: Array<number>}>} Object containing verification result and public signals
    * @throws {Error} If wallet is not connected or verification fails
    */
@@ -38,7 +44,13 @@ export function useVerifyVote() {
     groupId,
     epochId,
     proposalId,
-    voteChoice
+    voteChoice,
+    proposalTitle,
+    proposalDescription,
+    proposalPayload,
+    proposalFunding,
+    proposalMetadata,
+    proposalSubmissionNullifier
   ) => {
     // LOG: Input to proof generation
     console.log("[FRONTEND/useVerifyVote] Inputs:", {
@@ -48,6 +60,12 @@ export function useVerifyVote() {
       epochId,
       proposalId,
       voteChoice,
+      proposalTitle,
+      proposalDescription,
+      proposalPayload,
+      proposalFunding,
+      proposalMetadata,
+      proposalSubmissionNullifier,
     });
 
     if (!address || !provider) {
@@ -60,19 +78,31 @@ export function useVerifyVote() {
     console.log("EpochID: ", epochId);
     console.log("ProposalID: ", proposalId);
     console.log("Vote Choice: ", voteChoice);
+    console.log("Proposal Title: ", proposalTitle);
+    console.log("Proposal Description: ", proposalDescription);
+    console.log("Proposal Payload: ", proposalPayload);
+    console.log("Proposal Funding: ", proposalFunding);
+    console.log("Proposal Metadata: ", proposalMetadata);
+    console.log("Proposal Submission Nullifier: ", proposalSubmissionNullifier);
 
     setIsVerifying(true);
     setError(null);
 
     try {
-      // Generate the vote circuit input
+      // Generate the vote circuit input with all required parameters
       const circuitInput = await ZKProofGenerator.generateVoteCircuitInput(
         mnemonic,
         commitmentArray,
         groupId,
         epochId,
         proposalId,
-        voteChoice
+        voteChoice,
+        proposalTitle,
+        proposalDescription,
+        proposalPayload,
+        proposalFunding,
+        proposalMetadata,
+        proposalSubmissionNullifier
       );
 
       // Generate the proof
@@ -88,12 +118,13 @@ export function useVerifyVote() {
         publicSignals
       );
 
-      // VoteManager expects: [voteContextHash, voteNullifier, voteChoiceHash, root]
+      // VoteManager expects: [voteContextHash, voteNullifier, voteChoiceHash, root, proposalSubmissionNullifier]
       const reorderedPublicSignals = [
         publicSignals[0], // voteContextHash
         publicSignals[1], // voteNullifier
         publicSignals[2], // onChainVerifiableVoteChoiceHash
         publicSignals[3], // root
+        publicSignals[4], // proposalSubmissionNullifier
       ];
 
       // Convert proof and public signals to Solidity calldata

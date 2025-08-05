@@ -9,6 +9,7 @@ import { useVerifyVote } from "../hooks/queries/proofs/useVerifyVote";
 import { useGetCommitmentArray } from "../hooks/queries/merkleTreeLeaves/useGetCommitmentArray";
 import { useInsertProof } from "../hooks/queries/proofs/useInsertProof";
 import { useGetUserGroups } from "../hooks/queries/groupMembers/useGetUserGroups";
+import { useGetProposalSubmissionNullifier } from "../hooks/queries/proofs/useGetProposalSubmissionNullifier";
 import { calculateEpochPhases } from "../utils/epochPhaseCalculator";
 
 const InboxItemContainer = styled.li`
@@ -119,6 +120,12 @@ function InboxItem({
   const { verifyVote, isVerifying } = useVerifyVote();
 
   const { insertProof } = useInsertProof();
+
+  // Get the proposal submission nullifier
+  const {
+    isLoading: isLoadingNullifier,
+    nullifierHash: proposalSubmissionNullifier,
+  } = useGetProposalSubmissionNullifier(proposal.proposal_id);
 
   // Guard clause to handle undefined/null proposal
   if (!proposal || typeof proposal !== "object") {
@@ -254,6 +261,12 @@ function InboxItem({
         throw new Error("No vote selected");
       }
 
+      if (!proposalSubmissionNullifier) {
+        throw new Error(
+          "Proposal submission nullifier not found. The proposal may not have been properly submitted."
+        );
+      }
+
       // Get the proof and verification result
       const { isValid, publicSignals, proof } = await verifyVote(
         commitmentArray,
@@ -261,7 +274,13 @@ function InboxItem({
         proposal.group_id,
         proposal.epoch_id,
         proposal.proposal_id,
-        selectedVote === "reject" ? 0 : selectedVote === "approve" ? 1 : 2 // 0 for Reject, 1 for Approve, 2 for Abstain
+        selectedVote === "reject" ? 0 : selectedVote === "approve" ? 1 : 2, // 0 for Reject, 1 for Approve, 2 for Abstain
+        proposal.title || "",
+        proposal.description || "",
+        proposal.payload || {},
+        proposal.funding || {},
+        proposal.metadata || {},
+        proposalSubmissionNullifier
       );
 
       if (isValid) {
@@ -346,18 +365,22 @@ function InboxItem({
               }}
               disabled={
                 isLoadingCommitments ||
+                isLoadingNullifier ||
                 isVerifying ||
                 hasSubmittedProof ||
                 isSubmitting ||
-                !isInVotingPhase()
+                !isInVotingPhase() ||
+                !proposalSubmissionNullifier
               }
             >
-              {isLoadingCommitments
+              {isLoadingCommitments || isLoadingNullifier
                 ? "Loading..."
                 : isVerifying || isSubmitting
                 ? "Verifying..."
                 : !isInVotingPhase()
                 ? "Voting Window Not Open"
+                : !proposalSubmissionNullifier
+                ? "Proposal Not Ready"
                 : "Vote"}
             </CustomButton>
           )}

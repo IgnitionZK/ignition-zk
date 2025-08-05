@@ -1,21 +1,19 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "../../../services/supabase";
 import { MerkleTreeService } from "../../../scripts/merkleTreeService";
-import { useRelayerUpdateRoot } from "../../relayers/useRelayerUpdateRoot";
 import { uuidToBytes32 } from "../../../utils/uuidToBytes32";
 import { insertMerkleTreeRoot } from "../../../services/apiMerkleTreeRoots";
 import { toggleMerkleTreeRootActive } from "../../../services/apiMerkleTreeRoots";
 
 export const useAtomicCommitmentInsertion = () => {
   const queryClient = useQueryClient();
-  const { updateMerkleRoot } = useRelayerUpdateRoot();
 
   const mutation = useMutation({
     mutationFn: async ({
       groupId,
       groupMemberId,
       commitment,
-      onBlockchainSuccess,
+      onSuccess,
       onError,
     }) => {
       try {
@@ -55,9 +53,9 @@ export const useAtomicCommitmentInsertion = () => {
         );
         console.log("Calculated root:", root);
 
-        // Step 3: Get tree version from RPC result (now included in response)
+        // Step 3: Get tree version from RPC result (already calculated atomically)
         const treeVersion = rpcResult.tree_version;
-        console.log("Tree version from RPC:", treeVersion);
+        console.log("Tree version from RPC (atomic):", treeVersion);
 
         // Step 4: Insert the new Merkle tree root into database FIRST
         console.log("Inserting root into database...");
@@ -76,22 +74,15 @@ export const useAtomicCommitmentInsertion = () => {
         });
         console.log("Root active status updated");
 
-        // Step 6: Update blockchain with the calculated root
-        const groupKeyBytes32 = uuidToBytes32(groupId);
-        console.log("Group key bytes32:", groupKeyBytes32);
+        // Note: Blockchain update has been moved to campaign creation
+        // This reduces blockchain transactions by batching root updates
 
-        await updateMerkleRoot({
-          treeVersion: treeVersion,
-          rootValue: root,
-          groupKey: groupKeyBytes32,
-          memberCount: rpcResult.member_count,
-        });
-
-        if (onBlockchainSuccess) {
-          onBlockchainSuccess({
+        if (onSuccess) {
+          onSuccess({
             root: root,
             treeVersion: treeVersion,
-            memberCount: rpcResult.member_count
+            memberCount: rpcResult.member_count,
+            rootId: newRootRecord.root_id,
           });
         }
 

@@ -131,3 +131,76 @@ export async function getProofsByGroupMemberId(groupMemberId) {
 
   return data;
 }
+
+/**
+ * Retrieves all proofs associated with a specific proposal ID.
+ * @param {string} proposalId - The ID of the proposal
+ * @returns {Promise<Array<Object>>} An array of proof records
+ * @throws {Error} If proposalId is not provided or if the database operation fails
+ */
+export async function getProofsByProposalId(proposalId) {
+  if (!proposalId) {
+    throw new Error("proposalId is required");
+  }
+
+  const { data, error } = await supabase
+    .schema("ignitionzk")
+    .from("proofs")
+    .select("*")
+    .eq("proposal_id", proposalId);
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  return data;
+}
+
+/**
+ * Retrieves the proposal submission nullifier for a specific proposal.
+ * @param {string} proposalId - The ID of the proposal
+ * @returns {Promise<string|null>} The proposal submission nullifier hash, or null if not found
+ * @throws {Error} If proposalId is not provided or if the database operation fails
+ */
+export async function getProposalSubmissionNullifier(proposalId) {
+  if (!proposalId) {
+    throw new Error("proposalId is required");
+  }
+
+  console.log(
+    `🔍 getProposalSubmissionNullifier - Searching for proposal_id: ${proposalId}`
+  );
+  console.log(
+    `🔍 getProposalSubmissionNullifier - Using circuit_id: a1a0a504-e3aa-4e5d-bb9f-bbd98aefbd52 (proposal circuit)`
+  );
+
+  const { data, error } = await supabase
+    .schema("ignitionzk")
+    .from("proofs")
+    .select("nullifier_hash")
+    .eq("proposal_id", proposalId)
+    .eq("circuit_id", "a1a0a504-e3aa-4e5d-bb9f-bbd98aefbd52") // proposal circuit ID
+    .single();
+
+  console.log(`🔍 getProposalSubmissionNullifier - Query result:`, {
+    data,
+    error,
+  });
+
+  if (error) {
+    if (error.code === "PGRST116") {
+      // No rows returned
+      console.log(
+        `❌ getProposalSubmissionNullifier - No proposal submission proof found for proposal_id: ${proposalId}`
+      );
+      return null;
+    }
+    console.error(`❌ getProposalSubmissionNullifier - Database error:`, error);
+    throw new Error(error.message);
+  }
+
+  console.log(
+    `✅ getProposalSubmissionNullifier - Found nullifier_hash: ${data?.nullifier_hash}`
+  );
+  return data?.nullifier_hash || null;
+}
