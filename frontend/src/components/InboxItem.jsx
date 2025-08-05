@@ -10,7 +10,7 @@ import { useGetCommitmentArray } from "../hooks/queries/merkleTreeLeaves/useGetC
 import { useInsertProof } from "../hooks/queries/proofs/useInsertProof";
 import { useGetUserGroups } from "../hooks/queries/groupMembers/useGetUserGroups";
 import { useGetProposalSubmissionNullifier } from "../hooks/queries/proofs/useGetProposalSubmissionNullifier";
-import { calculateEpochPhases } from "../utils/epochPhaseCalculator";
+import { calculateEpochPhases } from "../scripts/utils/epochPhaseCalculator";
 
 const InboxItemContainer = styled.li`
   background-color: rgba(165, 180, 252, 0.1);

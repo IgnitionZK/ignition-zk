@@ -1,7 +1,7 @@
 import { useMutation } from "@tanstack/react-query";
 import { supabase } from "../../services/supabase";
 import { ZKProofGenerator } from "../../scripts/generateZKProof";
-import { uuidToBytes32 } from "../../utils/uuidToBytes32";
+import { uuidToBytes32 } from "../../scripts/utils/uuidToBytes32";
 
 /**
  * Custom hook to update Merkle tree root using the Supabase edge function relayer
@@ -75,7 +75,7 @@ export function useRelayerVerifyProposal() {
           groupKey.toString(),
           epochKey.toString()
         );
-        
+
         console.log(
           "[FRONTEND/useRelayerVerifyProposal] Computed context_key:",
           {
@@ -93,7 +93,9 @@ export function useRelayerVerifyProposal() {
       }
 
       // Convert the groupId UUID to bytes32 format
-      console.log("[FRONTEND/useRelayerVerifyProposal] Converting groupKey to bytes32 format");
+      console.log(
+        "[FRONTEND/useRelayerVerifyProposal] Converting groupKey to bytes32 format"
+      );
       console.log("Group Key to be converted:", groupKey);
       const groupKeyBytes32 = uuidToBytes32(groupKey);
       console.log(

@@ -1,7 +1,7 @@
 import React, { useEffect } from "react";
 import styled from "styled-components";
 import CustomButton from "./CustomButton";
-import { calculateEpochPhases } from "../utils/epochPhaseCalculator";
+import { calculateEpochPhases } from "../scripts/utils/epochPhaseCalculator";
 
 const ModalOverlay = styled.div`
   position: fixed;

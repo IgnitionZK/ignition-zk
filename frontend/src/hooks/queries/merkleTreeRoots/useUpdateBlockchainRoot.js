@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRelayerUpdateRoot } from "../../relayers/useRelayerUpdateRoot";
-import { uuidToBytes32 } from "../../../utils/uuidToBytes32";
+import { uuidToBytes32 } from "../../../scripts/utils/uuidToBytes32";
 import { getActiveMerkleTreeRoot } from "../../../services/apiMerkleTreeRoots";
 import { getLeavesByGroupId } from "../../../services/apiMerkleTreeLeaves";
 

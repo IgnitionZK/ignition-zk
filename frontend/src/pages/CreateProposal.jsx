@@ -20,7 +20,7 @@ import { useInsertProposal } from "../hooks/queries/proposals/useInsertProposal"
 import { useInsertProof } from "../hooks/queries/proofs/useInsertProof";
 
 // utils
-import { getCurrentPhase } from "../utils/epochPhaseCalculator";
+import { getCurrentPhase } from "../scripts/utils/epochPhaseCalculator";
 import { uploadFile } from "../scripts/uploadFile";
 
 // icons

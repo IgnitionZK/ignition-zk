@@ -1,7 +1,7 @@
 import { useMutation } from "@tanstack/react-query";
 import { supabase } from "../../services/supabase";
 import { insertGroupMember } from "../../services/apiGroupMembers";
-import { uuidToBytes32 } from "../../utils/uuidToBytes32";
+import { uuidToBytes32 } from "../../scripts/utils/uuidToBytes32";
 
 /**
  * Custom hook to deploy an ERC721 contract using the Supabase edge function relayer

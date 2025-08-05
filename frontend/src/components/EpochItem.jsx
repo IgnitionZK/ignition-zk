@@ -4,7 +4,7 @@ import {
   calculateEpochPhases,
   getCurrentPhase,
   formatDate,
-} from "../utils/epochPhaseCalculator";
+} from "../scripts/utils/epochPhaseCalculator";
 import { IoIosInformationCircle } from "react-icons/io";
 
 // Dot color logic (solid colors, ProposalItem style)

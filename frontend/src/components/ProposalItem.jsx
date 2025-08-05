@@ -1,7 +1,7 @@
 import styled from "styled-components";
 import toast from "react-hot-toast";
 import CustomButton from "./CustomButton";
-import { calculateEpochPhases } from "../utils/epochPhaseCalculator";
+import { calculateEpochPhases } from "../scripts/utils/epochPhaseCalculator";
 import { useGetEpochsByGroupId } from "../hooks/queries/epochs/useGetEpochsByGroupId";
 
 const ProposalItemContainer = styled.li`

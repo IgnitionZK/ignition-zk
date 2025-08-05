@@ -10,7 +10,7 @@ import CustomDropdown from "../components/CustomDropdown";
 import Spinner from "../components/Spinner";
 import PageHeader from "../components/PageHeader";
 import EpochItem from "../components/EpochItem";
-import { getCurrentPhase } from "../utils/epochPhaseCalculator";
+import { getCurrentPhase } from "../scripts/utils/epochPhaseCalculator";
 
 // icon
 import { FaCirclePlus } from "react-icons/fa6";

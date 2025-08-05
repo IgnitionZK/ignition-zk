@@ -3,7 +3,7 @@ import { useWalletQuery } from "../../wallet/useWalletQuery";
 import { useGenerateProof } from "./useCreateNewProof";
 import { ZKProofGenerator } from "../../../scripts/generateZKProof";
 import { useRelayerVerifyMembership } from "../../relayers/useRelayerVerifyMembership";
-import { uuidToBytes32 } from "../../../utils/uuidToBytes32";
+import { uuidToBytes32 } from "../../../scripts/utils/uuidToBytes32";
 
 /**
  * Custom hook for verifying membership using zero-knowledge proofs

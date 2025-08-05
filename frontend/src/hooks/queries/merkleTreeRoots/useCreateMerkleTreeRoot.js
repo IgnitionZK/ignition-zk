@@ -3,7 +3,7 @@ import { MerkleTreeService } from "../../../scripts/merkleTreeService";
 import { useInsertMerkleTreeRoot } from "./useInsertMerkleTreeRoot";
 import { useGetLeavesByGroupId } from "../merkleTreeLeaves/useGetLeavesByGroupId";
 import { useRelayerUpdateRoot } from "../../relayers/useRelayerUpdateRoot";
-import { uuidToBytes32 } from "../../../utils/uuidToBytes32";
+import { uuidToBytes32 } from "../../../scripts/utils/uuidToBytes32";
 
 /**
  * Custom hook for creating a new Merkle tree root using blockchain-first approach
@@ -80,16 +80,25 @@ export const useCreateMerkleTreeRoot = ({ groupId } = {}) => {
 
       // Convert the groupId UUID to bytes32 format
       const groupKeyBytes32 = uuidToBytes32(groupId);
-      console.log("[FRONTEND/useCreateMerkleTreeRoot] Group Key Bytes32:", groupKeyBytes32);
-      console.log("[FRONTEND/useCreateMerkleTreeRoot] Member Count:", memberCount);
-      console.log("[FRONTEND/useCreateMerkleTreeRoot] Tree Version:", treeVersion);
+      console.log(
+        "[FRONTEND/useCreateMerkleTreeRoot] Group Key Bytes32:",
+        groupKeyBytes32
+      );
+      console.log(
+        "[FRONTEND/useCreateMerkleTreeRoot] Member Count:",
+        memberCount
+      );
+      console.log(
+        "[FRONTEND/useCreateMerkleTreeRoot] Tree Version:",
+        treeVersion
+      );
 
       // Step 2: Update Merkle tree root on blockchain via relayer
       await updateMerkleRoot({
         treeVersion,
         rootValue: root,
         groupKey: groupKeyBytes32,
-        memberCount
+        memberCount,
       });
 
       if (onBlockchainSuccess) {

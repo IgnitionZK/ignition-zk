@@ -1,7 +1,7 @@
 import { useMutation } from "@tanstack/react-query";
 import { supabase } from "../../services/supabase";
 import { ZKProofGenerator } from "../../scripts/generateZKProof";
-import { uuidToBytes32 } from "../../utils/uuidToBytes32";
+import { uuidToBytes32 } from "../../scripts/utils/uuidToBytes32";
 
 /**
  * Custom hook to verify vote using the Supabase edge function relayer
