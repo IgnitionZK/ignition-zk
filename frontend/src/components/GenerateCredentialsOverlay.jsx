@@ -187,18 +187,17 @@ function GenerateCredentialsOverlay({ group, onClose }) {
       console.log("Group Member ID:", groupMemberId);
       console.log("Group ID:", groupId);
 
-      // Step 2: Use the atomic commitment insertion
+      // Step 2: Use the atomic commitment insertion (database only, no blockchain update)
       const dbResult = await insertCommitment({
         groupId,
         groupMemberId,
         commitment: result.commitment,
-        onBlockchainSuccess: ({ root, treeVersion, memberCount }) => {
-          
+        onSuccess: ({ root, treeVersion, memberCount }) => {
           console.log(
-            `Blockchain transaction confirmed. Root: ${root}, Version: ${treeVersion}, Member Count: ${memberCount}`
+            `Database updated successfully. Root: ${root}, Version: ${treeVersion}, Member Count: ${memberCount}`
           );
           toast.success(
-            "Credentials generated and blockchain updated successfully!"
+            "Credentials generated successfully! Blockchain will be updated when next campaign is created."
           );
         },
         onError: (error) => {
