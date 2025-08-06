@@ -4,6 +4,8 @@
 
 A DAO is initiated when a ERC721 contract with the DAO's name and token symbol is deployed. This is achieved through a minimal proxy EIP-1167  contract: a main, immutable ERC721 contract is deployed (implementation contract) which acts like a contract factory for all subsequent clones. 
 
+![DAO formation & membership](../frontend/src/assets/dao-creation.png)
+
 #### Key Features
 
 Implementation Contract: [ERC721IgnitionZK](hardhat/contracts/token/ERC721IgnitionZK.sol)
@@ -25,6 +27,8 @@ The appointed administrator of a new DAO group extends invitations to the initia
 #### Step 1.3 Member ZK Credential Generation
 
 Only members actively holding one of the DAO's valid membership NFTs are eligible to proceed with generating their Zero-Knowledge credentials for private interactions within the DAO.
+
+![ZK credential generation](../frontend/src/assets/zk-credentials.png)
 
 #### Methodology
 
@@ -54,6 +58,8 @@ Following the generation of a new member's identity commitment, the DAO's Merkle
 #### Step 1.5 Member Verification
 
 When a DAO member wants to perform an action, like submitting or voting on a proposal, they first need to prove they're an eligible member. This membership verification is a critical, integrated step within both the proposal submission and voting processes.
+
+![Member verification](../frontend/src/assets/member-verification.png)
 
 #### Methodology
 

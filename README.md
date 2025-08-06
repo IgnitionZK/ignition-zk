@@ -89,13 +89,11 @@ This layer provides the smart contract architecture built on OpenZeppelin's UUPS
 ![DAO formation & membership](frontend/src/assets/dao-creation.png)
 *Step 1: NFT-Gated DAO formation*
 
-<image 2>
+![ZK credential generation](frontend/src/assets/zk-credentials.png)
+*Step 2: ZK-Credential generation & Merkle Tree management*
 
-*Step 2: ZK-Credential generation*
-
-<image 3>
-
-*Step 3: Merkle Tree management*
+![Member verification](frontend/src/assets/member-verification.png)
+*Step 3: Member verification*
 
 DAO creation begins with deploying an ERC721 contract for membership tokens, followed by credential generation for private governance:
 
