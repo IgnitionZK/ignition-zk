@@ -1,23 +1,30 @@
 <p align="center">
-  <img src="frontend/src/assets/logo-transparent-bg.png" alt="IgnitionZK Logo" width="120" style="margin-bottom: 1rem;" />
+  <img src="frontend/src/assets/logo-transparent-bg.png" alt="IgnitionZK Logo" width="100" />
+  <h1 style="margin-top: 0.5rem;">IgnitionZK</h1>
+  <h3 style="font-weight: 500; margin-top: 0;">ZK-Governed · Modular · Upgradeable Treasury</h3>
+  <p style="margin-top: 0.25rem; color: #666;">For High-Impact Closed-Group DAOs</p>
 </p>
 
-<h1 align="center" style="font-weight: 700; font-size: 3rem; font-family: 'Segoe UI', sans-serif; margin: 0;">
-  IgnitionZK
-</h1>
 
-<h2 align="center" style="font-weight: 500; font-size: 1.75rem; letter-spacing: 0.05em; margin-top: 1rem;">
-  ZK-Governed · Modular · Upgradeable Treasury
-</h2>
+## What is IgnitionZK?
 
-<h3 align="center" style="font-weight: 400; font-size: 1.25rem; color: #666; margin-top: 0.5rem;">
-  For High-Impact Closed-Group DAOs
-</h3>
+**IgnitionZK** is a privacy-first DAO framework that enables small-to-medium expert groups to govern funds with complete anonymity while maintaining accountability. Using zero-knowledge proofs, members can propose ideas and vote without revealing their identities, while still ensuring that only authorized participants can engage in governance.
+
+### Why Choose IgnitionZK?
+
+- **Privacy + Accountability**: Anonymous proposal creation and voting with verifiable membership
+- **Built for Expert Groups**: Optimized for high-impact, focused DAOs where every member matters
+- **Fully Modular**: Plug-and-play components with upgradeable infrastructure
+- **User-Friendly**: Intuitive UI for DAO creation, proposal submission, and voting
+
+[Getting Started](#quick-start) | [View Demo](#) | [Key System Architecture](./docs/architecture.md) | 
+ZK Circuits Documentation: [Membership Circuit](./zk/circuits/membership/docs-membership_circuit.md) |[Proposal Circuit](./zk/circuits/proposal/docs-proposal_circuit.md) | [Vote Circuit](./zk/circuits/vote/docs-vote_circuit.md) | [Proposal Claim Circuit](./zk/circuits/proposal-claim/docs-proposal_claim_circuit.md)
 
 ---
 
+## Table of Contents
 
-* [Introducing IgnitionZK](#introducing-ignitionzk)
+* [Key Features & Capabilities](#key-features--capabilities)
 * [IngitionZK Components](#ignitionzk-components)
     * [Layer A: ZK Engine](#layer-a-zk-engine)
         * [ZK Circuit Components](#zk-circuit-components)
@@ -40,9 +47,7 @@
         * [Step 3.3 Vote Tally Reveal](#step-33-vote-tally-reveal)
     * [Phase 4: Proposal Funding Claims](#phase-4-proposal-funding-claims)
 
-## Introducing IgnitionZK 
-
-**IgnitionZK** is a fully modular, UUPS-upgradeable, ZK-native DAO framework tailored to small-to-medium closed-group DAOs. It enables:
+## Key Features & Capabilities
 
 * **Private operations:** Private identity, proposal submission and voting using Zero-Knowledge Proofs
 * **Verifiable membership:** Publicly verifiable NFT-gated access ensuring only eligible members with real-world credentials can join.
@@ -77,12 +82,15 @@ The Circom circuits are the mathematical backbone of IgnitionZK's privacy logic.
     <strong>ZK Circuit Components & Responsibilities</strong>
 </summary>
 
+<div style="overflow-x: auto;">
+
 | Circuit | Summary | Verification Context | Included | Input Signals | Public Output Signals | Circuit Constraints | On-Chain Constraints |
 |---|---|---|---|---|---|---|---|
 | [Membership](zk/circuits/membership/membership_circuit.circom) | Private verification of DAO membership via ZK credentials & Merkle proofs. | Per-DAO | | <ul><li>`root`<li>`group hash`<li>`identity trapdoor`<li>`identity nullifier`<li>`path elements`<li>`path indices`</ul> | <ul><li>`root`<li>`group hash`<li>`membership nullifier`</ul> | `isMember === 1` | Unique `membership nullifier` |
 | [Proposal Submission](zk/circuits/proposal/proposal_circuit.circom) | Private submission of funding proposals from verified DAO members, with content validation & deduplication. | Per-DAO, Per-EPOCH | Membership Proof | <ul><li>Membership inputs<li>`proposal content hash`<li>`proposal title hash`<li>`proposal description hash`<li>`proposal payload hash`<li>`proposal metadata hash`<li> `proposal funding hash` <li>`epoch hash`</ul> | <ul><li>`proposal context hash`<li>`proposal submission nullifier` <li>`proposal claim nullifier`<li>`root`<li>`proposal content hash`</ul> | `isMember === 1`<br>`Poseidon(title, desc, payload) === ContentHash` | Unique `proposal submission nullifier` |
 | [Vote](zk/circuits/vote/vote_circuit.circom) | Confidential voting by verified DAO members, with content validation, submisison nullifier and vote uniqueness verification. | Per-DAO, Per-EPOCH, Per-PROPOSAL | Membership Proof | <ul><li>Membership inputs <li> `vote choice` <li> `epoch hash` <li> `proposal hash`<li> `proposal submission nullifier` <li>`proposal title hash`<li>`proposal description hash`<li>`proposal payload hash`<li>`proposal metadata hash`<li> `proposal funding hash`</ul> | <ul><li> `vote context hash` <li> `vote nullifier` <li> `onchain verifiable vote choice hash` <li> `root` <li> `submission nullifier`</ul> | `isValidVoteChoice === 1` &`computedProposalSubmissionNullifier === proposalSubmissionNullifier` | Unique `vote nullifier` |
 | [Proposal Claim](zk/circuits/proposal-claim/proposal_claim_circuit.circom) | Confidential verification that a reward claim for an accepted proposal is made by its original anonymous creator. | Per-PROPOSAL, Per-Submitter | Membership Proof | <ul><li>Membership inputs <li>`proposal submisison nullifer` <li>`proposal claim nullifier` <li>`proposal context hash` <li>`identity nullifier` </ul> | <li>`proposal submisison nullifer` <li>`proposal claim nullifier` <li>`proposal context hash` | `computedClaimNullifier === proposalClaimNullifier` | Unique `claim nullifier` |
+</div>
 </details>
 
 ### ZK Off-Chain Tooling
@@ -94,11 +102,15 @@ A dedicated set of off-chain scripts and utilities orchestrates the entire ZKP l
     <strong>Core Script Modules & Responsibilities</strong>
 </summary>
 
+
+<div style="overflow-x: auto;">
+
 | Core Script | Class | Summary | Primitives Used | Key Methods |
 |---|---|---|---|---|
 | [generateCredentials.js](frontend/src/scripts/generateCredentials.js) | `ZkCredentials` | Manages ZK identity: seeds, keys, credentials. | <ul><li>Mnemonic Seeds<li>HKDF<li>Keccak256<li>Poseidon Hash</li></ul> | <ul><li>`generateMnemonicSeed`<li>`generateSeedFromMnemonic`<li>`generateKeys`<li>`generateIdentity`<li>`generateCredentials`</ul> |
 | [merkleTreeService.js](frontend/src/scripts/merkleTreeService.js) | `MerkleTreeService` | Creates Merkle trees & generates proofs. | <ul><li>Merkle Trees<li>Poseidon Hash</li></ul> | <ul><li>`createMerkleTree`<li>`generateMerkleProof`</ul> |
 | [generateZKProof.js](frontend/src/scripts/generateZKProof.js) | `ZKProofGenerator` | Generates ZK proofs for circuits. | <ul><li>ZKPs (PLONK)<li>Poseidon Hash<li>Merkle Trees<li>Calldata Encoding</li></ul> | <ul><li>`generateMembershipCircuitInput`<li>`generateProposalCircuitInput`<li>`generateProof`<li>`verifyProofOffChain`<li>`generateSolidityCalldata`</ul> |
+</div>
 </details>
 
 ## Layer B: Core On-Chain Infrastructure 
@@ -120,6 +132,8 @@ This layer provides the foundational smart contract architecture, ensuring the f
     <strong>Smart Contract Modules and Responsibilities</strong>
 </summary>
 
+<div style="overflow-x: auto;">
+
 | Smart Contract | Function | Type | Stores | Responsibilities | Owner |
 |---|---|---|---|---|---|
 | [Membership Manager](hardhat/contracts/managers/MembershipManager.sol) | ZK Engine | UUPS ERC-1967 | <ul><li>Merkle roots</ul>| <ul><li>Deploy Group NFTs<li>Manage DAO members <li> Verify DAO membership </ul> | Governance Mgr
@@ -134,6 +148,7 @@ This layer provides the foundational smart contract architecture, ensuring the f
 | Treasury Manager | Treasury | ... | ... | ... | Governance Mgr
 | Grant Module | Funding Module | ... | ... | ... | Governance Mgr
 | Quadratic Funding Module | Funding Module | ... | ... | ... | Governance Mgr
+</div>
 </details>
 
 ---
