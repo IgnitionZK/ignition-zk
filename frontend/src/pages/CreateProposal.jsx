@@ -18,6 +18,7 @@ import { useGetCommitmentArray } from "../hooks/queries/merkleTreeLeaves/useGetC
 import { useGetGroupMemberId } from "../hooks/queries/groupMembers/useGetGroupMemberId";
 import { useInsertProposal } from "../hooks/queries/proposals/useInsertProposal";
 import { useInsertProof } from "../hooks/queries/proofs/useInsertProof";
+import { useValidateGroupCredentials } from "../hooks/queries/groups/useValidateGroupCredentials";
 
 // utils
 import { getCurrentPhase } from "../scripts/utils/epochPhaseCalculator";
@@ -450,6 +451,20 @@ export default function CreateProposal({ onSuccess, onCancel }) {
   // Get proof insertion hook
   const { insertProof, isLoading: isInsertingProof } = useInsertProof();
 
+  // Get group credentials validation
+  const {
+    isLoading: isValidatingCredentials,
+    isValid: areCredentialsValid,
+    totalMembers,
+    commitmentsCount,
+    message: credentialsMessage,
+    error: credentialsError,
+  } = useValidateGroupCredentials(
+    selectedGroupObject?.erc721_contract_address,
+    selectedGroupObject?.group_id,
+    !!selectedGroupObject
+  );
+
   // Group options for dropdown
   const groupOptions = useMemo(() => {
     if (!userGroups) return [];
@@ -644,12 +659,27 @@ export default function CreateProposal({ onSuccess, onCancel }) {
       newErrors[field] = validateField(field, value);
     });
 
+    // Add credentials validation error if needed
+    if (
+      selectedGroupObject &&
+      !areCredentialsValid &&
+      !isValidatingCredentials
+    ) {
+      newErrors.credentials =
+        credentialsError ||
+        "All group members must generate credentials before creating proposals.";
+    }
+
     setTouched(newTouched);
     setErrors(newErrors);
 
     // Check if there are any errors
     const hasErrors = Object.values(newErrors).some((error) => error);
     if (hasErrors) {
+      // Show toast for credentials error
+      if (newErrors.credentials) {
+        toast.error(newErrors.credentials);
+      }
       return;
     }
 
@@ -1000,6 +1030,47 @@ export default function CreateProposal({ onSuccess, onCancel }) {
           {touched.selectedGroup && errors.selectedGroup && (
             <ErrorMessage>{errors.selectedGroup}</ErrorMessage>
           )}
+          {/* Credentials validation display */}
+          {selectedGroup && (
+            <>
+              {isValidatingCredentials && (
+                <div
+                  style={{
+                    color: "var(--color-grey-400)",
+                    fontSize: "1.2rem",
+                    marginTop: "0.4rem",
+                  }}
+                >
+                  Validating group credentials...
+                </div>
+              )}
+              {!isValidatingCredentials && credentialsMessage && (
+                <div
+                  style={{
+                    color: areCredentialsValid
+                      ? "var(--color-green-400)"
+                      : "var(--color-red-400)",
+                    fontSize: "1.2rem",
+                    marginTop: "0.4rem",
+                    fontWeight: "500",
+                  }}
+                >
+                  {credentialsMessage}
+                </div>
+              )}
+              {!isValidatingCredentials && credentialsError && (
+                <div
+                  style={{
+                    color: "var(--color-red-400)",
+                    fontSize: "1.2rem",
+                    marginTop: "0.4rem",
+                  }}
+                >
+                  {credentialsError}
+                </div>
+              )}
+            </>
+          )}
         </FormField>
 
         <FormField>
@@ -1248,7 +1319,9 @@ export default function CreateProposal({ onSuccess, onCancel }) {
             isLoadingCommitments ||
             isLoadingGroupMemberId ||
             isInsertingProposal ||
-            isInsertingProof
+            isInsertingProof ||
+            isValidatingCredentials ||
+            (selectedGroupObject && !areCredentialsValid)
           }
         >
           {isSubmitting ? uploadProgress || "Creating..." : "Create"}

@@ -15,6 +15,7 @@ import { useGetUserGroups } from "../hooks/queries/groupMembers/useGetUserGroups
 import { useGetProofsByGroupMemberId } from "../hooks/queries/proofs/useGetProofsByGroupMemberId";
 import { useVerifyMembership } from "../hooks/queries/proofs/useVerifyMembership";
 import { useGetCommitmentArray } from "../hooks/queries/merkleTreeLeaves/useGetCommitmentArray";
+import { useValidateGroupCredentials } from "../hooks/queries/groups/useValidateGroupCredentials";
 
 // icons
 import { IoIosInformationCircle } from "react-icons/io";
@@ -281,6 +282,19 @@ export default function Proofs() {
   const { commitmentArray, isLoading: isLoadingCommitments } =
     useGetCommitmentArray({ groupId: selectedGroupData?.group_id });
 
+  // Get group credentials validation
+  const {
+    isLoading: isValidatingCredentials,
+    isValid: areCredentialsValid,
+    totalMembers,
+    commitmentsCount,
+    message: credentialsMessage,
+  } = useValidateGroupCredentials(
+    selectedGroupData?.erc721_contract_address,
+    selectedGroupData?.group_id,
+    !!selectedGroupData
+  );
+
   // Cleanup effect to clear mnemonic when component unmounts or user navigates away
   useEffect(() => {
     const handleBeforeUnload = () => {
@@ -324,6 +338,14 @@ export default function Proofs() {
 
   const handleToggleChange = () => {
     if (selectedGroup === "") return;
+
+    // Check if credentials are valid before allowing inbox unlock
+    if (selectedGroupData && !areCredentialsValid && !isValidatingCredentials) {
+      setLocalVerificationError(
+        "All group members must generate credentials before unlocking the inbox."
+      );
+      return;
+    }
 
     if (!unlockedGroups.has(selectedGroup)) {
       setShowMnemonicInput(true);
@@ -429,13 +451,23 @@ export default function Proofs() {
             <ToggleContainer>
               <ToggleSwitch
                 $isOn={isInboxVisible}
-                $disabled={selectedGroup === "" || isVerifying}
+                $disabled={
+                  selectedGroup === "" ||
+                  isVerifying ||
+                  isValidatingCredentials ||
+                  (selectedGroupData && !areCredentialsValid)
+                }
               >
                 <ToggleInput
                   type="checkbox"
                   checked={isInboxVisible}
                   onChange={handleToggleChange}
-                  disabled={selectedGroup === "" || isVerifying}
+                  disabled={
+                    selectedGroup === "" ||
+                    isVerifying ||
+                    isValidatingCredentials ||
+                    (selectedGroupData && !areCredentialsValid)
+                  }
                 />
                 <ToggleSlider $isOn={isInboxVisible} />
               </ToggleSwitch>
@@ -473,6 +505,35 @@ export default function Proofs() {
               ? "Group is locked. Toggle off to switch groups or refresh the page to unlock a different group."
               : "Select a group using the dropdown and use toggle button to reveal inbox items. Mnemonic re-entry required each time."}
           </HiddenSubtitle>
+
+          {/* Loading and error states */}
+          {isValidatingCredentials && (
+            <div
+              style={{
+                color: "var(--color-grey-300)",
+                fontSize: "1.4rem",
+                marginTop: "1.6rem",
+                textAlign: "center",
+              }}
+            >
+              Validating group credentials...
+            </div>
+          )}
+          {selectedGroupData &&
+            !isValidatingCredentials &&
+            !areCredentialsValid && (
+              <div
+                style={{
+                  color: "var(--color-red-400)",
+                  fontSize: "1.4rem",
+                  marginTop: "1.6rem",
+                  textAlign: "center",
+                }}
+              >
+                {credentialsMessage ||
+                  "All group members must generate credentials before unlocking the inbox."}
+              </div>
+            )}
           {localVerificationError && (
             <div
               style={{
