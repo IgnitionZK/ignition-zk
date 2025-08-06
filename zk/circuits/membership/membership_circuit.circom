@@ -44,7 +44,8 @@ template MembershipProof(treeLevels) {
 
     /**
      * @notice publicNullifier: the final nullifier that is computed from identityNullifier and groupHash.
-     * @dev This value is revealed in the public output.
+     * @dev This value is not currently used as the membership circuit is used as a component within the proposal and vote circuits.
+     * To prevent double-spending the proposal and vote nullifiers are used instead in their respective circuits.
      */
     signal output publicNullifier;
     component nullifierHash = Poseidon(2);

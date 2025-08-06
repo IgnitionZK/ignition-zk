@@ -2,11 +2,11 @@
 
 ## Overview
 
-The Membership Circuit is a zero-knowledge proof system implemented in Circom that enables private verification of group membership without revealing the actual member's identity. This circuit allows users to prove they belong to a specific group (represented by a Merkle tree) while maintaining privacy through cryptographic commitments and nullifiers.
+The Membership Circuit is a zero-knowledge proof system implemented in Circom that enables private verification of group membership without revealing the actual member's identity. This circuit allows users to prove they belong to a specific group (represented by a Merkle tree) while maintaining privacy through cryptographic commitments.
 
 ## Circuit Description
 
-The MembershipProof circuit implements a privacy-preserving membership verification system using Merkle tree proofs and zero-knowledge cryptography. The circuit takes a user's secret credentials (identity trapdoor and nullifier), a group context hash, and a Merkle proof path to verify membership without revealing the user's actual identity. The system uses the Poseidon hash function for all cryptographic operations and generates a public nullifier to prevent double-spending of membership proofs.
+The MembershipProof circuit implements a privacy-preserving membership verification system using Merkle tree proofs and zero-knowledge cryptography. The circuit takes a user's secret credentials (identity trapdoor and nullifier), a group context hash, and a Merkle proof path to verify membership without revealing the user's actual identity. The system uses the Poseidon hash function for all cryptographic operations.
 
 ## Circuit Template Structure
 
@@ -24,7 +24,7 @@ template MembershipProof(treeLevels)
 ### Public Inputs
 
 - **`root`** (field element): The known Merkle root of the group's membership tree
-- **`groupHash`** (field element): Hash of the group context used for nullifier generation
+- **`groupHash`** (field element): Hash of the group context
 
 ### Private Inputs
 
@@ -38,7 +38,6 @@ template MembershipProof(treeLevels)
 ### Public Outputs
 
 - **`publicNullifier`** (field element): Computed nullifier derived from identity nullifier and group hash
-- **`isMember`** (field element): Boolean result indicating valid membership (constrained to 1)
 
 ## Step-by-Step Circuit Flow
 
@@ -53,6 +52,7 @@ publicNullifier <== nullifierHash.out;
 ```
 
 **Purpose**: Creates a unique, group-specific nullifier to prevent proof reuse
+**Note** This value is not currently used as the membership circuit is used as a component within the proposal and vote circuits. To prevent double-use of proofs the proposal and vote nullifiers are used instead in their respective circuits.
 **Data Flow**:
 
 - Input: `identityNullifier` (field element)
@@ -199,4 +199,3 @@ isMember === 1;
 - The circuit template requires instantiation with a specific tree depth
 - All Merkle proof paths must be padded to the specified tree level
 - The circuit enforces valid membership through constraint satisfaction
-- Public nullifier enables efficient proof verification and deduplication
