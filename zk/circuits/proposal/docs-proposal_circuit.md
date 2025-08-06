@@ -194,5 +194,5 @@ proposalClaimNullifier <== proposalClaimHash.out;
 - Public submission nullifier enables efficient proposal deduplication and verification
 - Public claim nullifier enables efficient claim verification and prevents double-claiming
 - Context hashing allows for epoch-based proposal management
-- The membership nullifier is computed but not exposed, maintaining privacy while enabling internal tracking
+- The membership nullifier is computed but not exposed
 - Funding and metadata information is now included in the content hash computation for enhanced proposal integrity
