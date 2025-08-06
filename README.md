@@ -46,12 +46,12 @@
 * **Delegated control:** Granular role delegation via a Governance Manager.
 * **Enhanced engagement:** Fostering high participation and accountability via smaller publicly-verified"expert" groups leading to higher individual stakes and more focused contributions.
 
-## IgnitionZK Components
+## IgnitionZK Layers
 
+![IgnitionZK layers](frontend/src/assets/ignitionzk-layers.png)
+*IgnitionZK's two-layer architecture: ZK Engine (Layer A) and On-Chain Infrastructure (Layer B)*
 
 The IgnitionZK framework combines a zero-knowledge cryptographic engine with a flexible smart contract infrastructure, creating a comprehensive system that balances anonymity with accountability. The ZK Engine (Layer A) provides the cryptographic backbone for secure identity and proof generation, while the On-Chain Infrastructure (Layer B) implements the smart contracts that manage the entire governance lifecycle.
-
-![IgnitionZK Summary](frontend/src/assets/topleveldiagram.png)
 
 ## Layer A: ZK Engine
 
@@ -62,7 +62,7 @@ The ZK Engine enables privacy-preserving governance through specialized zero-kno
 * **Verifier Contracts**: On-chain components that validate proofs without compromising privacy
 * **Off-Chain Tooling**: Utilities for generating ZK identities, managing Merkle trees, and creating proofs
 
-[➡️ Detailed ZK Engine Documentation](./docs/zk-engine.md) 
+[➡️ Detailed ZK Engine Documentation](./docs/layerA-zk-engine.md) 
 
 **ZK Circuit Docs**:  
 [Membership](./zk/circuits/membership/docs-membership_circuit.md) |
@@ -80,7 +80,7 @@ This layer provides the smart contract architecture built on OpenZeppelin's UUPS
 * **Governance Manager**: Central coordinator for protocol upgrades and management
 * **Treasury System**: Flexible funding modules for resource allocation
 
-[➡️ Detailed Smart Contract Documentation](./docs/smart-contracts.md) | [Explore Architecture Details](./docs/architecture.md)
+[➡️ Detailed Smart Contract Documentation](./docs/layerB-smart-contracts.md) | [Explore Architecture Details](./docs/architecture.md)
 
 ## IgnitionZK Lifecycle
 
