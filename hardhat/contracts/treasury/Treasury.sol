@@ -10,14 +10,15 @@ import {ReentrancyGuardUpgradeable} from "@openzeppelin/contracts-upgradeable/se
 
 contract Treasury is Initializable, ContextUpgradeable, AccessControlUpgradeable, ReentrancyGuardUpgradeable {
     
-    enum FundingType { Grant, QuadraticFunding, Bounty }
+    //enum FundingType { Grant, QuadraticFunding, Bounty, Vesting, StreamingPayments, Emergency }
 
     // mapping of funding type to its active module address
     // should only store one address per funding type (only one module per funding type)
-    mapping(FundingType => address) private activeModuleRegistry;
-
+    mapping(bytes32 => address) private activeModuleRegistry;
+    mapping(bytes32 => bool) private validFundingTypes;
+    
     struct FundingRequest {
-        FundingType fundingType;
+        bytes32 fundingType;
         address from;
         address to;
         uint256 amount;
@@ -29,6 +30,11 @@ contract Treasury is Initializable, ContextUpgradeable, AccessControlUpgradeable
 
     bytes32 private constant FUNDING_MODULE_ROLE = keccak256("FUNDING_MODULE_ROLE");
     bytes32 private constant GOVERNANCE_MANAGER_ROLE = keccak256("GOVERNANCE_MANAGER_ROLE");
+
+    bytes32 private constant GRANT_TYPE = keccak256("grant");
+    bytes32 private constant QUADRATIC_FUNDING_TYPE = keccak256("quadratic_funding");
+    bytes32 private constant BOUNTY_TYPE = keccak256("bounty");
+
 
     error AmountCannotBeZero();
     error InsufficientBalance();
@@ -44,13 +50,14 @@ contract Treasury is Initializable, ContextUpgradeable, AccessControlUpgradeable
     error TransferFailed();
     error FunctionDoesNotExist();
     error CallerNotAuthorized();
+    error InvalidFundingType();
 
 
     event Funded(address indexed sender, uint256 amount);
     event FundingModuleAdded(address indexed module);
     event FundingModuleRemoved(address indexed module);
-    event FundingRequested(bytes32 indexed contextKey, address indexed from, address indexed to, uint256 amount);
-    event FundingTransferred(bytes32 indexed contextKey, address indexed to, uint256 amount);
+    event TransferRequested(bytes32 indexed contextKey, address indexed from, address indexed to, uint256 amount);
+    event TransferApproved(bytes32 indexed contextKey, address indexed to, uint256 amount);
 
 
     modifier nonZeroAddress(address addr) {
@@ -91,11 +98,25 @@ contract Treasury is Initializable, ContextUpgradeable, AccessControlUpgradeable
         _grantRole(FUNDING_MODULE_ROLE, _grantModule);
         _grantRole(GOVERNANCE_MANAGER_ROLE, _governanceManager);
 
-        activeModuleRegistry[FundingType.Grant] = _grantModule;
+        validFundingTypes[GRANT_TYPE] = true;
+        activeModuleRegistry[GRANT_TYPE] = _grantModule; 
     }   
+
+    // add funding type
+    function addFundingType(bytes32 _type) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        validFundingTypes[_type] = true;
+    }
+
+    // remove funding type
+    function removeFundingType(bytes32 _type) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        validFundingTypes[_type] = false;
+    }
+
+
     // add funding module
-    function addFundingModule(address _module, FundingType _fundingType) external onlyRole(DEFAULT_ADMIN_ROLE) nonZeroAddress(_module) {
-       
+    function addFundingModule(address _module, bytes32 _fundingType) external onlyRole(DEFAULT_ADMIN_ROLE) nonZeroAddress(_module) {
+        
+        if (!validFundingTypes[_fundingType]) revert InvalidFundingType();
         if (hasRole(FUNDING_MODULE_ROLE, _module)) revert ModuleAlreadyHasFundingRole();
         _grantRole(FUNDING_MODULE_ROLE, _module);
 
@@ -104,11 +125,10 @@ contract Treasury is Initializable, ContextUpgradeable, AccessControlUpgradeable
         emit FundingModuleAdded(_module);
     }
 
-    function removeFundingModule(address _module, FundingType _fundingType) external onlyRole(DEFAULT_ADMIN_ROLE) {
+    function removeFundingModule(address _module, bytes32 _fundingType) external onlyRole(DEFAULT_ADMIN_ROLE) {
         if (!hasRole(FUNDING_MODULE_ROLE, _module)) revert ModuleDoesNotHaveFundingRole();
-        _revokeRole(FUNDING_MODULE_ROLE, _module);
-
         if (activeModuleRegistry[_fundingType] != _module) revert ModuleMismatch();
+        _revokeRole(FUNDING_MODULE_ROLE, _module);
         delete activeModuleRegistry[_fundingType];
 
         emit FundingModuleRemoved(_module);
@@ -119,7 +139,7 @@ contract Treasury is Initializable, ContextUpgradeable, AccessControlUpgradeable
         bytes32 contextKey,
         address _to, 
         uint256 _amount, 
-        FundingType _fundingType
+        bytes32 _fundingType
     ) 
         external 
         onlyRole(FUNDING_MODULE_ROLE)
@@ -140,12 +160,11 @@ contract Treasury is Initializable, ContextUpgradeable, AccessControlUpgradeable
             executed: false
         });
 
-        emit FundingRequested(contextKey, msg.sender, _to, _amount);
-    
+        emit TransferRequested(contextKey, msg.sender, _to, _amount);
     }
 
     // push payment method:
-    function transferFunding(
+    function approveTransfer(
         bytes32 contextKey
     ) 
         external 
@@ -173,7 +192,7 @@ contract Treasury is Initializable, ContextUpgradeable, AccessControlUpgradeable
             revert TransferFailed();
         }
 
-        emit FundingTransferred(contextKey, request.to, request.amount);
+        emit TransferApproved(contextKey, request.to, request.amount);
     }
 
     // pull payment method:

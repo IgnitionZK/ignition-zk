@@ -10,15 +10,18 @@ B) onlyRelayer for all others
 
 -----
 
-DAO MultiSig
-owns
-→
-Treasury clone
+DAO Treasury clone with AccessControl:
+Roles: 
+- DAO MultiSig (DEFAULT_ADMIN_ROLE)
+- Funding Modules (FUNDING_MODULE_ROLE)
+- GM (GOVERNANCE_MANAGER_ROLE)
 
 Treasury clone functions:
-A) onlyOwner (MultiSig) for approveFund: transfers the funds to recipient
-B) onlyFundingModule for requestFund: 
+A) modifier onlyRole(FUNDING_MODULE_ROLE) for requestTransfer: funding module requests fund transfer to recipient for X amount
+B) modifier onlyRole(DEFAULT_ADMIN_ROLE), ie MultiSig, for approveTransfer: multi sig approves and transfers the funds to recipient
+C) modifier onlyRole(GOVERNANCE_MANAGER_ROLE) or onlyRole(DEFAULT_ADMIN_ROLE) to view treasury balance
 
+-----
 
 Proposal Execution / Fund Disbursement Flow:
 
