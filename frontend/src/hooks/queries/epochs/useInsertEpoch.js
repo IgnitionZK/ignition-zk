@@ -1,22 +1,26 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { insertEpoch } from "../../../services/apiEpochs";
+import { useCalculateAndStoreRoot } from "../merkleTreeRoots/useCalculateAndStoreRoot";
 import { useUpdateBlockchainRoot } from "../merkleTreeRoots/useUpdateBlockchainRoot";
 
 /**
- * Custom hook to insert a new epoch with blockchain root update
+ * Custom hook to insert a new epoch with root calculation and blockchain update
  *
  * @returns {Object} Object containing:
- *   - insertEpoch: function - Function to insert new epoch with blockchain update
+ *   - insertEpoch: function - Function to insert new epoch with root calculation and blockchain update
  *   - isLoading: boolean - Loading state of the mutation
  *   - error: Error | null - Error state of the mutation
  *
  * @notes
  *   - Uses React Query's useMutation for optimistic updates
  *   - Automatically invalidates related queries after successful insertion
- *   - Updates blockchain root before creating campaign to ensure consistency
+ *   - Calculates and stores root before creating campaign to ensure consistency
+ *   - Skips blockchain updates when root is unchanged for efficiency
  */
 export function useInsertEpoch() {
   const queryClient = useQueryClient();
+  const { calculateAndStoreRoot, isLoading: isCalculatingRoot } =
+    useCalculateAndStoreRoot();
   const { updateBlockchainRoot, isLoading: isUpdatingRoot } =
     useUpdateBlockchainRoot();
 
@@ -34,24 +38,46 @@ export function useInsertEpoch() {
       onError,
     }) => {
       try {
-        console.log("Starting epoch creation with blockchain root update...");
+        console.log(
+          "Starting epoch creation with root calculation and blockchain update..."
+        );
 
-        // Step 1: Update blockchain root first
-        console.log("Updating blockchain root...");
-        await updateBlockchainRoot({
+        // Step 1: Calculate and store root in database
+        console.log("Calculating and storing root...");
+        const rootData = await calculateAndStoreRoot({
           groupId: group_id,
-          onSuccess: (rootData) => {
-            console.log("Blockchain root updated successfully:", rootData);
+          onSuccess: (rootResult) => {
+            console.log("Root calculated and stored successfully:", rootResult);
           },
           onError: (rootError) => {
-            console.error("Blockchain root update failed:", rootError);
-            throw new Error(
-              `Blockchain root update failed: ${rootError.message}`
-            );
+            console.error("Root calculation failed:", rootError);
+            throw new Error(`Root calculation failed: ${rootError.message}`);
           },
         });
 
-        // Step 2: Create the epoch/campaign
+        // Step 2: Update blockchain only if root has changed
+        if (rootData.rootUnchanged) {
+          console.log("Root unchanged, skipping blockchain update...");
+        } else {
+          console.log("Root has changed, updating blockchain...");
+          await updateBlockchainRoot({
+            groupId: group_id,
+            onSuccess: (blockchainData) => {
+              console.log(
+                "Blockchain root updated successfully:",
+                blockchainData
+              );
+            },
+            onError: (blockchainError) => {
+              console.error("Blockchain root update failed:", blockchainError);
+              throw new Error(
+                `Blockchain root update failed: ${blockchainError.message}`
+              );
+            },
+          });
+        }
+
+        // Step 3: Create the epoch/campaign
         console.log("Creating epoch...");
         const epochData = await insertEpoch({
           group_id,
@@ -82,9 +108,11 @@ export function useInsertEpoch() {
     },
   });
 
+  // Only include blockchain update loading if we're actually updating
+  // For now, we'll keep it simple and include it in the loading state
   return {
     insertEpoch: insertEpochMutation,
-    isLoading: isInsertingEpoch || isUpdatingRoot,
+    isLoading: isInsertingEpoch || isCalculatingRoot || isUpdatingRoot,
     error,
   };
 }

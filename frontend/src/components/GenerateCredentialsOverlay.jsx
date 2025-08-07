@@ -192,12 +192,12 @@ function GenerateCredentialsOverlay({ group, onClose }) {
         groupId,
         groupMemberId,
         commitment: result.commitment,
-        onSuccess: ({ root, treeVersion, memberCount }) => {
+        onSuccess: ({ memberCount, commitmentId }) => {
           console.log(
-            `Database updated successfully. Root: ${root}, Version: ${treeVersion}, Member Count: ${memberCount}`
+            `Database updated successfully. Member Count: ${memberCount}, Commitment ID: ${commitmentId}`
           );
           toast.success(
-            "Credentials generated successfully! Blockchain will be updated when next campaign is created."
+            "Credentials generated successfully! Root will be calculated and blockchain updated when next campaign is created."
           );
         },
         onError: (error) => {
