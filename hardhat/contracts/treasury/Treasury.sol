@@ -22,6 +22,7 @@ contract Treasury is Initializable, ContextUpgradeable, AccessControlUpgradeable
         address from;
         address to;
         uint256 amount;
+        uint256 releaseTime;
         bool executed;
     }
 
@@ -35,6 +36,7 @@ contract Treasury is Initializable, ContextUpgradeable, AccessControlUpgradeable
     bytes32 private constant QUADRATIC_FUNDING_TYPE = keccak256("quadratic_funding");
     bytes32 private constant BOUNTY_TYPE = keccak256("bounty");
 
+    uint256 private constant TIMELOCK_DELAY_DAYS = 3;
 
     error AmountCannotBeZero();
     error InsufficientBalance();
@@ -51,7 +53,7 @@ contract Treasury is Initializable, ContextUpgradeable, AccessControlUpgradeable
     error FunctionDoesNotExist();
     error CallerNotAuthorized();
     error InvalidFundingType();
-
+    error RequestInTimelock();
 
     event Funded(address indexed sender, uint256 amount);
     event FundingModuleAdded(address indexed module);
@@ -146,7 +148,14 @@ contract Treasury is Initializable, ContextUpgradeable, AccessControlUpgradeable
         nonZeroAddress(_to) 
         nonZeroKey(contextKey)
     {
-        // GM checks that a) context key exists in PM and that b) passed == true
+        // Checks in funding module: 
+        // GM checks that 
+        // a) context key exists in VM and
+        // b) passed == true 
+        // c) submission nullifier corresponds to voted contextKey in VM
+        // c) recipient is in whitelist contract 
+        // If passed, requests transfer
+        // Checks in Treasury:
         if (_amount > address(this).balance) revert InsufficientBalance();
         if (_amount == 0) revert AmountCannotBeZero();
         if (fundingRequests[contextKey].to != address(0)) revert FundingAlreadyRequested();
@@ -157,6 +166,7 @@ contract Treasury is Initializable, ContextUpgradeable, AccessControlUpgradeable
             from: msg.sender,
             to: _to,
             amount: _amount,
+            releaseTime: block.timestamp + TIMELOCK_DELAY_DAYS * 24 * 60 * 60;
             executed: false
         });
 
@@ -177,6 +187,7 @@ contract Treasury is Initializable, ContextUpgradeable, AccessControlUpgradeable
         // Checks
         if (request.to == address(0)) revert RequestDoesNotExist();
         if (request.executed) revert TransferAlreadyExecuted();
+        if (request.releaseTime > block.timestamp) revert RequestInTimelock();
         if (activeModuleRegistry[request.fundingType] != request.from) revert InconsistentFundingModule();
         if (request.amount > address(this).balance) revert InsufficientBalance();
         if (request.amount == 0) revert AmountCannotBeZero();
