@@ -62,52 +62,6 @@ try {
 }
 
 // ================================================================
-// Helper Functions
-// ================================================================
-
-/**
- * Calculates the three phases (proposal, voting, review) for an epoch.
- * This is a direct replication of the logic from the user's `epochPhaseCalculator.js`.
- * @param {Object} epoch - The epoch object from the database.
- * @param {string} epoch.epoch_start_time - Start time of the epoch (ISO string).
- * @param {number} epoch.epoch_duration - Duration of the epoch in days.
- * @returns {Object} Object containing the three phases with start and end times.
- */
-function calculateEpochPhases(epoch) {
-  const { epoch_start_time, epoch_duration } = epoch;
-  const startDate = new Date(epoch_start_time);
-  const totalDays = epoch_duration;
-
-  const basePhaseDays = Math.floor(totalDays / 3);
-  const remainderDays = totalDays % 3;
-
-  const proposalPhaseDays = basePhaseDays;
-  const votingPhaseDays = basePhaseDays + remainderDays;
-  const reviewPhaseDays = basePhaseDays;
-
-  const proposalPhaseStart = new Date(startDate);
-  const proposalPhaseEnd = new Date(
-    startDate.getTime() + proposalPhaseDays * 24 * 60 * 60 * 1000
-  );
-
-  const votingPhaseStart = new Date(proposalPhaseEnd);
-  const votingPhaseEnd = new Date(
-    votingPhaseStart.getTime() + votingPhaseDays * 24 * 60 * 60 * 1000
-  );
-
-  const reviewPhaseStart = new Date(votingPhaseEnd);
-  const reviewPhaseEnd = new Date(
-    reviewPhaseStart.getTime() + reviewPhaseDays * 24 * 60 * 60 * 1000
-  );
-
-  return {
-    proposalPhase: { start: proposalPhaseStart, end: proposalPhaseEnd },
-    votingPhase: { start: votingPhaseStart, end: votingPhaseEnd },
-    reviewPhase: { start: reviewPhaseStart, end: reviewPhaseEnd },
-  };
-}
-
-// ================================================================
 // Main Edge Function Handler
 // ================================================================
 
@@ -129,17 +83,16 @@ serve(async (req) => {
   try {
     console.log("Scheduled job started. Fetching epochs...");
 
-    // 1. Fetch all epochs from the database.
+    // 1. Fetch all epochs from the database. Now using the new `review_start` column.
     const { data: epochs, error: epochsError } = await supabaseClient
       .from("ignitionzk.epochs")
-      .select("*");
+      .select("epoch_id, review_start");
 
     if (epochsError) {
       console.error("Error fetching epochs:", epochsError);
       throw new Error(epochsError.message);
     }
     
-    // Convert to ISO string to ensure consistent comparison.
     const currentTime = new Date().toISOString();
     console.log(`Current time is: ${currentTime}`);
 
@@ -147,18 +100,18 @@ serve(async (req) => {
     for (const epoch of epochs) {
       console.log(`Processing epoch ID: ${epoch.epoch_id}`);
 
-      const phases = calculateEpochPhases(epoch);
-      const votingPhaseEnd = phases.votingPhase.end.toISOString();
+      const votingPhaseEnd = epoch.review_start;
       console.log(`Voting phase for epoch ${epoch.epoch_id} ends at: ${votingPhaseEnd}`);
       
-      // The condition is that the voting phase must have ended, but the review phase has not yet begun.
+      // The condition is that the voting phase must have ended.
       if (currentTime > votingPhaseEnd) {
         console.log(`Voting phase for epoch ${epoch.epoch_id} has ended. Fetching unverified proofs...`);
 
         // 3. If the voting phase has ended, fetch all unverified voting proofs for this epoch.
+        // We now select the new `context_key` column.
         const { data: proofs, error: proofsError } = await supabaseClient
           .from("ignitionzk.proofs")
-          .select("*")
+          .select("proof_id, proof, public_signals, group_id, context_key")
           .eq("epoch_id", epoch.epoch_id)
           .eq("circuit_id", "voting")
           .eq("is_verified", false);
@@ -178,8 +131,8 @@ serve(async (req) => {
             // Re-construct proof and public signals from database strings/arrays
             const proof = proofData.proof.map(BigInt);
             const publicSignals = proofData.public_signals.map(BigInt);
-            const groupKey = proofData.group_key;
-            const contextKey = proofData.context_key;
+            const groupKey = proofData.group_id; // Using group_id from proofs table
+            const contextKey = proofData.context_key; // Using context_key from proofs table
 
             // Call the delegateVerifyVote function on the GovernanceManager contract.
             const transactionResponse = await contract.delegateVerifyVote(
@@ -229,4 +182,3 @@ serve(async (req) => {
     });
   }
 });
-
