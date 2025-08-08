@@ -172,6 +172,7 @@ export function useVerifyVote() {
                 isValid: true,
                 publicSignals: publicSignalsSolidity,
                 proof: proofSolidity,
+                contextKey: data.contextKey || null, // Return contextKey from relayer response
               });
             },
             onError: (error) => {

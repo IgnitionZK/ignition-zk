@@ -21,6 +21,7 @@ export function useInsertProof() {
      * @param {string} params.circuitType - The type of circuit used
      * @param {Array<string>} [params.proof] - The proof array (required for voting circuit)
      * @param {Array<string>} [params.publicSignals] - The public signals array (required for voting circuit)
+     * @param {string} [params.contextKey] - The context key for the proof (computed from group, epoch, proposal)
      * @returns {Promise} A promise that resolves when the proof is inserted
      */
     mutationFn: ({
@@ -31,6 +32,7 @@ export function useInsertProof() {
       circuitType,
       proof,
       publicSignals,
+      contextKey,
     }) =>
       insertProof({
         proposalId,
@@ -40,6 +42,7 @@ export function useInsertProof() {
         circuitType,
         proof,
         publicSignals,
+        contextKey,
       }),
     onSuccess: () => {
       // Invalidate and refetch proofs queries

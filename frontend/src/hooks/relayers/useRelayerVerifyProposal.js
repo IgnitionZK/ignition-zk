@@ -166,7 +166,10 @@ export function useRelayerVerifyProposal() {
       }
 
       console.log("Edge function response:", data);
-      return data;
+      return {
+        ...data,
+        contextKey: contextKey, // Include the computed contextKey in the response
+      };
     },
   });
 

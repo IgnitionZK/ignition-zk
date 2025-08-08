@@ -1,0 +1,232 @@
+import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
+import { ethers } from "https://esm.sh/ethers@6.11.1";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.42.0";
+
+// CORS headers are defined for Edge Functions, even if this is a scheduled job.
+// It's a good practice to include them for flexibility.
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Methods": "POST, GET, OPTIONS"
+};
+
+// ================================================================
+// Environment Variables & Initialization
+// This block runs once when the Edge Function is loaded.
+// ================================================================
+
+// GovernanceManager Proxy address.
+const GOVERNOR_CONTRACT_ADDRESS = Deno.env.get("GOVERNOR_CONTRACT_ADDRESS");
+// ABI for the delegateVerifyVote function on GovernanceManager.
+const GOVERNANCE_MANAGER_ABI = [
+  "function delegateVerifyVote(uint256[24] calldata proof, uint256[5] calldata publicSignals, bytes32 groupKey, bytes32 contextKey)"
+];
+
+// Supabase details for database interaction
+const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
+const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+
+// Ethers details for blockchain interaction
+const RPC_URL = Deno.env.get("SEPOLIA_RPC_URL");
+const RELAYER_PRIVATE_KEY = Deno.env.get("RELAYER_PRIVATE_KEY");
+
+// A secret key to protect the endpoint from unauthorized calls
+const API_KEY_SECRET = Deno.env.get("API_KEY_SECRET");
+
+let supabaseClient;
+let provider;
+let wallet;
+let contract;
+
+try {
+  // Ensure all necessary environment variables are set.
+  if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY || !RPC_URL || !GOVERNOR_CONTRACT_ADDRESS || !RELAYER_PRIVATE_KEY || !API_KEY_SECRET) {
+    throw new Error("Missing one or more required environment variables.");
+  }
+
+  // Create a Supabase client with the service role key to bypass RLS.
+  supabaseClient = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+
+  // Create an Ethers provider and wallet instance for the relayer.
+  provider = new ethers.JsonRpcProvider(RPC_URL);
+  wallet = new ethers.Wallet(RELAYER_PRIVATE_KEY, provider);
+
+  // Create a contract instance connected to the relayer's wallet.
+  contract = new ethers.Contract(GOVERNOR_CONTRACT_ADDRESS, GOVERNANCE_MANAGER_ABI, wallet);
+
+  console.log("Initialization successful.");
+} catch (error) {
+  console.error("Initialization failed:", error.message);
+  // Re-throw the error to prevent the function from running with a broken state.
+  throw error;
+}
+
+// ================================================================
+// Helper Functions
+// ================================================================
+
+/**
+ * Calculates the three phases (proposal, voting, review) for an epoch.
+ * This is a direct replication of the logic from the user's `epochPhaseCalculator.js`.
+ * @param {Object} epoch - The epoch object from the database.
+ * @param {string} epoch.epoch_start_time - Start time of the epoch (ISO string).
+ * @param {number} epoch.epoch_duration - Duration of the epoch in days.
+ * @returns {Object} Object containing the three phases with start and end times.
+ */
+function calculateEpochPhases(epoch) {
+  const { epoch_start_time, epoch_duration } = epoch;
+  const startDate = new Date(epoch_start_time);
+  const totalDays = epoch_duration;
+
+  const basePhaseDays = Math.floor(totalDays / 3);
+  const remainderDays = totalDays % 3;
+
+  const proposalPhaseDays = basePhaseDays;
+  const votingPhaseDays = basePhaseDays + remainderDays;
+  const reviewPhaseDays = basePhaseDays;
+
+  const proposalPhaseStart = new Date(startDate);
+  const proposalPhaseEnd = new Date(
+    startDate.getTime() + proposalPhaseDays * 24 * 60 * 60 * 1000
+  );
+
+  const votingPhaseStart = new Date(proposalPhaseEnd);
+  const votingPhaseEnd = new Date(
+    votingPhaseStart.getTime() + votingPhaseDays * 24 * 60 * 60 * 1000
+  );
+
+  const reviewPhaseStart = new Date(votingPhaseEnd);
+  const reviewPhaseEnd = new Date(
+    reviewPhaseStart.getTime() + reviewPhaseDays * 24 * 60 * 60 * 1000
+  );
+
+  return {
+    proposalPhase: { start: proposalPhaseStart, end: proposalPhaseEnd },
+    votingPhase: { start: votingPhaseStart, end: votingPhaseEnd },
+    reviewPhase: { start: reviewPhaseStart, end: reviewPhaseEnd },
+  };
+}
+
+// ================================================================
+// Main Edge Function Handler
+// ================================================================
+
+serve(async (req) => {
+  // Handle CORS preflight requests (OPTIONS method)
+  if (req.method === "OPTIONS") {
+    return new Response("ok", { headers: corsHeaders });
+  }
+
+  // Security check: Only allow requests with the correct API key.
+  const authHeader = req.headers.get("Authorization");
+  if (!authHeader || authHeader.replace("Bearer ", "") !== API_KEY_SECRET) {
+      return new Response(JSON.stringify({ error: "Unauthorized access." }), {
+          status: 401,
+          headers: { ...corsHeaders, "Content-Type": "application/json" }
+      });
+  }
+
+  try {
+    console.log("Scheduled job started. Fetching epochs...");
+
+    // 1. Fetch all epochs from the database.
+    const { data: epochs, error: epochsError } = await supabaseClient
+      .from("ignitionzk.epochs")
+      .select("*");
+
+    if (epochsError) {
+      console.error("Error fetching epochs:", epochsError);
+      throw new Error(epochsError.message);
+    }
+    
+    // Convert to ISO string to ensure consistent comparison.
+    const currentTime = new Date().toISOString();
+    console.log(`Current time is: ${currentTime}`);
+
+    // 2. Iterate through each epoch to check if the voting phase has ended.
+    for (const epoch of epochs) {
+      console.log(`Processing epoch ID: ${epoch.epoch_id}`);
+
+      const phases = calculateEpochPhases(epoch);
+      const votingPhaseEnd = phases.votingPhase.end.toISOString();
+      console.log(`Voting phase for epoch ${epoch.epoch_id} ends at: ${votingPhaseEnd}`);
+      
+      // The condition is that the voting phase must have ended, but the review phase has not yet begun.
+      if (currentTime > votingPhaseEnd) {
+        console.log(`Voting phase for epoch ${epoch.epoch_id} has ended. Fetching unverified proofs...`);
+
+        // 3. If the voting phase has ended, fetch all unverified voting proofs for this epoch.
+        const { data: proofs, error: proofsError } = await supabaseClient
+          .from("ignitionzk.proofs")
+          .select("*")
+          .eq("epoch_id", epoch.epoch_id)
+          .eq("circuit_id", "voting")
+          .eq("is_verified", false);
+        
+        if (proofsError) {
+          console.error("Error fetching proofs:", proofsError);
+          throw new Error(proofsError.message);
+        }
+
+        console.log(`Found ${proofs.length} unverified proofs to process.`);
+
+        // 4. Loop through each proof and send it to the blockchain for verification.
+        for (const proofData of proofs) {
+          try {
+            console.log(`Verifying proof with ID: ${proofData.proof_id}`);
+            
+            // Re-construct proof and public signals from database strings/arrays
+            const proof = proofData.proof.map(BigInt);
+            const publicSignals = proofData.public_signals.map(BigInt);
+            const groupKey = proofData.group_key;
+            const contextKey = proofData.context_key;
+
+            // Call the delegateVerifyVote function on the GovernanceManager contract.
+            const transactionResponse = await contract.delegateVerifyVote(
+              proof,
+              publicSignals,
+              groupKey,
+              contextKey
+            );
+
+            console.log(`Transaction submitted. Hash: ${transactionResponse.hash}`);
+            
+            // Wait for the transaction to be mined.
+            const receipt = await transactionResponse.wait();
+            console.log(`Transaction confirmed in block ${receipt.blockNumber}`);
+
+            // 5. Update the proof's status in the database.
+            const { error: updateError } = await supabaseClient
+              .from("ignitionzk.proofs")
+              .update({ is_verified: true })
+              .eq("proof_id", proofData.proof_id);
+
+            if (updateError) {
+              console.error(`Error updating proof ${proofData.proof_id}:`, updateError);
+            } else {
+              console.log(`Proof ${proofData.proof_id} successfully verified and updated in database.`);
+            }
+
+          } catch (verifyError) {
+            console.error(`Failed to verify proof ${proofData.proof_id}:`, verifyError);
+            // Log the error but continue to the next proof.
+          }
+        }
+      }
+    }
+
+    console.log("Scheduled job completed successfully.");
+    return new Response(JSON.stringify({ message: "Verification check completed." }), {
+      status: 200,
+      headers: { ...corsHeaders, "Content-Type": "application/json" }
+    });
+
+  } catch (error) {
+    console.error("Error in scheduled job:", error);
+    return new Response(JSON.stringify({ error: error.message || "An unknown error occurred." }), {
+      status: 500,
+      headers: { ...corsHeaders, "Content-Type": "application/json" }
+    });
+  }
+});
+
