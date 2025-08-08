@@ -1,4 +1,5 @@
 import { supabase } from "./supabase";
+import { calculateEpochPhases } from "../scripts/utils/epochPhaseCalculator";
 
 /**
  * Retrieves epochs that a user is a member of through group membership.
@@ -45,6 +46,8 @@ export async function getEpochByUserId(userId) {
       epoch_name,
       epoch_start_time,
       epoch_duration,
+      voting_start,
+      review_start,
       groups (
         group_id,
         name
@@ -86,6 +89,8 @@ export async function getEpochsByGroupId(groupId) {
       epoch_name,
       epoch_start_time,
       epoch_duration,
+      voting_start,
+      review_start,
       created_at
     `
     )
@@ -131,6 +136,16 @@ export async function insertEpoch({
   // Convert epoch_start_time to ISO string for timestamptz compatibility
   const formattedStartTime = new Date(epoch_start_time).toISOString();
 
+  // Calculate voting and review start times using epochPhaseCalculator
+  const epochForPhaseCalculation = {
+    epoch_start_time: formattedStartTime,
+    epoch_duration: epoch_duration,
+  };
+
+  const phases = calculateEpochPhases(epochForPhaseCalculation);
+  const votingStartTime = phases.votingPhase.start.toISOString();
+  const reviewStartTime = phases.reviewPhase.start.toISOString();
+
   const { data, error } = await supabase
     .schema("ignitionzk")
     .from("epochs")
@@ -139,6 +154,8 @@ export async function insertEpoch({
       epoch_duration,
       epoch_name,
       epoch_start_time: formattedStartTime,
+      voting_start: votingStartTime,
+      review_start: reviewStartTime,
     })
     .select()
     .single();
