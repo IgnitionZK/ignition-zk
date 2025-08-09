@@ -10,6 +10,7 @@ import { supabase } from "./supabase";
  * @param {string} params.circuitType - The type of circuit used (e.g., "proposal", "voting", "membership")
  * @param {Array<string>} [params.proof] - The proof array (required for voting circuit)
  * @param {Array<string>} [params.publicSignals] - The public signals array (required for voting circuit)
+ * @param {string} [params.contextKey] - The context key for the proof (computed from group, epoch, proposal)
  * @returns {Promise<Object>} The inserted proof record
  * @throws {Error} If any required parameter is missing or if the database operation fails
  */
@@ -21,6 +22,7 @@ export async function insertProof({
   circuitType,
   proof,
   publicSignals,
+  contextKey,
 }) {
   console.log("🔍 insertProof called with parameters:", {
     proposalId,
@@ -32,6 +34,7 @@ export async function insertProof({
     publicSignals: publicSignals
       ? `${publicSignals.length} elements`
       : undefined,
+    contextKey,
   });
 
   if (!proposalId) {
@@ -71,6 +74,11 @@ export async function insertProof({
     nullifier_hash: nullifierHash,
     is_verified: true,
   };
+
+  // Add contextKey if provided
+  if (contextKey) {
+    insertData.context_key = contextKey;
+  }
 
   // Add proof and public_signals for voting circuit (required by database constraint)
   if (circuitType === "voting") {

@@ -23,6 +23,7 @@ import { useValidateGroupCredentials } from "../hooks/queries/groups/useValidate
 // utils
 import { getCurrentPhase } from "../scripts/utils/epochPhaseCalculator";
 import { uploadFile } from "../scripts/uploadFile";
+import { ZKProofGenerator } from "../scripts/generateZKProof";
 
 // icons
 import { IoIosInformationCircle } from "react-icons/io";
@@ -774,7 +775,11 @@ export default function CreateProposal({ onSuccess, onCancel }) {
       setUploadProgress("Generating zero-knowledge proof...");
 
       // Verify the proposal using the ZK proof system
-      const { isValid, publicSignals } = await verifyProposal(
+      const {
+        isValid,
+        publicSignals,
+        contextKey: returnedContextKey,
+      } = await verifyProposal(
         commitmentArray,
         mnemonic,
         selectedGroupObject.group_id,
@@ -828,12 +833,27 @@ export default function CreateProposal({ onSuccess, onCancel }) {
           );
         }
 
+        // Use the contextKey returned from the verification process
+        if (!returnedContextKey) {
+          throw new Error(
+            "contextKey not returned from verification process. This indicates an issue with the relayer or verification chain."
+          );
+        }
+
+        console.log(
+          "[FRONTEND/CreateProposal] Using contextKey from verification:",
+          {
+            contextKey: returnedContextKey,
+          }
+        );
+
         const insertedProof = await insertProof({
           proposalId: insertedProposal.proposal_id,
           groupId: selectedGroupObject.group_id,
           groupMemberId: groupMemberId,
           nullifierHash: nullifierHash,
           circuitType: "proposal",
+          contextKey: returnedContextKey,
         });
 
         console.log("Proof stored in database:", insertedProof);

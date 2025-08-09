@@ -11,6 +11,7 @@ import { useInsertProof } from "../hooks/queries/proofs/useInsertProof";
 import { useGetUserGroups } from "../hooks/queries/groupMembers/useGetUserGroups";
 import { useGetProposalSubmissionNullifier } from "../hooks/queries/proofs/useGetProposalSubmissionNullifier";
 import { calculateEpochPhases } from "../scripts/utils/epochPhaseCalculator";
+import { ZKProofGenerator } from "../scripts/generateZKProof";
 
 const InboxItemContainer = styled.li`
   background-color: rgba(165, 180, 252, 0.1);
@@ -268,7 +269,12 @@ function InboxItem({
       }
 
       // Get the proof and verification result
-      const { isValid, publicSignals, proof } = await verifyVote(
+      const {
+        isValid,
+        publicSignals,
+        proof,
+        contextKey: returnedContextKey,
+      } = await verifyVote(
         commitmentArray,
         mnemonic,
         proposal.group_id,
@@ -291,6 +297,20 @@ function InboxItem({
         const proofArray = proof.map((p) => p.toString());
         const publicSignalsArray = publicSignals.map((s) => s.toString());
 
+        // Use the contextKey returned from the verification process
+        if (!returnedContextKey) {
+          throw new Error(
+            "contextKey not returned from verification process. This indicates an issue with the relayer or verification chain."
+          );
+        }
+
+        console.log(
+          "[FRONTEND/InboxItem] Using contextKey from verification:",
+          {
+            contextKey: returnedContextKey,
+          }
+        );
+
         await insertProof({
           proposalId: proposal.proposal_id,
           groupId: proposal.group_id,
@@ -299,6 +319,7 @@ function InboxItem({
           circuitType: "voting",
           proof: proofArray,
           publicSignals: publicSignalsArray,
+          contextKey: returnedContextKey,
         });
 
         // TODO: Store vote information when the API supports it

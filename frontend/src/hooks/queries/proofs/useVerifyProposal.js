@@ -142,7 +142,11 @@ export function useVerifyProposal() {
           {
             onSuccess: (data) => {
               console.log("Relayer verification successful:", data);
-              resolve({ isValid: true, publicSignals });
+              resolve({
+                isValid: true,
+                publicSignals,
+                contextKey: data.contextKey || null, // Return contextKey from relayer response
+              });
             },
             onError: (error) => {
               console.error("Relayer verification failed:", error);
