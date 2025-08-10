@@ -644,6 +644,23 @@ contract GovernanceManager is Initializable, UUPSUpgradeable, OwnableUpgradeable
         return voteManager.getQuorumParams();
     }
 
+
+    function executeProposal(
+        bytes32 contextKey,
+        bytes32 groupKey,
+        address to, 
+        uint256 amount, 
+        bytes32 fundingType
+    ) 
+        external 
+        onlyRelayer 
+    {
+        if (fundingType == GRANT_TYPE) {
+            grantModule.delegateDistributeGrant(contextKey, to, amount);
+        }
+
+    }
+
 // ====================================================================================================================
 //                                   EXTERNAL VIEW FUNCTIONS (NOT FORWARDED)
 // ====================================================================================================================

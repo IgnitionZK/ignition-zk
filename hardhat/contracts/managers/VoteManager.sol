@@ -323,7 +323,7 @@ contract VoteManager is Initializable, OwnableUpgradeable, UUPSUpgradeable, IVot
         bytes32 proofVoteNullifier = bytes32(publicSignals[1]);
         uint256 proofVoteChoiceHash = publicSignals[2];
         bytes32 proofRoot = bytes32(publicSignals[3]);
-        bytes32 proofSubmissionNullifier = bytes32(publicSignals[4]);
+        //bytes32 proofSubmissionNullifier = bytes32(publicSignals[4]);
 
         // check root
         if (currentRoot == bytes32(0)) revert RootNotYetInitialized();
@@ -362,32 +362,33 @@ contract VoteManager is Initializable, OwnableUpgradeable, UUPSUpgradeable, IVot
         }
 
         // Update vote tally for proposal
-        VoteTypes.ProposalResult storage result = proposalResults[contextKey];
-        //VoteTypes.VoteTally storage tally = proposalResults[contextKey].tally;
+        //VoteTypes.ProposalResult storage result = proposalResults[contextKey];
+        VoteTypes.VoteTally storage tally = proposalResults[contextKey].tally;
 
         if ( inferredChoice == VoteTypes.VoteChoice.No) {
-            result.tally.no++;
+            tally.no++;
         } else if ( inferredChoice == VoteTypes.VoteChoice.Yes) {
-            result.tally.yes++;
+            tally.yes++;
         } else if ( inferredChoice == VoteTypes.VoteChoice.Abstain) {
-            result.tally.abstain++;
+            tally.abstain++;
         }
         emit VoteTallyUpdated(contextKey, [
-            result.tally.no, 
-            result.tally.yes, 
-            result.tally.abstain
+            tally.no, 
+            tally.yes, 
+            tally.abstain
             ]);
         
         // Update the proposal's Passed status
         _updateProposalStatus(contextKey, groupKey);
 
         // register the proposal submission nullifier in the proposal record
-
+        /*
         if (result.submissionNullifier == bytes32(0)) {
             result.submissionNullifier = proofSubmissionNullifier;
         } else {
             if (result.submissionNullifier != proofSubmissionNullifier) revert SubmissionNullifierMismatch();
         }
+        */
     }
 
     
