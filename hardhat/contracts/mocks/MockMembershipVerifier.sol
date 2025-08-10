@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.28;
 
-import {IMembershipVerifier} from "../interfaces/IMembershipVerifier.sol";
+import {IMembershipVerifier} from "../interfaces/verifiers/IMembershipVerifier.sol";
 
 contract MockMembershipVerifier is IMembershipVerifier {
 

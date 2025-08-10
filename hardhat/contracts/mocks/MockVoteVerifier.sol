@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.28;
 
-import {IVoteVerifier} from "../interfaces/IVoteVerifier.sol";
+import {IVoteVerifier} from "../interfaces/verifiers/IVoteVerifier.sol";
 
 contract MockVoteVerifier is IVoteVerifier {
 

@@ -11,7 +11,7 @@ module.exports = {
     version: "0.8.28",
     settings: {
       optimizer: { enabled: true, runs: 100_000 }, // use a very high runs value
-      //viaIR: true,                                   // ▶ 5‑10 % size drop
+      viaIR: true,                                   // ▶ 5‑10 % size drop
       // metadata: { bytecodeHash: "none" }             // saves ±120 bytes
     },
   },
@@ -34,12 +34,19 @@ module.exports = {
       "ProposalVerifier",
       "ProposalClaimVerifier",
       "VotingVerifier",
-      "MembershipVerifier"
+      "MembershipVerifier",
+      "TreasuryManager",
+      "BeaconManager",
+      "TreasuryFactory",
+      "GrantModule"
     ],
     except: [
       "MockMembershipManagerV2", 
       "MockGovernanceManagerV2", 
       "MockProposalManagerV2" , 
+      "MockVoteManagerV2", 
+      "MockVoteVerifier",
+      "MockMembershipVerifier",
       "MockProposalVerifier",
       "MockProposalClaimVerifier",
       "MockProposalVerifierV2"],

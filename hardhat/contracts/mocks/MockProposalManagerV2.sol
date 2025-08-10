@@ -2,10 +2,10 @@
 pragma solidity ^0.8.28;
 
 // interfaces imports:
-import {IProposalManager} from "../interfaces/IProposalManager.sol";
-import {IProposalVerifier} from "../interfaces/IProposalVerifier.sol";
-import {IProposalClaimVerifier} from "../interfaces/IProposalClaimVerifier.sol";
-import {IMembershipManager} from "../interfaces/IMembershipManager.sol";
+import {IProposalManager} from "../interfaces/managers/IProposalManager.sol";
+import {IProposalVerifier} from "../interfaces/verifiers/IProposalVerifier.sol";
+import {IProposalClaimVerifier} from "../interfaces/verifiers/IProposalClaimVerifier.sol";
+import {IMembershipManager} from "../interfaces/managers/IMembershipManager.sol";
 import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 import {IVersioned} from "../interfaces/IVersioned.sol";
 
