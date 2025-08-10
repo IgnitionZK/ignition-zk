@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.28;
 
-import {IProposalClaimVerifier} from "../interfaces/IProposalClaimVerifier.sol";
+import {IProposalClaimVerifier} from "../interfaces/verifiers/IProposalClaimVerifier.sol";
 
 contract MockProposalClaimVerifier is IProposalClaimVerifier {
 

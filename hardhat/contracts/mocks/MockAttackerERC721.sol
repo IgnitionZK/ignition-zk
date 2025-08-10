@@ -2,7 +2,7 @@
 pragma solidity ^0.8.28;
 
 import "../managers/MembershipManager.sol";
-import { IMembershipManager } from "../interfaces/IMembershipManager.sol";
+import { IMembershipManager } from "../interfaces/managers/IMembershipManager.sol";
 import { ERC721 } from "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 
 contract MockAttackerERC721 is ERC721 {

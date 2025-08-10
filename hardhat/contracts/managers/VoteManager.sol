@@ -2,15 +2,15 @@
 pragma solidity ^0.8.28;
 
 
-// UUPS imports:
+// OZ imports:
 import { UUPSUpgradeable } from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import { Initializable } from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import { OwnableUpgradeable } from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import { ERC165Upgradeable } from "@openzeppelin/contracts-upgradeable/utils/introspection/ERC165Upgradeable.sol";
 
 // Interfaces:
-import { IVoteVerifier } from "../interfaces/IVoteVerifier.sol";
-import { IVoteManager } from "../interfaces/IVoteManager.sol";
+import { IVoteVerifier } from "../interfaces/verifiers/IVoteVerifier.sol";
+import { IVoteManager } from "../interfaces/managers/IVoteManager.sol";
 import { IVersioned } from "../interfaces/IVersioned.sol";
 
 // Complex Types:
@@ -362,6 +362,7 @@ contract VoteManager is Initializable, OwnableUpgradeable, UUPSUpgradeable, IVot
         }
 
         // Update vote tally for proposal
+        //VoteTypes.ProposalResult storage result = proposalResults[contextKey];
         VoteTypes.VoteTally storage tally = proposalResults[contextKey].tally;
 
         if ( inferredChoice == VoteTypes.VoteChoice.No) {
@@ -371,10 +372,23 @@ contract VoteManager is Initializable, OwnableUpgradeable, UUPSUpgradeable, IVot
         } else if ( inferredChoice == VoteTypes.VoteChoice.Abstain) {
             tally.abstain++;
         }
-        emit VoteTallyUpdated(contextKey, [tally.no, tally.yes, tally.abstain]);
+        emit VoteTallyUpdated(contextKey, [
+            tally.no, 
+            tally.yes, 
+            tally.abstain
+            ]);
         
         // Update the proposal's Passed status
         _updateProposalStatus(contextKey, groupKey);
+
+        // register the proposal submission nullifier in the proposal record
+        /*
+        if (result.submissionNullifier == bytes32(0)) {
+            result.submissionNullifier = proofSubmissionNullifier;
+        } else {
+            if (result.submissionNullifier != proofSubmissionNullifier) revert SubmissionNullifierMismatch();
+        }
+        */
     }
 
     

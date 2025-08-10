@@ -9,8 +9,8 @@ import { OwnableUpgradeable } from "@openzeppelin/contracts-upgradeable/access/O
 import { ERC165Upgradeable } from "@openzeppelin/contracts-upgradeable/utils/introspection/ERC165Upgradeable.sol";
 
 // Interfaces:
-import { IVoteVerifier } from "../interfaces/IVoteVerifier.sol";
-import { IVoteManager } from "../interfaces/IVoteManager.sol";
+import { IVoteVerifier } from "../interfaces/verifiers/IVoteVerifier.sol";
+import { IVoteManager } from "../interfaces/managers/IVoteManager.sol";
 import { IVersioned } from "../interfaces/IVersioned.sol";
 
 // Complex Types:
