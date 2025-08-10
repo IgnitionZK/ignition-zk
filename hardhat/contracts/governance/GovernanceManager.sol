@@ -7,11 +7,12 @@ import { IProposalManager } from "../interfaces/IProposalManager.sol";
 import { IVoteManager } from "../interfaces/IVoteManager.sol";
 import { IERC165 } from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 import { IVersioned } from "../interfaces/IVersioned.sol";
+import { ITreasuryFactory } from "../interfaces/ITreasuryFactory.sol";
 
 // types
 import { VoteTypes } from "../types/VoteTypes.sol";
 
-// UUPS imports:
+// OZ imports:
 import { UUPSUpgradeable } from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import { Initializable } from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import { OwnableUpgradeable } from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
@@ -59,6 +60,9 @@ contract GovernanceManager is Initializable, UUPSUpgradeable, OwnableUpgradeable
     /// @notice Thrown if the function does not exist or is not implemented in the contract.
     error UnknownFunctionCall();
 
+    /// @notice Thrown if the treasury factory address has not been set. 
+    error TreasuryFactoryAddressNotSet();
+
 // ====================================================================================================================
 //                                                  EVENTS
 // ====================================================================================================================
@@ -87,6 +91,12 @@ contract GovernanceManager is Initializable, UUPSUpgradeable, OwnableUpgradeable
      */
     event VoteManagerSet(address indexed newVoteManager);
 
+    /**
+     * @notice Emitted when the treasury factory address is updated.
+     * @param treasuryFactory The new address of the treasuryFactory.
+     */
+    event TreasuryFactorySet(address indexed treasuryFactory);
+
 // ====================================================================================================================
 //                                              STATE VARIABLES
 // NOTE: Once the contract is deployed do not change the order of the variables. If this contract is updated append new variables to the end of this list. 
@@ -103,6 +113,9 @@ contract GovernanceManager is Initializable, UUPSUpgradeable, OwnableUpgradeable
 
     /// @dev The interface of the vote manager contract
     IVoteManager private voteManager;
+
+    /// @dev The interface of the treasury factory contract
+    ITreasuryFactory private treasuryFactory;
 
 // ====================================================================================================================
 //                                                  MODIFIERS
@@ -190,6 +203,15 @@ contract GovernanceManager is Initializable, UUPSUpgradeable, OwnableUpgradeable
         if (_relayer == relayer) revert NewRelayerMustBeDifferent();
         relayer = _relayer;
         emit RelayerSet(_relayer);
+    }
+
+    function setTreasuryFactory(address _treasuryFactory) external onlyOwner nonZeroAddress(_treasuryFactory) {
+        if(_treasuryFactory.code.length == 0) revert AddressIsNotAContract();
+        bytes4 interfaceId = type(ITreasuryFactory).interfaceId;
+        if(!_supportsInterface(_treasuryFactory, interfaceId)) revert InterfaceIdNotSupported();
+        
+        treasuryFactory = ITreasuryFactory(_treasuryFactory);
+        emit TreasuryFactorySet(_treasuryFactory);
     }
 
     /**
@@ -661,6 +683,16 @@ contract GovernanceManager is Initializable, UUPSUpgradeable, OwnableUpgradeable
 
     }
 
+    // ================================================================================================================
+    // 4. TreasuryFactory Delegation Functions
+    // ================================================================================================================
+
+    function delegateDeployTreasury(bytes32 groupKey) external onlyRelayer {
+        if (address(treasuryFactory) == address(0)) revert TreasuryFactoryAddressNotSet();
+        bool hasDeployedNft = _getGroupNftAddress(groupKey) != address(0);
+        treasuryFactory.deployTreasury(groupKey, hasDeployedNft);
+    }
+
 // ====================================================================================================================
 //                                   EXTERNAL VIEW FUNCTIONS (NOT FORWARDED)
 // ====================================================================================================================
@@ -728,12 +760,20 @@ contract GovernanceManager is Initializable, UUPSUpgradeable, OwnableUpgradeable
     }
 
     /**
+     * @dev Gets the address of the NFT contract for a specific group.
+     * @param groupKey The unique identifier for the group.
+     * @return The NFT contract address.
+     */
+    function _getGroupNftAddress(bytes32 groupKey) private view returns (address) {
+        return membershipManager.getGroupNftAddress(groupKey);
+    }
+
+    /**
      * @dev Checks if a contract supports a specific interface.
      * @param target The address of the contract to check.
      * @param interfaceId The interface ID to check for support.
      * @return bool indicating whether the contract supports the specified interface.
      */
-    /*
     function _supportsInterface(address target, bytes4 interfaceId) private view returns (bool) {
         try IERC165(target).supportsInterface(interfaceId) returns (bool supported) {
             return supported;
@@ -741,7 +781,6 @@ contract GovernanceManager is Initializable, UUPSUpgradeable, OwnableUpgradeable
             return false;
         }
     }
-    */
 
 // ====================================================================================================================
 //                                       FALLBACK FUNCTION

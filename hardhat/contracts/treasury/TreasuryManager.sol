@@ -262,7 +262,7 @@ contract TreasuryManager is Initializable, AccessControlUpgradeable, ReentrancyG
     }
 
 // ====================================================================================================================
-//                                 CONSTRUCTOR / INITIALIZER / UPGRADE AUTHORIZATION
+//                                 CONSTRUCTOR / INITIALIZER 
 // ====================================================================================================================
     
     /// @custom:oz-upgrades-unsafe-allow constructor
