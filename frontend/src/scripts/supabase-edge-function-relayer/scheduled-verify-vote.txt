@@ -2,14 +2,6 @@ import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import { ethers } from "https://esm.sh/ethers@6.11.1";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.42.0";
 
-// CORS headers are defined for Edge Functions, even if this is a scheduled job.
-// It's a good practice to include them for flexibility.
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-  "Access-Control-Allow-Methods": "POST, GET, OPTIONS"
-};
-
 // ================================================================
 // Environment Variables & Initialization
 // This block runs once when the Edge Function is loaded.
@@ -30,8 +22,9 @@ const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 const RPC_URL = Deno.env.get("SEPOLIA_RPC_URL");
 const RELAYER_PRIVATE_KEY = Deno.env.get("RELAYER_PRIVATE_KEY");
 
-// A secret key to protect the endpoint from unauthorized calls
-const API_KEY_SECRET = Deno.env.get("API_KEY_SECRET");
+// The API_KEY_SECRET is no longer needed since this function will be called by
+// the internal Supabase cron job, not an external service.
+// const API_KEY_SECRET = Deno.env.get("API_KEY_SECRET");
 
 let supabaseClient;
 let provider;
@@ -40,7 +33,7 @@ let contract;
 
 try {
   // Ensure all necessary environment variables are set.
-  if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY || !RPC_URL || !GOVERNOR_CONTRACT_ADDRESS || !RELAYER_PRIVATE_KEY || !API_KEY_SECRET) {
+  if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY || !RPC_URL || !GOVERNOR_CONTRACT_ADDRESS || !RELAYER_PRIVATE_KEY) {
     throw new Error("Missing one or more required environment variables.");
   }
 
@@ -66,27 +59,25 @@ try {
 // ================================================================
 
 serve(async (req) => {
-  // Handle CORS preflight requests (OPTIONS method)
-  if (req.method === "OPTIONS") {
-    return new Response("ok", { headers: corsHeaders });
-  }
-
-  // Security check: Only allow requests with the correct API key.
-  const authHeader = req.headers.get("Authorization");
-  if (!authHeader || authHeader.replace("Bearer ", "") !== API_KEY_SECRET) {
-      return new Response(JSON.stringify({ error: "Unauthorized access." }), {
-          status: 401,
-          headers: { ...corsHeaders, "Content-Type": "application/json" }
-      });
-  }
+  // The API_KEY_SECRET check is no longer needed because this function is
+  // intended to be called by a secure, internal Supabase cron job.
+  // const authHeader = req.headers.get("Authorization");
+  // if (!authHeader || authHeader.replace("Bearer ", "") !== API_KEY_SECRET) {
+  //     return new Response(JSON.stringify({ error: "Unauthorized access." }), {
+  //         status: 401,
+  //         headers: { "Content-Type": "application/json" }
+  //     });
+  // }
 
   try {
-    console.log("Scheduled job started. Fetching epochs...");
+    console.log("Scheduled job started. Fetching active epochs...");
 
-    // 1. Fetch all epochs from the database. Now using the new `review_start` column.
+    // 1. Fetch only epochs that are not yet archived.
+    // The `review_start` column is used to check if the voting phase has ended.
     const { data: epochs, error: epochsError } = await supabaseClient
       .from("ignitionzk.epochs")
-      .select("epoch_id, review_start");
+      .select("epoch_id, review_start")
+      .eq("is_archived", false);
 
     if (epochsError) {
       console.error("Error fetching epochs:", epochsError);
@@ -96,7 +87,7 @@ serve(async (req) => {
     const currentTime = new Date().toISOString();
     console.log(`Current time is: ${currentTime}`);
 
-    // 2. Iterate through each epoch to check if the voting phase has ended.
+    // 2. Iterate through each active epoch to check if the voting phase has ended.
     for (const epoch of epochs) {
       console.log(`Processing epoch ID: ${epoch.epoch_id}`);
 
@@ -108,7 +99,6 @@ serve(async (req) => {
         console.log(`Voting phase for epoch ${epoch.epoch_id} has ended. Fetching unverified proofs...`);
 
         // 3. If the voting phase has ended, fetch all unverified voting proofs for this epoch.
-        // We now select the new `context_key` column.
         const { data: proofs, error: proofsError } = await supabaseClient
           .from("ignitionzk.proofs")
           .select("proof_id, proof, public_signals, group_id, context_key")
@@ -171,14 +161,14 @@ serve(async (req) => {
     console.log("Scheduled job completed successfully.");
     return new Response(JSON.stringify({ message: "Verification check completed." }), {
       status: 200,
-      headers: { ...corsHeaders, "Content-Type": "application/json" }
+      headers: { "Content-Type": "application/json" }
     });
 
   } catch (error) {
     console.error("Error in scheduled job:", error);
     return new Response(JSON.stringify({ error: error.message || "An unknown error occurred." }), {
       status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" }
+      headers: { "Content-Type": "application/json" }
     });
   }
 });
