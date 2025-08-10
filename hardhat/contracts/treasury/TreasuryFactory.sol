@@ -7,12 +7,18 @@ import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {ERC165} from "@openzeppelin/contracts/utils/introspection/ERC165.sol"; 
 
 // Interfaces:
-import {ITreasuryManager} from "./ITreasuryManager.sol"; 
-import {ITreasuryFactory} from "../interfaces/ITreasuryFactory.sol";
+import {ITreasuryManager} from "../interfaces/treasury/ITreasuryManager.sol"; 
+import {ITreasuryFactory} from "../interfaces/treasury/ITreasuryFactory.sol";
 import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 
 
 contract TreasuryFactory is Ownable, ERC165, ITreasuryFactory {
+
+    /// @dev Thrown if the provided key (contextKey) is zero.
+    error KeyCannotBeZero();
+
+    /// @dev Thrown if the provided address is zero.
+    error AddressCannotBeZero();
 
     /// @dev Thrown if a treasury instance for the DAO has already been deployed.
     error GroupTreasuryAlreadyExists();
@@ -75,16 +81,14 @@ contract TreasuryFactory is Ownable, ERC165, ITreasuryFactory {
         address _governanceManager,
         address _grantModule
     ) 
-        nonZeroAddress(_beacon) 
+        Ownable(_governanceManager)
+        nonZeroAddress(_beacon)
         nonZeroAddress(_governanceManager)
         nonZeroAddress(_grantModule) 
     {
         beacon = _beacon;
         governanceManager = _governanceManager;
         grantModule = _grantModule;
-
-        // transfers ownership from deployer to GovernanceManager
-        // transferOwnership(_governanceManager);
     }
 
 // ====================================================================================================================
@@ -151,7 +155,7 @@ contract TreasuryFactory is Ownable, ERC165, ITreasuryFactory {
         public 
         view 
         virtual 
-        override(ERC165, IERC165) 
+        override
         returns (bool) 
     {
         return interfaceId == type(ITreasuryFactory).interfaceId || super.supportsInterface(interfaceId);

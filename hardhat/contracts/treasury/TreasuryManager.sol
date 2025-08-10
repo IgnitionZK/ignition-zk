@@ -1,13 +1,15 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.28;
 
-
+// OZ Imports:
 import {AccessControlUpgradeable} from "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
 import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
-import {ReentrancyGuardUpgradeable} from "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
+import {ReentrancyGuardUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol";
 
+// Interfaces;
+import {ITreasuryManager} from "../interfaces/treasury/ITreasuryManager.sol";
 
-contract TreasuryManager is Initializable, AccessControlUpgradeable, ReentrancyGuardUpgradeable {
+contract TreasuryManager is Initializable, AccessControlUpgradeable, ReentrancyGuardUpgradeable, ITreasuryManager {
 
 // ====================================================================================================================
 //                                                  CUSTOM ERRORS
@@ -39,10 +41,6 @@ contract TreasuryManager is Initializable, AccessControlUpgradeable, ReentrancyG
     
     /// @notice Thrown if the provided funding module is not stored as an active module for the respective funding type.
     error ModuleMismatch();
-    
-    /// @notice Thrown if the funding type is already valid.
-    /// @dev This error is thrown when trying to add a funding type that already exists in the validFundingTypes mapping.
-    error FundingTypeAlreadyValid();
 
     // ====================================================================================================
     // TRANSFER ERRORS
@@ -68,6 +66,9 @@ contract TreasuryManager is Initializable, AccessControlUpgradeable, ReentrancyG
     
     /// @notice Thrown if the transfer amount is zero.
     error AmountCannotBeZero();
+
+    /// @notice Thrown if the provided funding module is not consistent with the expected module.
+    error InconsistentFundingModule();
 
     // ====================================================================================================
     // GENERAL ERRORS
@@ -102,15 +103,15 @@ contract TreasuryManager is Initializable, AccessControlUpgradeable, ReentrancyG
 
     /**
      * @notice Emitted when a new funding type is added as a valid funding type.
-     * @param type The unique identifier of the funding type.
+     * @param fundingType The unique identifier of the funding type.
      */
-    event FundingTypeAdded(bytes32 type);
+    event FundingTypeAdded(bytes32 fundingType);
 
     /**
      * @notice Emitted when a funding type is removed from the valid funding types.
-     * @param type The unique identifier of the funding type that was removed.
+     * @param fundingType The unique identifier of the funding type that was removed.
      */
-    event FundingTypeRemoved(bytes32 type);
+    event FundingTypeRemoved(bytes32 fundingType);
 
     /**
      * @notice Emitted when a new funding module is added.
@@ -196,10 +197,6 @@ contract TreasuryManager is Initializable, AccessControlUpgradeable, ReentrancyG
     
     /// @dev Mapping of unique context keys (context: group, epoch, proposal) to funding requests.
     mapping(bytes32 => FundingRequest) private fundingRequests;
-
-    // ====================================================================================================
-    // ADDRESSES
-    // ====================================================================================================
 
     // ====================================================================================================
     // CONSTANTS
@@ -298,7 +295,7 @@ contract TreasuryManager is Initializable, AccessControlUpgradeable, ReentrancyG
         _grantRole(DEFAULT_ADMIN_ROLE, _initialOwner);
         _grantRole(GOVERNANCE_MANAGER_ROLE, _governanceManager);
         _grantRole(FUNDING_MODULE_ROLE, _grantModule);
-        _grantRole(EMERGENCY_RECOVERY_ROLE, _beaconManager)
+        _grantRole(EMERGENCY_RECOVERY_ROLE, _beaconManager);
 
         validFundingTypes[GRANT_TYPE] = true;
         validFundingTypes[QUADRATIC_FUNDING_TYPE] = true;

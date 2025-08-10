@@ -2,12 +2,13 @@
 pragma solidity ^0.8.28;
 
 // interfaces
-import { IMembershipManager } from "../interfaces/IMembershipManager.sol";
-import { IProposalManager } from "../interfaces/IProposalManager.sol";
-import { IVoteManager } from "../interfaces/IVoteManager.sol";
+import { IMembershipManager } from "../interfaces/managers/IMembershipManager.sol";
+import { IProposalManager } from "../interfaces/managers/IProposalManager.sol";
+import { IVoteManager } from "../interfaces/managers/IVoteManager.sol";
 import { IERC165 } from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 import { IVersioned } from "../interfaces/IVersioned.sol";
-import { ITreasuryFactory } from "../interfaces/ITreasuryFactory.sol";
+import { ITreasuryFactory } from "../interfaces/treasury/ITreasuryFactory.sol";
+import { IGrantModule } from "../interfaces/fundingModules/IGrantModule.sol";
 
 // types
 import { VoteTypes } from "../types/VoteTypes.sol";
@@ -63,6 +64,12 @@ contract GovernanceManager is Initializable, UUPSUpgradeable, OwnableUpgradeable
     /// @notice Thrown if the treasury factory address has not been set. 
     error TreasuryFactoryAddressNotSet();
 
+    /// @dev Thrown if the proposal did not pass.
+    error ProposalNotPassed();
+
+    /// @dev Thrown if the treasury address for a specific group is not found.
+    error TreasuryAddressNotFound();
+
 // ====================================================================================================================
 //                                                  EVENTS
 // ====================================================================================================================
@@ -92,6 +99,12 @@ contract GovernanceManager is Initializable, UUPSUpgradeable, OwnableUpgradeable
     event VoteManagerSet(address indexed newVoteManager);
 
     /**
+     * @notice Emitted when the grant module address is updated.
+     * @param grantModule The new address of the grant module.
+     */
+    event GrantModuleSet(address indexed grantModule);
+
+    /**
      * @notice Emitted when the treasury factory address is updated.
      * @param treasuryFactory The new address of the treasuryFactory.
      */
@@ -117,6 +130,9 @@ contract GovernanceManager is Initializable, UUPSUpgradeable, OwnableUpgradeable
     /// @dev The interface of the treasury factory contract
     ITreasuryFactory private treasuryFactory;
 
+    /// @dev The interface of the grant module contract
+    IGrantModule private grantModule;
+
 // ====================================================================================================================
 //                                                  MODIFIERS
 // ====================================================================================================================
@@ -141,6 +157,18 @@ contract GovernanceManager is Initializable, UUPSUpgradeable, OwnableUpgradeable
 // ====================================================================================================================
 //                                 CONSTRUCTOR / INITIALIZER / UPGRADE AUTHORIZATION
 // ====================================================================================================================
+    
+    /**
+     * @dev Authorizes upgrades for the UUPS proxy. Only callable by the contract's owner.
+     * @param newImplementation The address of the new implementation contract.
+     */
+    function _authorizeUpgrade(address newImplementation) internal override onlyOwner {}
+
+    /// @custom:oz-upgrades-unsafe-allow constructor
+    constructor() {
+        _disableInitializers(); 
+    }
+    
     /**
      * @dev Initializes the contract with the initial owner, relayer, and manager addresses.
      * @param _initialOwner The address of the initial owner of the contract.
@@ -158,15 +186,19 @@ contract GovernanceManager is Initializable, UUPSUpgradeable, OwnableUpgradeable
         address _relayer,
         address _membershipManager,
         address _proposalManager,
-        address _voteManager
+        address _voteManager,
+        address _grantModule
     ) 
         external 
         initializer 
-        nonZeroAddress(_relayer)
-        nonZeroAddress(_membershipManager)
-        nonZeroAddress(_proposalManager)
-        nonZeroAddress(_voteManager)
-    {
+    {   
+        if (_initialOwner == address(0)) revert AddressCannotBeZero();
+        if (_relayer == address(0)) revert AddressCannotBeZero();
+        if (_membershipManager == address(0)) revert AddressCannotBeZero();
+        if (_proposalManager == address(0)) revert AddressCannotBeZero();
+        if (_voteManager == address(0)) revert AddressCannotBeZero();
+        if (_grantModule == address(0)) revert AddressCannotBeZero();
+
         __Ownable_init(_initialOwner);
         __UUPSUpgradeable_init();
         __ERC165_init();
@@ -175,18 +207,14 @@ contract GovernanceManager is Initializable, UUPSUpgradeable, OwnableUpgradeable
         membershipManager = IMembershipManager(_membershipManager);
         proposalManager = IProposalManager(_proposalManager);
         voteManager = IVoteManager(_voteManager);
+        grantModule = IGrantModule(_grantModule);
 
         emit RelayerSet(_relayer);
         emit MembershipManagerSet(_membershipManager);
         emit ProposalManagerSet(_proposalManager);
         emit VoteManagerSet(_voteManager);
+        emit GrantModuleSet(_grantModule);
     }
-
-    /**
-     * @dev Authorizes upgrades for the UUPS proxy. Only callable by the contract's owner.
-     * @param newImplementation The address of the new implementation contract.
-     */
-    function _authorizeUpgrade(address newImplementation) internal override onlyOwner {}
 
 // ====================================================================================================================
 //                           EXTERNAL STATE-CHANGING FUNCTIONS (NOT FORWARDED)
@@ -667,22 +695,6 @@ contract GovernanceManager is Initializable, UUPSUpgradeable, OwnableUpgradeable
     }
 
 
-    function executeProposal(
-        bytes32 contextKey,
-        bytes32 groupKey,
-        address to, 
-        uint256 amount, 
-        bytes32 fundingType
-    ) 
-        external 
-        onlyRelayer 
-    {
-        if (fundingType == GRANT_TYPE) {
-            grantModule.delegateDistributeGrant(contextKey, to, amount);
-        }
-
-    }
-
     // ================================================================================================================
     // 4. TreasuryFactory Delegation Functions
     // ================================================================================================================
@@ -692,6 +704,48 @@ contract GovernanceManager is Initializable, UUPSUpgradeable, OwnableUpgradeable
         bool hasDeployedNft = _getGroupNftAddress(groupKey) != address(0);
         treasuryFactory.deployTreasury(groupKey, hasDeployedNft);
     }
+
+    // ================================================================================================================
+    // 5. Funding Modules Delegation Functions
+    // ================================================================================================================
+
+    /**
+     * @notice Delegates the distribution of a grant to the grant module.
+     * @dev Only callable by the relayer.
+     * @param groupKey The unique identifier for the voting group.
+     * @param contextKey The pre-computed context hash (group, epoch, proposal).
+     * @param to The address to send the grant to.
+     * @param amount The amount of the grant.
+     */
+    function delegateDistributeGrant(bytes32 groupKey, bytes32 contextKey, address to, uint256 amount) external onlyRelayer {
+        if (address(treasuryFactory) == address(0)) revert TreasuryFactoryAddressNotSet();
+        address groupTreasury = _getGroupTreasuryAddress(groupKey);
+        if (groupTreasury == address(0)) revert TreasuryAddressNotFound();
+        
+        VoteTypes.ProposalResult memory proposalResult = _getProposalResult(contextKey);
+        if (proposalResult.passed == false) revert ProposalNotPassed();
+
+        grantModule.distributeGrant(groupTreasury, contextKey, to, amount);
+    }
+
+    // Alternative function to consider:
+    /*
+    function executeProposal(bytes32 groupKey, bytes32 contextKey, address to, uint256 amount, bytes32 fundingType) external onlyRelayer {
+        if (address(treasuryFactory) == address(0)) revert TreasuryFactoryAddressNotSet();
+        address groupTreasury = _getGroupTreasuryAddress(groupKey);
+        if (groupTreasury == address(0)) revert TreasuryAddressNotFound();
+        
+        VoteTypes.ProposalResult memory proposalResult = _getProposalResult(contextKey);
+        if (proposalResult.passed == false) revert ProposalNotPassed();
+
+        if (fundingType == GRANT_TYPE) {
+            grantModule.distributeGrant(groupTreasury, contextKey, to, amount);
+        } else if (fundingType == BOUNTY_TYPE) {
+            bountyModule.distributeBounty(groupTreasury, contextKey, to, amount);
+        } ......
+    }
+    */
+    
 
 // ====================================================================================================================
 //                                   EXTERNAL VIEW FUNCTIONS (NOT FORWARDED)
@@ -766,6 +820,24 @@ contract GovernanceManager is Initializable, UUPSUpgradeable, OwnableUpgradeable
      */
     function _getGroupNftAddress(bytes32 groupKey) private view returns (address) {
         return membershipManager.getGroupNftAddress(groupKey);
+    }
+
+    /**
+     * @dev Gets the address of the group treasury for a specific group.
+     * @param groupKey The unique identifier for the group.
+     * @return The group treasury address.
+     */
+    function _getGroupTreasuryAddress(bytes32 groupKey) private view returns (address) {
+        return treasuryFactory.getTreasuryAddress(groupKey);
+    }
+
+    /**
+     * @dev Gets the result of a specific proposal.
+     * @param contextKey The unique identifier for the proposal context.
+     * @return The proposal result.
+     */
+    function _getProposalResult(bytes32 contextKey) private view returns (VoteTypes.ProposalResult memory) {
+        return voteManager.getProposalResult(contextKey);
     }
 
     /**

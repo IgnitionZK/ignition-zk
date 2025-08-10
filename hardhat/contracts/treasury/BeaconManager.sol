@@ -6,13 +6,14 @@ import {UpgradeableBeacon} from "@openzeppelin/contracts/proxy/beacon/Upgradeabl
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 
 // Interfaces:
-import {ITreasuryManager} from "../interfaces/ITreasuryManager.sol";
+import {ITreasuryManager} from "../interfaces/treasury/ITreasuryManager.sol";
 
-/**
- * 
- */
+
 contract BeaconManager is Ownable {
-    
+
+    /// @dev Thrown if the provided address is zero.
+    error AddressCannotBeZero();
+
     /**
      * @notice Emitted when the beacon implementation is updated.
      * @param implementation The address of the new beacon implementation.
@@ -38,14 +39,23 @@ contract BeaconManager is Ownable {
 // ====================================================================================================================
 //                                 CONSTRUCTOR
 // ====================================================================================================================
- 
+    
+    /**
+     * @dev Initializes the beacon manager with the initial implementation and beacon owner.
+     * @param initialImplementation The address of the initial implementation contract of the TreasuryManager.
+     * @param beaconOwner The address of the beacon owner (IgnitionZK multisig but use relayer in development).
+     */
     constructor(
         address initialImplementation,
-        address beaconOwner // ignitionZK multisig (use relayer temporarily)
-    ) {
-        if (initialImplementation == address(0)) revert InvalidImplementation();
-        beacon = new UpgradeableBeacon(initialImplementation);
-        transferOwnership(beaconOwner);
+        address beaconOwner 
+    ) 
+        Ownable(beaconOwner)
+        nonZeroAddress(initialImplementation) 
+        nonZeroAddress(beaconOwner) 
+    {
+        // Set the BeaconManager contract as the beacon owner.
+        // This allows the BeaconManager to control the beacon's implementation.
+        beacon = new UpgradeableBeacon(initialImplementation, address(this));
     }
 
 // ====================================================================================================================
