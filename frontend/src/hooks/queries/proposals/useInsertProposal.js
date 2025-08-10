@@ -24,6 +24,7 @@ export function useInsertProposal() {
      * @param {Object} params.funding - The funding object containing amount and currency
      * @param {string} params.claimHash - The claim hash for the proposal (optional)
      * @param {string} params.statusId - The status ID for the proposal (optional)
+     * @param {string} params.contextKey - The context key for the proposal (computed from group and epoch)
      * @returns {Promise} A promise that resolves when the proposal is inserted
      */
     mutationFn: ({
@@ -37,6 +38,7 @@ export function useInsertProposal() {
       funding,
       claimHash,
       statusId,
+      contextKey,
     }) =>
       insertProposal({
         epochId,
@@ -49,6 +51,7 @@ export function useInsertProposal() {
         funding,
         claimHash,
         statusId,
+        contextKey,
       }),
     onSuccess: () => {
       // Invalidate and refetch proposals queries

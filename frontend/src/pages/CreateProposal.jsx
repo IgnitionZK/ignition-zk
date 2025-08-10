@@ -813,6 +813,7 @@ export default function CreateProposal({ onSuccess, onCancel }) {
           payload: proposalData.payload,
           funding: proposalData.funding,
           claimHash: publicSignals[2]?.toString() || null,
+          contextKey: returnedContextKey,
         });
 
         console.log("Proposal stored in database:", insertedProposal);
