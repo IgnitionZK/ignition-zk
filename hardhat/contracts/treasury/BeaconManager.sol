@@ -2,13 +2,16 @@
 pragma solidity ^0.8.28;
 
 // OZ Imports:
-import {UpgradeableBeacon} from "@openzeppelin/contracts/proxy/beacon/UpgradeableBeacon.sol";
-import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
+import { UpgradeableBeacon } from "@openzeppelin/contracts/proxy/beacon/UpgradeableBeacon.sol";
+import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
 
 // Interfaces:
-import {ITreasuryManager} from "../interfaces/treasury/ITreasuryManager.sol";
+import { ITreasuryManager } from "../interfaces/treasury/ITreasuryManager.sol";
 
-
+/**
+ * @title BeaconManager
+ * @notice This contract is responsible for managing the beacon that points to the current implementation of the TreasuryManager.
+ */
 contract BeaconManager is Ownable {
 
     /// @dev Thrown if the provided address is zero.

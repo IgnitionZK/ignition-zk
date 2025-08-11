@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.28;
 
-
 // OZ imports:
 import { UUPSUpgradeable } from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import { Initializable } from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
@@ -13,11 +12,15 @@ import { IVoteVerifier } from "../interfaces/verifiers/IVoteVerifier.sol";
 import { IVoteManager } from "../interfaces/managers/IVoteManager.sol";
 import { IVersioned } from "../interfaces/IVersioned.sol";
 
-// Complex Types:
-import { VoteTypes } from "../types/VoteTypes.sol";
+// Libraries:
+import { VoteTypes } from "../libraries/VoteTypes.sol";
 
+/**
+ * @title VoteManager
+ * @notice This contract manages the voting process for proposals.
+ * It ensures that votes are cast, verified, and tallied in a secure and efficient manner using zk-SNARKs.
+ */
 contract VoteManager is Initializable, OwnableUpgradeable, UUPSUpgradeable, IVoteManager, ERC165Upgradeable, IVersioned {
-
 // ====================================================================================================================
 //                                                  CUSTOM ERRORS
 // ====================================================================================================================

@@ -2,17 +2,23 @@
 pragma solidity ^0.8.28;
 
 // OZ Imports:
-import {BeaconProxy} from "@openzeppelin/contracts/proxy/beacon/BeaconProxy.sol";
-import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
-import {ERC165} from "@openzeppelin/contracts/utils/introspection/ERC165.sol"; 
+import { BeaconProxy } from "@openzeppelin/contracts/proxy/beacon/BeaconProxy.sol";
+import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
+import { ERC165 } from "@openzeppelin/contracts/utils/introspection/ERC165.sol";
 
 // Interfaces:
-import {ITreasuryManager} from "../interfaces/treasury/ITreasuryManager.sol"; 
-import {ITreasuryFactory} from "../interfaces/treasury/ITreasuryFactory.sol";
-import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
+import { ITreasuryManager } from "../interfaces/treasury/ITreasuryManager.sol";
+import { ITreasuryFactory } from "../interfaces/treasury/ITreasuryFactory.sol";
+import { IERC165 } from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 
-
+/**
+ * @title TreasuryFactory
+ * @notice This contract is responsible for deploying and managing treasury instances for different DAO groups.
+ */
 contract TreasuryFactory is Ownable, ERC165, ITreasuryFactory {
+// ====================================================================================================================
+//                                                  CUSTOM ERRORS
+// ====================================================================================================================
 
     /// @dev Thrown if the provided key (contextKey) is zero.
     error KeyCannotBeZero();
@@ -27,12 +33,20 @@ contract TreasuryFactory is Ownable, ERC165, ITreasuryFactory {
     /// The DAO has to first be initiated via NFT deployment.
     error GroupNftNotSet();
 
+// ====================================================================================================================
+//                                                  EVENTS
+// ====================================================================================================================
+
     /**
      * @notice Emitted when a treasury instance has been deployed.
      * @param groupKey The unique identifier for the DAO group.
      * @param beaconProxy The address of the deployed treasury instance.
      */
     event TreasuryDeployed(bytes32 indexed groupKey, address beaconProxy);
+
+// ====================================================================================================================
+//                                          STATE VARIABLES
+// ====================================================================================================================
 
     /// @dev Mapping storing the DAO treasury addresses per groupKey (DAO identifier)
     mapping(bytes32 => address) private groupTreasuryAddresses;
@@ -74,7 +88,9 @@ contract TreasuryFactory is Ownable, ERC165, ITreasuryFactory {
     // transfer ownership to Governance Manager after GM is deployed!
     /**
      * @dev Constructor for the TreasuryFactory contract.
-     * 
+     * @param _beacon The address of the beacon contract.
+     * @param _governanceManager The address of the governance manager contract.
+     * @param _grantModule The address of the grant module contract.
      */
     constructor(
         address _beacon,

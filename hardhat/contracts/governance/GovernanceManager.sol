@@ -1,7 +1,13 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.28;
 
-// interfaces
+// OZ imports:
+import { UUPSUpgradeable } from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
+import { Initializable } from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
+import { OwnableUpgradeable } from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+import { ERC165Upgradeable } from "@openzeppelin/contracts-upgradeable/utils/introspection/ERC165Upgradeable.sol";
+
+// Interfaces:
 import { IMembershipManager } from "../interfaces/managers/IMembershipManager.sol";
 import { IProposalManager } from "../interfaces/managers/IProposalManager.sol";
 import { IVoteManager } from "../interfaces/managers/IVoteManager.sol";
@@ -9,15 +15,10 @@ import { IERC165 } from "@openzeppelin/contracts/utils/introspection/IERC165.sol
 import { IVersioned } from "../interfaces/IVersioned.sol";
 import { ITreasuryFactory } from "../interfaces/treasury/ITreasuryFactory.sol";
 import { IGrantModule } from "../interfaces/fundingModules/IGrantModule.sol";
+import { ITreasuryManager } from "../interfaces/treasury/ITreasuryManager.sol";
 
-// types
-import { VoteTypes } from "../types/VoteTypes.sol";
-
-// OZ imports:
-import { UUPSUpgradeable } from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
-import { Initializable } from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
-import { OwnableUpgradeable } from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
-import { ERC165Upgradeable } from "@openzeppelin/contracts-upgradeable/utils/introspection/ERC165Upgradeable.sol";
+// Libraries:
+import { VoteTypes } from "../libraries/VoteTypes.sol";
 
 /**
  * @title GovernanceManager
@@ -25,9 +26,7 @@ import { ERC165Upgradeable } from "@openzeppelin/contracts-upgradeable/utils/int
  * It allows for delegation of membership management and proposal verification tasks to designated relayers.
  * The contract is upgradeable and follows the UUPS pattern, ensuring that governance can adapt to future requirements.
  */
-
 contract GovernanceManager is Initializable, UUPSUpgradeable, OwnableUpgradeable, ERC165Upgradeable, IVersioned {
-
 // ====================================================================================================================
 //                                                  CUSTOM ERRORS
 // ====================================================================================================================
@@ -38,6 +37,19 @@ contract GovernanceManager is Initializable, UUPSUpgradeable, OwnableUpgradeable
 
     /// @notice Thrown if a function is called by an address that is not the designated relayer.
     error OnlyRelayerAllowed();
+    
+    // ====================================================================================================
+    // TREASURY RELATED ERRORS
+    // ====================================================================================================
+
+    /// @notice Thrown if the treasury factory address has not been set. 
+    error TreasuryFactoryAddressNotSet();
+
+    /// @notice Thrown if the proposal did not pass.
+    error ProposalNotPassed();
+
+    /// @notice Thrown if the treasury address for a specific group is not found.
+    error TreasuryAddressNotFound();
 
     // ====================================================================================================
     // GENERAL ERRORS
@@ -60,15 +72,6 @@ contract GovernanceManager is Initializable, UUPSUpgradeable, OwnableUpgradeable
 
     /// @notice Thrown if the function does not exist or is not implemented in the contract.
     error UnknownFunctionCall();
-
-    /// @notice Thrown if the treasury factory address has not been set. 
-    error TreasuryFactoryAddressNotSet();
-
-    /// @dev Thrown if the proposal did not pass.
-    error ProposalNotPassed();
-
-    /// @dev Thrown if the treasury address for a specific group is not found.
-    error TreasuryAddressNotFound();
 
 // ====================================================================================================================
 //                                                  EVENTS
@@ -233,6 +236,13 @@ contract GovernanceManager is Initializable, UUPSUpgradeable, OwnableUpgradeable
         emit RelayerSet(_relayer);
     }
 
+    /**
+     * @notice Sets a new treasury factory address.
+     * @dev Only the owner can call this function.
+     * @param _treasuryFactory The new address for the treasury factory.
+     * @custom:error AddressCannotBeZero If the provided treasury factory address is zero.
+     * @custom:error InterfaceIdNotSupported If the provided address does not support the ITreasuryFactory interface.
+     */
     function setTreasuryFactory(address _treasuryFactory) external onlyOwner nonZeroAddress(_treasuryFactory) {
         if(_treasuryFactory.code.length == 0) revert AddressIsNotAContract();
         bytes4 interfaceId = type(ITreasuryFactory).interfaceId;
@@ -323,18 +333,6 @@ contract GovernanceManager is Initializable, UUPSUpgradeable, OwnableUpgradeable
     ) external onlyRelayer {
         membershipManager.verifyMembership(proof, publicSignals, groupKey);
     }
-    
-    /**
-     * @notice Delegates the initRoot call to the membership manager.
-     * @dev Only the relayer can call this function.
-     * @param initialRoot The initial Merkle root to set.
-     * @param groupKey The unique identifier for the group.
-     */
-    /*
-    function delegateInitRoot(bytes32 initialRoot, bytes32 groupKey) external onlyRelayer {
-        membershipManager.initRoot(initialRoot, groupKey);
-    }
-    */
 
     /**
      * @notice Delegates the setRoot call to the membership manager.
@@ -551,6 +549,115 @@ contract GovernanceManager is Initializable, UUPSUpgradeable, OwnableUpgradeable
         voteManager.setQuorumParams(minQuorumPercent, maxQuorumPercent, maxGroupSizeForMinQuorum, minGroupSizeForMaxQuorum);
     }
 
+    // ================================================================================================================
+    // 4. TreasuryFactory Delegation Functions
+    // ================================================================================================================
+
+    /**
+     * @notice Delegates the deployment of a treasury to the treasury factory.
+     * @dev Only callable by the relayer.
+     * @param groupKey The unique identifier for the voting group.
+     */
+    function delegateDeployTreasury(bytes32 groupKey) external onlyRelayer {
+        if (address(treasuryFactory) == address(0)) revert TreasuryFactoryAddressNotSet();
+        bool hasDeployedNft = _getGroupNftAddress(groupKey) != address(0);
+        treasuryFactory.deployTreasury(groupKey, hasDeployedNft);
+    }
+
+    // ================================================================================================================
+    // 5. TreasuryManager Delegation Functions
+    // ================================================================================================================
+    
+    // Note:
+    // The following functions are callable only while the GM is still the owner of the DAO treasury instance.
+    // Once DEFAULT_ADMIN_ROLE is transferred to the DAO multiSig the GM will no longer have access to these functions.
+    
+    /**
+     * @notice Delegates the transfer of the admin role to a new address.
+     * @dev Only callable by the relayer.
+     * @param groupKey The unique identifier for the voting group.
+     * @param newAdmin The address of the new admin.
+     */
+    function delegateTransferAdminRole(bytes32 groupKey, address newAdmin) external onlyRelayer {
+        address groupTreasury = _getGroupTreasuryAddress(groupKey);
+        ITreasuryManager(groupTreasury).transferAdminRole(newAdmin);
+    }
+
+    /**
+     * @notice Delegates the addition of a funding module to the DAO treasury, beyond the modules that were added upon deployment.
+     * @dev Only callable by the relayer.
+     * @param groupKey The unique identifier for the voting group.
+     * @param _module The address of the funding module to add.
+     * @param _fundingType The type of funding to associate with the module.
+     */
+    function delegateAddFundingModule(bytes32 groupKey, address _module, bytes32 _fundingType) external onlyRelayer {
+        address groupTreasury = _getGroupTreasuryAddress(groupKey);
+        ITreasuryManager(groupTreasury).addFundingModule(_module, _fundingType);
+    }
+
+    /**
+     * @notice Delegates the removal of a funding module from the DAO treasury.
+     * @dev Only callable by the relayer.
+     * @param groupKey The unique identifier for the voting group.
+     * @param _module The address of the funding module to remove.
+     * @param _fundingType The type of funding to disassociate from the module.
+     */
+    function delegateRemoveFundingModule(bytes32 groupKey, address _module, bytes32 _fundingType) external onlyRelayer {
+        address groupTreasury = _getGroupTreasuryAddress(groupKey);
+        ITreasuryManager(groupTreasury).removeFundingModule(_module, _fundingType);
+    }
+
+    /**
+     * @notice Delegates the approval of a transfer within the DAO treasury.
+     * @dev Only callable by the relayer.
+     * @param groupKey The unique identifier for the voting group.
+     * @param contextKey The pre-computed context hash (group, epoch, proposal).
+     */
+    function delegateApproveTransfer(bytes32 groupKey, bytes32 contextKey) external onlyRelayer {
+        address groupTreasury = _getGroupTreasuryAddress(groupKey);
+        ITreasuryManager(groupTreasury).approveTransfer(contextKey);
+    }
+
+    // ================================================================================================================
+    // 6. Funding Modules Delegation Functions
+    // ================================================================================================================
+
+    /**
+     * @notice Delegates the distribution of a grant to the grant module.
+     * @dev Only callable by the relayer.
+     * @param groupKey The unique identifier for the voting group.
+     * @param contextKey The pre-computed context hash (group, epoch, proposal).
+     * @param to The address to send the grant to.
+     * @param amount The amount of the grant.
+     */
+    function delegateDistributeGrant(bytes32 groupKey, bytes32 contextKey, address to, uint256 amount) external onlyRelayer {
+        address groupTreasury = _getGroupTreasuryAddress(groupKey);
+        if (groupTreasury == address(0)) revert TreasuryAddressNotFound();
+        
+        VoteTypes.ProposalResult memory proposalResult = _getProposalResult(contextKey);
+        if (proposalResult.passed == false) revert ProposalNotPassed();
+
+        grantModule.distributeGrant(groupTreasury, contextKey, to, amount);
+    }
+
+    // Alternative function to consider:
+    /*
+    function executeProposal(bytes32 groupKey, bytes32 contextKey, address to, uint256 amount, bytes32 fundingType) external onlyRelayer {
+        if (address(treasuryFactory) == address(0)) revert TreasuryFactoryAddressNotSet();
+        address groupTreasury = _getGroupTreasuryAddress(groupKey);
+        if (groupTreasury == address(0)) revert TreasuryAddressNotFound();
+        
+        VoteTypes.ProposalResult memory proposalResult = _getProposalResult(contextKey);
+        if (proposalResult.passed == false) revert ProposalNotPassed();
+
+        if (fundingType == GRANT_TYPE) {
+            grantModule.distributeGrant(groupTreasury, contextKey, to, amount);
+        } else if (fundingType == BOUNTY_TYPE) {
+            bountyModule.distributeBounty(groupTreasury, contextKey, to, amount);
+        } ......
+    }
+    */
+
 // ====================================================================================================================
 // ====================================================================================================================
 //                           EXTERNAL VIEW FUNCTIONS (FORWARDED VIA GOVERNANCE)
@@ -694,59 +801,58 @@ contract GovernanceManager is Initializable, UUPSUpgradeable, OwnableUpgradeable
         return voteManager.getQuorumParams();
     }
 
-
     // ================================================================================================================
     // 4. TreasuryFactory Delegation Functions
     // ================================================================================================================
 
-    function delegateDeployTreasury(bytes32 groupKey) external onlyRelayer {
-        if (address(treasuryFactory) == address(0)) revert TreasuryFactoryAddressNotSet();
-        bool hasDeployedNft = _getGroupNftAddress(groupKey) != address(0);
-        treasuryFactory.deployTreasury(groupKey, hasDeployedNft);
+    function delegateGetTreasuryAddress(bytes32 groupKey) external view onlyRelayer returns (address) {
+        if (treasuryFactory == address(0)) revert TreasuryFactoryAddressNotSet();
+        return treasuryFactory.getTreasuryAddress(groupKey);
     }
 
     // ================================================================================================================
-    // 5. Funding Modules Delegation Functions
+    // 5. TreasuryManager Delegation Functions
     // ================================================================================================================
 
     /**
-     * @notice Delegates the distribution of a grant to the grant module.
+     * @notice Delegates the getBalance call to the treasury manager.
      * @dev Only callable by the relayer.
-     * @param groupKey The unique identifier for the voting group.
-     * @param contextKey The pre-computed context hash (group, epoch, proposal).
-     * @param to The address to send the grant to.
-     * @param amount The amount of the grant.
+     * @param groupKey The unique identifier for the group.
      */
-    function delegateDistributeGrant(bytes32 groupKey, bytes32 contextKey, address to, uint256 amount) external onlyRelayer {
-        if (address(treasuryFactory) == address(0)) revert TreasuryFactoryAddressNotSet();
+    function delegateGetBalance(bytes32 groupKey) external view onlyRelayer returns (uint256) {
         address groupTreasury = _getGroupTreasuryAddress(groupKey);
-        if (groupTreasury == address(0)) revert TreasuryAddressNotFound();
-        
-        VoteTypes.ProposalResult memory proposalResult = _getProposalResult(contextKey);
-        if (proposalResult.passed == false) revert ProposalNotPassed();
-
-        grantModule.distributeGrant(groupTreasury, contextKey, to, amount);
+        return ITreasuryManager(groupTreasury).getBalance();
     }
 
-    // Alternative function to consider:
-    /*
-    function executeProposal(bytes32 groupKey, bytes32 contextKey, address to, uint256 amount, bytes32 fundingType) external onlyRelayer {
-        if (address(treasuryFactory) == address(0)) revert TreasuryFactoryAddressNotSet();
+    /**
+     * @notice Delegates the getActiveModuleAddress call to the treasury manager.
+     * @dev Only callable by the relayer.
+     * @param groupKey The unique identifier for the group.
+     * @param fundingType The funding type to check.
+     * @custom:error UnknownFundingType Thrown if the provided funding type is not defined in the FundingTypes library.
+     */
+    function delegateGetActiveModuleAddress(bytes32 groupKey, bytes32 fundingType) {
         address groupTreasury = _getGroupTreasuryAddress(groupKey);
-        if (groupTreasury == address(0)) revert TreasuryAddressNotFound();
-        
-        VoteTypes.ProposalResult memory proposalResult = _getProposalResult(contextKey);
-        if (proposalResult.passed == false) revert ProposalNotPassed();
-
-        if (fundingType == GRANT_TYPE) {
-            grantModule.distributeGrant(groupTreasury, contextKey, to, amount);
-        } else if (fundingType == BOUNTY_TYPE) {
-            bountyModule.distributeBounty(groupTreasury, contextKey, to, amount);
-        } ......
+        return ITreasuryManager(groupTreasury).getActiveModuleAddress(fundingType);
     }
-    */
+
+    /**
+     * @notice Delegates the isValidFundingType call to the treasury manager.
+     * @dev Only callable by the relayer.
+     * @param groupKey The unique identifier for the group.
+     * @param fundingType The funding type to check.
+     * @custom:error UnknownFundingType Thrown if the provided funding type is not defined in the FundingTypes library.
+     */
+    function delegateIsValidFundingType(bytes32 groupKey, bytes32 fundingType) external view onlyRelayer returns (bool) {
+        address groupTreasury = _getGroupTreasuryAddress(groupKey);
+        return ITreasuryManager(groupTreasury).isValidFundingType(fundingType);
+    }
+
+    // ================================================================================================================
+    // 6. Funding Module Delegation Functions
+    // ================================================================================================================
+
     
-
 // ====================================================================================================================
 //                                   EXTERNAL VIEW FUNCTIONS (NOT FORWARDED)
 // ====================================================================================================================
@@ -828,6 +934,7 @@ contract GovernanceManager is Initializable, UUPSUpgradeable, OwnableUpgradeable
      * @return The group treasury address.
      */
     function _getGroupTreasuryAddress(bytes32 groupKey) private view returns (address) {
+        if (address(treasuryFactory) == address(0)) revert TreasuryFactoryAddressNotSet();
         return treasuryFactory.getTreasuryAddress(groupKey);
     }
 

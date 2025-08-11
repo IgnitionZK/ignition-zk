@@ -1,6 +1,10 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.28;
 
+/**
+ * @title ITreasuryFactory
+ * @notice Interface for the Treasury Factory contract.
+ */
 interface ITreasuryFactory {
 
     /**

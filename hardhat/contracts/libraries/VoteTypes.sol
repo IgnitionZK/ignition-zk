@@ -1,6 +1,10 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.28;
 
+/**
+ * @title VoteTypes
+ * @notice This library defines structs and enums related to voting.
+ */
 library VoteTypes {
     /// @dev The vote tally struct, which contains the counts of abstain, yes, and no votes.
     struct VoteTally {
@@ -32,6 +36,7 @@ library VoteTypes {
 
     /**
      * @notice Represents the different choices a voter can make.
+     * @custom:note **Only append values in upgrades, do not alter order**
      */
     enum VoteChoice { No, Yes, Abstain }
 
