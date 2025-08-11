@@ -567,7 +567,56 @@ contract GovernanceManager is Initializable, UUPSUpgradeable, OwnableUpgradeable
     // ================================================================================================================
     // 5. TreasuryManager Delegation Functions
     // ================================================================================================================
+    
+    // Note:
+    // The following functions are callable only while the GM is still the owner of the DAO treasury instance.
+    // Once DEFAULT_ADMIN_ROLE is transferred to the DAO multiSig the GM will no longer have access to these functions.
+    
+    /**
+     * @notice Delegates the transfer of the admin role to a new address.
+     * @dev Only callable by the relayer.
+     * @param groupKey The unique identifier for the voting group.
+     * @param newAdmin The address of the new admin.
+     */
+    function delegateTransferAdminRole(bytes32 groupKey, address newAdmin) external onlyRelayer {
+        address groupTreasury = _getGroupTreasuryAddress(groupKey);
+        ITreasuryManager(groupTreasury).transferAdminRole(newAdmin);
+    }
 
+    /**
+     * @notice Delegates the addition of a funding module to the DAO treasury, beyond the modules that were added upon deployment.
+     * @dev Only callable by the relayer.
+     * @param groupKey The unique identifier for the voting group.
+     * @param _module The address of the funding module to add.
+     * @param _fundingType The type of funding to associate with the module.
+     */
+    function delegateAddFundingModule(bytes32 groupKey, address _module, bytes32 _fundingType) external onlyRelayer {
+        address groupTreasury = _getGroupTreasuryAddress(groupKey);
+        ITreasuryManager(groupTreasury).addFundingModule(_module, _fundingType);
+    }
+
+    /**
+     * @notice Delegates the removal of a funding module from the DAO treasury.
+     * @dev Only callable by the relayer.
+     * @param groupKey The unique identifier for the voting group.
+     * @param _module The address of the funding module to remove.
+     * @param _fundingType The type of funding to disassociate from the module.
+     */
+    function delegateRemoveFundingModule(bytes32 groupKey, address _module, bytes32 _fundingType) external onlyRelayer {
+        address groupTreasury = _getGroupTreasuryAddress(groupKey);
+        ITreasuryManager(groupTreasury).removeFundingModule(_module, _fundingType);
+    }
+
+    /**
+     * @notice Delegates the approval of a transfer within the DAO treasury.
+     * @dev Only callable by the relayer.
+     * @param groupKey The unique identifier for the voting group.
+     * @param contextKey The pre-computed context hash (group, epoch, proposal).
+     */
+    function delegateApproveTransfer(bytes32 groupKey, bytes32 contextKey) external onlyRelayer {
+        address groupTreasury = _getGroupTreasuryAddress(groupKey);
+        ITreasuryManager(groupTreasury).approveTransfer(contextKey);
+    }
 
     // ================================================================================================================
     // 6. Funding Modules Delegation Functions

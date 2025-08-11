@@ -114,10 +114,8 @@ contract GrantModule is Initializable, UUPSUpgradeable, OwnableUpgradeable, IGra
         // GM checks that 
         // a) context key exists in VM and
         // b) passed == true 
-        // c) submission nullifier corresponds to voted contextKey in VM
-        // c) recipient is in whitelist contract 
-        // If passed, requests transfer
-
+        // !!! submission nullifier corresponds to voted contextKey in VM
+       
         ITreasuryManager(groupTreasury).requestTransfer(
             contextKey,
             to,
