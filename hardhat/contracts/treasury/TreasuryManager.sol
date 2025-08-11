@@ -2,15 +2,23 @@
 pragma solidity ^0.8.28;
 
 // OZ Imports:
-import {AccessControlUpgradeable} from "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
-import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
-import {ReentrancyGuardUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol";
+import { AccessControlUpgradeable } from "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
+import { Initializable } from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
+import { ReentrancyGuardUpgradeable } from "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol";
 
-// Interfaces;
-import {ITreasuryManager} from "../interfaces/treasury/ITreasuryManager.sol";
+// Interfaces:
+import { ITreasuryManager } from "../interfaces/treasury/ITreasuryManager.sol";
+import { IVersioned } from "../interfaces/IVersioned.sol";
 
-contract TreasuryManager is Initializable, AccessControlUpgradeable, ReentrancyGuardUpgradeable, ITreasuryManager {
+// Libraries:
+import { FundingTypes } from "../libraries/FundingTypes.sol";
 
+/**
+ * @title TreasuryManager
+ * @notice This contract is responsible for managing the treasury of a DAO group.
+ * @dev It includes functionalities for handling funds, managing roles, and interacting with other components of the DAO.
+ */
+contract TreasuryManager is Initializable, AccessControlUpgradeable, ReentrancyGuardUpgradeable, ITreasuryManager, IVersioned {
 // ====================================================================================================================
 //                                                  CUSTOM ERRORS
 // ====================================================================================================================
@@ -28,6 +36,9 @@ contract TreasuryManager is Initializable, AccessControlUpgradeable, ReentrancyG
     /// @notice Thrown if the funding type is already valid.
     /// @dev This error is thrown when trying to add a funding type that already exists in the validFundingTypes mapping.
     error FundingTypeAlreadyValid();
+
+    /// @notice Thrown if the provided funding type is not defined in the FundingTypes library.
+    error UnknownFundingType();
 
     // ====================================================================================================
     // FUNDING MODULE ERRORS
@@ -211,13 +222,8 @@ contract TreasuryManager is Initializable, AccessControlUpgradeable, ReentrancyG
     /// @dev The role that grants access to the beacon manager owner.
     bytes32 private constant EMERGENCY_RECOVERY_ROLE = keccak256("EMERGENCY_RECOVERY_ROLE");
 
-    
-    /// @dev The type identifiers for the different funding modules.
-    bytes32 private constant GRANT_TYPE = keccak256("grant");
-    bytes32 private constant QUADRATIC_FUNDING_TYPE = keccak256("quadratic_funding");
-    bytes32 private constant BOUNTY_TYPE = keccak256("bounty");
-    bytes32 private constant STREAMING_PAYMENTS_TYPE = keccak256("streaming_payments");
-    bytes32 private constant EMERGENCY_TRANSFER_TYPE = keccak256("emergency_transfer");
+    /// @dev The type identifiers for the different funding modules:
+    // Imported from library FundingTypes.
 
     /// @dev The delay in days for the timelock mechanism.
     /// @dev This is used to prevent immediate execution of transfers after they are requested.
@@ -270,10 +276,10 @@ contract TreasuryManager is Initializable, AccessControlUpgradeable, ReentrancyG
     /**
      * @notice Initializes the Treasury contract.
      * @dev This function is called during the deployment of the contract to set up initial roles and funding types.
+     * The initial owner is expected to be the GovernanceManager, which will later transfer ownership to the DAO multisig.
      * @param _initialOwner The address of the initial owner.
      * @param _governanceManager The address of the governance manager.
      * @param _grantModule The address of the grant funding module.
-     * @dev The initial owner is expected to be the GovernanceManager, which will later transfer ownership to the DAO multisig.
      * @custom:error AddressCannotBeZero Thrown if any of the provided addresses are zero.
      */
     function initialize(
@@ -297,19 +303,21 @@ contract TreasuryManager is Initializable, AccessControlUpgradeable, ReentrancyG
         _grantRole(FUNDING_MODULE_ROLE, _grantModule);
         _grantRole(EMERGENCY_RECOVERY_ROLE, _beaconManager);
 
-        validFundingTypes[GRANT_TYPE] = true;
-        validFundingTypes[QUADRATIC_FUNDING_TYPE] = true;
-        validFundingTypes[BOUNTY_TYPE] = true;
-        validFundingTypes[STREAMING_PAYMENTS_TYPE] = true;
-        validFundingTypes[EMERGENCY_TRANSFER_TYPE] = true;
+        // Initialize valid funding types
+        validFundingTypes[FundingTypes.GRANT_TYPE] = true;
+        validFundingTypes[FundingTypes.QUADRATIC_FUNDING_TYPE] = true;
+        validFundingTypes[FundingTypes.BOUNTY_TYPE] = true;
+        validFundingTypes[FundingTypes.STREAMING_PAYMENTS_TYPE] = true;
+        validFundingTypes[FundingTypes.EMERGENCY_TRANSFER_TYPE] = true;
 
-        emit FundingTypeAdded(GRANT_TYPE);
-        emit FundingTypeAdded(QUADRATIC_FUNDING_TYPE);
-        emit FundingTypeAdded(BOUNTY_TYPE);
-        emit FundingTypeAdded(STREAMING_PAYMENTS_TYPE);
-        emit FundingTypeAdded(EMERGENCY_TRANSFER_TYPE);
-        
-        activeModuleRegistry[GRANT_TYPE] = _grantModule; 
+        emit FundingTypeAdded(FundingTypes.GRANT_TYPE);
+        emit FundingTypeAdded(FundingTypes.QUADRATIC_FUNDING_TYPE);
+        emit FundingTypeAdded(FundingTypes.BOUNTY_TYPE);
+        emit FundingTypeAdded(FundingTypes.STREAMING_PAYMENTS_TYPE);
+        emit FundingTypeAdded(FundingTypes.EMERGENCY_TRANSFER_TYPE);
+
+        // Initialize GRANT_TYPE in active module registry
+        activeModuleRegistry[FundingTypes.GRANT_TYPE] = _grantModule; 
         emit FundingModuleAdded(_grantModule);
     }   
 
@@ -351,7 +359,7 @@ contract TreasuryManager is Initializable, AccessControlUpgradeable, ReentrancyG
     // ====================================================================================================
     // REGISTERING FUNDING MODULES
     // ====================================================================================================
-
+    // TO DO: remove validFundingTypes mapping - not needed with Beacon proxies
     /**
      * @notice Adds a new funding type to the valid funding types mapping.
      * @dev This function can only be called by the DEFAULT_ADMIN_ROLE.
@@ -391,6 +399,7 @@ contract TreasuryManager is Initializable, AccessControlUpgradeable, ReentrancyG
         nonZeroAddress(_module)
         nonZeroKey(_fundingType)
     {
+        if (!FundingTypes.isKnownType(_fundingType)) revert UnknownFundingType();
         if (!validFundingTypes[_fundingType]) revert FundingTypeDoesNotExist();
         if (hasRole(FUNDING_MODULE_ROLE, _module)) revert ModuleAlreadyHasFundingRole();
         if (_module.code.length == 0) revert AddressIsNotAContract();
@@ -465,6 +474,7 @@ contract TreasuryManager is Initializable, AccessControlUpgradeable, ReentrancyG
         // c) recipient is in whitelist contract 
         // If passed, requests transfer
         // Checks in Treasury:
+        if (!FundingTypes.isKnownType(_fundingType)) revert UnknownFundingType();
         if (_amount > address(this).balance) revert InsufficientBalance();
         if (_amount == 0) revert AmountCannotBeZero();
         if (fundingRequests[contextKey].to != address(0)) revert FundingAlreadyRequested();
@@ -582,6 +592,7 @@ contract TreasuryManager is Initializable, AccessControlUpgradeable, ReentrancyG
      * @return The address of the active funding module for the specified funding type.
      */
     function getActiveModuleAddress(bytes32 fundingType) external view onlyGovernorOrDefaultAdmin returns (address) {
+        if (!FundingTypes.isKnownType(fundingType)) revert UnknownFundingType();
         return activeModuleRegistry[fundingType];
     }
 
@@ -591,7 +602,16 @@ contract TreasuryManager is Initializable, AccessControlUpgradeable, ReentrancyG
      * @return True if the funding type is valid, false otherwise.
      */
     function isValidFundingType(bytes32 fundingType) external view onlyGovernorOrDefaultAdmin returns (bool) {
+        if (!FundingTypes.isKnownType(fundingType)) revert UnknownFundingType();
         return validFundingTypes[fundingType];
+    }
+
+    /**
+     * @dev Returns the version of the contract.
+     * @return string The version of the contract.
+     */
+    function getContractVersion() external view override(IVersioned, IVoteManager) onlyOwner returns (string memory) {
+        return "TreasuryManager v1.0.0"; 
     }
 
 

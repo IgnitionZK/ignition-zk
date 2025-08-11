@@ -1,6 +1,10 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.28;
 
+/**
+ * @title IProposalManager
+ * @notice Interface for the Proposal Manager contract.
+ */
 interface IProposalManager {
     
 // ====================================================================================================================

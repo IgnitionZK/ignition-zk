@@ -8,4 +8,4 @@
 6. Deploy TreasuryManager without initialization
 7. Deploy BeaconManager with the TreasuryManager implementation address (temp owner: relayer)
 8. Deploy TreasuryFactory with the beacon manager address (owner: GM)
-9. Set TreasuryFactory address in GM 
+9. Set TreasuryFactory address in GM via `setTreasuryFactory()`

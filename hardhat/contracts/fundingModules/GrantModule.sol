@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.28;
 
-
 // OZ Imports:
 import { UUPSUpgradeable } from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import { Initializable } from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
@@ -10,9 +9,16 @@ import { OwnableUpgradeable } from "@openzeppelin/contracts-upgradeable/access/O
 // Interfaces:
 import { ITreasuryManager } from "../interfaces/treasury/ITreasuryManager.sol";
 import { IGrantModule } from "../interfaces/fundingModules/IGrantModule.sol";
+import { IVersioned } from "../interfaces/IVersioned.sol";
 
+// Libraries:
+import { FundingTypes } from "../libraries/FundingTypes.sol";
 
-contract GrantModule is Initializable, UUPSUpgradeable, OwnableUpgradeable, IGrantModule {
+/**
+ * @title GrantModule
+ * @notice This contract is responsible for requesting funding for grant proposals.
+ */
+contract GrantModule is Initializable, UUPSUpgradeable, OwnableUpgradeable, IGrantModule, IVersioned {
 
     /// @dev Thrown if the provided address is zero.
     error AddressCannotBeZero();
@@ -28,9 +34,6 @@ contract GrantModule is Initializable, UUPSUpgradeable, OwnableUpgradeable, IGra
      * @param amount The amount of the grant.
      */
     event GrantRequested(address indexed groupTreasury, bytes32 indexed contextKey, address indexed to, uint256 amount);
-
-    /// @dev The constant representing the grant type.
-    bytes32 private constant GRANT_TYPE = keccak256("grant");
 
 // ====================================================================================================================
 //                                                  MODIFIERS
@@ -89,7 +92,7 @@ contract GrantModule is Initializable, UUPSUpgradeable, OwnableUpgradeable, IGra
 // ====================================================================================================================
 
     /**
-     * @dev Distributes a grant to a specified address from a group treasury.
+     * @notice Distributes a grant to a specified address from a group treasury.
      * @param groupTreasury The address of the group treasury contract.
      * @param contextKey The unique identifier for the grant context (group + epoch + proposal).
      * @param to The address to receive the grant.
@@ -119,9 +122,21 @@ contract GrantModule is Initializable, UUPSUpgradeable, OwnableUpgradeable, IGra
             contextKey,
             to,
             amount,
-            GRANT_TYPE
+            FundingTypes.GRANT_TYPE
         );
         emit GrantRequested(groupTreasury, contextKey, to, amount);
+    }
+
+// ====================================================================================================================
+//                           EXTERNAL VIEW FUNCTIONS
+// ====================================================================================================================
+
+    /**
+     * @dev Returns the version of the contract.
+     * @return string The version of the contract.
+     */
+    function getContractVersion() external view override(IVersioned, IVoteManager) onlyOwner returns (string memory) {
+        return "GrantModule v1.0.0"; 
     }
 
 }

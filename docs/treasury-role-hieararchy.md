@@ -44,7 +44,7 @@ BeaconManager uses the OpenZeppelin `Ownable` pattern rather than roles:
 ### Ownership Flow
 
 1. **Deployment**:
-   - Owner is set to the deployer, then immediately transferred to the IgnitionZK multisig wallet via `transferOwnership(beaconOwner)` 
+   - Owner is set to the to the IgnitionZK multisig wallet via `Ownable(beaconOwner)`  
    - During development: the relayer acts as the owner
 
 2. **Upgrade Control**:
@@ -56,7 +56,7 @@ Design Rationale
 This architecture decouples the BeaconManager from the GovernanceManager, with both owned by the same entity (IgnitionZK multisig / relayer during development). This separation provides several benefits:
 
 - Separation of concerns: GM handles treasury creation, BeaconManager handles upgrades
-- GM and BeaconManager owner are responsible for all system critical actions such as upgrades.
+- GM owner and BeaconManager owner are responsible for all system critical actions such as upgrades.
 - Fault isolation: Issues in one component don't automatically affect the other
 
 
@@ -73,12 +73,11 @@ TreasuryFactory also uses the OpenZeppelin `Ownable` pattern:
 ### Ownership Flow
 
 1. **Deployment**:
-   - Owner is set to the deployer, then transferred to GovernanceManager
-   - `transferOwnership(governanceManager)`
+   - Owner is set to GovernanceManager via `Ownable(_governanceManager)`
 
 2. **Treasury Deployment Control**:
    - Only the owner (GovernanceManager) can call `deployTreasury()`
-   - GovernanceManager calls deployTreasury() via its delegateDeployTreasury() function
+   - GovernanceManager calls `deployTreasury()` via its `delegateDeployTreasury()` function
    - Each treasury deployment creates a new beacon proxy with its own state
 
 
@@ -96,11 +95,11 @@ TreasuryFactory also uses the OpenZeppelin `Ownable` pattern:
 
 3. **Role Revocation**:
    - When transferring the admin role, the old admin's role is properly revoked
-   - transferAdminRole() both grants the new admin and revokes the caller
+   - `transferAdminRole()` both grants the new admin and revokes the caller
 4. **Environment-Specific Configurations**:
    - In production: IgnitionZK multisig has ultimate control
    - In development: Relayer temporarily assumes these roles for testing
 5. **Critical Functions**: 
-   - Treasury funds can only be moved via approved transfers
-   - Implementation upgrades require multisig approval
+   - Treasury funds can only be moved via approved transfers by the GM or the DAO Multisig, if the DAO has set up a multi sig wallet.
+   - Implementation upgrades require IgnitionZK multisig approval
    - Treasury deployment requires proper governance

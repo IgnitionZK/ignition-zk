@@ -1,6 +1,12 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.28;
 
+// OZ imports:
+import { UUPSUpgradeable } from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
+import { Initializable } from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
+import { OwnableUpgradeable } from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+import { ERC165Upgradeable } from "@openzeppelin/contracts-upgradeable/utils/introspection/ERC165Upgradeable.sol";
+
 // Interfaces
 import {IProposalManager} from "../interfaces/managers/IProposalManager.sol";
 import {IProposalVerifier} from "../interfaces/verifiers/IProposalVerifier.sol";
@@ -9,15 +15,12 @@ import {IMembershipManager} from "../interfaces/managers/IMembershipManager.sol"
 import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 import {IVersioned} from "../interfaces/IVersioned.sol";
 
-// OZ imports:
-import { UUPSUpgradeable } from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
-import { Initializable } from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
-import { OwnableUpgradeable } from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
-import { ERC165Upgradeable } from "@openzeppelin/contracts-upgradeable/utils/introspection/ERC165Upgradeable.sol";
-
-// tracks proposal submissions and verifications (pre-vote phase)
+/**
+ * @title ProposalManager
+ * @notice This contract manages the proposal submission and verification process.
+ * It ensures that proposals are submitted, verified, and claimed in a secure and efficient manner.
+ */
 contract ProposalManager is Initializable, OwnableUpgradeable, UUPSUpgradeable, IProposalManager, ERC165Upgradeable, IVersioned {
-
 // ====================================================================================================================
 //                                                  CUSTOM ERRORS
 // ====================================================================================================================

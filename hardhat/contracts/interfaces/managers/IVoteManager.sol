@@ -3,7 +3,15 @@ pragma solidity ^0.8.28;
 
 import "../../types/VoteTypes.sol";
 
+/**
+ * @title IVoteManager
+ * @notice Interface for the Vote Manager contract.
+ */
 interface IVoteManager {
+
+// ====================================================================================================================
+//                                       EXTERNAL STATE-CHANGING FUNCTIONS
+// ====================================================================================================================
 
     /**
      * @notice Sets the address of the vote verifier contract.
@@ -49,6 +57,10 @@ interface IVoteManager {
         uint256 _maxGroupSizeForMinQuorum,
         uint256 _minGroupSizeForMaxQuorum
     ) external;
+
+// ====================================================================================================================
+//                                       EXTERNAL VIEW FUNCTIONS
+// ====================================================================================================================
 
     /**
      * @notice Gets the address of the vote verifier contract.
