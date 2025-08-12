@@ -139,6 +139,21 @@ const VotingWindow = styled.div`
   font-size: 1.4rem;
 `;
 
+const ClaimButton = styled(CustomButton)`
+  && {
+    background-color: rgba(165, 180, 252, 0.1);
+    border: 1px solid rgba(165, 180, 252, 0.2);
+    padding: 0.8rem 1.6rem;
+    font-size: 1.4rem;
+    font-weight: 500;
+    min-width: auto;
+
+    &:hover {
+      background-color: rgba(165, 180, 252, 0.15);
+    }
+  }
+`;
+
 function ProposalItem({ proposal = {} }) {
   // Fetch epoch data using the group_id from the proposal
   const { epochs, isLoading: isLoadingEpochs } = useGetEpochsByGroupId(
@@ -317,7 +332,25 @@ function ProposalItem({ proposal = {} }) {
         >
           Review Details
         </CustomButton>
-        <VotingWindow>{getVotingWindow()}</VotingWindow>
+        {proposal.status_type === "active" ? (
+          <VotingWindow>{getVotingWindow()}</VotingWindow>
+        ) : (
+          <ClaimButton
+            size="small"
+            backgroundColor="rgba(165, 180, 252, 0.1)"
+            hoverColor="rgba(165, 180, 252, 0.15)"
+            textColor="#A5B4FC"
+            onClick={() => {
+              // TODO: Add claim logic here
+              console.log(
+                "Claim button clicked for proposal:",
+                proposal.proposal_id
+              );
+            }}
+          >
+            Claim
+          </ClaimButton>
+        )}
       </FooterSection>
     </ProposalItemContainer>
   );
