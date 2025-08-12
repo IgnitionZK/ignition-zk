@@ -62,10 +62,43 @@ const ProposalDescription = styled.p`
 
 const StatusIndicator = styled.div`
   display: flex;
-  align-items: center;
+  flex-direction: column;
+  align-items: flex-end;
   gap: 0.8rem;
   font-size: 1.4rem;
   color: var(--color-grey-300);
+`;
+
+const StatusRow = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+`;
+
+const VoteTally = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.4rem;
+  font-size: 1.2rem;
+  color: var(--color-grey-400);
+`;
+
+const VoteCount = styled.span`
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+`;
+
+const VoteLabel = styled.span`
+  font-weight: 500;
+  min-width: 4rem;
+  text-align: right;
+`;
+
+const VoteNumber = styled.span`
+  color: var(--color-grey-300);
+  font-weight: 600;
 `;
 
 const StatusDot = styled.span`
@@ -243,8 +276,26 @@ function ProposalItem({ proposal = {} }) {
         <RightSection>
           <GroupName>{proposal.group_name || "Unknown Group"}</GroupName>
           <StatusIndicator>
-            <StatusDot $status={proposal.status_type || "unknown"} />
-            {formatStatus(proposal.status_type)}
+            <StatusRow>
+              <StatusDot $status={proposal.status_type || "unknown"} />
+              {formatStatus(proposal.status_type)}
+            </StatusRow>
+            {proposal.vote_tally && (
+              <VoteTally>
+                <VoteCount>
+                  <VoteLabel>Yes:</VoteLabel>
+                  <VoteNumber>{proposal.vote_tally.yes || 0}</VoteNumber>
+                </VoteCount>
+                <VoteCount>
+                  <VoteLabel>No:</VoteLabel>
+                  <VoteNumber>{proposal.vote_tally.no || 0}</VoteNumber>
+                </VoteCount>
+                <VoteCount>
+                  <VoteLabel>Abstain:</VoteLabel>
+                  <VoteNumber>{proposal.vote_tally.abstain || 0}</VoteNumber>
+                </VoteCount>
+              </VoteTally>
+            )}
           </StatusIndicator>
         </RightSection>
       </HeaderSection>
