@@ -407,11 +407,11 @@ function ProposalItem({ proposal = {} }) {
               {proposal.vote_tally && (
                 <VoteTally>
                   <VoteCount>
-                    <VoteLabel>Yes:</VoteLabel>
+                    <VoteLabel>For:</VoteLabel>
                     <VoteNumber>{proposal.vote_tally.yes || 0}</VoteNumber>
                   </VoteCount>
                   <VoteCount>
-                    <VoteLabel>No:</VoteLabel>
+                    <VoteLabel>Against:</VoteLabel>
                     <VoteNumber>{proposal.vote_tally.no || 0}</VoteNumber>
                   </VoteCount>
                   <VoteCount>
@@ -443,7 +443,7 @@ function ProposalItem({ proposal = {} }) {
           </CustomButton>
           {proposal.status_type === "active" ? (
             <VotingWindow>{getVotingWindow()}</VotingWindow>
-          ) : (
+          ) : proposal.status_type === "approved" ? (
             <>
               <ClaimButton
                 size="small"
@@ -457,16 +457,13 @@ function ProposalItem({ proposal = {} }) {
                   isLoadingSubmissionNullifier ||
                   isVerifying ||
                   !proposal.claim_hash ||
-                  !proposalSubmissionNullifier ||
-                  proposal.status_type !== "approved"
+                  !proposalSubmissionNullifier
                 }
                 title={
                   !proposal.claim_hash
                     ? "No claim hash available"
                     : !proposalSubmissionNullifier
                     ? "No submission nullifier available"
-                    : proposal.status_type !== "approved"
-                    ? "Proposal not yet claimable"
                     : "Click to claim award"
                 }
               >
@@ -491,7 +488,7 @@ function ProposalItem({ proposal = {} }) {
                 </div>
               )}
             </>
-          )}
+          ) : null}
         </FooterSection>
       </ProposalItemContainer>
 
