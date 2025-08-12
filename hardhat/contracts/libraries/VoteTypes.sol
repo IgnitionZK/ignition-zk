@@ -19,11 +19,13 @@ library VoteTypes {
         uint256 quorum;
     }
 
-    /// @dev The proposal status struct, which contains the vote tally and a boolean indicating if the proposal has passed.
+    /// @dev The proposal status struct, which contains the vote tally, a boolean indicating if the proposal has passed and the submission nullifier.
     /// Passed status is determined by the quorum and majority of votes.
+    /// The submission nullifier is used to check proposal content validity when executing proposals.
     struct ProposalResult {
         VoteTally tally;
         bool passed;
+        bytes32 submissionNullifier; 
     }
 
     /// @dev The QuorumParams struct, which contains the minimum and maximum quorum thresholds and group size parameters.

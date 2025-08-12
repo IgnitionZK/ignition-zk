@@ -53,6 +53,9 @@ contract GovernanceManager is Initializable, UUPSUpgradeable, OwnableUpgradeable
     /// @notice Thrown if the treasury address for a specific group is not found.
     error TreasuryAddressNotFound();
 
+    /// @notice Thrown if the proposal submission nullifier is invalid.
+    error InvalidNullifier();
+
     // ====================================================================================================
     // GENERAL ERRORS
     // ====================================================================================================
@@ -181,10 +184,8 @@ contract GovernanceManager is Initializable, UUPSUpgradeable, OwnableUpgradeable
      * @param _membershipManager The address of the membership manager, which must not be zero.
      * @param _proposalManager The address of the proposal manager, which must not be zero.
      * @param _voteManager The address of the vote manager, which must not be zero.
-     * @custom:error RelayerAddressCannotBeZero If the provided relayer address is zero.
-     * @custom:error MembershipAddressCannotBeZero If the provided membership manager address is zero.
-     * @custom:error ProposalAddressCannotBeZero If the provided proposal manager address is zero.
-     * @custom:error VoteAddressCannotBeZero If the provided vote manager address is zero.
+     * @param _grantModule The address of the grant module, which must not be zero.
+     * @custom:error AddressCannotBeZero If the provided relayer address is zero.
      */
     function initialize(
         address _initialOwner,
@@ -654,13 +655,22 @@ contract GovernanceManager is Initializable, UUPSUpgradeable, OwnableUpgradeable
      * @param to The address to send the grant to.
      * @param amount The amount of the grant.
      */
-    function delegateDistributeGrant(bytes32 groupKey, bytes32 contextKey, address to, uint256 amount) external onlyRelayer {
+    function delegateDistributeGrant(
+        bytes32 groupKey, 
+        bytes32 contextKey, 
+        address to, 
+        uint256 amount, 
+        bytes32 expectedProposalNullifier
+    ) external onlyRelayer {
         address groupTreasury = _getGroupTreasuryAddress(groupKey);
         if (groupTreasury == address(0)) revert TreasuryAddressNotFound();
         
         // checks that the proposal with the given contextKey exists and that its passed status it set to true
         VoteTypes.ProposalResult memory proposalResult = _getProposalResult(contextKey);
         if (proposalResult.passed == false) revert ProposalNotPassed();
+
+        // checks that the expected proposal submission nullifier matches the stored nullifier
+        if (proposalResult.submissionNullifier != expectedProposalNullifier) revert InvalidNullifier();
 
         grantModule.distributeGrant(groupTreasury, contextKey, to, amount);
     }
