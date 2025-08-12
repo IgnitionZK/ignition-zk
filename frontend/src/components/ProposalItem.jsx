@@ -348,7 +348,7 @@ function ProposalItem({ proposal = {} }) {
               );
             }}
           >
-            Claim
+            Claim Award
           </ClaimButton>
         )}
       </FooterSection>
