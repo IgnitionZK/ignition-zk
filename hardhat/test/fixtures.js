@@ -6,15 +6,21 @@ async function setUpFixtures() {
     const [deployer, governor, relayer, user1] = await ethers.getSigners();
     
     // Get Contract Factories 
-    const MembershipManager = await ethers.getContractFactory("MembershipManager");  
-    const NFTImplementation = await ethers.getContractFactory("ERC721IgnitionZK");
+    // Managers
+    const MembershipManager = await ethers.getContractFactory("MembershipManager");
+    const ProposalManager = await ethers.getContractFactory("ProposalManager");
+    const VoteManager = await ethers.getContractFactory("VoteManager");
+    const GovernanceManager = await ethers.getContractFactory("GovernanceManager");
+    // Verifiers
     const MembershipVerifier = await ethers.getContractFactory("MembershipVerifier");
     const ProposalVerifier = await ethers.getContractFactory("ProposalVerifier");
     const ProposalClaimVerifier = await ethers.getContractFactory("ProposalClaimVerifier");
-    const ProposalManager = await ethers.getContractFactory("ProposalManager");
     const VoteVerifier = await ethers.getContractFactory("VoteVerifier");
-    const VoteManager = await ethers.getContractFactory("VoteManager");
-    const GovernanceManager = await ethers.getContractFactory("GovernanceManager");
+    // NFT Implementation
+    const NFTImplementation = await ethers.getContractFactory("ERC721IgnitionZK");
+    // Funding Modules
+    const GrantModule = await ethers.getContractFactory("GrantModule");
+    // Mock Contracts
     const MockMembershipVerifier = await ethers.getContractFactory("MockMembershipVerifier");
     const MockProposalVerifier = await ethers.getContractFactory("MockProposalVerifier");
     const MockProposalClaimVerifier = await ethers.getContractFactory("MockProposalClaimVerifier");
@@ -332,15 +338,16 @@ async function setUpFixtures() {
         user1,
 
         MembershipManager,
+        ProposalManager,
+        VoteManager,
+        GovernanceManager,
         NFTImplementation,
+        GrantModule,
         MembershipVerifier,
         MockMembershipVerifier,
         ProposalVerifier,
         ProposalClaimVerifier,
-        ProposalManager,
-        GovernanceManager,
         VoteVerifier,
-        VoteManager,
         MockProposalVerifier,
         MockProposalClaimVerifier,
         MockVoteVerifier,
@@ -403,6 +410,7 @@ async function setUpFixtures() {
         proposalClaimVerifier: null,
         proposalManager: null,
         governanceManager: null,
+        grantModule: null,
         voteVerifier: null,
         voteManager: null,
         mockProposalVerifier: null,
@@ -496,6 +504,19 @@ async function deployFixtures() {
     );
     await fixtures.voteManager.waitForDeployment();
 
+    // Deploy the GrantModule UUPS Proxy (ERC‑1967) contract
+    fixtures.grantModule = await upgrades.deployProxy(
+        fixtures.GrantModule,
+        [
+            await fixtures.governor.getAddress()
+        ],
+        {
+            initializer: "initialize",
+            kind: "uups"
+        }
+    );
+    await fixtures.grantModule.waitForDeployment();
+
     // Deploy the Governance UUPS Proxy (ERC‑1967) contract
     fixtures.governanceManager = await upgrades.deployProxy(
         fixtures.GovernanceManager, 
@@ -505,6 +526,7 @@ async function deployFixtures() {
             fixtures.membershipManager.target, // _membershipManager
             fixtures.proposalManager.target, // _proposalManager,
             fixtures.voteManager.target, // _voteManager
+            fixtures.grantModule.target // _grantModule
         ],
         {
             initializer: "initialize",

@@ -59,6 +59,9 @@ contract VoteManager is Initializable, OwnableUpgradeable, UUPSUpgradeable, IVot
     /// @notice Thrown if the tallying of votes is inconsistent, e.g., total votes exceed member count.
     error TallyingInconsistent();
 
+    /// @notice Thrown if the submission nullifier does not match the expected value.
+    error SubmissionNullifierMismatch();
+
     // ====================================================================================================
     // GROUP PARAM ERRORS (memberCount, Quorum)
     // ====================================================================================================
@@ -326,7 +329,7 @@ contract VoteManager is Initializable, OwnableUpgradeable, UUPSUpgradeable, IVot
         bytes32 proofVoteNullifier = bytes32(publicSignals[1]);
         uint256 proofVoteChoiceHash = publicSignals[2];
         bytes32 proofRoot = bytes32(publicSignals[3]);
-        //bytes32 proofSubmissionNullifier = bytes32(publicSignals[4]);
+        bytes32 proofSubmissionNullifier = bytes32(publicSignals[4]);
 
         // check root
         if (currentRoot == bytes32(0)) revert RootNotYetInitialized();
@@ -365,33 +368,31 @@ contract VoteManager is Initializable, OwnableUpgradeable, UUPSUpgradeable, IVot
         }
 
         // Update vote tally for proposal
-        //VoteTypes.ProposalResult storage result = proposalResults[contextKey];
-        VoteTypes.VoteTally storage tally = proposalResults[contextKey].tally;
+        VoteTypes.ProposalResult storage result = proposalResults[contextKey];
+        //VoteTypes.VoteTally storage tally = proposalResults[contextKey].tally;
 
         if ( inferredChoice == VoteTypes.VoteChoice.No) {
-            tally.no++;
+            result.tally.no++;
         } else if ( inferredChoice == VoteTypes.VoteChoice.Yes) {
-            tally.yes++;
+            result.tally.yes++;
         } else if ( inferredChoice == VoteTypes.VoteChoice.Abstain) {
-            tally.abstain++;
+            result.tally.abstain++;
         }
         emit VoteTallyUpdated(contextKey, [
-            tally.no, 
-            tally.yes, 
-            tally.abstain
+            result.tally.no, 
+            result.tally.yes, 
+            result.tally.abstain
             ]);
         
         // Update the proposal's Passed status
         _updateProposalStatus(contextKey, groupKey);
 
         // register the proposal submission nullifier in the proposal record
-        /*
         if (result.submissionNullifier == bytes32(0)) {
             result.submissionNullifier = proofSubmissionNullifier;
         } else {
             if (result.submissionNullifier != proofSubmissionNullifier) revert SubmissionNullifierMismatch();
         }
-        */
     }
 
     

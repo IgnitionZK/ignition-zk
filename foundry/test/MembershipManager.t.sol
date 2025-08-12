@@ -4,18 +4,25 @@ pragma solidity ^0.8.28;
 import "forge-std/Test.sol";
 import "forge-std/console.sol";
 
+// OZ Imports:
 import { Clones } from "@openzeppelin/contracts/proxy/Clones.sol";
 import { ERC1967Proxy } from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
+
+// Contracts:
+import { MembershipManager } from "hardhat-contracts/managers/MembershipManager.sol";
+import { ProposalManager } from "hardhat-contracts/managers/ProposalManager.sol";
+import { ERC721IgnitionZK } from "hardhat-contracts/token/ERC721IgnitionZK.sol";
+
+// Verifiers:
 import { MockProposalVerifier } from "hardhat-contracts/mocks/MockProposalVerifier.sol";
 import { MockProposalClaimVerifier } from "hardhat-contracts/mocks/MockProposalClaimVerifier.sol";
-import { MembershipManager } from "hardhat-contracts/managers/MembershipManager.sol";
-import { IMembershipManager } from "hardhat-contracts/interfaces/IMembershipManager.sol";
-import { ProposalManager } from "hardhat-contracts/managers/ProposalManager.sol";
-import { IProposalManager } from "hardhat-contracts/interfaces/IProposalManager.sol";
-import { IMembershipManager } from "hardhat-contracts/interfaces/IMembershipManager.sol";
-import { IProposalVerifier } from "hardhat-contracts/interfaces/IProposalVerifier.sol";
-import { ERC721IgnitionZK } from "hardhat-contracts/token/ERC721IgnitionZK.sol";
 import { MembershipVerifier } from "hardhat-contracts/verifiers/MembershipVerifier.sol";
+
+// Interfaces: 
+import { IMembershipManager } from "hardhat-contracts/interfaces/managers/IMembershipManager.sol";
+import { IProposalManager } from "hardhat-contracts/interfaces/managers/IProposalManager.sol";
+import { IMembershipManager } from "hardhat-contracts/interfaces/managers/IMembershipManager.sol";
+import { IProposalVerifier } from "hardhat-contracts/interfaces/verifiers/IProposalVerifier.sol";
 
 
 contract MembershipManagerTest is Test {

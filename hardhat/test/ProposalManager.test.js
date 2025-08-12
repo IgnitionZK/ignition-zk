@@ -42,7 +42,7 @@ describe("Proposal Manager Unit Tests:", function () {
         const deployedFixtures = await deployFixtures();
 
         ({
-            membershipManager, proposalManager, voteManager, governanceManager, 
+            membershipManager, proposalManager, voteManager, governanceManager, nftImplementation,
             membershipVerifier, proposalVerifier, proposalClaimVerifier, voteVerifier,
             mockMembershipVerifier, mockProposalVerifier, mockProposalClaimVerifier, mockVoteVerifier
         } = deployedFixtures);
