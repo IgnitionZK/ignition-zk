@@ -90,6 +90,7 @@ export async function updateProposalStatus({ proposalId, statusType }) {
  * @param {Object} params.funding - The funding object containing amount and currency
  * @param {string} params.claimHash - The claim hash for the proposal (optional)
  * @param {string} params.statusId - The status ID for the proposal (optional, defaults to active status)
+ * @param {string} params.contextKey - The context key for the proposal (computed from group and epoch)
  * @returns {Promise<Object>} The newly created proposal object
  * @throws {Error} If required parameters are missing or if there's a database error
  */
@@ -104,6 +105,7 @@ export async function insertProposal({
   funding,
   claimHash = null,
   statusId = null,
+  contextKey = null,
 }) {
   if (!epochId) {
     throw new Error("epochId is required");
@@ -158,6 +160,7 @@ export async function insertProposal({
     funding,
     claim_hash: claimHash,
     status_id: finalStatusId,
+    context_key: contextKey,
   });
 
   const insertData = {
@@ -170,6 +173,7 @@ export async function insertProposal({
     payload,
     funding,
     claim_hash: claimHash,
+    context_key: contextKey,
   };
 
   // Only include status_id if it's not undefined
