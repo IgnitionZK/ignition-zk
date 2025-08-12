@@ -9,7 +9,7 @@ import { IERC165 } from "@openzeppelin/contracts/utils/introspection/IERC165.sol
 import { IVersioned } from "../interfaces/IVersioned.sol";
 
 // types
-import { VoteTypes } from "../types/VoteTypes.sol";
+import { VoteTypes } from "../libraries/VoteTypes.sol";
 
 // UUPS imports:
 import { UUPSUpgradeable } from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";

@@ -19,6 +19,8 @@ import { ITreasuryManager } from "../interfaces/treasury/ITreasuryManager.sol";
 
 // Libraries:
 import { VoteTypes } from "../libraries/VoteTypes.sol";
+import { FundingTypes } from "../libraries/FundingTypes.sol";
+import { TreasuryTypes } from "../libraries/TreasuryTypes.sol";
 
 /**
  * @title GovernanceManager
@@ -568,8 +570,8 @@ contract GovernanceManager is Initializable, UUPSUpgradeable, OwnableUpgradeable
     // 5. TreasuryManager Delegation Functions
     // ================================================================================================================
     
-    // Note:
-    // The following functions are callable only while the GM is still the owner of the DAO treasury instance.
+    // Note!!!
+    // The GM can call the following functions only while it is still has DEFAULT_ADMIN_ROLE of the DAO treasury instance.
     // Once DEFAULT_ADMIN_ROLE is transferred to the DAO multiSig the GM will no longer have access to these functions.
     
     /**
@@ -608,7 +610,7 @@ contract GovernanceManager is Initializable, UUPSUpgradeable, OwnableUpgradeable
     }
 
     /**
-     * @notice Delegates the approval of a transfer within the DAO treasury.
+     * @notice Delegates the approval of a transfer within the group treasury.
      * @dev Only callable by the relayer.
      * @param groupKey The unique identifier for the voting group.
      * @param contextKey The pre-computed context hash (group, epoch, proposal).
@@ -616,6 +618,28 @@ contract GovernanceManager is Initializable, UUPSUpgradeable, OwnableUpgradeable
     function delegateApproveTransfer(bytes32 groupKey, bytes32 contextKey) external onlyRelayer {
         address groupTreasury = _getGroupTreasuryAddress(groupKey);
         ITreasuryManager(groupTreasury).approveTransfer(contextKey);
+    }
+
+    /**
+     * @notice Delegates the execution of a transfer within the group treasury.
+     * @dev Only callable by the relayer.
+     * @param groupKey The unique identifier for the voting group.
+     * @param contextKey The pre-computed context hash (group, epoch, proposal).
+     */
+    function delegateExecuteTransfer(bytes32 groupKey, bytes32 contextKey) external onlyRelayer {
+        address groupTreasury = _getGroupTreasuryAddress(groupKey);
+        ITreasuryManager(groupTreasury).executeTransfer(contextKey);
+    }
+
+    /**
+     * @notice Delegates the approval and execution of a transfer within the group treasury.
+     * @dev Only callable by the relayer.
+     * @param groupKey The unique identifier for the voting group.
+     * @param contextKey The pre-computed context hash (group, epoch, proposal).
+     */
+    function delegateApproveAndExecuteTransfer(bytes32 groupKey, bytes32 contextKey) external onlyRelayer {
+        address groupTreasury = _getGroupTreasuryAddress(groupKey);
+        ITreasuryManager(groupTreasury).approveAndExecuteTransfer(contextKey);
     }
 
     // ================================================================================================================
@@ -634,6 +658,7 @@ contract GovernanceManager is Initializable, UUPSUpgradeable, OwnableUpgradeable
         address groupTreasury = _getGroupTreasuryAddress(groupKey);
         if (groupTreasury == address(0)) revert TreasuryAddressNotFound();
         
+        // checks that the proposal with the given contextKey exists and that its passed status it set to true
         VoteTypes.ProposalResult memory proposalResult = _getProposalResult(contextKey);
         if (proposalResult.passed == false) revert ProposalNotPassed();
 
@@ -650,9 +675,9 @@ contract GovernanceManager is Initializable, UUPSUpgradeable, OwnableUpgradeable
         VoteTypes.ProposalResult memory proposalResult = _getProposalResult(contextKey);
         if (proposalResult.passed == false) revert ProposalNotPassed();
 
-        if (fundingType == GRANT_TYPE) {
+        if (fundingType == FundingTypes.GRANT_TYPE) {
             grantModule.distributeGrant(groupTreasury, contextKey, to, amount);
-        } else if (fundingType == BOUNTY_TYPE) {
+        } else if (fundingType == FundingTypes.BOUNTY_TYPE) {
             bountyModule.distributeBounty(groupTreasury, contextKey, to, amount);
         } ......
     }
@@ -806,7 +831,7 @@ contract GovernanceManager is Initializable, UUPSUpgradeable, OwnableUpgradeable
     // ================================================================================================================
 
     function delegateGetTreasuryAddress(bytes32 groupKey) external view onlyRelayer returns (address) {
-        if (treasuryFactory == address(0)) revert TreasuryFactoryAddressNotSet();
+        if (address(treasuryFactory) == address(0)) revert TreasuryFactoryAddressNotSet();
         return treasuryFactory.getTreasuryAddress(groupKey);
     }
 
@@ -815,7 +840,7 @@ contract GovernanceManager is Initializable, UUPSUpgradeable, OwnableUpgradeable
     // ================================================================================================================
 
     /**
-     * @notice Delegates the getBalance call to the treasury manager.
+     * @notice Delegates the getBalance call to the group treasury instance.
      * @dev Only callable by the relayer.
      * @param groupKey The unique identifier for the group.
      */
@@ -825,27 +850,59 @@ contract GovernanceManager is Initializable, UUPSUpgradeable, OwnableUpgradeable
     }
 
     /**
-     * @notice Delegates the getActiveModuleAddress call to the treasury manager.
+     * @notice Delegates the getActiveModuleAddress call to the group treasury instance.
      * @dev Only callable by the relayer.
      * @param groupKey The unique identifier for the group.
      * @param fundingType The funding type to check.
      * @custom:error UnknownFundingType Thrown if the provided funding type is not defined in the FundingTypes library.
      */
-    function delegateGetActiveModuleAddress(bytes32 groupKey, bytes32 fundingType) {
+    function delegateGetActiveModuleAddress(bytes32 groupKey, bytes32 fundingType) external view onlyRelayer returns (address) {
         address groupTreasury = _getGroupTreasuryAddress(groupKey);
         return ITreasuryManager(groupTreasury).getActiveModuleAddress(fundingType);
     }
 
     /**
-     * @notice Delegates the isValidFundingType call to the treasury manager.
+     * @notice Delegates the isPendingApproval call to the group treasury instance.
      * @dev Only callable by the relayer.
      * @param groupKey The unique identifier for the group.
-     * @param fundingType The funding type to check.
-     * @custom:error UnknownFundingType Thrown if the provided funding type is not defined in the FundingTypes library.
+     * @param contextKey The unique identifier for the context.
      */
-    function delegateIsValidFundingType(bytes32 groupKey, bytes32 fundingType) external view onlyRelayer returns (bool) {
+    function delegateIsPendingApproval(bytes32 groupKey, bytes32 contextKey) external view onlyRelayer returns (bool) {
         address groupTreasury = _getGroupTreasuryAddress(groupKey);
-        return ITreasuryManager(groupTreasury).isValidFundingType(fundingType);
+        return ITreasuryManager(groupTreasury).isPendingApproval(contextKey);
+    }
+
+    /**
+     * @notice Delegates the isPendingExecution call to the group treasury instance.
+     * @dev Only callable by the relayer.
+     * @param groupKey The unique identifier for the group.
+     * @param contextKey The unique identifier for the context.
+     */
+    function delegateIsPendingExecution(bytes32 groupKey, bytes32 contextKey) external view onlyRelayer returns (bool) {
+        address groupTreasury = _getGroupTreasuryAddress(groupKey);
+        return ITreasuryManager(groupTreasury).isPendingExecution(contextKey);
+    }
+
+    /**
+     * @notice Delegates the isExecuted call to the group treasury instance.
+     * @dev Only callable by the relayer.
+     * @param groupKey The unique identifier for the group.
+     * @param contextKey The unique identifier for the context.
+     */
+    function delegateIsExecuted(bytes32 groupKey, bytes32 contextKey) external view onlyRelayer returns (bool) {
+        address groupTreasury = _getGroupTreasuryAddress(groupKey);
+        return ITreasuryManager(groupTreasury).isExecuted(contextKey);
+    }
+
+    /**
+     * @notice Delegates the getFundingRequest call to the group treasury instance.
+     * @dev Only callable by the relayer.
+     * @param groupKey The unique identifier for the group.
+     * @param contextKey The unique identifier for the context.
+     */
+    function delegateGetFundingRequest(bytes32 groupKey, bytes32 contextKey) external view onlyRelayer returns (TreasuryTypes.FundingRequest memory) {
+        address groupTreasury = _getGroupTreasuryAddress(groupKey);
+        return ITreasuryManager(groupTreasury).getFundingRequest(contextKey);
     }
 
     // ================================================================================================================

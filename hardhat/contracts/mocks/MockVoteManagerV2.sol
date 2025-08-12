@@ -14,7 +14,7 @@ import { IVoteManager } from "../interfaces/managers/IVoteManager.sol";
 import { IVersioned } from "../interfaces/IVersioned.sol";
 
 // Complex Types:
-import { VoteTypes } from "../types/VoteTypes.sol";
+import { VoteTypes } from "../libraries/VoteTypes.sol";
 
 contract MockVoteManagerV2 is Initializable, OwnableUpgradeable, UUPSUpgradeable, IVoteManager, ERC165Upgradeable, IVersioned {
 

@@ -133,7 +133,7 @@ contract GrantModule is Initializable, UUPSUpgradeable, OwnableUpgradeable, IGra
      * @dev Returns the version of the contract.
      * @return string The version of the contract.
      */
-    function getContractVersion() external view override(IVersioned, IVoteManager) onlyOwner returns (string memory) {
+    function getContractVersion() external view override(IVersioned, IGrantModule) onlyOwner returns (string memory) {
         return "GrantModule v1.0.0"; 
     }
 
