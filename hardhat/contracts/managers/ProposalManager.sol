@@ -8,12 +8,12 @@ import { OwnableUpgradeable } from "@openzeppelin/contracts-upgradeable/access/O
 import { ERC165Upgradeable } from "@openzeppelin/contracts-upgradeable/utils/introspection/ERC165Upgradeable.sol";
 
 // Interfaces
-import {IProposalManager} from "../interfaces/managers/IProposalManager.sol";
-import {IProposalVerifier} from "../interfaces/verifiers/IProposalVerifier.sol";
-import {IProposalClaimVerifier} from "../interfaces/verifiers/IProposalClaimVerifier.sol";
-import {IMembershipManager} from "../interfaces/managers/IMembershipManager.sol";
-import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
-import {IVersioned} from "../interfaces/IVersioned.sol";
+import { IProposalManager } from "../interfaces/managers/IProposalManager.sol";
+import { IProposalVerifier } from "../interfaces/verifiers/IProposalVerifier.sol";
+import { IProposalClaimVerifier } from "../interfaces/verifiers/IProposalClaimVerifier.sol";
+import { IMembershipManager } from "../interfaces/managers/IMembershipManager.sol";
+import { IERC165 } from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
+import { IVersioned } from "../interfaces/IVersioned.sol";
 
 /**
  * @title ProposalManager

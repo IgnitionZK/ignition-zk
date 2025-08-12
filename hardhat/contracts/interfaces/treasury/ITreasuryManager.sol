@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.28;
 
+import { TreasuryTypes } from "../../libraries/TreasuryTypes.sol";
+
 /**
  * @title ITreasuryManager
  * @notice Interface for the Treasury Manager contract.
@@ -35,18 +37,6 @@ interface ITreasuryManager {
      * @param _newAdmin The address of the new admin that will receive the DEFAULT_ADMIN_ROLE.
      */
     function emergencyAccessControl(address _newAdmin) external;
-
-     /**
-     * @notice Adds a new funding type to the valid funding types mapping.
-     * @param _type The unique identifier for the funding type to be added.
-     */
-    function addFundingType(bytes32 _type) external;
-
-    /**
-     * @notice Removes a funding type from the valid funding types mapping.
-     * @param _type The unique identifier for the funding type to be removed.
-     */
-    function removeFundingType(bytes32 _type) external;
 
     /**
      * @notice Grants the funding module role to a new module and adds it to the active module registry for the specific funding type.
@@ -86,9 +76,25 @@ interface ITreasuryManager {
      * @notice Approves and executes a transfer request from the treasury to a specified address.
      * @param contextKey The unique identifier for the transfer request.
      */
-    function approveTransfer(
-        bytes32 contextKey
-    ) external;
+    function approveTransfer(bytes32 contextKey) external;
+
+    /**
+     * @notice Executes a transfer request from the treasury to a specified address.
+     * @param contextKey The unique identifier for the transfer request.
+     */
+    function executeTransfer(bytes32 contextKey) external;
+
+    /**
+     * @notice Approves and executes a transfer request from the treasury to a specified address.
+     * @param contextKey The unique identifier for the transfer request.
+     */
+    function approveAndExecuteTransfer(bytes32 contextKey) external;
+
+    /**
+     * @notice Cancels a transfer request from the treasury to a specified address.
+     * @param contextKey The unique identifier for the transfer request.
+     */
+    function cancelTransfer(bytes32 contextKey) external;
 
 // ====================================================================================================================
 //                                       EXTERNAL VIEW FUNCTIONS
@@ -108,11 +114,32 @@ interface ITreasuryManager {
     function getActiveModuleAddress(bytes32 fundingType) external view returns (address);
 
     /**
-     * @notice Checks if a funding type is valid.
-     * @param fundingType The unique identifier for the funding type.
-     * @return True if the funding type is valid, false otherwise.
+     * @notice Checks if a transfer request is pending approval.
+     * @param contextKey The unique identifier for the transfer request.
+     * @return True if the transfer request is pending approval, false otherwise.
      */
-    function isValidFundingType(bytes32 fundingType) external view returns (bool);
+    function isPendingApproval(bytes32 contextKey) external view returns (bool);
+
+    /**
+     * @notice Checks if a transfer request is pending execution.
+     * @param contextKey The unique identifier for the transfer request.
+     * @return True if the transfer request is pending execution, false otherwise.
+     */
+    function isPendingExecution(bytes32 contextKey) external view returns (bool);
+
+    /**
+     * @notice Checks if a transfer request has been executed.
+     * @param contextKey The unique identifier for the transfer request.
+     * @return True if the transfer request has been executed, false otherwise.
+     */
+    function isExecuted(bytes32 contextKey) external view returns (bool);
+
+    /**
+     * @notice Retrieves the funding request details for a specific transfer request.
+     * @param contextKey The unique identifier for the transfer request.
+     * @return The funding request details for the specified transfer request.
+     */
+    function getFundingRequest(bytes32 contextKey) external view returns (TreasuryTypes.FundingRequest memory);
 
     /**
      * @notice Retrieves the current version of the MembershipManager contract.

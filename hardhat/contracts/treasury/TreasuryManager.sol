@@ -12,6 +12,7 @@ import { IVersioned } from "../interfaces/IVersioned.sol";
 
 // Libraries:
 import { FundingTypes } from "../libraries/FundingTypes.sol";
+import { TreasuryTypes } from "../libraries/TreasuryTypes.sol";
 
 /**
  * @title TreasuryManager
@@ -56,6 +57,9 @@ contract TreasuryManager is Initializable, AccessControlUpgradeable, ReentrancyG
     /// @notice Thrown if a transfer request record for the specific contextKey already exists.
     error FundingAlreadyRequested();
     
+    /// @notice Thrown if the transfer has already been approved.
+    error TransferAlreadyApproved();
+
     /// @notice Thrown if the funds have already been transferred.
     error TransferAlreadyExecuted();
 
@@ -73,6 +77,12 @@ contract TreasuryManager is Initializable, AccessControlUpgradeable, ReentrancyG
 
     /// @notice Thrown if the provided funding module is not consistent with the expected module.
     error InconsistentFundingModule();
+
+    /// @notice Thrown if the pending transfer has not been approved.
+    error TransferNotApproved();
+
+    /// @notice Thrown if the timelock period for a transfer request has passed.
+    error TimelockHasPassed();
 
     // ====================================================================================================
     // GENERAL ERRORS
@@ -106,18 +116,6 @@ contract TreasuryManager is Initializable, AccessControlUpgradeable, ReentrancyG
     event FundsReceived(address indexed sender, uint256 amount);
 
     /**
-     * @notice Emitted when a new funding type is added as a valid funding type.
-     * @param fundingType The unique identifier of the funding type.
-     */
-    event FundingTypeAdded(bytes32 fundingType);
-
-    /**
-     * @notice Emitted when a funding type is removed from the valid funding types.
-     * @param fundingType The unique identifier of the funding type that was removed.
-     */
-    event FundingTypeRemoved(bytes32 fundingType);
-
-    /**
      * @notice Emitted when a new funding module is added.
      * @param fundingType The unique identifier of the funding type.
      * @param module The address of the funding module that was added.
@@ -140,13 +138,27 @@ contract TreasuryManager is Initializable, AccessControlUpgradeable, ReentrancyG
     event TransferRequested(bytes32 indexed contextKey, address indexed from, address indexed to, uint256 amount);
     
     /**
-     * @notice Emitted when a transfer is approved and executed.
+     * @notice Emitted when a transfer is approved.
+     * @param contextKey The unique identifier for the transfer request.
+     * @param to The recipient address for the funds.
+     * @param amount The amount of funds to be transferred.
+     */
+    event TransferApproved(bytes32 indexed contextKey, address indexed to, uint256 amount);
+
+    /**
+     * @notice Emitted when a transfer is executed.
      * @param contextKey The unique identifier for the transfer request.
      * @param to The address that received the funds.
      * @param amount The amount of funds that were transferred.
      */
-    event TransferApproved(bytes32 indexed contextKey, address indexed to, uint256 amount);
+    event TransferExecuted(bytes32 indexed contextKey, address indexed to, uint256 amount);
 
+    /**
+     * @notice Emitted when a transfer is cancelled.
+     * @param contextKey The unique identifier for the transfer request.
+     */
+    event TransferCancelled(bytes32 indexed contextKey);
+    
     /**
      * @notice Emitted when emergency access is granted to a new admin.
      * @param newAdmin The address of the new admin.
@@ -171,14 +183,7 @@ contract TreasuryManager is Initializable, AccessControlUpgradeable, ReentrancyG
     // ====================================================================================================
     
     /// @dev Struct representing a funding request.
-    struct FundingRequest {
-        bytes32 fundingType;
-        address from;
-        address to;
-        uint256 amount;
-        uint256 releaseTime;
-        bool executed;
-    }
+    // Defined in libraries/TreasuryTypes.sol
 
     // ====================================================================================================
     // MAPPINGS
@@ -193,7 +198,7 @@ contract TreasuryManager is Initializable, AccessControlUpgradeable, ReentrancyG
     // This would allow us to easily check the number of active funding modules and iterate over them if needed.
     
     /// @dev Mapping of unique context keys (context: group, epoch, proposal) to funding requests.
-    mapping(bytes32 => FundingRequest) private fundingRequests;
+    mapping(bytes32 => TreasuryTypes.FundingRequest) private fundingRequests;
 
     // ====================================================================================================
     // CONSTANTS
@@ -336,6 +341,7 @@ contract TreasuryManager is Initializable, AccessControlUpgradeable, ReentrancyG
     /**
      * @notice Grants the funding module role to a new module and adds it to the active module registry for the specific funding type.
      * @dev This function can only be called by the DEFAULT_ADMIN_ROLE.
+     * It revokes the funding module role from the current module (if any) and assigns it to the new module.
      * @param _module The address of the funding module to be added.
      * @param _fundingType The unique identifier for the funding module type.
      * @custom:error InvalidFundingType Thrown if the provided funding type is not valid.
@@ -348,10 +354,15 @@ contract TreasuryManager is Initializable, AccessControlUpgradeable, ReentrancyG
         onlyRole(DEFAULT_ADMIN_ROLE) 
         nonZeroAddress(_module)
         nonZeroKey(_fundingType)
-    {
+    {   
         if (!FundingTypes.isKnownType(_fundingType)) revert UnknownFundingType();
         if (hasRole(FUNDING_MODULE_ROLE, _module)) revert ModuleAlreadyHasFundingRole();
         if (_module.code.length == 0) revert AddressIsNotAContract();
+
+        address currentModule = activeModuleRegistry[_fundingType];
+        if (currentModule != address(0) && currentModule != _module) {
+            _revokeRole(FUNDING_MODULE_ROLE, currentModule);
+        }
         _grantRole(FUNDING_MODULE_ROLE, _module);
 
         activeModuleRegistry[_fundingType] = _module;
@@ -416,68 +427,100 @@ contract TreasuryManager is Initializable, AccessControlUpgradeable, ReentrancyG
         nonZeroKey(contextKey)
     {
         if (!FundingTypes.isKnownType(_fundingType)) revert UnknownFundingType();
-        if (_amount > address(this).balance) revert InsufficientBalance();
         if (_amount == 0) revert AmountCannotBeZero();
         if (fundingRequests[contextKey].to != address(0)) revert FundingAlreadyRequested();
         if (activeModuleRegistry[_fundingType] != msg.sender) revert ModuleMismatch();
 
-        fundingRequests[contextKey] = FundingRequest({
+        fundingRequests[contextKey] = TreasuryTypes.FundingRequest({
             fundingType: _fundingType,
             from: msg.sender,
             to: _to,
             amount: _amount,
-            releaseTime: block.timestamp + TIMELOCK_DELAY_DAYS * 24 * 60 * 60,
+            requestedAt: block.timestamp,
+            releaseTime: block.timestamp + TIMELOCK_DELAY_DAYS * 1 days,
+            approved: false,
             executed: false
         });
 
         emit TransferRequested(contextKey, msg.sender, _to, _amount);
     }
 
+
     /**
-     * @notice Approves and executes a transfer request from the treasury to a specified address.
+     * @notice Approves a transfer request from the treasury to a specified address.
      * @dev This function can only be called by the DEFAULT_ADMIN_ROLE.
-     * It checks the conditions for executing the transfer, such as the release time and sufficient balance.
-     * If the transfer is successful, it emits a TransferApproved event.
+     * A transfer can be approved even if the release time has not yet passed.
      * @param contextKey The unique identifier for the transfer request.
      * @custom:error RequestDoesNotExist Thrown if the transfer request for the specified contextKey does not exist.
+     * @custom:error TransferAlreadyApproved Thrown if the transfer has already been approved.
+     * @custom:error TransferAlreadyExecuted Thrown if the transfer has already been executed.
+     * @custom:error InconsistentFundingModule Thrown if the active module for the specified funding type does not match the from address instance.
+     * @custom:error AmountCannotBeZero Thrown if the requested transfer amount is zero.
+     */
+    function approveTransfer(bytes32 contextKey) 
+        external 
+        onlyRole(DEFAULT_ADMIN_ROLE) 
+        nonZeroKey(contextKey) 
+    {
+        _approve(contextKey);
+    }
+
+    // Note: Consider making transfer execution permissionless 
+
+    /**
+     * @notice Executes a transfer request from the treasury to a specified address.
+     * @dev This function can only be called by the DEFAULT_ADMIN_ROLE.
+     * It is non-reentrant to prevent re-entrancy attacks.
+     * @param contextKey The unique identifier for the transfer request.
+     * @custom:error RequestDoesNotExist Thrown if the transfer request for the specified contextKey does not exist.
+     * @custom:error TransferNotApproved Thrown if the transfer has not been approved.
      * @custom:error TransferAlreadyExecuted Thrown if the transfer has already been executed.
      * @custom:error RequestInTimelock Thrown if the transfer request is still in the timelock phase and cannot be executed yet.
      * @custom:error InconsistentFundingModule Thrown if the active module for the specified funding type does not match the from address instance.
      * @custom:error InsufficientBalance Thrown if the treasury does not have enough balance to fulfill the transfer request.
      * @custom:error AmountCannotBeZero Thrown if the requested transfer amount is zero.
-     * @custom:error TransferFailed Thrown if the transfer to the recipient address fails.
-     * @custom:note This function is non-reentrant to prevent re-entrancy attacks.
      */
-    function approveTransfer(
-        bytes32 contextKey
-    ) 
+    function executeTransfer(bytes32 contextKey) 
         external 
         onlyRole(DEFAULT_ADMIN_ROLE) 
-        nonZeroKey(contextKey)
-        nonReentrant
+        nonZeroKey(contextKey) 
+        nonReentrant 
     {
-        FundingRequest storage request = fundingRequests[contextKey];
+        _execute(contextKey);
+    }
 
-        // Checks
-        if (request.to == address(0)) revert RequestDoesNotExist();
+    /**
+     * @notice Approves and executes a transfer request in a single transaction.
+     * @dev Transfer execution will fail if the funding request is still in timelock. 
+     * @param contextKey The unique identifier for the transfer request.
+     */
+    function approveAndExecuteTransfer(bytes32 contextKey) 
+        external 
+        onlyRole(DEFAULT_ADMIN_ROLE) 
+        nonZeroKey(contextKey) 
+        nonReentrant 
+    {   
+        // to-do: skip approve if already approved
+        _approve(contextKey);
+        _execute(contextKey);
+    }
+
+    /**
+     * @notice Cancels a transfer request.
+     * @dev This function allows the admin to cancel a transfer request during timelock.
+     * @param contextKey The unique identifier for the transfer request.
+     * @custom:error RequestDoesNotExist Thrown if the requested transfer does not exist.
+     * @custom:error TransferAlreadyExecuted Thrown if the transfer has already been executed.
+     */
+    function cancelTransfer(bytes32 contextKey) external onlyRole(DEFAULT_ADMIN_ROLE) nonZeroKey(contextKey) {
+        TreasuryTypes.FundingRequest storage request = fundingRequests[contextKey];
+
+        if (request.requestedAt == 0) revert RequestDoesNotExist();
         if (request.executed) revert TransferAlreadyExecuted();
-        if (request.releaseTime > block.timestamp) revert RequestInTimelock();
-        if (activeModuleRegistry[request.fundingType] != request.from) revert InconsistentFundingModule();
-        if (request.amount > address(this).balance) revert InsufficientBalance();
-        if (request.amount == 0) revert AmountCannotBeZero();
-        
-        // Effects
-        request.executed = true;
+        if (block.timestamp > request.releaseTime) revert TimelockHasPassed();
 
-        // Interactions
-        (bool success, ) = request.to.call{ value: request.amount }("");
-
-        if (!success) {
-            request.executed = false;
-            revert TransferFailed();
-        }
-
-        emit TransferApproved(contextKey, request.to, request.amount);
+        delete fundingRequests[contextKey];
+        emit TransferCancelled(contextKey);
     }
 
     // pull payment method:
@@ -504,17 +547,6 @@ contract TreasuryManager is Initializable, AccessControlUpgradeable, ReentrancyG
         emit FundsReceived(msg.sender, msg.value);
     }
 
-    // ====================================================================================================
-    // FALLBACK
-    // ====================================================================================================
-
-    /**
-     * @notice Fallback function for handling calls to non-existent functions or when no data is sent.
-     * @custom:error FunctionDoesNotExist Thrown if the called function does not exist.
-     */
-    fallback() external {
-        revert FunctionDoesNotExist();
-    }
 
 // ====================================================================================================================
 //                                       EXTERNAL VIEW FUNCTIONS
@@ -539,11 +571,112 @@ contract TreasuryManager is Initializable, AccessControlUpgradeable, ReentrancyG
     }
 
     /**
+     * @notice Checks if a funding request is pending approval.
+     * @param contextKey The unique identifier for the funding request.
+     * @return True if the funding request is pending approval, false otherwise.
+     */
+    function isPendingApproval(bytes32 contextKey) external view onlyGovernorOrDefaultAdmin returns (bool) {
+        return !fundingRequests[contextKey].approved && !fundingRequests[contextKey].executed;
+    }
+
+    /**
+     * @notice Checks if a funding request is approved and pending execution.
+     * @param contextKey The unique identifier for the funding request.
+     * @return True if the funding request is pending execution, false otherwise.
+     */
+    function isPendingExecution(bytes32 contextKey) external view onlyGovernorOrDefaultAdmin returns (bool) {
+        return fundingRequests[contextKey].approved && !fundingRequests[contextKey].executed;
+    }
+
+    /**
+     * @notice Checks if a funding request has been executed.
+     * @param contextKey The unique identifier for the funding request.
+     * @return True if the funding request has been executed, false otherwise.
+     */
+    function isExecuted(bytes32 contextKey) external view onlyGovernorOrDefaultAdmin returns (bool) {
+        return fundingRequests[contextKey].executed;
+    }
+
+    /**
+     * @notice Retrieves the details of a funding request.
+     * @param contextKey The unique identifier for the funding request.
+     * @return The funding request details.
+     */
+    function getFundingRequest(bytes32 contextKey) external view onlyGovernorOrDefaultAdmin() returns (TreasuryTypes.FundingRequest memory) {
+        return fundingRequests[contextKey];
+    }
+
+    /**
      * @dev Returns the version of the contract.
      * @return string The version of the contract.
      */
-    function getContractVersion() external view override(IVersioned, IVoteManager) onlyOwner returns (string memory) {
+    function getContractVersion() external view override(IVersioned, ITreasuryManager) onlyGovernorOrDefaultAdmin returns (string memory) {
         return "TreasuryManager v1.0.0"; 
     }
 
+// ====================================================================================================================
+//                                       PRIVATE HELPER FUNCTIONS
+// ====================================================================================================================
+
+    /**
+     * @dev Approves a funding request.
+     * @param contextKey The unique identifier for the funding request.
+     */
+    function _approve(bytes32 contextKey) private nonZeroKey(contextKey) {
+        TreasuryTypes.FundingRequest storage request = fundingRequests[contextKey];
+
+        // Checks
+        if (request.requestedAt == 0) revert RequestDoesNotExist();
+        if (request.approved) revert TransferAlreadyApproved();
+        if (request.executed) revert TransferAlreadyExecuted();
+        if (activeModuleRegistry[request.fundingType] != request.from) revert InconsistentFundingModule();
+        if (request.amount == 0) revert AmountCannotBeZero();
+        
+        // Effects
+        request.approved = true;
+        emit TransferApproved(contextKey, request.to, request.amount);
+    }
+
+    /**
+     * @dev Executes a funding request.
+     * @param contextKey The unique identifier for the funding request.
+     */
+    function _execute(bytes32 contextKey) private nonZeroKey(contextKey) {
+        TreasuryTypes.FundingRequest storage request = fundingRequests[contextKey];
+
+        // Checks
+        if (request.requestedAt == 0) revert RequestDoesNotExist();
+        if (!request.approved) revert TransferNotApproved();
+        if (request.executed) revert TransferAlreadyExecuted();
+        if (request.releaseTime > block.timestamp) revert RequestInTimelock();
+        if (activeModuleRegistry[request.fundingType] != request.from) revert InconsistentFundingModule();
+        if (request.amount > address(this).balance) revert InsufficientBalance();
+        if (request.amount == 0) revert AmountCannotBeZero();
+        
+        // Effects
+        request.executed = true;
+
+        // Interactions
+        (bool success, ) = request.to.call{ value: request.amount }("");
+
+        if (!success) {
+            request.executed = false;
+            revert TransferFailed();
+        }
+
+        emit TransferExecuted(contextKey, request.to, request.amount);
+    }
+
+
+// ====================================================================================================================
+//                                       FALLBACK FUNCTION
+// ====================================================================================================================
+
+    /**
+     * @notice Fallback function for handling calls to non-existent functions or when no data is sent.
+     * @custom:error FunctionDoesNotExist Thrown if the called function does not exist.
+     */
+    fallback() external {
+        revert FunctionDoesNotExist();
+    }
 }
