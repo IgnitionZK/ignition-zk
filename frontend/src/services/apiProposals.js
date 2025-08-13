@@ -42,30 +42,30 @@ export async function getProposalsByGroupId({ groupId }) {
 }
 
 /**
- * Updates the status type of a proposal in the database
+ * Updates the status ID of a proposal in the database
  * @param {Object} params - The parameters object
  * @param {string} params.proposalId - The ID of the proposal to update
- * @param {string} params.statusType - The new status type to set for the proposal
+ * @param {string} params.statusId - The new status ID to set for the proposal
  * @returns {Promise<Object>} The updated proposal object
- * @throws {Error} If proposalId or statusType is not provided, or if there's a database error
+ * @throws {Error} If proposalId or statusId is not provided, or if there's a database error
  * @example
  * const updatedProposal = await updateProposalStatus({
  *   proposalId: '123',
- *   statusType: 'approved'
+ *   statusId: '456'
  * });
  */
-export async function updateProposalStatus({ proposalId, statusType }) {
+export async function updateProposalStatus({ proposalId, statusId }) {
   if (!proposalId) {
     throw new Error("proposalId is required");
   }
-  if (!statusType) {
-    throw new Error("statusType is required");
+  if (!statusId) {
+    throw new Error("statusId is required");
   }
 
   const { data, error } = await supabase
     .schema("ignitionzk")
     .from("proposals")
-    .update({ status_type: statusType })
+    .update({ status_id: statusId })
     .eq("proposal_id", proposalId)
     .select()
     .single();
@@ -139,13 +139,16 @@ export async function insertProposal({
       finalStatusId = await getStatusId("active");
       console.log("Retrieved active status ID:", finalStatusId);
     } catch (statusError) {
-      console.warn(
-        "Could not get active status ID, trying without status_id:",
-        statusError.message
+      console.error("Could not get active status ID:", statusError.message);
+      // We cannot proceed without a status_id as it's required by the database
+      throw new Error(
+        `Failed to get active status ID: ${statusError.message}. Please contact support.`
       );
-      // Try without status_id - the database might have a default
-      finalStatusId = undefined;
     }
+  }
+
+  if (!finalStatusId) {
+    throw new Error("Status ID is required but could not be determined");
   }
 
   console.log("Inserting proposal with status_id:", finalStatusId);
@@ -173,13 +176,9 @@ export async function insertProposal({
     payload,
     funding,
     claim_hash: claimHash,
+    status_id: finalStatusId,
     context_key: contextKey,
   };
-
-  // Only include status_id if it's not undefined
-  if (finalStatusId !== undefined) {
-    insertData.status_id = finalStatusId;
-  }
 
   // Try without .single() first to see what we get
   const { data, error } = await supabase

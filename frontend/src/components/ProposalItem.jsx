@@ -7,7 +7,10 @@ import { useVerifyProposalClaim } from "../hooks/queries/proofs/useVerifyProposa
 import { useGetCommitmentArray } from "../hooks/queries/merkleTreeLeaves/useGetCommitmentArray";
 import { useGetUserGroups } from "../hooks/queries/groupMembers/useGetUserGroups";
 import { useGetProposalSubmissionNullifier } from "../hooks/queries/proofs/useGetProposalSubmissionNullifier";
+import { useUpdateProposalStatus } from "../hooks/queries/proposals/useUpdateProposalStatus";
 import MnemonicInput from "./MnemonicInput";
+import Spinner from "./Spinner";
+import { getClaimedStatusId } from "../services/apiProposalStatus";
 import { useState } from "react";
 
 const ProposalItemContainer = styled.li`
@@ -121,6 +124,8 @@ const StatusDot = styled.span`
         return "#ef4444"; // red
       case "executed":
         return "#eab308"; // yellow
+      case "claimed":
+        return "#8b5cf6"; // purple
       case "draft":
         return "#6b7280"; // gray
       case "pending_approval":
@@ -160,10 +165,33 @@ const ClaimButton = styled(CustomButton)`
   }
 `;
 
+// Loading Overlay Styles
+const LoadingOverlay = styled.div`
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.8);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 1001;
+`;
+
+const LoadingText = styled.p`
+  color: #fff;
+  font-size: 1.8rem;
+  margin-top: 16px;
+  text-align: center;
+`;
+
 function ProposalItem({ proposal = {} }) {
   // State for claim functionality
   const [showMnemonicInput, setShowMnemonicInput] = useState(false);
   const [isClaiming, setIsClaiming] = useState(false);
+  const [progress, setProgress] = useState("");
 
   // Fetch epoch data using the group_id from the proposal
   const { epochs, isLoading: isLoadingEpochs } = useGetEpochsByGroupId(
@@ -181,6 +209,10 @@ function ProposalItem({ proposal = {} }) {
       groupId: proposal.group_id,
     });
   const { userGroups } = useGetUserGroups();
+
+  // Hook for updating proposal status
+  const { updateStatus: updateProposalStatus, isLoading: isUpdatingStatus } =
+    useUpdateProposalStatus();
 
   // Get the proposal submission nullifier for this proposal
   const {
@@ -266,6 +298,7 @@ function ProposalItem({ proposal = {} }) {
   const handleMnemonicSubmit = async (mnemonic) => {
     setShowMnemonicInput(false);
     setIsClaiming(true);
+    setProgress("Verifying proposal claim...");
 
     try {
       if (!commitmentArray) {
@@ -308,6 +341,8 @@ function ProposalItem({ proposal = {} }) {
       console.log("Using claim hash:", proposalClaimHash);
       console.log("Using submission hash:", proposalSubmissionHash);
 
+      setProgress("Generating zero-knowledge proof...");
+
       // Verify the proposal claim using ZK proof
       const { isValid, publicSignals } = await verifyProposalClaim(
         commitmentArray,
@@ -320,8 +355,33 @@ function ProposalItem({ proposal = {} }) {
 
       if (isValid) {
         console.log("Proposal claim verified successfully");
-        toast.success("Award claimed successfully!");
-        // You could update the UI here to show the proposal as claimed
+
+        // Update proposal status to "claimed"
+        setProgress("Updating proposal status...");
+
+        try {
+          const claimedStatusId = getClaimedStatusId();
+          console.log(
+            "Updating proposal status to claimed with ID:",
+            claimedStatusId
+          );
+
+          await updateProposalStatus({
+            proposalId: proposal.proposal_id,
+            statusId: claimedStatusId,
+          });
+
+          console.log("Proposal status updated to claimed successfully");
+          toast.success("Award claimed successfully!");
+          // You could update the UI here to show the proposal as claimed
+        } catch (statusUpdateError) {
+          console.error("Failed to update proposal status:", statusUpdateError);
+          // Still show success for the claim, but warn about status update
+          toast.success("Award claimed successfully!");
+          toast.warning(
+            "Claim successful but status update failed. Please contact support."
+          );
+        }
       } else {
         throw new Error("Proposal claim verification failed");
       }
@@ -330,6 +390,7 @@ function ProposalItem({ proposal = {} }) {
       toast.error(error.message || "Failed to claim award. Please try again.");
     } finally {
       setIsClaiming(false);
+      setProgress("");
     }
   };
 
@@ -456,6 +517,7 @@ function ProposalItem({ proposal = {} }) {
                   isLoadingCommitments ||
                   isLoadingSubmissionNullifier ||
                   isVerifying ||
+                  isUpdatingStatus ||
                   !proposal.claim_hash ||
                   !proposalSubmissionNullifier
                 }
@@ -467,8 +529,8 @@ function ProposalItem({ proposal = {} }) {
                     : "Click to claim award"
                 }
               >
-                {isClaiming || isVerifying
-                  ? "Claiming..."
+                {isClaiming || isVerifying || isUpdatingStatus
+                  ? progress || "Claiming..."
                   : isLoadingSubmissionNullifier
                   ? "Loading..."
                   : "Claim Award"}
@@ -488,6 +550,20 @@ function ProposalItem({ proposal = {} }) {
                 </div>
               )}
             </>
+          ) : proposal.status_type === "claimed" ? (
+            <div
+              style={{
+                fontSize: "1.4rem",
+                color: "var(--color-green-400)",
+                fontWeight: "500",
+                padding: "0.8rem 1.6rem",
+                backgroundColor: "rgba(34, 197, 94, 0.1)",
+                border: "1px solid rgba(34, 197, 94, 0.2)",
+                borderRadius: "0.8rem",
+              }}
+            >
+              ✅ Award Claimed
+            </div>
           ) : null}
         </FooterSection>
       </ProposalItemContainer>
@@ -522,6 +598,23 @@ function ProposalItem({ proposal = {} }) {
           }"? This will require your mnemonic phrase verification.`}
           showConfirmation={true}
         />
+      )}
+
+      {/* Loading Overlay for Claim Process */}
+      {(isClaiming || isUpdatingStatus) && (
+        <LoadingOverlay>
+          <Spinner />
+          <LoadingText>{progress || "Claiming award..."}</LoadingText>
+          <LoadingText
+            style={{
+              fontSize: "1.4rem",
+              marginTop: "0.8rem",
+              color: "var(--color-grey-300)",
+            }}
+          >
+            This may take several minutes.
+          </LoadingText>
+        </LoadingOverlay>
       )}
     </>
   );

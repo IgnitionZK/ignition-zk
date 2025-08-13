@@ -175,13 +175,6 @@ export async function getProposalSubmissionNullifier(proposalId) {
     throw new Error("proposalId is required");
   }
 
-  console.log(
-    `🔍 getProposalSubmissionNullifier - Searching for proposal_id: ${proposalId}`
-  );
-  console.log(
-    `🔍 getProposalSubmissionNullifier - Using circuit_id: a1a0a504-e3aa-4e5d-bb9f-bbd98aefbd52 (proposal circuit)`
-  );
-
   const { data, error } = await supabase
     .schema("ignitionzk")
     .from("proofs")
@@ -189,11 +182,6 @@ export async function getProposalSubmissionNullifier(proposalId) {
     .eq("proposal_id", proposalId)
     .eq("circuit_id", "a1a0a504-e3aa-4e5d-bb9f-bbd98aefbd52") // proposal circuit ID
     .single();
-
-  console.log(`🔍 getProposalSubmissionNullifier - Query result:`, {
-    data,
-    error,
-  });
 
   if (error) {
     if (error.code === "PGRST116") {
@@ -207,8 +195,5 @@ export async function getProposalSubmissionNullifier(proposalId) {
     throw new Error(error.message);
   }
 
-  console.log(
-    `✅ getProposalSubmissionNullifier - Found nullifier_hash: ${data?.nullifier_hash}`
-  );
   return data?.nullifier_hash || null;
 }
