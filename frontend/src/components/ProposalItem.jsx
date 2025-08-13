@@ -3,6 +3,12 @@ import toast from "react-hot-toast";
 import CustomButton from "./CustomButton";
 import { calculateEpochPhases } from "../scripts/utils/epochPhaseCalculator";
 import { useGetEpochsByGroupId } from "../hooks/queries/epochs/useGetEpochsByGroupId";
+import { useVerifyProposalClaim } from "../hooks/queries/proofs/useVerifyProposalClaim";
+import { useGetCommitmentArray } from "../hooks/queries/merkleTreeLeaves/useGetCommitmentArray";
+import { useGetUserGroups } from "../hooks/queries/groupMembers/useGetUserGroups";
+import { useGetProposalSubmissionNullifier } from "../hooks/queries/proofs/useGetProposalSubmissionNullifier";
+import MnemonicInput from "./MnemonicInput";
+import { useState } from "react";
 
 const ProposalItemContainer = styled.li`
   background-color: rgba(165, 180, 252, 0.1);
@@ -62,10 +68,43 @@ const ProposalDescription = styled.p`
 
 const StatusIndicator = styled.div`
   display: flex;
-  align-items: center;
+  flex-direction: column;
+  align-items: flex-end;
   gap: 0.8rem;
   font-size: 1.4rem;
   color: var(--color-grey-300);
+`;
+
+const StatusRow = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+`;
+
+const VoteTally = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.4rem;
+  font-size: 1.2rem;
+  color: var(--color-grey-400);
+`;
+
+const VoteCount = styled.span`
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+`;
+
+const VoteLabel = styled.span`
+  font-weight: 500;
+  min-width: 4rem;
+  text-align: right;
+`;
+
+const VoteNumber = styled.span`
+  color: var(--color-grey-300);
+  font-weight: 600;
 `;
 
 const StatusDot = styled.span`
@@ -106,11 +145,48 @@ const VotingWindow = styled.div`
   font-size: 1.4rem;
 `;
 
+const ClaimButton = styled(CustomButton)`
+  && {
+    background-color: rgba(165, 180, 252, 0.1);
+    border: 1px solid rgba(165, 180, 252, 0.2);
+    padding: 0.8rem 1.6rem;
+    font-size: 1.4rem;
+    font-weight: 500;
+    min-width: auto;
+
+    &:hover {
+      background-color: rgba(165, 180, 252, 0.15);
+    }
+  }
+`;
+
 function ProposalItem({ proposal = {} }) {
+  // State for claim functionality
+  const [showMnemonicInput, setShowMnemonicInput] = useState(false);
+  const [isClaiming, setIsClaiming] = useState(false);
+
   // Fetch epoch data using the group_id from the proposal
   const { epochs, isLoading: isLoadingEpochs } = useGetEpochsByGroupId(
     proposal.group_id
   );
+
+  // Hooks for claim functionality
+  const {
+    verifyProposalClaim,
+    isVerifying,
+    error: claimError,
+  } = useVerifyProposalClaim();
+  const { commitmentArray, isLoading: isLoadingCommitments } =
+    useGetCommitmentArray({
+      groupId: proposal.group_id,
+    });
+  const { userGroups } = useGetUserGroups();
+
+  // Get the proposal submission nullifier for this proposal
+  const {
+    nullifierHash: proposalSubmissionNullifier,
+    isLoading: isLoadingSubmissionNullifier,
+  } = useGetProposalSubmissionNullifier(proposal.proposal_id);
 
   // Guard clause to handle undefined/null proposal
   if (!proposal || typeof proposal !== "object") {
@@ -183,6 +259,84 @@ function ProposalItem({ proposal = {} }) {
     }
   };
 
+  const handleClaimAward = () => {
+    setShowMnemonicInput(true);
+  };
+
+  const handleMnemonicSubmit = async (mnemonic) => {
+    setShowMnemonicInput(false);
+    setIsClaiming(true);
+
+    try {
+      if (!commitmentArray) {
+        throw new Error("Commitment array not loaded");
+      }
+
+      if (!proposal.epoch_id) {
+        throw new Error("Proposal epoch ID not found");
+      }
+
+      // Check if proposal is in a state that allows claiming
+      if (proposal.status_type !== "approved") {
+        throw new Error(
+          "Proposal is not in a claimable state. Only approved proposals can be claimed."
+        );
+      }
+
+      // Get the claim hash from the proposal data
+      if (!proposal.claim_hash) {
+        throw new Error(
+          "Proposal claim hash not found. This proposal may not be eligible for claiming."
+        );
+      }
+
+      // Get the submission nullifier from the proposal submission proof
+      if (!proposalSubmissionNullifier) {
+        throw new Error(
+          "Proposal submission nullifier not found. The proposal may not have been properly submitted or verified."
+        );
+      }
+
+      // For proposal claim, we need the claim hash from the proposal and submission nullifier
+      // The claim_hash comes from the proposals table
+      const proposalClaimHash = proposal.claim_hash;
+
+      // The submission nullifier comes from the proposal submission proof stored in the proofs table
+      const proposalSubmissionHash = proposalSubmissionNullifier;
+
+      console.log("Claiming award for proposal:", proposal.proposal_id);
+      console.log("Using claim hash:", proposalClaimHash);
+      console.log("Using submission hash:", proposalSubmissionHash);
+
+      // Verify the proposal claim using ZK proof
+      const { isValid, publicSignals } = await verifyProposalClaim(
+        commitmentArray,
+        mnemonic,
+        proposal.group_id,
+        proposal.epoch_id,
+        proposalClaimHash,
+        proposalSubmissionHash
+      );
+
+      if (isValid) {
+        console.log("Proposal claim verified successfully");
+        toast.success("Award claimed successfully!");
+        // You could update the UI here to show the proposal as claimed
+      } else {
+        throw new Error("Proposal claim verification failed");
+      }
+    } catch (error) {
+      console.error("Proposal claim error:", error);
+      toast.error(error.message || "Failed to claim award. Please try again.");
+    } finally {
+      setIsClaiming(false);
+    }
+  };
+
+  const handleMnemonicClose = () => {
+    setShowMnemonicInput(false);
+  };
+
   // Calculate voting window from epoch data
   const getVotingWindow = () => {
     if (!proposal.epoch_id || !epochs || isLoadingEpochs) {
@@ -232,43 +386,144 @@ function ProposalItem({ proposal = {} }) {
   };
 
   return (
-    <ProposalItemContainer>
-      <HeaderSection>
-        <LeftSection>
-          <ProposalTitle>{proposal.title || "Untitled Proposal"}</ProposalTitle>
-          <ProposalDescription>
-            {proposal.description || "No description available"}
-          </ProposalDescription>
-        </LeftSection>
-        <RightSection>
-          <GroupName>{proposal.group_name || "Unknown Group"}</GroupName>
-          <StatusIndicator>
-            <StatusDot $status={proposal.status_type || "unknown"} />
-            {formatStatus(proposal.status_type)}
-          </StatusIndicator>
-        </RightSection>
-      </HeaderSection>
+    <>
+      <ProposalItemContainer>
+        <HeaderSection>
+          <LeftSection>
+            <ProposalTitle>
+              {proposal.title || "Untitled Proposal"}
+            </ProposalTitle>
+            <ProposalDescription>
+              {proposal.description || "No description available"}
+            </ProposalDescription>
+          </LeftSection>
+          <RightSection>
+            <GroupName>{proposal.group_name || "Unknown Group"}</GroupName>
+            <StatusIndicator>
+              <StatusRow>
+                <StatusDot $status={proposal.status_type || "unknown"} />
+                {formatStatus(proposal.status_type)}
+              </StatusRow>
+              {proposal.vote_tally && (
+                <VoteTally>
+                  <VoteCount>
+                    <VoteLabel>For:</VoteLabel>
+                    <VoteNumber>{proposal.vote_tally.yes || 0}</VoteNumber>
+                  </VoteCount>
+                  <VoteCount>
+                    <VoteLabel>Against:</VoteLabel>
+                    <VoteNumber>{proposal.vote_tally.no || 0}</VoteNumber>
+                  </VoteCount>
+                  <VoteCount>
+                    <VoteLabel>Abstain:</VoteLabel>
+                    <VoteNumber>{proposal.vote_tally.abstain || 0}</VoteNumber>
+                  </VoteCount>
+                </VoteTally>
+              )}
+            </StatusIndicator>
+          </RightSection>
+        </HeaderSection>
 
-      <FooterSection>
-        <CustomButton
-          size="small"
-          backgroundColor="rgba(165, 180, 252, 0.1)"
-          hoverColor="rgba(165, 180, 252, 0.15)"
-          textColor="#A5B4FC"
-          style={{
-            border: "1px solid rgba(165, 180, 252, 0.2)",
-            padding: "0.8rem 1.6rem",
-            fontSize: "1.4rem",
-            fontWeight: "500",
-            minWidth: "auto",
+        <FooterSection>
+          <CustomButton
+            size="small"
+            backgroundColor="rgba(165, 180, 252, 0.1)"
+            hoverColor="rgba(165, 180, 252, 0.15)"
+            textColor="#A5B4FC"
+            style={{
+              border: "1px solid rgba(165, 180, 252, 0.2)",
+              padding: "0.8rem 1.6rem",
+              fontSize: "1.4rem",
+              fontWeight: "500",
+              minWidth: "auto",
+            }}
+            onClick={handleReviewDetails}
+          >
+            Review Details
+          </CustomButton>
+          {proposal.status_type === "active" ? (
+            <VotingWindow>{getVotingWindow()}</VotingWindow>
+          ) : proposal.status_type === "approved" ? (
+            <>
+              <ClaimButton
+                size="small"
+                backgroundColor="rgba(165, 180, 252, 0.1)"
+                hoverColor="rgba(165, 180, 252, 0.15)"
+                textColor="#A5B4FC"
+                onClick={handleClaimAward}
+                disabled={
+                  isClaiming ||
+                  isLoadingCommitments ||
+                  isLoadingSubmissionNullifier ||
+                  isVerifying ||
+                  !proposal.claim_hash ||
+                  !proposalSubmissionNullifier
+                }
+                title={
+                  !proposal.claim_hash
+                    ? "No claim hash available"
+                    : !proposalSubmissionNullifier
+                    ? "No submission nullifier available"
+                    : "Click to claim award"
+                }
+              >
+                {isClaiming || isVerifying
+                  ? "Claiming..."
+                  : isLoadingSubmissionNullifier
+                  ? "Loading..."
+                  : "Claim Award"}
+              </ClaimButton>
+              {(!proposal.claim_hash || !proposalSubmissionNullifier) && (
+                <div
+                  style={{
+                    fontSize: "1.2rem",
+                    color: "var(--color-red-400)",
+                    marginTop: "0.4rem",
+                    textAlign: "center",
+                  }}
+                >
+                  {!proposal.claim_hash
+                    ? "No claim hash available"
+                    : "No submission nullifier available"}
+                </div>
+              )}
+            </>
+          ) : null}
+        </FooterSection>
+      </ProposalItemContainer>
+
+      {/* Mnemonic Input Modal for Claim */}
+      {showMnemonicInput && (
+        <MnemonicInput
+          title="Claim Award"
+          subtitle={`Enter your mnemonic phrase to claim the award for "${
+            proposal.title || "Untitled Proposal"
+          }"`}
+          wordCount={12}
+          contextInfo={{
+            proposalTitle: proposal.title || "Untitled Proposal",
+            groupName: proposal.group_name || "Unknown Group",
+            claimHash: proposal.claim_hash
+              ? `Claim Hash: ${proposal.claim_hash.substring(0, 10)}...`
+              : "No claim hash",
+            submissionNullifier: proposalSubmissionNullifier
+              ? `Submission Nullifier: ${proposalSubmissionNullifier.substring(
+                  0,
+                  10
+                )}...`
+              : "No submission nullifier",
           }}
-          onClick={handleReviewDetails}
-        >
-          Review Details
-        </CustomButton>
-        <VotingWindow>{getVotingWindow()}</VotingWindow>
-      </FooterSection>
-    </ProposalItemContainer>
+          onClose={handleMnemonicClose}
+          onSubmit={handleMnemonicSubmit}
+          confirmButtonText="Claim Award"
+          cancelButtonText="Cancel"
+          confirmationMessage={`Are you sure you want to claim the award for "${
+            proposal.title || "Untitled Proposal"
+          }"? This will require your mnemonic phrase verification.`}
+          showConfirmation={true}
+        />
+      )}
+    </>
   );
 }
 

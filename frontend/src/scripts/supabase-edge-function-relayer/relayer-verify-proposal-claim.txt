@@ -1,0 +1,212 @@
+import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
+import { ethers } from "https://esm.sh/ethers@6.11.1";
+import { verify } from "https://deno.land/x/djwt@v2.7/mod.ts";
+
+// CORS headers configuration
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS' // Allowed methods
+};
+
+// GovernanceManager Proxy address. This is the address of your deployed proxy contract.
+const GOVERNANCE_MANAGER_PROXY_ADDRESS = Deno.env.get("GOVERNOR_CONTRACT_ADDRESS");
+
+// ABI for the delegateVerifyProposalClaim function on GovernanceManager.
+// This ABI must match the function signature in your GovernanceManager contract.
+// We've updated the function name and publicSignals array size to match the new Solidity function.
+const GOVERNANCE_MANAGER_ABI = [
+  "function delegateVerifyProposalClaim(uint256[24] calldata proof, uint256[3] calldata publicSignals, bytes32 contextKey) external"
+];
+
+// Declare these variables globally to avoid re-initializing them on every request.
+let provider;
+let wallet;
+let contract;
+let jwtCryptoKey; // Declare jwtCryptoKey to hold the CryptoKey for JWT verification
+
+// Initialize Ethers provider, wallet, and contract instance.
+// This block runs once when the Edge Function is loaded.
+try {
+  const rpcUrl = Deno.env.get("SEPOLIA_RPC_URL");
+  const privateKey = Deno.env.get("RELAYER_PRIVATE_KEY");
+  const jwtSecretString = Deno.env.get("SUPA_JWT_SECRET"); // Get JWT secret as a string
+
+  // Ensure environment variables are set.
+  if (!rpcUrl) {
+    throw new Error("SEPOLIA_RPC_URL environment variable is not set. Please configure it in Supabase secrets.");
+  }
+  if (!privateKey) {
+    throw new Error("RELAYER_PRIVATE_KEY environment variable is not set. Please configure it in Supabase secrets.");
+  }
+  if (!jwtSecretString) {
+    throw new Error("SUPA_JWT_SECRET environment variable is not set. Please configure it in Supabase secrets.");
+  }
+
+  // Use Web Crypto API's subtle.importKey directly to create the CryptoKey
+  jwtCryptoKey = await crypto.subtle.importKey("raw", new TextEncoder().encode(jwtSecretString), {
+    name: "HMAC",
+    hash: "SHA-256"
+  }, true, [
+    "verify"
+  ] // usages: only for verification
+  );
+
+  // Create a JSON RPC provider using the provided RPC URL.
+  provider = new ethers.JsonRpcProvider(rpcUrl);
+
+  // Create a wallet instance from the relayer's private key, connected to the provider.
+  wallet = new ethers.Wallet(privateKey, provider);
+
+  // Create a contract instance, connected to the wallet for signing transactions.
+  contract = new ethers.Contract(GOVERNANCE_MANAGER_PROXY_ADDRESS, GOVERNANCE_MANAGER_ABI, wallet);
+  console.log("Ethers provider, wallet, and contract initialized successfully.");
+} catch (error) {
+  console.error("Failed to initialize Ethers or JWT key:", error.message);
+}
+
+// Main handler for the Supabase Edge Function.
+serve(async (req)=>{
+  // Handle CORS preflight requests (OPTIONS method)
+  if (req.method === 'OPTIONS') {
+    return new Response('ok', {
+      headers: corsHeaders // Return success with CORS headers
+    });
+  }
+
+  // Check if Ethers components were successfully initialized.
+  if (!provider || !wallet || !contract || !jwtCryptoKey) {
+    return new Response(JSON.stringify({
+      error: "Edge function initialization failed. Check server logs and environment variables."
+    }), {
+      status: 500,
+      headers: {
+        ...corsHeaders,
+        "Content-Type": "application/json"
+      }
+    });
+  }
+
+  // Only allow POST requests for the actual logic.
+  if (req.method !== "POST") {
+    return new Response(JSON.stringify({
+      error: "Method Not Allowed. Only POST requests are accepted."
+    }), {
+      status: 405,
+      headers: {
+        ...corsHeaders,
+        "Content-Type": "application/json"
+      }
+    });
+  }
+
+  try {
+    // Enforce JWT verification
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader) {
+      return new Response(JSON.stringify({
+        error: "Authorization header missing."
+      }), {
+        status: 401,
+        headers: {
+          ...corsHeaders,
+          "Content-Type": "application/json"
+        }
+      });
+    }
+
+    const jwt = authHeader.split("Bearer ")[1];
+    if (!jwt) {
+      return new Response(JSON.stringify({
+        error: "Bearer token missing from Authorization header."
+      }), {
+        status: 401,
+        headers: {
+          ...corsHeaders,
+          "Content-Type": "application/json"
+        }
+      });
+    }
+
+    try {
+      // Verify the JWT
+      await verify(jwt, jwtCryptoKey);
+    } catch (jwtError) {
+      console.error("JWT verification failed:", jwtError);
+      return new Response(JSON.stringify({
+        error: "Invalid or expired JWT.",
+        details: jwtError.message
+      }), {
+        status: 403,
+        headers: {
+          ...corsHeaders,
+          "Content-Type": "application/json"
+        }
+      });
+    }
+
+    // Parse the request body for proof, publicSignals, and contextKey.
+    // This is updated to reflect the new function's parameters.
+    const { proof, publicSignals, contextKey } = await req.json();
+
+    // Validate inputs.
+    if (!proof || !publicSignals || !contextKey) {
+      return new Response(JSON.stringify({
+        error: "Missing required parameters: proof, publicSignals, or contextKey (bytes32)."
+      }), {
+        status: 400,
+        headers: {
+          ...corsHeaders,
+          "Content-Type": "application/json"
+        }
+      });
+    }
+
+    // The contextKey is now already in bytes32 format from the frontend
+    console.log("🔍 [TOGGLE DEBUG] Relayer received contextKey (bytes32):", contextKey);
+    console.log("🔍 [TOGGLE DEBUG] Relayer received proof length:", proof.length);
+    console.log("🔍 [TOGGLE DEBUG] Relayer received publicSignals length:", publicSignals.length);
+    console.log("🔍 [TOGGLE DEBUG] Relayer received publicSignals:", publicSignals);
+
+    // Call the delegateVerifyProposalClaim function on the GovernanceManager contract.
+    // The function name and arguments are updated here.
+    console.log("🔍 [TOGGLE DEBUG] Calling smart contract with:", {
+      proofLength: proof.length,
+      publicSignalsLength: publicSignals.length,
+      contextKey: contextKey,
+      contractAddress: GOVERNANCE_MANAGER_PROXY_ADDRESS
+    });
+    const transactionResponse = await contract.delegateVerifyProposalClaim(proof, publicSignals, contextKey);
+
+    // Wait for the transaction to be mined.
+    const receipt = await transactionResponse.wait();
+
+    // Return the transaction hash and a success message.
+    const message = "Proposal claim verification successful!";
+    return new Response(JSON.stringify({
+      message: message,
+      transactionHash: receipt.hash
+    }), {
+      status: 200,
+      headers: {
+        ...corsHeaders,
+        "Content-Type": "application/json"
+      }
+    });
+  } catch (error) {
+    console.error("Error processing request:", error);
+    // Handle specific Ethers.js errors or general errors.
+    const errorMessage = error.reason || error.message || "An unknown error occurred.";
+    const statusCode = error.statusCode || 500;
+    return new Response(JSON.stringify({
+      error: "Failed to verify proposal claim.",
+      details: errorMessage
+    }), {
+      status: statusCode,
+      headers: {
+        ...corsHeaders,
+        "Content-Type": "application/json"
+      }
+    });
+  }
+});
