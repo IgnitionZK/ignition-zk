@@ -84,6 +84,13 @@ const StyledDatePicker = styled(DatePicker)`
     border-color: #a5b4fc;
     background: rgba(165, 180, 252, 0.08);
   }
+
+  &:disabled {
+    background: #1a1a1a;
+    color: var(--color-grey-600);
+    cursor: not-allowed;
+    border-color: rgba(165, 180, 252, 0.1);
+  }
 `;
 
 const Input = styled.input`
@@ -393,6 +400,10 @@ export default function CreateCampaign({ onCancel }) {
     switch (fieldName) {
       case "selectedGroup":
         setSelectedGroup(value);
+        // Clear start date when group changes since it's now disabled
+        setStartDate(null);
+        // Clear start date error when group changes
+        setErrors((prev) => ({ ...prev, startDate: "" }));
         break;
       case "eventName":
         setEventName(value);
@@ -756,12 +767,17 @@ export default function CreateCampaign({ onCancel }) {
             <StyledDatePicker
               selected={startDate}
               onChange={(date) => handleFieldChange("startDate", date)}
-              placeholderText="Select start date"
+              placeholderText={
+                selectedGroup
+                  ? "Select start date"
+                  : "Please select a group first"
+              }
               dateFormat="MMM dd, yyyy"
               filterDate={filterDate}
               dayClassName={getDayClassName}
               showPopperArrow={false}
               popperClassName="campaign-datepicker-popper"
+              disabled={!selectedGroup}
             />
             {touched.startDate && errors.startDate && (
               <ErrorMessage>{errors.startDate}</ErrorMessage>
