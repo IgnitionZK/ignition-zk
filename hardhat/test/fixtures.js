@@ -3,6 +3,9 @@ const { Conversions } = require("./utils.js");
 
 async function setUpFixtures() {
 
+    // Get Signers
+    // Note: "governor" is not the actual governor, just a placeholder used for the tests of the MembershipManager, ProposalManager, VoteManager.
+    // The actual governanceManager contract will be set later and used as owner of MM, PM, VM in the GovernanceManager tests.
     const [deployer, governor, relayer, user1] = await ethers.getSigners();
     
     // Get Contract Factories 
@@ -20,6 +23,10 @@ async function setUpFixtures() {
     const NFTImplementation = await ethers.getContractFactory("ERC721IgnitionZK");
     // Funding Modules
     const GrantModule = await ethers.getContractFactory("GrantModule");
+    // Treasury
+    const TreasuryManager = await ethers.getContractFactory("TreasuryManager");
+    const TreasuryFactory = await ethers.getContractFactory("TreasuryFactory");
+    const BeaconManager = await ethers.getContractFactory("BeaconManager");
     // Mock Contracts
     const MockMembershipVerifier = await ethers.getContractFactory("MockMembershipVerifier");
     const MockProposalVerifier = await ethers.getContractFactory("MockProposalVerifier");
@@ -343,6 +350,9 @@ async function setUpFixtures() {
         GovernanceManager,
         NFTImplementation,
         GrantModule,
+        TreasuryFactory,
+        TreasuryManager,
+        BeaconManager,
         MembershipVerifier,
         MockMembershipVerifier,
         ProposalVerifier,
@@ -404,15 +414,18 @@ async function setUpFixtures() {
         membershipProofGroupHash,
 
         membershipManager: null,
+        proposalManager: null,
+        voteManager: null,
+        governanceManager: null,
         nftImplementation: null,
+        grantModule: null,
+        treasuryManager: null, 
+        treasuryFactory: null, 
+        beaconManager: null,
         membershipVerifier: null,
         proposalVerifier: null,
         proposalClaimVerifier: null,
-        proposalManager: null,
-        governanceManager: null,
-        grantModule: null,
         voteVerifier: null,
-        voteManager: null,
         mockProposalVerifier: null,
         mockProposalClaimVerifier: null,
         mockVoteVerifier: null,
@@ -508,7 +521,7 @@ async function deployFixtures() {
     fixtures.grantModule = await upgrades.deployProxy(
         fixtures.GrantModule,
         [
-            await fixtures.governor.getAddress()
+            await fixtures.deployer.getAddress()
         ],
         {
             initializer: "initialize",
@@ -534,6 +547,32 @@ async function deployFixtures() {
         }
     );
     await fixtures.governanceManager.waitForDeployment();
+
+    // transfer ownership of grantModule to GovernanceManager
+    await fixtures.grantModule.connect(deployer).transferOwnership(fixtures.governanceManager.target);
+
+    // Deploy TreasuryManager without initialization
+    fixtures.treasuryManager = await fixtures.TreasuryManager.deploy();
+    await fixtures.treasuryManager.waitForDeployment();
+
+    // Deploy BeaconManager with the TreasuryManager implementation address and temp owner
+    fixtures.beaconManager = await fixtures.BeaconManager.deploy(
+        fixtures.treasuryManager.target,
+        await fixtures.deployer.getAddress() // temp owner
+    );
+    await fixtures.beaconManager.waitForDeployment();
+
+    // Deploy TreasuryFactory with the BeaconManager address
+    fixtures.treasuryFactory = await fixtures.TreasuryFactory.deploy(
+        fixtures.beaconManager.target,
+        //fixtures.governanceManager.target,
+        await fixtures.governor.getAddress(), // use EOA governor signer for testing
+        fixtures.grantModule.target
+    );
+    await fixtures.treasuryFactory.waitForDeployment();
+
+    // Set TreasuryFactory address in GovernanceManager
+    await fixtures.governanceManager.connect(deployer).setTreasuryFactory(fixtures.treasuryFactory.target);
 
     return fixtures;
 }
