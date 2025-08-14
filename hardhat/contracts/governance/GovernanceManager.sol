@@ -561,10 +561,10 @@ contract GovernanceManager is Initializable, UUPSUpgradeable, OwnableUpgradeable
      * @dev Only callable by the relayer.
      * @param groupKey The unique identifier for the voting group.
      */
-    function delegateDeployTreasury(bytes32 groupKey) external onlyRelayer {
+    function delegateDeployTreasury(bytes32 groupKey, address treasuryOwner) external onlyRelayer {
         if (address(treasuryFactory) == address(0)) revert TreasuryFactoryAddressNotSet();
         bool hasDeployedNft = _getGroupNftAddress(groupKey) != address(0);
-        treasuryFactory.deployTreasury(groupKey, hasDeployedNft);
+        treasuryFactory.deployTreasury(groupKey, hasDeployedNft, treasuryOwner);
     }
 
     // ================================================================================================================

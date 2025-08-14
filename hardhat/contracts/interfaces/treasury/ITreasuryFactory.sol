@@ -14,7 +14,8 @@ interface ITreasuryFactory {
      */
     function deployTreasury(
         bytes32 groupKey, 
-        bool hasDeployedNft
+        bool hasDeployedNft,
+        address treasuryOwner
     ) external;
 
     /**

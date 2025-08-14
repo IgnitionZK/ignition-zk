@@ -7,6 +7,7 @@ import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
 
 // Interfaces:
 import { ITreasuryManager } from "../interfaces/treasury/ITreasuryManager.sol";
+import { IBeacon } from "@openzeppelin/contracts/proxy/beacon/IBeacon.sol";
 
 /**
  * @title BeaconManager
@@ -17,11 +18,16 @@ contract BeaconManager is Ownable {
     /// @dev Thrown if the provided address is zero.
     error AddressCannotBeZero();
 
+    /// @dev Thrown if the provided address is not a contract.
+    error AddressIsNotAContract();
+
     /**
      * @notice Emitted when the beacon implementation is updated.
      * @param implementation The address of the new beacon implementation.
      */
     event BeaconImplementationUpdated(address indexed implementation);
+
+    event EmergencyAccessTriggered(address indexed treasury, address indexed newAdmin);
 
     /// @notice Stores the address of the beacon that points to the current implementation.
     UpgradeableBeacon public immutable beacon;
@@ -71,8 +77,16 @@ contract BeaconManager is Ownable {
      * @dev Only callable by the owner (IgnitionZK multisig or relayer during development).
      */
     function updateImplementation(address newImplementation) external onlyOwner nonZeroAddress(newImplementation) {
+        if(newImplementation.code.length == 0) revert AddressIsNotAContract();
         beacon.upgradeTo(newImplementation);
         emit BeaconImplementationUpdated(newImplementation);
+    }
+
+    /**
+     * @notice Returns the address of the current implementation.
+     */
+    function implementation() external view returns (address) {
+        return beacon.implementation();
     }
 
     /**
@@ -91,6 +105,7 @@ contract BeaconManager is Ownable {
         nonZeroAddress(newAdmin) 
     {
         ITreasuryManager(treasury).emergencyAccessControl(newAdmin);
+        emit EmergencyAccessTriggered(treasury, newAdmin);
     }
 
 }
