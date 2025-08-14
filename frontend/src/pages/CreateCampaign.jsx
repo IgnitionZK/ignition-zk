@@ -13,6 +13,7 @@ import CustomButton from "../components/CustomButton";
 import CustomDropdown from "../components/CustomDropdown";
 import PageHeader from "../components/PageHeader";
 import CampaignConfirmationModal from "../components/CampaignConfirmationModal";
+import Spinner from "../components/Spinner";
 
 // icons
 import { IoIosInformationCircle } from "react-icons/io";
@@ -83,6 +84,13 @@ const StyledDatePicker = styled(DatePicker)`
     outline: none;
     border-color: #a5b4fc;
     background: rgba(165, 180, 252, 0.08);
+  }
+
+  &:disabled {
+    background: #1a1a1a;
+    color: var(--color-grey-600);
+    cursor: not-allowed;
+    border-color: rgba(165, 180, 252, 0.1);
   }
 `;
 
@@ -175,6 +183,28 @@ const ErrorMessage = styled.div`
   font-weight: 500;
 `;
 
+// Loading Overlay Styles
+const LoadingOverlay = styled.div`
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.8);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 1001;
+`;
+
+const LoadingText = styled.p`
+  color: #fff;
+  font-size: 1.8rem;
+  margin-top: 16px;
+  text-align: center;
+`;
+
 export default function CreateCampaign({ onCancel }) {
   const [selectedGroup, setSelectedGroup] = useState("");
   const [eventName, setEventName] = useState("");
@@ -187,6 +217,9 @@ export default function CreateCampaign({ onCancel }) {
 
   // Confirmation modal state
   const [showConfirmationModal, setShowConfirmationModal] = useState(false);
+
+  // Loading state
+  const [progress, setProgress] = useState("");
 
   // Get user groups
   const {
@@ -393,6 +426,10 @@ export default function CreateCampaign({ onCancel }) {
     switch (fieldName) {
       case "selectedGroup":
         setSelectedGroup(value);
+        // Clear start date when group changes since it's now disabled
+        setStartDate(null);
+        // Clear start date error when group changes
+        setErrors((prev) => ({ ...prev, startDate: "" }));
         break;
       case "eventName":
         setEventName(value);
@@ -459,6 +496,9 @@ export default function CreateCampaign({ onCancel }) {
   };
 
   const handleConfirmCreation = () => {
+    // Set initial progress
+    setProgress("Creating campaign...");
+
     // Prepare values for DB
     const group_id = selectedGroupObject?.group_id;
     const epoch_duration = duration
@@ -473,6 +513,8 @@ export default function CreateCampaign({ onCancel }) {
       epoch_name,
       epoch_start_time,
       onSuccess: () => {
+        // Clear progress
+        setProgress("");
         // Close confirmation modal and form
         setShowConfirmationModal(false);
         onCancel && onCancel();
@@ -480,6 +522,8 @@ export default function CreateCampaign({ onCancel }) {
         toast.success(`Campaign "${eventName}" created successfully!`);
       },
       onError: (error) => {
+        // Clear progress
+        setProgress("");
         // Close confirmation modal but keep form open
         setShowConfirmationModal(false);
         // Show error toast
@@ -756,12 +800,17 @@ export default function CreateCampaign({ onCancel }) {
             <StyledDatePicker
               selected={startDate}
               onChange={(date) => handleFieldChange("startDate", date)}
-              placeholderText="Select start date"
+              placeholderText={
+                selectedGroup
+                  ? "Select start date"
+                  : "Please select a group first"
+              }
               dateFormat="MMM dd, yyyy"
               filterDate={filterDate}
               dayClassName={getDayClassName}
               showPopperArrow={false}
               popperClassName="campaign-datepicker-popper"
+              disabled={!selectedGroup}
             />
             {touched.startDate && errors.startDate && (
               <ErrorMessage>{errors.startDate}</ErrorMessage>
@@ -781,13 +830,14 @@ export default function CreateCampaign({ onCancel }) {
               !isValidatingCredentials
             }
           >
-            Create
+            {isInserting ? progress || "Creating..." : "Create"}
           </CustomButton>
           <CustomButton
             backgroundColor="var(--color-red-300)"
             textColor="#232328"
             hoverColor="var(--color-red-400)"
             onClick={handleCancel}
+            disabled={isInserting}
           >
             Cancel
           </CustomButton>
@@ -798,15 +848,19 @@ export default function CreateCampaign({ onCancel }) {
           </ErrorMessage>
         )}
         {isInserting && (
-          <div
-            style={{
-              color: "var(--color-grey-400)",
-              textAlign: "center",
-              margin: "1rem 0",
-            }}
-          >
-            Creating campaign...
-          </div>
+          <LoadingOverlay>
+            <Spinner />
+            <LoadingText>{progress || "Creating campaign..."}</LoadingText>
+            <LoadingText
+              style={{
+                fontSize: "1.4rem",
+                marginTop: "0.8rem",
+                color: "var(--color-grey-300)",
+              }}
+            >
+              This may take several minutes.
+            </LoadingText>
+          </LoadingOverlay>
         )}
       </PageContainer>
 

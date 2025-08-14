@@ -1,5 +1,10 @@
 import { supabase } from "./supabase";
 
+// Known status IDs for common status types
+export const PROPOSAL_STATUS_IDS = {
+  CLAIMED: "a9f2bdcf-ab17-44d5-96c3-afcb742c696a",
+};
+
 /**
  * Gets the status ID for a given status type
  * @param {string} statusType - The status type (e.g., "active", "approved", etc.)
@@ -22,10 +27,27 @@ export async function getStatusId(statusType) {
     .single();
 
   if (error) {
-    throw new Error(error.message);
+    throw new Error(
+      `Failed to get status ID for ${statusType}: ${error.message}`
+    );
   }
 
-  return data?.status_id;
+  if (!data || !data.status_id) {
+    throw new Error(`Status type "${statusType}" not found`);
+  }
+
+  return data.status_id;
+}
+
+/**
+ * Gets the claimed status ID (optimized to avoid database call for known value)
+ * @returns {string} The claimed status ID
+ * @example
+ * const claimedStatusId = getClaimedStatusId();
+ * console.log("Claimed status ID:", claimedStatusId);
+ */
+export function getClaimedStatusId() {
+  return PROPOSAL_STATUS_IDS.CLAIMED;
 }
 
 /**

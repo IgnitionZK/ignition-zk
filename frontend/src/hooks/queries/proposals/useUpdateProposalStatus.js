@@ -1,4 +1,4 @@
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { updateProposalStatus } from "../../../services/apiProposals";
 
 /**
@@ -8,20 +8,25 @@ import { updateProposalStatus } from "../../../services/apiProposals";
  * @property {boolean} isLoading - Boolean indicating if the mutation is in progress
  */
 export function useUpdateProposalStatus() {
-  const { mutate: updateStatus, isLoading } = useMutation({
-    /**
-     * Mutation function to update a proposal's status type
-     * @param {Object} params - The parameters for updating a proposal's status type
-     * @param {string} params.proposalId - The ID of the proposal to update
-     * @param {string} params.statusType - The new status type value
-     * @returns {Promise} A promise that resolves when the status type is updated
-     */
-    mutationFn: ({ proposalId, statusType }) =>
-      updateProposalStatus({ proposalId, statusType }),
-    onError: (err) => {
-      console.log("ERROR", err);
+  const queryClient = useQueryClient();
+
+  const updateStatusMutation = useMutation({
+    mutationFn: ({ proposalId, statusId }) =>
+      updateProposalStatus({ proposalId, statusId }),
+    onSuccess: (data, variables) => {
+      // Invalidate and refetch proposals to show updated status
+      queryClient.invalidateQueries({
+        queryKey: ["proposals"],
+      });
+      queryClient.invalidateQueries({
+        queryKey: ["pendingInboxProposals"],
+      });
     },
   });
 
-  return { updateStatus, isLoading };
+  return {
+    updateStatus: updateStatusMutation.mutate,
+    isLoading: updateStatusMutation.isPending,
+    error: updateStatusMutation.error,
+  };
 }

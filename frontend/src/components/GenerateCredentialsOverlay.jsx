@@ -196,9 +196,7 @@ function GenerateCredentialsOverlay({ group, onClose }) {
           console.log(
             `Database updated successfully. Member Count: ${memberCount}, Commitment ID: ${commitmentId}`
           );
-          toast.success(
-            "Credentials generated successfully! Root will be calculated and blockchain updated when next campaign is created."
-          );
+          toast.success("Credentials generated successfully!");
         },
         onError: (error) => {
           console.error("Commitment insertion failed:", error);
