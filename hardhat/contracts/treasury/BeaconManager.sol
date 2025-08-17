@@ -27,8 +27,6 @@ contract BeaconManager is Ownable {
      */
     event BeaconImplementationUpdated(address indexed implementation);
 
-    event EmergencyAccessTriggered(address indexed treasury, address indexed newAdmin);
-
     /// @notice Stores the address of the beacon that points to the current implementation.
     UpgradeableBeacon public immutable beacon;
 
@@ -87,25 +85,6 @@ contract BeaconManager is Ownable {
      */
     function implementation() external view returns (address) {
         return beacon.implementation();
-    }
-
-    /**
-     * @notice Triggers emergency access to the treasury.
-     * @dev This function can only be called by the owner (IgnitionZK multisig or relayer during development).
-     * It allows the owner to set a new admin for the treasury.
-     * @param treasury The address of the treasury instance. 
-     * @param newAdmin The address to grant DEFAULT_ADMIN_ROLE to.
-     */
-    function triggerEmergencyAccess(
-        address treasury,
-        address newAdmin
-    ) 
-        external 
-        onlyOwner 
-        nonZeroAddress(newAdmin) 
-    {
-        ITreasuryManager(treasury).emergencyAccessControl(newAdmin);
-        emit EmergencyAccessTriggered(treasury, newAdmin);
     }
 
 }

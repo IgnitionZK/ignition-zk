@@ -9,6 +9,7 @@ import { ReentrancyGuardUpgradeable } from "@openzeppelin/contracts-upgradeable/
 // Interfaces:
 import { ITreasuryManager } from "../interfaces/treasury/ITreasuryManager.sol";
 import { IVersioned } from "../interfaces/IVersioned.sol";
+import { IGovernanceManager } from "../interfaces/governance/IGovernanceManager.sol";
 
 // Libraries:
 import { FundingTypes } from "../libraries/FundingTypes.sol";
@@ -27,9 +28,6 @@ contract TreasuryManager is Initializable, AccessControlUpgradeable, ReentrancyG
     // ====================================================================================================
     // FUNDING TYPE ERRORS
     // ====================================================================================================
-    
-    /// @notice Thrown if the provided funding type has an active module.
-    error FundingTypeHasActiveModule();
 
     /// @notice Thrown if the provided funding type is not defined in the FundingTypes library.
     error UnknownFundingType();
@@ -37,15 +35,12 @@ contract TreasuryManager is Initializable, AccessControlUpgradeable, ReentrancyG
     // ====================================================================================================
     // FUNDING MODULE ERRORS
     // ====================================================================================================
-    
-    /// @notice Thrown if the provided funding module address has already been granted the FUNDING_MODULE_ROLE.
-    error ModuleAlreadyHasFundingRole();
-    
-    /// @notice Thrown if the funding module does not have the the FUNDING_MODULE_ROLE.
-    error ModuleDoesNotHaveFundingRole();
-    
-    /// @notice Thrown if the provided funding module is not stored as an active module for the respective funding type.
-    error ModuleMismatch();
+
+    /// @notice Thrown if the caller is not an authorized funding module.
+    error UnauthorizedModule();
+
+    /// @notice Thrown if the active funding module is not set.
+    error ActiveModuleNotSet();
 
     // ====================================================================================================
     // TRANSFER ERRORS
@@ -103,6 +98,9 @@ contract TreasuryManager is Initializable, AccessControlUpgradeable, ReentrancyG
     /// @notice Thrown if the provided address is not a contract.
     error AddressIsNotAContract();
 
+    /// @notice Thrown if the address already has the specified role.
+    error AlreadyHasRole();
+
 // ====================================================================================================================
 //                                                  EVENTS
 // ====================================================================================================================
@@ -114,19 +112,6 @@ contract TreasuryManager is Initializable, AccessControlUpgradeable, ReentrancyG
      * @param amount The amount of funds received.
      */
     event FundsReceived(address indexed sender, uint256 amount);
-
-    /**
-     * @notice Emitted when a new funding module is added.
-     * @param fundingType The unique identifier of the funding type.
-     * @param module The address of the funding module that was added.
-     */
-    event FundingModuleAdded(bytes32 indexed fundingType, address indexed module);
-
-    /**
-     * @notice Emitted when a funding module is removed.
-     * @param module The address of the funding module that was removed.
-     */
-    event FundingModuleRemoved(bytes32 indexed fundingType, address indexed module);
 
     /**
      * @notice Emitted when a transfer request is made.
@@ -173,6 +158,15 @@ contract TreasuryManager is Initializable, AccessControlUpgradeable, ReentrancyG
      * @dev Revokes the DEFAULT_ADMIN_ROLE from the previous admin.
      */
     event AdminRoleTransferred(address indexed oldAdmin, address indexed newAdmin);
+
+    /**
+     * @notice Emitted when the treasury is initialized.
+     * @param treasuryMultiSig The address of the treasury multi-signature wallet.
+     * @param governanceManager The address of the governance manager contract.
+     * @param treasuryRecovery The address of the treasury recovery contract.
+     */
+    event TreasuryInitialized(address indexed treasuryMultiSig, address indexed governanceManager, address indexed treasuryRecovery);
+
 // ====================================================================================================================
 //                                          STATE VARIABLES
 // NOTE: Once the contract is deployed do not change the order of the variables. If this contract is updated append new variables to the end of this list. 
@@ -189,28 +183,24 @@ contract TreasuryManager is Initializable, AccessControlUpgradeable, ReentrancyG
     // MAPPINGS
     // ====================================================================================================
     
-    /// @dev Mapping of active funding modules.
-    /// @dev The key is the unique identifier for the funding type, and the value is the address of the active funding module for that type.
-    /// @dev This mapping is used to check which module is currently active for a specific funding type.
-    mapping(bytes32 => address) private activeModuleRegistry;
-    
-    // TO-DO: Consider storing the active funding modules in an array and a mapping with enumeration
-    // This would allow us to easily check the number of active funding modules and iterate over them if needed.
-    
     /// @dev Mapping of unique context keys (context: group, epoch, proposal) to funding requests.
     mapping(bytes32 => TreasuryTypes.FundingRequest) private fundingRequests;
+
+    // ====================================================================================================
+    // ADDRESSES
+    // ====================================================================================================
+
+    /// @dev The interface of the governance manager contract.
+    IGovernanceManager private governanceManager;
 
     // ====================================================================================================
     // CONSTANTS
     // ====================================================================================================
 
-    /// @dev The role that grants access to funding modules.
-    bytes32 private constant FUNDING_MODULE_ROLE = keccak256("FUNDING_MODULE_ROLE");
-
     /// @dev The role that grants access to the governance manager.
     bytes32 private constant GOVERNANCE_MANAGER_ROLE = keccak256("GOVERNANCE_MANAGER_ROLE");
 
-    /// @dev The role that grants access to the beacon manager owner.
+    /// @dev The role that grants access to the recovery treasury wallet.
     bytes32 private constant EMERGENCY_RECOVERY_ROLE = keccak256("EMERGENCY_RECOVERY_ROLE");
 
     /// @dev The type identifiers for the different funding modules:
@@ -250,8 +240,19 @@ contract TreasuryManager is Initializable, AccessControlUpgradeable, ReentrancyG
     modifier onlyGovernorOrDefaultAdmin() {
         if ( 
             !hasRole(DEFAULT_ADMIN_ROLE, msg.sender) &&
+            !hasRole(EMERGENCY_RECOVERY_ROLE, msg.sender) &&
             !hasRole(GOVERNANCE_MANAGER_ROLE, msg.sender)
         ) revert CallerNotAuthorized();
+        _;
+    }
+
+    /**
+     * @dev Ensures that the caller is the active funding module for the specified funding type.
+     */
+    modifier onlyActiveFundingModule(bytes32 _fundingType) { 
+        address activeModule = governanceManager.getActiveModule(_fundingType);
+        if (activeModule == address(0)) revert ActiveModuleNotSet();
+        if (msg.sender != activeModule) revert UnauthorizedModule();
         _;
     }
 
@@ -268,35 +269,32 @@ contract TreasuryManager is Initializable, AccessControlUpgradeable, ReentrancyG
      * @notice Initializes the Treasury contract.
      * @dev This function is called during the deployment of the contract to set up initial roles and funding types.
      * The initial owner is expected to be the GovernanceManager, which will later transfer ownership to the DAO multisig.
-     * @param _initialOwner The address of the initial owner.
+     * @param _treasuryMultiSig The address of the treasury multi-signature wallet.
      * @param _governanceManager The address of the governance manager.
-     * @param _grantModule The address of the grant funding module.
+     * @param _treasuryRecovery The address of the treasury recovery multi-signature wallet.
      * @custom:error AddressCannotBeZero Thrown if any of the provided addresses are zero.
      */
     function initialize(
-        address _initialOwner, 
+        address _treasuryMultiSig, 
         address _governanceManager,
-        address _grantModule, 
-        address _beaconManager
+        address _treasuryRecovery
     ) 
         external 
         initializer
-        nonZeroAddress(_initialOwner)
+        nonZeroAddress(_treasuryMultiSig)
         nonZeroAddress(_governanceManager)
-        nonZeroAddress(_grantModule)
-        nonZeroAddress(_beaconManager)
+        nonZeroAddress(_treasuryRecovery)
     {
         __AccessControl_init();
         __ReentrancyGuard_init(); 
 
-        _grantRole(DEFAULT_ADMIN_ROLE, _initialOwner);
+        _grantRole(DEFAULT_ADMIN_ROLE, _treasuryMultiSig);
         _grantRole(GOVERNANCE_MANAGER_ROLE, _governanceManager);
-        _grantRole(FUNDING_MODULE_ROLE, _grantModule);
-        _grantRole(EMERGENCY_RECOVERY_ROLE, _beaconManager);
+        _grantRole(EMERGENCY_RECOVERY_ROLE, _treasuryRecovery);
 
-        // Initialize GRANT_TYPE in active module registry
-        activeModuleRegistry[FundingTypes.GRANT_TYPE] = _grantModule; 
-        emit FundingModuleAdded(FundingTypes.GRANT_TYPE, _grantModule);
+        //if (_governanceManager.code.length == 0) revert AddressIsNotAContract();
+        governanceManager = IGovernanceManager(_governanceManager);
+        emit TreasuryInitialized(_treasuryMultiSig, _governanceManager, _treasuryRecovery);
     }   
 
 // ====================================================================================================================
@@ -316,6 +314,7 @@ contract TreasuryManager is Initializable, AccessControlUpgradeable, ReentrancyG
      * @custom:error AddressCannotBeZero Thrown if the provided address is zero.
      */
     function transferAdminRole(address _newAdmin) external onlyRole(DEFAULT_ADMIN_ROLE) nonZeroAddress(_newAdmin) {
+        if (hasRole(DEFAULT_ADMIN_ROLE, _newAdmin)) revert AlreadyHasRole();
         _grantRole(DEFAULT_ADMIN_ROLE, _newAdmin);  
         _revokeRole(DEFAULT_ADMIN_ROLE, msg.sender);
 
@@ -330,70 +329,9 @@ contract TreasuryManager is Initializable, AccessControlUpgradeable, ReentrancyG
      * @custom:error AddressCannotBeZero Thrown if the provided address is zero.
      */
     function emergencyAccessControl(address _newAdmin) external onlyRole(EMERGENCY_RECOVERY_ROLE) nonZeroAddress(_newAdmin) {
+        if (hasRole(DEFAULT_ADMIN_ROLE, _newAdmin)) revert AlreadyHasRole();
         _grantRole(DEFAULT_ADMIN_ROLE, _newAdmin);
         emit EmergencyAccessGranted(_newAdmin);
-    }
-
-    // ====================================================================================================
-    // REGISTERING FUNDING MODULES
-    // ====================================================================================================
-    
-    /**
-     * @notice Grants the funding module role to a new module and adds it to the active module registry for the specific funding type.
-     * @dev This function can only be called by the DEFAULT_ADMIN_ROLE.
-     * It revokes the funding module role from the current module (if any) and assigns it to the new module.
-     * @param _module The address of the funding module to be added.
-     * @param _fundingType The unique identifier for the funding module type.
-     * @custom:error InvalidFundingType Thrown if the provided funding type is not valid.
-     */
-    function addFundingModule(
-        address _module, 
-        bytes32 _fundingType
-    ) 
-        external 
-        onlyRole(DEFAULT_ADMIN_ROLE) 
-        nonZeroAddress(_module)
-        nonZeroKey(_fundingType)
-    {   
-        if (!FundingTypes.isKnownType(_fundingType)) revert UnknownFundingType();
-        if (hasRole(FUNDING_MODULE_ROLE, _module)) revert ModuleAlreadyHasFundingRole();
-        if (_module.code.length == 0) revert AddressIsNotAContract();
-
-        address currentModule = activeModuleRegistry[_fundingType];
-        if (currentModule != address(0) && currentModule != _module) {
-            _revokeRole(FUNDING_MODULE_ROLE, currentModule);
-        }
-        _grantRole(FUNDING_MODULE_ROLE, _module);
-
-        activeModuleRegistry[_fundingType] = _module;
-        emit FundingModuleAdded(_fundingType, _module);
-    }
-
-    /**
-     * @notice Removes a funding module from the active module registry and revokes its funding module role.
-     * @dev This function can only be called by the DEFAULT_ADMIN_ROLE.
-     * @param _module The address of the funding module to be removed.
-     * @param _fundingType The unique identifier for the funding module type.
-     * @custom:error ModuleDoesNotHaveFundingRole Thrown if the module does not have the FUNDING_MODULE_ROLE.
-     * @custom:error ModuleMismatch Thrown if the provided module does not match the active module for the specified funding type.
-     * @custom:error NonZeroAddress Thrown if the provided module address is zero.
-     * @custom:error NonZeroKey Thrown if the provided funding type key is zero.
-     */
-    function removeFundingModule(
-        address _module, 
-        bytes32 _fundingType
-    ) 
-        external 
-        onlyRole(DEFAULT_ADMIN_ROLE)
-        nonZeroAddress(_module)
-        nonZeroKey(_fundingType)
-    {
-        if (!hasRole(FUNDING_MODULE_ROLE, _module)) revert ModuleDoesNotHaveFundingRole();
-        if (activeModuleRegistry[_fundingType] != _module) revert ModuleMismatch();
-        
-        _revokeRole(FUNDING_MODULE_ROLE, _module); 
-        delete activeModuleRegistry[_fundingType];
-        emit FundingModuleRemoved(_fundingType, _module);
     }
 
     // ====================================================================================================
@@ -408,10 +346,9 @@ contract TreasuryManager is Initializable, AccessControlUpgradeable, ReentrancyG
      * @param _to The address that will receive the funds.
      * @param _amount The amount of funds to be transferred.
      * @param _fundingType The unique identifier for the funding type.
-     * @custom:error InsufficientBalance Thrown if the treasury does not have enough balance to fulfill the transfer request.
+     * @custom:error UnauthorizedModule Thrown if the caller is not an authorized funding module.
      * @custom:error AmountCannotBeZero Thrown if the requested transfer amount is zero.
      * @custom:error FundingAlreadyRequested Thrown if a transfer request for the specified contextKey already exists.
-     * @custom:error ModuleMismatch Thrown if the calling module does not match the active module for the specified funding type.
      * @custom:error AddressCannotBeZero Thrown if the recipient address is zero.
      * @custom:error KeyCannotBeZero Thrown if the contextKey is zero.
      */
@@ -422,14 +359,13 @@ contract TreasuryManager is Initializable, AccessControlUpgradeable, ReentrancyG
         bytes32 _fundingType
     ) 
         external 
-        onlyRole(FUNDING_MODULE_ROLE)
+        onlyActiveFundingModule(_fundingType)
         nonZeroAddress(_to) 
         nonZeroKey(contextKey)
-    {
+    {   
         if (!FundingTypes.isKnownType(_fundingType)) revert UnknownFundingType();
         if (_amount == 0) revert AmountCannotBeZero();
         if (fundingRequests[contextKey].to != address(0)) revert FundingAlreadyRequested();
-        if (activeModuleRegistry[_fundingType] != msg.sender) revert ModuleMismatch();
 
         fundingRequests[contextKey] = TreasuryTypes.FundingRequest({
             fundingType: _fundingType,
@@ -461,6 +397,7 @@ contract TreasuryManager is Initializable, AccessControlUpgradeable, ReentrancyG
         external 
         onlyRole(DEFAULT_ADMIN_ROLE) 
         nonZeroKey(contextKey) 
+        nonReentrant
     {
         _approve(contextKey);
     }
@@ -561,16 +498,6 @@ contract TreasuryManager is Initializable, AccessControlUpgradeable, ReentrancyG
     }
 
     /**
-     * @notice Returns the active module address for a specific funding type.
-     * @param fundingType The unique identifier for the funding type.
-     * @return The address of the active funding module for the specified funding type.
-     */
-    function getActiveModuleAddress(bytes32 fundingType) external view onlyGovernorOrDefaultAdmin returns (address) {
-        if (!FundingTypes.isKnownType(fundingType)) revert UnknownFundingType();
-        return activeModuleRegistry[fundingType];
-    }
-
-    /**
      * @notice Checks if a funding request is pending approval.
      * @param contextKey The unique identifier for the funding request.
      * @return True if the funding request is pending approval, false otherwise.
@@ -624,12 +551,13 @@ contract TreasuryManager is Initializable, AccessControlUpgradeable, ReentrancyG
      */
     function _approve(bytes32 contextKey) private nonZeroKey(contextKey) {
         TreasuryTypes.FundingRequest storage request = fundingRequests[contextKey];
+        address activeModule = governanceManager.getActiveModule(request.fundingType);
 
         // Checks
         if (request.requestedAt == 0) revert RequestDoesNotExist();
         if (request.approved) revert TransferAlreadyApproved();
         if (request.executed) revert TransferAlreadyExecuted();
-        if (activeModuleRegistry[request.fundingType] != request.from) revert InconsistentFundingModule();
+        if (activeModule != request.from) revert InconsistentFundingModule();
         if (request.amount == 0) revert AmountCannotBeZero();
         
         // Effects
@@ -643,15 +571,15 @@ contract TreasuryManager is Initializable, AccessControlUpgradeable, ReentrancyG
      */
     function _execute(bytes32 contextKey) private nonZeroKey(contextKey) {
         TreasuryTypes.FundingRequest storage request = fundingRequests[contextKey];
+        address activeModule = governanceManager.getActiveModule(request.fundingType);
 
         // Checks
         if (request.requestedAt == 0) revert RequestDoesNotExist();
         if (!request.approved) revert TransferNotApproved();
         if (request.executed) revert TransferAlreadyExecuted();
         if (request.releaseTime > block.timestamp) revert RequestInTimelock();
-        if (activeModuleRegistry[request.fundingType] != request.from) revert InconsistentFundingModule();
+        if (activeModule != request.from) revert InconsistentFundingModule();
         if (request.amount > address(this).balance) revert InsufficientBalance();
-        if (request.amount == 0) revert AmountCannotBeZero();
         
         // Effects
         request.executed = true;

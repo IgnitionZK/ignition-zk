@@ -11,11 +11,14 @@ interface ITreasuryFactory {
      * @notice Deploys new treasury instances for the DAO groups.
      * @param groupKey The unique group (DAO) identifier.
      * @param hasDeployedNft boolean indicating whether a group NFT exists.
+     * @param treasuryMultiSig The address of the treasury multi-signature wallet.
+     * @param treasuryRecovery The address of the treasury recovery wallet.
      */
     function deployTreasury(
         bytes32 groupKey, 
         bool hasDeployedNft,
-        address treasuryOwner
+        address treasuryMultiSig,
+        address treasuryRecovery
     ) external;
 
     /**

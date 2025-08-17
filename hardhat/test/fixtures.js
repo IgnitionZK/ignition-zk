@@ -517,19 +517,6 @@ async function deployFixtures() {
     );
     await fixtures.voteManager.waitForDeployment();
 
-    // Deploy the GrantModule UUPS Proxy (ERC‑1967) contract
-    fixtures.grantModule = await upgrades.deployProxy(
-        fixtures.GrantModule,
-        [
-            await fixtures.deployer.getAddress()
-        ],
-        {
-            initializer: "initialize",
-            kind: "uups"
-        }
-    );
-    await fixtures.grantModule.waitForDeployment();
-
     // Deploy the Governance UUPS Proxy (ERC‑1967) contract
     fixtures.governanceManager = await upgrades.deployProxy(
         fixtures.GovernanceManager, 
@@ -538,8 +525,7 @@ async function deployFixtures() {
             await fixtures.relayer.getAddress(), // _relayer
             fixtures.membershipManager.target, // _membershipManager
             fixtures.proposalManager.target, // _proposalManager,
-            fixtures.voteManager.target, // _voteManager
-            fixtures.grantModule.target // _grantModule
+            fixtures.voteManager.target // _voteManager
         ],
         {
             initializer: "initialize",
@@ -547,9 +533,6 @@ async function deployFixtures() {
         }
     );
     await fixtures.governanceManager.waitForDeployment();
-
-    // transfer ownership of grantModule to GovernanceManager
-    await fixtures.grantModule.connect(deployer).transferOwnership(fixtures.governanceManager.target);
 
     // Deploy TreasuryManager without initialization
     fixtures.treasuryManager = await fixtures.TreasuryManager.deploy();
@@ -566,13 +549,32 @@ async function deployFixtures() {
     fixtures.treasuryFactory = await fixtures.TreasuryFactory.deploy(
         fixtures.beaconManager.target,
         //fixtures.governanceManager.target,
-        await fixtures.governor.getAddress(), // use EOA governor signer for testing
-        fixtures.grantModule.target
+        await fixtures.governor.getAddress() // use EOA governor signer for testing
     );
     await fixtures.treasuryFactory.waitForDeployment();
 
     // Set TreasuryFactory address in GovernanceManager
     await fixtures.governanceManager.connect(deployer).setTreasuryFactory(fixtures.treasuryFactory.target);
+    
+    // Deploy the GrantModule UUPS Proxy (ERC‑1967) contract
+    fixtures.grantModule = await upgrades.deployProxy(
+        fixtures.GrantModule,
+        [
+            await fixtures.governanceManager.target
+            // await fixtures.governor.getAddress() // use EOA governor signer for testing
+        ],
+        {
+            initializer: "initialize",
+            kind: "uups"
+        }
+    );
+    await fixtures.grantModule.waitForDeployment();
+
+    // Set grant module address in GovernanceManager
+    await fixtures.governanceManager.connect(deployer).addFundingModule(
+        fixtures.grantModule.target, 
+        ethers.id("grant")
+    );
 
     return fixtures;
 }
