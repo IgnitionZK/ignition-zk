@@ -56,6 +56,15 @@ contract MockGovernanceManagerV2 is Initializable, UUPSUpgradeable, OwnableUpgra
     /// @notice Thrown if the proposal submission nullifier is invalid.
     error InvalidNullifier();
 
+    /// @notice Thrown if the funding module address is not found.
+    error FundingModuleNotFound();
+
+    /// @notice Thrown if the funding type is unknown.
+    error UnknownFundingType();
+
+    /// @notice Thrown if the provided module does not match the active module for the specified funding type.
+    error ModuleMismatch();
+
     // ====================================================================================================
     // GENERAL ERRORS
     // ====================================================================================================
@@ -107,22 +116,50 @@ contract MockGovernanceManagerV2 is Initializable, UUPSUpgradeable, OwnableUpgra
     event VoteManagerSet(address indexed newVoteManager);
 
     /**
-     * @notice Emitted when the grant module address is updated.
-     * @param grantModule The new address of the grant module.
-     */
-    event GrantModuleSet(address indexed grantModule);
-
-    /**
      * @notice Emitted when the treasury factory address is updated.
      * @param treasuryFactory The new address of the treasuryFactory.
      */
     event TreasuryFactorySet(address indexed treasuryFactory);
+    
+    /**
+     * @notice Emitted when a new funding module is added to the active module registry.
+     * @param fundingType The unique identifier of the funding type.
+     * @param module The address of the funding module that was added.
+     */
+    event FundingModuleAdded(bytes32 indexed fundingType, address indexed module);
+
+     /**
+     * @notice Emitted when the funding module address for a given funding type is updated.
+     * @param fundingType The unique identifier of the funding type.
+     * @param oldModule The address of the funding module that was updated.
+     * @param newModule The address of the funding module that was added.
+     */
+    event FundingModuleUpdated(bytes32 indexed fundingType, address indexed oldModule, address indexed newModule);
+
+    /**
+     * @notice Emitted when a funding module is removed from the active module registry.
+     * @param module The address of the funding module that was removed.
+     */
+    event FundingModuleRemoved(bytes32 indexed fundingType, address indexed module);
+
+    /**
+     * @notice Emitted when grant distribution is delegated to the grant module.
+     * @param groupTreasury The address of the group treasury.
+     * @param contextKey The unique identifier for the context of the grant.
+     * @param to The address to which the grant is delegated.
+     * @param amount The amount of the grant.
+     */
+    event GrantDistributionDelegated(address indexed groupTreasury, bytes32 indexed contextKey, address indexed to, uint256 amount);
 
 // ====================================================================================================================
 //                                              STATE VARIABLES
 // NOTE: Once the contract is deployed do not change the order of the variables. If this contract is updated append new variables to the end of this list. 
 // ====================================================================================================================
-
+    /// @dev Mapping of active funding modules.
+    /// @dev The key is the unique identifier for the funding type, and the value is the address of the active funding module for that type.
+    /// @dev This mapping is used to check which module is currently active for a specific funding type.
+    mapping(bytes32 => address) private activeModuleRegistry;
+    
     /// @dev The address of the designated relayer, authorized to update roots and verify proofs.
     address private relayer;
     
@@ -137,9 +174,6 @@ contract MockGovernanceManagerV2 is Initializable, UUPSUpgradeable, OwnableUpgra
 
     /// @dev The interface of the treasury factory contract
     ITreasuryFactory private treasuryFactory;
-
-    /// @dev The interface of the grant module contract
-    IGrantModule private grantModule;
 
 // ====================================================================================================================
 //                                                  MODIFIERS
@@ -184,7 +218,6 @@ contract MockGovernanceManagerV2 is Initializable, UUPSUpgradeable, OwnableUpgra
      * @param _membershipManager The address of the membership manager, which must not be zero.
      * @param _proposalManager The address of the proposal manager, which must not be zero.
      * @param _voteManager The address of the vote manager, which must not be zero.
-     * @param _grantModule The address of the grant module, which must not be zero.
      * @custom:error AddressCannotBeZero If the provided relayer address is zero.
      */
     function initialize(
@@ -192,8 +225,7 @@ contract MockGovernanceManagerV2 is Initializable, UUPSUpgradeable, OwnableUpgra
         address _relayer,
         address _membershipManager,
         address _proposalManager,
-        address _voteManager,
-        address _grantModule
+        address _voteManager
     ) 
         external 
         initializer 
@@ -203,7 +235,6 @@ contract MockGovernanceManagerV2 is Initializable, UUPSUpgradeable, OwnableUpgra
         if (_membershipManager == address(0)) revert AddressCannotBeZero();
         if (_proposalManager == address(0)) revert AddressCannotBeZero();
         if (_voteManager == address(0)) revert AddressCannotBeZero();
-        if (_grantModule == address(0)) revert AddressCannotBeZero();
 
         __Ownable_init(_initialOwner);
         __UUPSUpgradeable_init();
@@ -213,13 +244,11 @@ contract MockGovernanceManagerV2 is Initializable, UUPSUpgradeable, OwnableUpgra
         membershipManager = IMembershipManager(_membershipManager);
         proposalManager = IProposalManager(_proposalManager);
         voteManager = IVoteManager(_voteManager);
-        grantModule = IGrantModule(_grantModule);
 
         emit RelayerSet(_relayer);
         emit MembershipManagerSet(_membershipManager);
         emit ProposalManagerSet(_proposalManager);
         emit VoteManagerSet(_voteManager);
-        emit GrantModuleSet(_grantModule);
     }
 
 // ====================================================================================================================
@@ -253,6 +282,58 @@ contract MockGovernanceManagerV2 is Initializable, UUPSUpgradeable, OwnableUpgra
         
         treasuryFactory = ITreasuryFactory(_treasuryFactory);
         emit TreasuryFactorySet(_treasuryFactory);
+    }
+
+    // ====================================================================================================
+    // REGISTERING FUNDING MODULES
+    // ====================================================================================================
+
+    /**
+     * @notice Adds a funding module to the active module registry.
+     * @dev This function can only be called by the owner.
+     * @param _module The address of the funding module to be added.
+     * @param _fundingType The unique identifier for the funding module type.
+     * @custom:error UnknownFundingType Thrown if the provided funding type is not defined in the FundingTypes library.
+     * @custom:error AddressIsNotAContract Thrown if the provided address is not a contract.
+     */
+    function addFundingModule(
+        address _module, 
+        bytes32 _fundingType
+    ) 
+        external 
+        onlyOwner
+    {   
+        if (!FundingTypes.isKnownType(_fundingType)) revert UnknownFundingType();
+        //if (_module.code.length == 0) revert AddressIsNotAContract();
+        if (_module == address(0)) revert AddressCannotBeZero();
+
+        address currentModule = activeModuleRegistry[_fundingType];
+        activeModuleRegistry[_fundingType] = _module;
+
+        if (currentModule != _module) {
+            emit FundingModuleUpdated(_fundingType, currentModule, _module);
+        } else {
+            emit FundingModuleAdded(_fundingType, _module);
+        }
+    }
+
+    /**
+     * @notice Removes a funding module from the active module registry.
+     * @param _module The address of the owner.
+     * @param _fundingType The unique identifier for the funding module type.
+     * @custom:error ModuleMismatch Thrown if the provided module does not match the active module for the specified funding type.
+     */
+    function removeFundingModule(
+        address _module, 
+        bytes32 _fundingType
+    ) 
+        external 
+        onlyOwner
+    {   
+        if (_module == address(0)) revert AddressCannotBeZero();
+        if (activeModuleRegistry[_fundingType] != _module) revert ModuleMismatch();
+        delete activeModuleRegistry[_fundingType];
+        emit FundingModuleRemoved(_fundingType, _module);
     }
 
     /**
@@ -561,10 +642,10 @@ contract MockGovernanceManagerV2 is Initializable, UUPSUpgradeable, OwnableUpgra
      * @dev Only callable by the relayer.
      * @param groupKey The unique identifier for the voting group.
      */
-    function delegateDeployTreasury(bytes32 groupKey, address treasuryOwner) external onlyRelayer {
+    function delegateDeployTreasury(bytes32 groupKey, address treasuryMultiSig, address treasuryRecovery) external onlyRelayer {
         if (address(treasuryFactory) == address(0)) revert TreasuryFactoryAddressNotSet();
         bool hasDeployedNft = _getGroupNftAddress(groupKey) != address(0);
-        treasuryFactory.deployTreasury(groupKey, hasDeployedNft, treasuryOwner);
+        treasuryFactory.deployTreasury(groupKey, hasDeployedNft, treasuryMultiSig, treasuryRecovery);
     }
 
     // ================================================================================================================
@@ -584,30 +665,6 @@ contract MockGovernanceManagerV2 is Initializable, UUPSUpgradeable, OwnableUpgra
     function delegateTransferAdminRole(bytes32 groupKey, address newAdmin) external onlyRelayer {
         address groupTreasury = _getGroupTreasuryAddress(groupKey);
         ITreasuryManager(groupTreasury).transferAdminRole(newAdmin);
-    }
-
-    /**
-     * @notice Delegates the addition of a funding module to the DAO treasury, beyond the modules that were added upon deployment.
-     * @dev Only callable by the relayer.
-     * @param groupKey The unique identifier for the voting group.
-     * @param _module The address of the funding module to add.
-     * @param _fundingType The type of funding to associate with the module.
-     */
-    function delegateAddFundingModule(bytes32 groupKey, address _module, bytes32 _fundingType) external onlyRelayer {
-        address groupTreasury = _getGroupTreasuryAddress(groupKey);
-        ITreasuryManager(groupTreasury).addFundingModule(_module, _fundingType);
-    }
-
-    /**
-     * @notice Delegates the removal of a funding module from the DAO treasury.
-     * @dev Only callable by the relayer.
-     * @param groupKey The unique identifier for the voting group.
-     * @param _module The address of the funding module to remove.
-     * @param _fundingType The type of funding to disassociate from the module.
-     */
-    function delegateRemoveFundingModule(bytes32 groupKey, address _module, bytes32 _fundingType) external onlyRelayer {
-        address groupTreasury = _getGroupTreasuryAddress(groupKey);
-        ITreasuryManager(groupTreasury).removeFundingModule(_module, _fundingType);
     }
 
     /**
@@ -655,6 +712,7 @@ contract MockGovernanceManagerV2 is Initializable, UUPSUpgradeable, OwnableUpgra
      * @param to The address to send the grant to.
      * @param amount The amount of the grant.
      */
+    /*
     function delegateDistributeGrant(
         bytes32 groupKey, 
         bytes32 contextKey, 
@@ -672,26 +730,59 @@ contract MockGovernanceManagerV2 is Initializable, UUPSUpgradeable, OwnableUpgra
         // checks that the expected proposal submission nullifier matches the stored nullifier
         if (proposalResult.submissionNullifier != expectedProposalNullifier) revert InvalidNullifier();
 
-        grantModule.distributeGrant(groupTreasury, contextKey, to, amount);
-    }
+        // Get the active address of the grant module
+        address grantModule = activeModuleRegistry[FundingTypes.GRANT_TYPE];
+        if (grantModule == address(0)) revert FundingModuleNotFound();
 
-    // Alternative function to consider:
-    /*
-    function executeProposal(bytes32 groupKey, bytes32 contextKey, address to, uint256 amount, bytes32 fundingType) external onlyRelayer {
+        IGrantModule(grantModule).distributeGrant(groupTreasury, contextKey, to, amount);
+    }
+    */
+
+    /**
+     * @notice Executes a proposal by distributing funds from the group treasury.
+     * @dev Only callable by the relayer.
+     * @param groupKey The unique identifier for the voting group.
+     * @param contextKey The pre-computed context hash (group, epoch, proposal).
+     * @param to The address to send the funds to.
+     * @param amount The amount of funds to distribute.
+     * @param fundingType The type of funding to use.
+     * @custom:error FundingModuleNotFound If the funding module is not found.
+     * @custom:error UnknownFundingType If the funding type does not exist in the FundingTypes library.
+     * @custom:error ProposalNotPassed If the proposal has not passed.
+     * @custom:error TreasuryAddressNotFound If the treasury address is not found.
+     * @custom:error TreasuryFactoryAddressNotSet If the treasury factory address is not set.
+     * @custom:error InvalidNullifier If the proposal submission nullifier is invalid.
+     */
+    function delegateDistributeFunding(
+        bytes32 groupKey, 
+        bytes32 contextKey, 
+        address to, 
+        uint256 amount, 
+        bytes32 fundingType,
+        bytes32 expectedProposalNullifier
+    ) external onlyRelayer {
         if (address(treasuryFactory) == address(0)) revert TreasuryFactoryAddressNotSet();
         address groupTreasury = _getGroupTreasuryAddress(groupKey);
         if (groupTreasury == address(0)) revert TreasuryAddressNotFound();
-        
+
+        // Check that the proposal with the given contextKey exists and that its passed status is set to true
         VoteTypes.ProposalResult memory proposalResult = _getProposalResult(contextKey);
         if (proposalResult.passed == false) revert ProposalNotPassed();
 
+        // checks that the expected proposal submission nullifier matches the stored nullifier
+        if (proposalResult.submissionNullifier != expectedProposalNullifier) revert InvalidNullifier();
+
+        // Get the active address of the funding module
+        if (!FundingTypes.isKnownType(fundingType)) revert UnknownFundingType();
+        address module = activeModuleRegistry[fundingType];
+        if (module == address(0)) revert FundingModuleNotFound();
+
         if (fundingType == FundingTypes.GRANT_TYPE) {
-            grantModule.distributeGrant(groupTreasury, contextKey, to, amount);
-        } else if (fundingType == FundingTypes.BOUNTY_TYPE) {
-            bountyModule.distributeBounty(groupTreasury, contextKey, to, amount);
-        } ......
+            IGrantModule(module).distributeGrant(groupTreasury, contextKey, to, amount);
+            emit GrantDistributionDelegated(groupTreasury, contextKey, to, amount);
+        }
     }
-    */
+    
 
 // ====================================================================================================================
 // ====================================================================================================================
@@ -860,18 +951,6 @@ contract MockGovernanceManagerV2 is Initializable, UUPSUpgradeable, OwnableUpgra
     }
 
     /**
-     * @notice Delegates the getActiveModuleAddress call to the group treasury instance.
-     * @dev Only callable by the relayer.
-     * @param groupKey The unique identifier for the group.
-     * @param fundingType The funding type to check.
-     * @custom:error UnknownFundingType Thrown if the provided funding type is not defined in the FundingTypes library.
-     */
-    function delegateGetActiveModuleAddress(bytes32 groupKey, bytes32 fundingType) external view onlyRelayer returns (address) {
-        address groupTreasury = _getGroupTreasuryAddress(groupKey);
-        return ITreasuryManager(groupTreasury).getActiveModuleAddress(fundingType);
-    }
-
-    /**
      * @notice Delegates the isPendingApproval call to the group treasury instance.
      * @dev Only callable by the relayer.
      * @param groupKey The unique identifier for the group.
@@ -957,6 +1036,15 @@ contract MockGovernanceManagerV2 is Initializable, UUPSUpgradeable, OwnableUpgra
     }
 
     /**
+     * @notice Gets the address of the active funding module for a specific funding type.
+     * @param fundingType The unique identifier for the funding type.
+     * @return address of the active funding module.
+     */
+    function getActiveModule(bytes32 fundingType) external view returns (address) {
+        return activeModuleRegistry[fundingType];
+    }
+
+    /**
      * @dev Returns the version of the contract.
      * @return string The version of the contract.
      */
@@ -1035,14 +1123,14 @@ contract MockGovernanceManagerV2 is Initializable, UUPSUpgradeable, OwnableUpgra
     /**
      * @notice Fallback function to handle unknown function calls.
      * @dev Reverts with an error indicating that the function does not exist or is not implemented.
-     */
+     */  
     fallback() external {
         revert UnknownFunctionCall();
     }
-
-
-    function dummyFunction() external {
-        // Dummy function for testing purposes
+    
+    receive() external payable {
+        // This contract can receive Ether, but it does not handle it.
+        // Any Ether sent to this contract will be accepted, but no actions will be taken.
     }
 
 }

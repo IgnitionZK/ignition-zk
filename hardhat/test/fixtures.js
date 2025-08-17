@@ -6,7 +6,7 @@ async function setUpFixtures() {
     // Get Signers
     // Note: "governor" is not the actual governor, just a placeholder used for the tests of the MembershipManager, ProposalManager, VoteManager.
     // The actual governanceManager contract will be set later and used as owner of MM, PM, VM in the GovernanceManager tests.
-    const [deployer, governor, relayer, user1] = await ethers.getSigners();
+    const [deployer, governor, relayer, user1, fundingModule] = await ethers.getSigners();
     
     // Get Contract Factories 
     // Managers
@@ -343,6 +343,7 @@ async function setUpFixtures() {
         governor,
         relayer,
         user1,
+        fundingModule,
 
         MembershipManager,
         ProposalManager,
@@ -517,19 +518,6 @@ async function deployFixtures() {
     );
     await fixtures.voteManager.waitForDeployment();
 
-    // Deploy the GrantModule UUPS Proxy (ERC‑1967) contract
-    fixtures.grantModule = await upgrades.deployProxy(
-        fixtures.GrantModule,
-        [
-            await fixtures.deployer.getAddress()
-        ],
-        {
-            initializer: "initialize",
-            kind: "uups"
-        }
-    );
-    await fixtures.grantModule.waitForDeployment();
-
     // Deploy the Governance UUPS Proxy (ERC‑1967) contract
     fixtures.governanceManager = await upgrades.deployProxy(
         fixtures.GovernanceManager, 
@@ -538,8 +526,7 @@ async function deployFixtures() {
             await fixtures.relayer.getAddress(), // _relayer
             fixtures.membershipManager.target, // _membershipManager
             fixtures.proposalManager.target, // _proposalManager,
-            fixtures.voteManager.target, // _voteManager
-            fixtures.grantModule.target // _grantModule
+            fixtures.voteManager.target // _voteManager
         ],
         {
             initializer: "initialize",
@@ -547,9 +534,6 @@ async function deployFixtures() {
         }
     );
     await fixtures.governanceManager.waitForDeployment();
-
-    // transfer ownership of grantModule to GovernanceManager
-    await fixtures.grantModule.connect(deployer).transferOwnership(fixtures.governanceManager.target);
 
     // Deploy TreasuryManager without initialization
     fixtures.treasuryManager = await fixtures.TreasuryManager.deploy();
@@ -563,17 +547,38 @@ async function deployFixtures() {
     await fixtures.beaconManager.waitForDeployment();
 
     // Deploy TreasuryFactory with the BeaconManager address
+    /*
     fixtures.treasuryFactory = await fixtures.TreasuryFactory.deploy(
         fixtures.beaconManager.target,
         //fixtures.governanceManager.target,
-        await fixtures.governor.getAddress(), // use EOA governor signer for testing
-        fixtures.grantModule.target
+        await fixtures.governor.getAddress() // use EOA governor signer for testing
     );
     await fixtures.treasuryFactory.waitForDeployment();
 
     // Set TreasuryFactory address in GovernanceManager
     await fixtures.governanceManager.connect(deployer).setTreasuryFactory(fixtures.treasuryFactory.target);
+    
+    // Deploy the GrantModule UUPS Proxy (ERC‑1967) contract
+    fixtures.grantModule = await upgrades.deployProxy(
+        fixtures.GrantModule,
+        [
+            await fixtures.governanceManager.target
+            // await fixtures.governor.getAddress() // use EOA governor signer for testing
+        ],
+        {
+            initializer: "initialize",
+            kind: "uups"
+        }
+    );
+    await fixtures.grantModule.waitForDeployment();
 
+    // Set grant module address in GovernanceManager
+    await fixtures.governanceManager.connect(deployer).addFundingModule(
+        //fixtures.grantModule.target,
+        fixtures.fundingModule.getAddress(), 
+        ethers.id("grant")
+    );
+    */
     return fixtures;
 }
 

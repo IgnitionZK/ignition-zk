@@ -15,15 +15,14 @@ interface ITreasuryManager {
 
     /**
      * @notice Initializes the Treasury contract.
-     * @param _initialOwner The address of the initial owner.
+     * @param _treasuryMultiSig The address of the treasury multi-signature wallet.
      * @param _governanceManager The address of the governance manager.
-     * @param _grantModule The address of the grant funding module.
+     * @param _treasuryRecovery The address of the treasury recovery contract.
      */
     function initialize(
-        address _initialOwner, 
+        address _treasuryMultiSig,
         address _governanceManager,
-        address _grantModule, 
-        address _beaconManager
+        address _treasuryRecovery
     ) external;
 
     /**
@@ -37,26 +36,6 @@ interface ITreasuryManager {
      * @param _newAdmin The address of the new admin that will receive the DEFAULT_ADMIN_ROLE.
      */
     function emergencyAccessControl(address _newAdmin) external;
-
-    /**
-     * @notice Grants the funding module role to a new module and adds it to the active module registry for the specific funding type.
-     * @param _module The address of the funding module to be added.
-     * @param _fundingType The unique identifier for the funding module type.
-     */
-    function addFundingModule(
-        address _module, 
-        bytes32 _fundingType
-    ) external;
-
-    /**
-     * @notice Removes a funding module from the active module registry and revokes its funding module role.
-     * @param _module The address of the funding module to be removed.
-     * @param _fundingType The unique identifier for the funding module type.
-     */
-    function removeFundingModule(
-        address _module, 
-        bytes32 _fundingType
-    ) external;
 
      /**
      * @notice Requests a transfer of funds from the treasury to a specified address.
@@ -105,14 +84,7 @@ interface ITreasuryManager {
      * @return The current balance of the treasury in wei.
      */
     function getBalance() external view returns (uint256);
-
-    /**
-     * @notice Returns the active module address for a specific funding type.
-     * @param fundingType The unique identifier for the funding type.
-     * @return The address of the active funding module for the specified funding type.
-     */
-    function getActiveModuleAddress(bytes32 fundingType) external view returns (address);
-
+    
     /**
      * @notice Checks if a transfer request is pending approval.
      * @param contextKey The unique identifier for the transfer request.

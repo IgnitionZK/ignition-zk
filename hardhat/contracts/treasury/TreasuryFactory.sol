@@ -44,6 +44,13 @@ contract TreasuryFactory is Ownable, ERC165, ITreasuryFactory {
      */
     event TreasuryDeployed(bytes32 indexed groupKey, address beaconProxy);
 
+    /**
+     * @notice Emitted when the treasury factory is deployed.
+     * @param beaconManager The address of the beacon manager contract.
+     * @param governanceManager The address of the governance manager contract.
+     */
+    event TreasuryFactoryDeployed(address indexed beaconManager, address indexed governanceManager);
+
 // ====================================================================================================================
 //                                          STATE VARIABLES
 // ====================================================================================================================
@@ -56,9 +63,6 @@ contract TreasuryFactory is Ownable, ERC165, ITreasuryFactory {
 
     /// @dev Address of the GovernanceManager.
     address private immutable governanceManager;
-
-    /// @dev Address of the grantModule proxy (funding module).
-    address private immutable grantModule;
 
 // ====================================================================================================================
 //                                                  MODIFIERS
@@ -90,21 +94,18 @@ contract TreasuryFactory is Ownable, ERC165, ITreasuryFactory {
      * @dev Constructor for the TreasuryFactory contract.
      * @param _beaconManager The address of the beacon contract.
      * @param _governanceManager The address of the governance manager contract.
-     * @param _grantModule The address of the grant module contract.
      */
     constructor(
         address _beaconManager,
-        address _governanceManager,
-        address _grantModule
+        address _governanceManager
     ) 
         Ownable(_governanceManager)
         nonZeroAddress(_beaconManager)
         nonZeroAddress(_governanceManager)
-        nonZeroAddress(_grantModule) 
     {
         beaconManager = _beaconManager;
         governanceManager = _governanceManager;
-        grantModule = _grantModule;
+        emit TreasuryFactoryDeployed(beaconManager, governanceManager);
     }
 
 // ====================================================================================================================
@@ -120,11 +121,14 @@ contract TreasuryFactory is Ownable, ERC165, ITreasuryFactory {
     function deployTreasury(
         bytes32 groupKey, 
         bool hasDeployedNft,
-        address treasuryOwner
+        address treasuryMultiSig,
+        address treasuryRecovery
     ) 
         external 
         onlyOwner 
         nonZeroKey(groupKey) 
+        nonZeroAddress(treasuryMultiSig)
+        nonZeroAddress(treasuryRecovery)
     {
 
         if (groupTreasuryAddresses[groupKey] != address(0)) revert GroupTreasuryAlreadyExists();
@@ -132,10 +136,9 @@ contract TreasuryFactory is Ownable, ERC165, ITreasuryFactory {
 
         bytes memory initData = abi.encodeWithSelector(
             ITreasuryManager.initialize.selector,
-            treasuryOwner, // initialOwner with DEFAULT_ADMIN_ROLE
+            treasuryMultiSig, // initialOwner with DEFAULT_ADMIN_ROLE
             governanceManager, // GOVERNANCE_MANAGER_ROLE
-            grantModule, // grant funding module with FUNDING_MODULE_ROLE
-            beaconManager // beacon manager for EMERGENCY_RECOVERY_ROLE
+            treasuryRecovery // recovery multi sig for EMERGENCY_RECOVERY_ROLE
         );
 
         // creates non-deterministic addresses (different address for every new proxy)
@@ -168,13 +171,6 @@ contract TreasuryFactory is Ownable, ERC165, ITreasuryFactory {
      */
     function getBeaconManager() external view onlyOwner returns (address) {
         return beaconManager;
-    }
-
-    /**
-     * @notice Returns the address of the grant module contract.
-     */
-    function getGrantModule() external view onlyOwner returns (address) {
-        return grantModule;
     }
 
     /**
