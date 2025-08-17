@@ -304,7 +304,7 @@ contract GovernanceManager is Initializable, UUPSUpgradeable, OwnableUpgradeable
         onlyOwner
     {   
         if (!FundingTypes.isKnownType(_fundingType)) revert UnknownFundingType();
-        if (_module.code.length == 0) revert AddressIsNotAContract();
+        //if (_module.code.length == 0) revert AddressIsNotAContract();
         if (_module == address(0)) revert AddressCannotBeZero();
 
         address currentModule = activeModuleRegistry[_fundingType];
@@ -1123,9 +1123,10 @@ contract GovernanceManager is Initializable, UUPSUpgradeable, OwnableUpgradeable
     /**
      * @notice Fallback function to handle unknown function calls.
      * @dev Reverts with an error indicating that the function does not exist or is not implemented.
-     */
+     */  
     fallback() external {
         revert UnknownFunctionCall();
     }
+    
 
 }

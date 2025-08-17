@@ -16,6 +16,9 @@ describe("Treasury Factory Unit Tests:", function () {
         ({
             // Signers
             governor, user1, deployer, relayer,
+
+            // Contracts
+            TreasuryFactory,
             
             // Test constants
             groupKey, groupKey2,epochKey, proposalKey, 
@@ -45,10 +48,21 @@ describe("Treasury Factory Unit Tests:", function () {
 
         ({
             membershipManager, proposalManager, voteManager, governanceManager, 
-            treasuryManager, treasuryFactory, beaconManager, grantModule,
+            treasuryManager, beaconManager, 
             membershipVerifier, proposalVerifier, proposalClaimVerifier, voteVerifier,
             mockMembershipVerifier, mockProposalVerifier, mockProposalClaimVerifier, mockVoteVerifier
         } = deployedFixtures);
+
+        // Deploy TreasuryFactory with the BeaconManager address
+        treasuryFactory = await TreasuryFactory.deploy(
+            beaconManager.target,
+            await governor.getAddress() // use EOA governor signer for testing
+        );
+        await treasuryFactory.waitForDeployment();
+
+        // Set TreasuryFactory address in GovernanceManager
+        await governanceManager.connect(deployer).setTreasuryFactory(treasuryFactory.target);
+        
 
     });
 

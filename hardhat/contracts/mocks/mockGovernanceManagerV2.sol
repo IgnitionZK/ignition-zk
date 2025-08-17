@@ -304,7 +304,7 @@ contract MockGovernanceManagerV2 is Initializable, UUPSUpgradeable, OwnableUpgra
         onlyOwner
     {   
         if (!FundingTypes.isKnownType(_fundingType)) revert UnknownFundingType();
-        if (_module.code.length == 0) revert AddressIsNotAContract();
+        //if (_module.code.length == 0) revert AddressIsNotAContract();
         if (_module == address(0)) revert AddressCannotBeZero();
 
         address currentModule = activeModuleRegistry[_fundingType];
@@ -1123,14 +1123,14 @@ contract MockGovernanceManagerV2 is Initializable, UUPSUpgradeable, OwnableUpgra
     /**
      * @notice Fallback function to handle unknown function calls.
      * @dev Reverts with an error indicating that the function does not exist or is not implemented.
-     */
+     */  
     fallback() external {
         revert UnknownFunctionCall();
     }
-
-
-    function dummyFunction() external view returns (string memory) {
-        return "This is a dummy function";
+    
+    receive() external payable {
+        // This contract can receive Ether, but it does not handle it.
+        // Any Ether sent to this contract will be accepted, but no actions will be taken.
     }
 
 }

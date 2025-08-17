@@ -6,7 +6,7 @@ async function setUpFixtures() {
     // Get Signers
     // Note: "governor" is not the actual governor, just a placeholder used for the tests of the MembershipManager, ProposalManager, VoteManager.
     // The actual governanceManager contract will be set later and used as owner of MM, PM, VM in the GovernanceManager tests.
-    const [deployer, governor, relayer, user1] = await ethers.getSigners();
+    const [deployer, governor, relayer, user1, fundingModule] = await ethers.getSigners();
     
     // Get Contract Factories 
     // Managers
@@ -343,6 +343,7 @@ async function setUpFixtures() {
         governor,
         relayer,
         user1,
+        fundingModule,
 
         MembershipManager,
         ProposalManager,
@@ -546,6 +547,7 @@ async function deployFixtures() {
     await fixtures.beaconManager.waitForDeployment();
 
     // Deploy TreasuryFactory with the BeaconManager address
+    /*
     fixtures.treasuryFactory = await fixtures.TreasuryFactory.deploy(
         fixtures.beaconManager.target,
         //fixtures.governanceManager.target,
@@ -572,10 +574,11 @@ async function deployFixtures() {
 
     // Set grant module address in GovernanceManager
     await fixtures.governanceManager.connect(deployer).addFundingModule(
-        fixtures.grantModule.target, 
+        //fixtures.grantModule.target,
+        fixtures.fundingModule.getAddress(), 
         ethers.id("grant")
     );
-
+    */
     return fixtures;
 }
 

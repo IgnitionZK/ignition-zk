@@ -534,6 +534,14 @@ contract TreasuryManager is Initializable, AccessControlUpgradeable, ReentrancyG
     }
 
     /**
+     * @notice Retrieves the governance manager contract.
+     * @return The address of the governance manager contract.
+     */
+    function getGovernanceManager() external view onlyGovernorOrDefaultAdmin returns (address) {
+        return address(governanceManager);
+    }
+
+    /**
      * @dev Returns the version of the contract.
      * @return string The version of the contract.
      */
