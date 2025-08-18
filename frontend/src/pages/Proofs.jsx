@@ -254,10 +254,12 @@ export default function Proofs() {
     isLoading: isLoadingPending,
     proposals: pendingProposals,
     error: pendingError,
+    refetch: refetchPendingProposals,
   } = useGetPendingInboxProposals(userGroups);
   const groupMemberIds =
     userGroups?.map((group) => group.group_member_id) || [];
-  const { proofs } = useGetProofsByGroupMemberId(groupMemberIds);
+  const { proofs, refetch: refetchProofs } =
+    useGetProofsByGroupMemberId(groupMemberIds);
   const {
     verifyMembership,
     isVerifying,
@@ -602,6 +604,8 @@ export default function Proofs() {
                     proposal={proposal}
                     isVerified={false}
                     storedMnemonic={storedMnemonic}
+                    refetchPendingProposals={refetchPendingProposals}
+                    refetchProofs={refetchProofs}
                   />
                 ))}
               </ActivityList>
@@ -622,6 +626,7 @@ export default function Proofs() {
                     showSubmitButton={false}
                     isVerified={proposal.is_verified}
                     storedMnemonic={storedMnemonic}
+                    refetchProofs={refetchProofs}
                   />
                 ))}
               </ActivityList>

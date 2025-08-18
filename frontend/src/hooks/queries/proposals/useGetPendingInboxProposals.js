@@ -19,6 +19,7 @@ export function useGetPendingInboxProposals(userGroups) {
     isLoading,
     data: proposals,
     error,
+    refetch,
   } = useQuery({
     queryKey: ["pendingInboxProposals", groupIds, groupMemberIds],
     queryFn: () => {
@@ -35,5 +36,5 @@ export function useGetPendingInboxProposals(userGroups) {
     enabled: !!userGroups?.length && !!groupMemberIds.length,
   });
 
-  return { isLoading, proposals, error };
+  return { isLoading, proposals, error, refetch };
 }
