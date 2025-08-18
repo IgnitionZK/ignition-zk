@@ -318,22 +318,47 @@ export default function Proofs() {
 
   // Filter verified proposals for activity history
   const verifiedProposals = proposals
-    ?.filter((proposal) =>
-      proofs?.some(
+    ?.filter((proposal) => {
+      // Check if the user has a verified voting proof for this proposal
+      const userVotingProof = proofs?.find(
         (proof) =>
           proof.proposal_id === proposal.proposal_id &&
+          proof.circuit_id === "4cf28644-3d5c-4a09-b96d-d3138503ee7d" && // voting circuit
           proof.is_verified === true &&
-          proof.circuit_id === "4cf28644-3d5c-4a09-b96d-d3138503ee7d"
-      )
-    )
+          proof.group_member_id ===
+            userGroups?.find((group) => group.group_id === proposal.group_id)
+              ?.group_member_id // match the user's group member ID for this group
+      );
+
+      return !!userVotingProof; // only include if user has a verified voting proof
+    })
     .filter((proposal) =>
       selectedGroup === "" ? false : proposal.group_name === selectedGroup
     )
+    // Get unique proposals, ensuring we get the proposal circuit row for each
+    .reduce((acc, proposal) => {
+      const existingIndex = acc.findIndex(
+        (p) => p.proposal_id === proposal.proposal_id
+      );
+
+      if (existingIndex === -1) {
+        // First time seeing this proposal_id
+        if (proposal.circuit_id === "a1a0a504-e3aa-4e5d-bb9f-bbd98aefbd52") {
+          acc.push(proposal);
+        }
+      } else {
+        // We already have this proposal_id, but check if current row is the proposal circuit
+        if (proposal.circuit_id === "a1a0a504-e3aa-4e5d-bb9f-bbd98aefbd52") {
+          // Replace the existing entry with the proposal circuit row
+          acc[existingIndex] = proposal;
+        }
+      }
+
+      return acc;
+    }, [])
     .map((proposal) => ({
       ...proposal,
-      is_verified: proofs?.find(
-        (proof) => proof.proposal_id === proposal.proposal_id
-      )?.is_verified,
+      is_verified: true, // Since we're only including proposals with verified voting proofs
     }));
 
   const handleToggleChange = () => {

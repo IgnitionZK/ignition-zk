@@ -1,0 +1,65 @@
+CREATE OR REPLACE FUNCTION ignitionzk.get_pending_inbox_proposals(p_group_ids uuid[])
+RETURNS TABLE (
+    proposal_id uuid,
+    epoch_id uuid,
+    group_id uuid,
+    group_member_id uuid,
+    status_id uuid,
+    status_type text,
+    title text,
+    description text,
+    metadata jsonb,
+    payload jsonb,
+    created_at timestamptz,
+    claim_hash text,
+    funding jsonb,
+    group_name text,
+    epoch_duration int4,
+    epoch_name text,
+    epoch_start_time timestamptz,
+    is_approved boolean
+)
+LANGUAGE plpgsql
+AS $$
+BEGIN
+    RETURN QUERY
+    SELECT
+        p.proposal_id,
+        p.epoch_id,
+        p.group_id,
+        p.group_member_id,
+        p.status_id,
+        ps.status_type,
+        p.title,
+        p.description,
+        p.metadata,
+        p.payload,
+        p.created_at,
+        p.claim_hash,
+        p.funding,
+        g.name AS group_name,
+        e.epoch_duration,
+        e.epoch_name,
+        e.epoch_start_time,
+        e.is_approved
+    FROM
+        ignitionzk.proposals AS p
+    JOIN
+        ignitionzk.proposal_status AS ps ON p.status_id = ps.status_id
+    JOIN
+        ignitionzk.groups AS g ON p.group_id = g.group_id
+    LEFT JOIN
+        ignitionzk.epochs AS e ON p.epoch_id = e.epoch_id
+    LEFT JOIN
+        ignitionzk.proofs AS pr ON p.proposal_id = pr.proposal_id
+                               AND pr.circuit_id IN (
+                                   SELECT c.circuit_id
+                                   FROM ignitionzk.circuits AS c
+                                   WHERE c.circuit_type = 'voting'
+                               )
+    WHERE
+        p.group_id = ANY(p_group_ids) -- Filter by the groups provided
+        AND ps.status_type = 'active' -- Only active proposals
+        AND pr.proof_id IS NULL; -- Only proposals that *do not* have a 'voting' proof
+END;
+$$;
