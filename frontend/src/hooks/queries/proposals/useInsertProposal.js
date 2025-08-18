@@ -56,6 +56,10 @@ export function useInsertProposal() {
     onSuccess: () => {
       // Invalidate and refetch proposals queries
       queryClient.invalidateQueries({ queryKey: ["proposals"] });
+      // Also invalidate any specific proposals queries that might be cached
+      queryClient.invalidateQueries({
+        predicate: (query) => query.queryKey[0] === "proposals",
+      });
     },
     onError: (err) => {
       console.error("Error inserting proposal:", err);

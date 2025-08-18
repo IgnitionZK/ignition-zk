@@ -863,8 +863,8 @@ export default function CreateProposal({ onSuccess, onCancel }) {
         // Show success message
         toast.success("Proposal created successfully!");
 
-        // Small delay to ensure the success message is visible
-        await new Promise((resolve) => setTimeout(resolve, 1500));
+        // Small delay to ensure the success message is visible and database transaction is committed
+        await new Promise((resolve) => setTimeout(resolve, 2000));
 
         // Call the success callback with the proposal title
         successCallback(proposalName);

@@ -16,6 +16,7 @@ export function useGetProposalsByGroupId(userGroups) {
     isLoading,
     data: proposals,
     error,
+    refetch,
   } = useQuery({
     queryKey: ["proposals", groupIds],
     queryFn: () => {
@@ -28,5 +29,5 @@ export function useGetProposalsByGroupId(userGroups) {
     enabled: !!userGroups?.length,
   });
 
-  return { isLoading, proposals, error };
+  return { isLoading, proposals, error, refetch };
 }
