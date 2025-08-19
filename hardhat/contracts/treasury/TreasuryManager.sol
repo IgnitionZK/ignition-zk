@@ -167,6 +167,12 @@ contract TreasuryManager is Initializable, AccessControlUpgradeable, ReentrancyG
      */
     event TreasuryInitialized(address indexed treasuryMultiSig, address indexed governanceManager, address indexed treasuryRecovery);
 
+    /**
+     * @notice Emitted when a transfer request has already gone through the approval process.
+     * @param contextKey The unique identifier for the transfer request.
+     */
+    event ApprovalSkipped(bytes32 indexed contextKey);
+
 // ====================================================================================================================
 //                                          STATE VARIABLES
 // NOTE: Once the contract is deployed do not change the order of the variables. If this contract is updated append new variables to the end of this list. 
@@ -250,6 +256,7 @@ contract TreasuryManager is Initializable, AccessControlUpgradeable, ReentrancyG
      * @dev Ensures that the caller is the active funding module for the specified funding type.
      */
     modifier onlyActiveFundingModule(bytes32 _fundingType) { 
+        if (!FundingTypes.isKnownType(_fundingType)) revert UnknownFundingType();
         address activeModule = governanceManager.getActiveModule(_fundingType);
         if (activeModule == address(0)) revert ActiveModuleNotSet();
         if (msg.sender != activeModule) revert UnauthorizedModule();
@@ -363,7 +370,6 @@ contract TreasuryManager is Initializable, AccessControlUpgradeable, ReentrancyG
         nonZeroAddress(_to) 
         nonZeroKey(contextKey)
     {   
-        if (!FundingTypes.isKnownType(_fundingType)) revert UnknownFundingType();
         if (_amount == 0) revert AmountCannotBeZero();
         if (fundingRequests[contextKey].to != address(0)) revert FundingAlreadyRequested();
 
@@ -421,7 +427,7 @@ contract TreasuryManager is Initializable, AccessControlUpgradeable, ReentrancyG
         external 
         onlyRole(DEFAULT_ADMIN_ROLE) 
         nonZeroKey(contextKey) 
-        nonReentrant 
+        nonReentrant
     {
         _execute(contextKey);
     }
@@ -429,6 +435,7 @@ contract TreasuryManager is Initializable, AccessControlUpgradeable, ReentrancyG
     /**
      * @notice Approves and executes a transfer request in a single transaction.
      * @dev Transfer execution will fail if the funding request is still in timelock. 
+     * The approval step will be skipped if the transfer request has already been approved.
      * @param contextKey The unique identifier for the transfer request.
      */
     function approveAndExecuteTransfer(bytes32 contextKey) 
@@ -437,14 +444,21 @@ contract TreasuryManager is Initializable, AccessControlUpgradeable, ReentrancyG
         nonZeroKey(contextKey) 
         nonReentrant 
     {   
-        // to-do: skip approve if already approved
-        _approve(contextKey);
-        _execute(contextKey);
+        TreasuryTypes.FundingRequest memory request = fundingRequests[contextKey];
+
+        if (request.approved) {
+             _execute(contextKey);
+             emit ApprovalSkipped(contextKey);
+        } else {
+            _approve(contextKey);
+            _execute(contextKey);
+        }
     }
 
     /**
      * @notice Cancels a transfer request.
-     * @dev This function allows the admin to cancel a transfer request during timelock.
+     * @dev This function allows the admin to cancel a transfer request that has not already been executed.
+     * It allows for requests to be cancelled during or after timelock.
      * @param contextKey The unique identifier for the transfer request.
      * @custom:error RequestDoesNotExist Thrown if the requested transfer does not exist.
      * @custom:error TransferAlreadyExecuted Thrown if the transfer has already been executed.
@@ -454,14 +468,11 @@ contract TreasuryManager is Initializable, AccessControlUpgradeable, ReentrancyG
 
         if (request.requestedAt == 0) revert RequestDoesNotExist();
         if (request.executed) revert TransferAlreadyExecuted();
-        if (block.timestamp > request.releaseTime) revert TimelockHasPassed();
+        //if (block.timestamp > request.releaseTime) revert TimelockHasPassed();
 
         delete fundingRequests[contextKey];
         emit TransferCancelled(contextKey);
     }
-
-    // pull payment method:
-    // TO DO: consider implementing a pull payment method for grants so that they are available for withdrawal.
 
     // ====================================================================================================
     // RECEIVING FUNDS
@@ -566,7 +577,6 @@ contract TreasuryManager is Initializable, AccessControlUpgradeable, ReentrancyG
         if (request.approved) revert TransferAlreadyApproved();
         if (request.executed) revert TransferAlreadyExecuted();
         if (activeModule != request.from) revert InconsistentFundingModule();
-        if (request.amount == 0) revert AmountCannotBeZero();
         
         // Effects
         request.approved = true;
@@ -599,7 +609,7 @@ contract TreasuryManager is Initializable, AccessControlUpgradeable, ReentrancyG
             request.executed = false;
             revert TransferFailed();
         }
-
+    
         emit TransferExecuted(contextKey, request.to, request.amount);
     }
 
