@@ -276,22 +276,32 @@ export async function getProposalByIdentifiers({
 }
 
 /**
- * Retrieves pending inbox proposals by group ID(s) from the database using an RPC function
- * This function returns proposals that are active AND have no associated voting proof
+ * Retrieves pending inbox proposals for a list of group IDs
+ * These are proposals that are active AND the current user has not voted on yet
  * @param {Object} params - The parameters object
  * @param {string|string[]} params.groupId - Single group ID or array of group IDs to fetch proposals for
- * @returns {Promise<Array<Object>|null>} Array of proposal objects with group names and status types, or null if no proposals found
- * @throws {Error} If groupId is not provided or if there's a database error
+ * @param {string} params.groupMemberId - The current user's group member ID to check for existing votes
+ * @returns {Promise<Array<Object>|null>} Array of pending proposal objects, or null if no proposals found
+ * @throws {Error} If groupId or groupMemberId is not provided or if there's a database error
  * @example
  * // Get pending proposals for a single group
- * const proposals = await getPendingInboxProposals({ groupId: '123' });
+ * const proposals = await getPendingInboxProposals({
+ *   groupId: '123',
+ *   groupMemberId: 'member456'
+ * });
  *
  * // Get pending proposals for multiple groups
- * const proposals = await getPendingInboxProposals({ groupId: ['123', '456'] });
+ * const proposals = await getPendingInboxProposals({
+ *   groupId: ['123', '456'],
+ *   groupMemberId: 'member456'
+ * });
  */
-export async function getPendingInboxProposals({ groupId }) {
+export async function getPendingInboxProposals({ groupId, groupMemberId }) {
   if (!groupId) {
     throw new Error("groupId is required");
+  }
+  if (!groupMemberId) {
+    throw new Error("groupMemberId is required");
   }
 
   // Convert single groupId to array if it's not already
@@ -301,7 +311,8 @@ export async function getPendingInboxProposals({ groupId }) {
     .schema("ignitionzk")
     .rpc("get_pending_inbox_proposals", {
       p_group_ids: groupIds,
-    }); // Call the RPC function with explicit schema
+      p_group_member_id: groupMemberId,
+    });
 
   if (error) {
     if (error.code === "PGRST116") {
@@ -311,7 +322,5 @@ export async function getPendingInboxProposals({ groupId }) {
     throw new Error(error.message);
   }
 
-  // The RPC function already returns the data in the desired format,
-  // so no further transformation is needed here for group_name or status_type.
   return data;
 }

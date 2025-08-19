@@ -103,6 +103,8 @@ function InboxItem({
   showSubmitButton = true,
   isVerified = false,
   storedMnemonic = null,
+  refetchPendingProposals = null,
+  refetchProofs = null,
 }) {
   const [showMnemonicInput, setShowMnemonicInput] = useState(false);
   const [hasSubmittedProof, setHasSubmittedProof] = useState(false);
@@ -326,6 +328,12 @@ function InboxItem({
         console.log("Vote selected:", selectedVote);
         setHasSubmittedProof(true);
         toast.success(`Vote submitted successfully: ${selectedVote}`);
+        if (refetchPendingProposals) {
+          refetchPendingProposals();
+        }
+        if (refetchProofs) {
+          refetchProofs();
+        }
       }
     } catch (error) {
       console.error("Error submitting proof:", error);

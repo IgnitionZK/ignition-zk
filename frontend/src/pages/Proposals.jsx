@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import styled from "styled-components";
 import toast from "react-hot-toast";
 
@@ -70,10 +70,19 @@ const SectionTitleInline = styled.h2`
  */
 export default function Proposals() {
   const { userGroups, isLoading: isLoadingGroups } = useGetUserGroups();
-  const { isLoading, proposals, error } = useGetProposalsByGroupId(userGroups);
+  const { isLoading, proposals, error, refetch } =
+    useGetProposalsByGroupId(userGroups);
   const [showCreateProposal, setShowCreateProposal] = useState(false);
+  const [refreshKey, setRefreshKey] = useState(0);
 
   const [selectedGroup, setSelectedGroup] = useState("All Groups");
+
+  // Auto-refetch proposals when refreshKey changes
+  useEffect(() => {
+    if (refreshKey > 0) {
+      refetch();
+    }
+  }, [refreshKey, refetch]);
 
   const groupNames = [
     "All Groups",
@@ -115,9 +124,12 @@ export default function Proposals() {
   if (showCreateProposal) {
     return (
       <CreateProposal
-        onSuccess={(proposalTitle) => {
+        onSuccess={async (proposalTitle) => {
           setShowCreateProposal(false);
           toast.success(`Successfully created "${proposalTitle}"!`);
+
+          // Increment refresh key to trigger automatic refetch via useEffect
+          setRefreshKey((prev) => prev + 1);
         }}
         onCancel={() => {
           setShowCreateProposal(false);
@@ -153,7 +165,7 @@ export default function Proposals() {
         ) : error ? (
           <div>Error: {error.message}</div>
         ) : (
-          <ActivityList>
+          <ActivityList key={`active-${refreshKey}`}>
             {filteredProposals?.map((proposal) => (
               <ProposalItem
                 key={`active-${proposal.proposal_id}`}
@@ -171,7 +183,7 @@ export default function Proposals() {
         ) : error ? (
           <div>Error: {error.message}</div>
         ) : (
-          <ActivityList>
+          <ActivityList key={`history-${refreshKey}`}>
             {(() => {
               const historyProposals = proposals
                 ?.filter((proposal) => proposal.status_type !== "active")
