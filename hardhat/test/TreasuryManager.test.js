@@ -170,25 +170,39 @@ describe("Treasury Manager Unit Tests:", function () {
         });
     }
 
+    async function skipDays(numDays) {
+        /// Skip timelock
+        const daysInSeconds = numDays * 24 * 60 * 60;
+        await network.provider.send("evm_increaseTime", [daysInSeconds]);
+        // Mine a new block to apply the time change
+        await network.provider.send("evm_mine");
+    }
+
+    async function deployTreasuryInstanceWithEOAOwner(treasuryFactorySigner, treasuryMultisig, treasuryRecovery) {
+        // Deploy treasury instance
+        await treasuryFactory.connect(treasuryFactorySigner).deployTreasury(
+            groupKey, 
+            true, // hasDeployedNft
+            treasuryMultisig,
+            treasuryRecovery 
+        );
+
+        // Get address of deployed instance
+        const treasuryAddr = await treasuryFactory.connect(treasuryFactorySigner).getTreasuryAddress(groupKey);
+        const treasuryInstance = await ethers.getContractAt("TreasuryManager", treasuryAddr);
+        return treasuryInstance;
+    }
+
 
     it(`FUNCTION: transferAdminRole
         TESTING: event: AdminRoleTransferred
-        EXPECTED: should let treasury owner transfer the default admin role and emit event`, async function () {
+        EXPECTED: should let treasury admin transfer the default admin role and emit event`, async function () {
         
         // Use EOA test signer as treasury factory owner
         await deployTreasuryFactoryWithEOAOwner();
 
-        // Deploy treasury instance
-        await treasuryFactory.connect(governor).deployTreasury(
-            groupKey,
-            true, // hasDeployedNft
-            await governor.getAddress(), // treasuryMultiSig
-            await governor.getAddress(), // treasuryRecovery
-        );
-
-        // Get address of deployed instance
-        const treasuryAddr = await treasuryFactory.connect(governor).getTreasuryAddress(groupKey);
-        const treasuryInstance = await ethers.getContractAt("TreasuryManager", treasuryAddr);
+        // Deploy treasury instance: deployTreasuryInstanceWithEOAOwner(treasuryFactorySigner, treasuryMultisig, treasuryRecovery)
+        const treasuryInstance = await deployTreasuryInstanceWithEOAOwner(governor, await governor.getAddress(), await governor.getAddress());
 
         // Get current default admin
         const adminRole = await treasuryInstance.connect(governor).DEFAULT_ADMIN_ROLE();
@@ -207,22 +221,28 @@ describe("Treasury Manager Unit Tests:", function () {
     });
 
     it(`FUNCTION: transferAdminRole
+        TESTING: authorization (failure)
+        EXPECTED: should not let a non-admin transfer the default admin role`, async function () {
+        
+        // Use EOA test signer as treasury factory owner
+        await deployTreasuryFactoryWithEOAOwner();
+
+        // Deploy treasury instance: deployTreasuryInstanceWithEOAOwner(treasuryFactorySigner, treasuryMultisig, treasuryRecovery)
+        const treasuryInstance = await deployTreasuryInstanceWithEOAOwner(governor, await governor.getAddress(), await governor.getAddress());
+
+        await expect(treasuryInstance.connect(deployer).transferAdminRole(await user1.getAddress()))
+            .to.be.revertedWithCustomError(treasuryInstance, "AccessControlUnauthorizedAccount");
+
+    });
+
+    it(`FUNCTION: transferAdminRole
         TESTING: custom error: AlreadyHasRole
         EXPECTED: should revert if new admin already has role`, async function () {
         // Use EOA test signer as treasury factory owner
         await deployTreasuryFactoryWithEOAOwner();
         
-        // Deploy treasury instance
-        await treasuryFactory.connect(governor).deployTreasury(
-            groupKey,
-            true, // hasDeployedNft
-            await governor.getAddress(), // treasuryMultiSig
-            await governor.getAddress(), // treasuryRecovery
-        );
-
-        // Get address of deployed instance
-        const treasuryAddr = await treasuryFactory.connect(governor).getTreasuryAddress(groupKey);
-        const treasuryInstance = await ethers.getContractAt("TreasuryManager", treasuryAddr);
+        // Deploy treasury instance: deployTreasuryInstanceWithEOAOwner(treasuryFactorySigner, treasuryMultisig, treasuryRecovery)
+        const treasuryInstance = await deployTreasuryInstanceWithEOAOwner(governor, await governor.getAddress(), await governor.getAddress());
 
         await expect(treasuryInstance.connect(governor).transferAdminRole(await governor.getAddress()))
             .to.be.revertedWithCustomError(
@@ -237,22 +257,13 @@ describe("Treasury Manager Unit Tests:", function () {
         // Use EOA test signer as treasury factory owner
         await deployTreasuryFactoryWithEOAOwner();
 
-        // Deploy treasury instance
-        await treasuryFactory.connect(governor).deployTreasury(
-            groupKey,
-            true, // hasDeployedNft
-            await governor.getAddress(), // treasuryMultiSig
-            await governor.getAddress(), // treasuryRecovery
-        );
-
-        // Get address of deployed instance
-        const treasuryAddr = await treasuryFactory.connect(governor).getTreasuryAddress(groupKey);
-        const treasuryInstance = await ethers.getContractAt("TreasuryManager", treasuryAddr);
+        // Deploy treasury instance: deployTreasuryInstanceWithEOAOwner(treasuryFactorySigner, treasuryMultisig, treasuryRecovery)
+        const treasuryInstance = await deployTreasuryInstanceWithEOAOwner(governor, await governor.getAddress(), await deployer.getAddress());
 
         // Get current default admin
         const adminRole = await treasuryInstance.connect(governor).DEFAULT_ADMIN_ROLE();
         
-        expect(await treasuryInstance.connect(governor).emergencyAccessControl(await user1.getAddress()))
+        expect(await treasuryInstance.connect(deployer).emergencyAccessControl(await user1.getAddress()))
             .to.emit(treasuryInstance, "EmergencyAccessGranted")
             .withArgs(user1.getAddress());
 
@@ -266,22 +277,26 @@ describe("Treasury Manager Unit Tests:", function () {
     });
 
     it(`FUNCTION: emergencyAccessControl
+        TESTING: authorization (failure)
+        EXPECTED: should not let a non emergency recovery role holder grant admin rights to a new admin`, async function () {
+        // Use EOA test signer as treasury factory owner
+        await deployTreasuryFactoryWithEOAOwner();
+
+        // Deploy treasury instance: deployTreasuryInstanceWithEOAOwner(treasuryFactorySigner, treasuryMultisig, treasuryRecovery)
+        const treasuryInstance = await deployTreasuryInstanceWithEOAOwner(governor, await governor.getAddress(), await deployer.getAddress());
+
+        await expect(treasuryInstance.connect(governor).emergencyAccessControl(await user1.getAddress()))
+            .to.be.revertedWithCustomError(treasuryInstance, "AccessControlUnauthorizedAccount");
+    });
+
+    it(`FUNCTION: emergencyAccessControl
         TESTING: custom error: AlreadyHasRole
         EXPECTED: should revert if new admin already has role`, async function () {
         // Use EOA test signer as treasury factory owner
         await deployTreasuryFactoryWithEOAOwner();
 
-        // Deploy treasury instance
-        await treasuryFactory.connect(governor).deployTreasury(
-            groupKey,
-            true, // hasDeployedNft
-            await governor.getAddress(), // treasuryMultiSig
-            await governor.getAddress(), // treasuryRecovery
-        );
-
-        // Get address of deployed instance
-        const treasuryAddr = await treasuryFactory.connect(governor).getTreasuryAddress(groupKey);
-        const treasuryInstance = await ethers.getContractAt("TreasuryManager", treasuryAddr);
+        // Deploy treasury instance: deployTreasuryInstanceWithEOAOwner(treasuryFactorySigner, treasuryMultisig, treasuryRecovery)
+        const treasuryInstance = await deployTreasuryInstanceWithEOAOwner(governor, await governor.getAddress(), await governor.getAddress());
         
         await expect(treasuryInstance.connect(governor).emergencyAccessControl(await governor.getAddress()))
             .to.be.revertedWithCustomError(treasuryInstance, "AlreadyHasRole");
@@ -297,18 +312,9 @@ describe("Treasury Manager Unit Tests:", function () {
         
         // Get governance manager signer
         const governanceManagerSigner = await setContractAsSignerAndFund(mockGovernanceManager);
-        
-        // Deploy treasury instance
-        await treasuryFactory.connect(governanceManagerSigner).deployTreasury(
-            groupKey, 
-            true, // hasDeployedNft
-            await governor.getAddress(), // treasuryMultiSig
-            await governor.getAddress(), // treasuryRecovery
-        );
 
-        // Get address of deployed instance
-        const treasuryAddr = await treasuryFactory.connect(governanceManagerSigner).getTreasuryAddress(groupKey);
-        const treasuryInstance = await ethers.getContractAt("TreasuryManager", treasuryAddr);
+        // Deploy treasury instance: deployTreasuryInstanceWithEOAOwner(treasuryFactorySigner, treasuryMultisig, treasuryRecovery)
+        const treasuryInstance = await deployTreasuryInstanceWithEOAOwner(governanceManagerSigner, await governor.getAddress(), await governor.getAddress());
 
         // Stop contract as signer
         await stopContractAsSigner(mockGovernanceManager);
@@ -318,7 +324,6 @@ describe("Treasury Manager Unit Tests:", function () {
        
         // Request transfer
         const grantType = ethers.id("grant");
-        
         await expect(treasuryInstance.connect(mockGrantModuleSigner).requestTransfer(
             voteContextKey,
             await user1.getAddress(), // to
@@ -339,42 +344,1344 @@ describe("Treasury Manager Unit Tests:", function () {
         TESTING: custom error: UnknownFundingType
         EXPECTED: should revert if the funding type is not present in the FundingTypes library`, async function () {
         
+        ({ mockGovernanceManager, mockTreasuryManager, mockBeaconManager } = await deployMock_GovernanceManager_TreasuryManager_BeaconManager());
+        await deployTreasuryFactoryWithContractOwner();
+        await deployMockGrantModule();
         
+        // Get governance manager signer
+        const governanceManagerSigner = await setContractAsSignerAndFund(mockGovernanceManager);
+        
+        // Deploy treasury instance: deployTreasuryInstanceWithEOAOwner(treasuryFactorySigner, treasuryMultisig, treasuryRecovery)
+        const treasuryInstance = await deployTreasuryInstanceWithEOAOwner(governanceManagerSigner, await governor.getAddress(), await governor.getAddress());
 
+        // Stop contract as signer
+        await stopContractAsSigner(mockGovernanceManager);
+
+        // Get mock grant module contract as signer with funds for gas
+        const mockGrantModuleSigner = await setContractAsSignerAndFund(mockGrantModule);
+       
+        // Request transfer
+        const grantType = ethers.id("unknown");
         
+        await expect(treasuryInstance.connect(mockGrantModuleSigner).requestTransfer(
+            voteContextKey,
+            await user1.getAddress(), // to
+            2, // amount
+            grantType // fundingType
+        )).to.be.revertedWithCustomError(treasuryInstance, "UnknownFundingType");
+
+        await stopContractAsSigner(mockGrantModule);
     });
 
     it(`FUNCTION: requestTransfer
         TESTING: custom error: AmountCannotBeZero
         EXPECTED: should revert if the transfer amount is zero`, async function () {
+        
+        ({ mockGovernanceManager, mockTreasuryManager, mockBeaconManager } = await deployMock_GovernanceManager_TreasuryManager_BeaconManager());
+        await deployTreasuryFactoryWithContractOwner();
+        await deployMockGrantModule();
+        
+        // Get governance manager signer
+        const governanceManagerSigner = await setContractAsSignerAndFund(mockGovernanceManager);
+        
+        // Deploy treasury instance: deployTreasuryInstanceWithEOAOwner(treasuryFactorySigner, treasuryMultisig, treasuryRecovery)
+        const treasuryInstance = await deployTreasuryInstanceWithEOAOwner(governanceManagerSigner, await governor.getAddress(), await governor.getAddress());
 
+        // Stop contract as signer
+        await stopContractAsSigner(mockGovernanceManager);
+
+        // Get mock grant module contract as signer with funds for gas
+        const mockGrantModuleSigner = await setContractAsSignerAndFund(mockGrantModule);
+       
+        // Request transfer
+        const grantType = ethers.id("grant");
+        
+        await expect(treasuryInstance.connect(mockGrantModuleSigner).requestTransfer(
+            voteContextKey,
+            await user1.getAddress(), // to
+            0, // amount
+            grantType // fundingType
+        )).to.be.revertedWithCustomError(treasuryInstance, "AmountCannotBeZero");
+
+        await stopContractAsSigner(mockGrantModule);
     });
 
     it(`FUNCTION: requestTransfer
         TESTING: custom error: FundingAlreadyRequested
         EXPECTED: should revert the funding request has already been recorded`, async function () {
+        
+        ({ mockGovernanceManager, mockTreasuryManager, mockBeaconManager } = await deployMock_GovernanceManager_TreasuryManager_BeaconManager());
+        await deployTreasuryFactoryWithContractOwner();
+        await deployMockGrantModule();
+        
+        // Get governance manager signer
+        const governanceManagerSigner = await setContractAsSignerAndFund(mockGovernanceManager);
+        
+        // Deploy treasury instance: deployTreasuryInstanceWithEOAOwner(treasuryFactorySigner, treasuryMultisig, treasuryRecovery)
+        const treasuryInstance = await deployTreasuryInstanceWithEOAOwner(governanceManagerSigner, await governor.getAddress(), await governor.getAddress());
 
+        // Stop contract as signer
+        await stopContractAsSigner(mockGovernanceManager);
+
+        // Get mock grant module contract as signer with funds for gas
+        const mockGrantModuleSigner = await setContractAsSignerAndFund(mockGrantModule);
+       
+        // Request transfer
+        const grantType = ethers.id("grant");
+        
+        await treasuryInstance.connect(mockGrantModuleSigner).requestTransfer(
+            voteContextKey,
+            await user1.getAddress(), // to
+            2, // amount
+            grantType // fundingType
+        );
+
+        await expect(treasuryInstance.connect(mockGrantModuleSigner).requestTransfer(
+            voteContextKey,
+            await user1.getAddress(), // to
+            3, // amount
+            grantType // fundingType
+        )).to.be.revertedWithCustomError(treasuryInstance, "FundingAlreadyRequested");
+
+        await stopContractAsSigner(mockGrantModule);
     });
 
     it(`FUNCTION: requestTransfer
         TESTING: custom error: UnauthorizedModule
         EXPECTED: should revert if the call does not originate from an active funding module`, async function () {
+        ({ mockGovernanceManager, mockTreasuryManager, mockBeaconManager } = await deployMock_GovernanceManager_TreasuryManager_BeaconManager());
+        await deployTreasuryFactoryWithContractOwner();
+        await deployMockGrantModule();
 
+        // Set wrong grant module address in GovernanceManager
+        await mockGovernanceManager.connect(deployer).addFundingModule(
+            membershipManager.target, 
+            ethers.id("grant")
+        );
+
+        // Get governance manager signer
+        const governanceManagerSigner = await setContractAsSignerAndFund(mockGovernanceManager);
+        
+        // Deploy treasury instance: deployTreasuryInstanceWithEOAOwner(treasuryFactorySigner, treasuryMultisig, treasuryRecovery)
+        const treasuryInstance = await deployTreasuryInstanceWithEOAOwner(governanceManagerSigner, await governor.getAddress(), await governor.getAddress());
+
+        // Stop contract as signer
+        await stopContractAsSigner(mockGovernanceManager);
+
+        // Get mock grant module contract as signer with funds for gas
+        const mockGrantModuleSigner = await setContractAsSignerAndFund(mockGrantModule);
+       
+        // Request transfer
+        const grantType = ethers.id("grant");
+
+        await expect(treasuryInstance.connect(mockGrantModuleSigner).requestTransfer(
+            voteContextKey,
+            await user1.getAddress(), // to
+            3, // amount
+            grantType // fundingType
+        )).to.be.revertedWithCustomError(treasuryInstance, "UnauthorizedModule");
+
+        await stopContractAsSigner(mockGrantModule);
     });
 
     it(`FUNCTION: requestTransfer
         TESTING: custom error: ActiveModuleNotSet
         EXPECTED: should revert if the active funding module for the funding type has not been set in the GM`, async function () {
+        ({ mockGovernanceManager, mockTreasuryManager, mockBeaconManager } = await deployMock_GovernanceManager_TreasuryManager_BeaconManager());
+        await deployTreasuryFactoryWithContractOwner();
+        await deployMockGrantModule();
 
+        // Remove grant module address from GovernanceManager
+        await mockGovernanceManager.connect(deployer).removeFundingModule(
+            mockGrantModule.target,
+            ethers.id("grant")
+        );
+
+        // Get governance manager signer
+        const governanceManagerSigner = await setContractAsSignerAndFund(mockGovernanceManager);
+        
+        // Deploy treasury instance: deployTreasuryInstanceWithEOAOwner(treasuryFactorySigner, treasuryMultisig, treasuryRecovery)
+        const treasuryInstance = await deployTreasuryInstanceWithEOAOwner(governanceManagerSigner, await governor.getAddress(), await governor.getAddress());
+
+        // Stop contract as signer
+        await stopContractAsSigner(mockGovernanceManager);
+
+        // Get mock grant module contract as signer with funds for gas
+        const mockGrantModuleSigner = await setContractAsSignerAndFund(mockGrantModule);
+       
+        // Request transfer
+        const grantType = ethers.id("grant");
+
+        await expect(treasuryInstance.connect(mockGrantModuleSigner).requestTransfer(
+            voteContextKey,
+            await user1.getAddress(), // to
+            3, // amount
+            grantType // fundingType
+        )).to.be.revertedWithCustomError(treasuryInstance, "ActiveModuleNotSet");
+
+        await stopContractAsSigner(mockGrantModule);
     });
 
     it(`FUNCTION: requestTransfer
-        TESTING: event: TransferRequested
-        EXPECTED: should allow the authorized funding module to request a transfer and emit event`, async function () {
+        TESTING: mapping: fundingRequests
+        EXPECTED: should store the correct funding request details in the mapping`, async function () {
+        ({ mockGovernanceManager, mockTreasuryManager, mockBeaconManager } = await deployMock_GovernanceManager_TreasuryManager_BeaconManager());
+        await deployTreasuryFactoryWithContractOwner();
+        await deployMockGrantModule();
+
+        // Get governance manager signer
+        const governanceManagerSigner = await setContractAsSignerAndFund(mockGovernanceManager);
+        
+        // Deploy treasury instance: deployTreasuryInstanceWithEOAOwner(treasuryFactorySigner, treasuryMultisig, treasuryRecovery)
+        const treasuryInstance = await deployTreasuryInstanceWithEOAOwner(governanceManagerSigner, await governor.getAddress(), await governor.getAddress());
+
+        // Stop contract as signer
+        await stopContractAsSigner(mockGovernanceManager);
+
+        // Get mock grant module contract as signer with funds for gas
+        const mockGrantModuleSigner = await setContractAsSignerAndFund(mockGrantModule);
+
+        // Request transfer
+        const grantType = ethers.id("grant");
+        await treasuryInstance.connect(mockGrantModuleSigner).requestTransfer(
+            voteContextKey,
+            await user1.getAddress(), // to
+            3, // amount
+            grantType // fundingType
+        );
+
+        // Request a different transfer
+        const voteContextKey2 = Conversions.stringToBytes32("voteContextKey2");;
+        await treasuryInstance.connect(mockGrantModuleSigner).requestTransfer(
+            voteContextKey2,
+            await relayer.getAddress(), // to
+            1, // amount
+            grantType // fundingType
+        );
+
+        await stopContractAsSigner(mockGrantModule);
+
+        // Get the stored funding request
+        const fundingRequest = await treasuryInstance.connect(governor).getFundingRequest(voteContextKey);
+
+        // Check that the funding request details are correct
+        const TIMELOCK_DELAY_DAYS = 3;
+        expect(fundingRequest).to.deep.equal([
+            grantType,
+            await mockGrantModuleSigner.getAddress(),
+            await user1.getAddress(),
+            BigInt(3),
+            fundingRequest.requestedAt,
+            fundingRequest.requestedAt + BigInt(TIMELOCK_DELAY_DAYS * 24 * 60 * 60),
+            false,
+            false
+        ]);
+
+        // Check that the funding request details for the second request are correct
+        const fundingRequest2 = await treasuryInstance.connect(governor).getFundingRequest(voteContextKey2);
+        expect(fundingRequest2).to.deep.equal([
+            grantType,
+            await mockGrantModuleSigner.getAddress(),
+            await relayer.getAddress(),
+            BigInt(1),
+            fundingRequest2.requestedAt,
+            fundingRequest2.requestedAt + BigInt(TIMELOCK_DELAY_DAYS * 24 * 60 * 60),
+            false,
+            false
+        ]);
 
     });
 
+    it(`FUNCTION: approveTransfer
+        TESTING: event: TransferApproved
+        EXPECTED: should allow the treasury instance owner/admin to approve a funding request`, async function () {
+        ({ mockGovernanceManager, mockTreasuryManager, mockBeaconManager } = await deployMock_GovernanceManager_TreasuryManager_BeaconManager());
+        await deployTreasuryFactoryWithContractOwner();
+        await deployMockGrantModule();
+
+        // Get governance manager signer
+        const governanceManagerSigner = await setContractAsSignerAndFund(mockGovernanceManager);
+        
+        // Deploy treasury instance: deployTreasuryInstanceWithEOAOwner(treasuryFactorySigner, treasuryMultisig, treasuryRecovery)
+        const treasuryInstance = await deployTreasuryInstanceWithEOAOwner(governanceManagerSigner, await governor.getAddress(), await governor.getAddress());
+
+        // Stop contract as signer
+        await stopContractAsSigner(mockGovernanceManager);
+
+        // Get mock grant module contract as signer with funds for gas
+        const mockGrantModuleSigner = await setContractAsSignerAndFund(mockGrantModule);
+       
+        // Request transfer
+        const grantType = ethers.id("grant");
+
+        await treasuryInstance.connect(mockGrantModuleSigner).requestTransfer(
+            voteContextKey,
+            await user1.getAddress(), // to
+            3, // amount
+            grantType // fundingType
+        );
+
+        await stopContractAsSigner(mockGrantModule);
+
+        // Approve funding request
+        expect(await treasuryInstance.connect(governor).approveTransfer(voteContextKey))
+            .to.emit(treasuryInstance, "TransferApproved")
+            .withArgs(voteContextKey, await user1.getAddress(), 3);
+    });
+
+    it(`FUNCTION: approveTransfer
+        TESTING: authorization (failure)
+        EXPECTED: should not allow a non-owner/admin to approve a funding request`, async function () {
+        ({ mockGovernanceManager, mockTreasuryManager, mockBeaconManager } = await deployMock_GovernanceManager_TreasuryManager_BeaconManager());
+        await deployTreasuryFactoryWithContractOwner();
+        await deployMockGrantModule();
+
+        // Get governance manager signer
+        const governanceManagerSigner = await setContractAsSignerAndFund(mockGovernanceManager);
+        
+        // Deploy treasury instance: deployTreasuryInstanceWithEOAOwner(treasuryFactorySigner, treasuryMultisig, treasuryRecovery)
+        const treasuryInstance = await deployTreasuryInstanceWithEOAOwner(governanceManagerSigner, await governor.getAddress(), await governor.getAddress());
+
+        // Stop contract as signer
+        await stopContractAsSigner(mockGovernanceManager);
+
+        // Get mock grant module contract as signer with funds for gas
+        const mockGrantModuleSigner = await setContractAsSignerAndFund(mockGrantModule);
+       
+        // Request transfer
+        const grantType = ethers.id("grant");
+
+        await treasuryInstance.connect(mockGrantModuleSigner).requestTransfer(
+            voteContextKey,
+            await user1.getAddress(), // to
+            3, // amount
+            grantType // fundingType
+        );
+
+        await stopContractAsSigner(mockGrantModule);
+
+        // Approve funding request
+        await expect(treasuryInstance.connect(deployer).approveTransfer(voteContextKey))
+            .to.be.revertedWithCustomError(treasuryInstance, "AccessControlUnauthorizedAccount");
+
+    });
+
+    it(`FUNCTION: approveTransfer
+        TESTING: custom error: RequestDoesNotExist
+        EXPECTED: should revert if the funding request does not exist`, async function () {
+        ({ mockGovernanceManager, mockTreasuryManager, mockBeaconManager } = await deployMock_GovernanceManager_TreasuryManager_BeaconManager());
+        await deployTreasuryFactoryWithContractOwner();
+        await deployMockGrantModule();
+
+        // Get governance manager signer
+        const governanceManagerSigner = await setContractAsSignerAndFund(mockGovernanceManager);
+        
+        // Deploy treasury instance: deployTreasuryInstanceWithEOAOwner(treasuryFactorySigner, treasuryMultisig, treasuryRecovery)
+        const treasuryInstance = await deployTreasuryInstanceWithEOAOwner(governanceManagerSigner, await governor.getAddress(), await governor.getAddress());
+
+        // Stop contract as signer
+        await stopContractAsSigner(mockGovernanceManager);
+
+        // Approve funding request
+        await expect(treasuryInstance.connect(governor).approveTransfer(voteContextKey))
+            .to.be.revertedWithCustomError(treasuryInstance, "RequestDoesNotExist");
+    });
+
+    it(`FUNCTION: approveTransfer
+        TESTING: custom error: TransferAlreadyApproved
+        EXPECTED: should not allow the treasury instance owner/admin to approve an already approved funding request`, async function () {
+        ({ mockGovernanceManager, mockTreasuryManager, mockBeaconManager } = await deployMock_GovernanceManager_TreasuryManager_BeaconManager());
+        await deployTreasuryFactoryWithContractOwner();
+        await deployMockGrantModule();
+
+        // Get governance manager signer
+        const governanceManagerSigner = await setContractAsSignerAndFund(mockGovernanceManager);
+        
+        // Deploy treasury instance: deployTreasuryInstanceWithEOAOwner(treasuryFactorySigner, treasuryMultisig, treasuryRecovery)
+        const treasuryInstance = await deployTreasuryInstanceWithEOAOwner(governanceManagerSigner, await governor.getAddress(), await governor.getAddress());
+
+        // Stop contract as signer
+        await stopContractAsSigner(mockGovernanceManager);
+
+        // Get mock grant module contract as signer with funds for gas
+        const mockGrantModuleSigner = await setContractAsSignerAndFund(mockGrantModule);
+       
+        // Request transfer
+        const grantType = ethers.id("grant");
+
+        await treasuryInstance.connect(mockGrantModuleSigner).requestTransfer(
+            voteContextKey,
+            await user1.getAddress(), // to
+            3, // amount
+            grantType // fundingType
+        );
+
+        await stopContractAsSigner(mockGrantModule);
+
+        // Approve funding request
+        await treasuryInstance.connect(governor).approveTransfer(voteContextKey);
+
+        // Attempt to approve funding request again
+        await expect(treasuryInstance.connect(governor).approveTransfer(voteContextKey))
+            .to.be.revertedWithCustomError(treasuryInstance, "TransferAlreadyApproved");
+    });
+
+    it(`FUNCTION: approveTransfer
+        TESTING: custom error: TransferAlreadyApproved
+        EXPECTED: should not allow the treasury instance owner/admin to approve an already executed funding request`, async function () {
+        ({ mockGovernanceManager, mockTreasuryManager, mockBeaconManager } = await deployMock_GovernanceManager_TreasuryManager_BeaconManager());
+        await deployTreasuryFactoryWithContractOwner();
+        await deployMockGrantModule();
+
+        // Get governance manager signer
+        const governanceManagerSigner = await setContractAsSignerAndFund(mockGovernanceManager);
+        
+        // Deploy treasury instance: deployTreasuryInstanceWithEOAOwner(treasuryFactorySigner, treasuryMultisig, treasuryRecovery)
+        const treasuryInstance = await deployTreasuryInstanceWithEOAOwner(governanceManagerSigner, await governor.getAddress(), await governor.getAddress());
+
+        // Stop contract as signer
+        await stopContractAsSigner(mockGovernanceManager);
+
+        // Get mock grant module contract as signer with funds for gas
+        const mockGrantModuleSigner = await setContractAsSignerAndFund(mockGrantModule);
+       
+        // Request transfer
+        const grantType = ethers.id("grant");
+
+        await treasuryInstance.connect(mockGrantModuleSigner).requestTransfer(
+            voteContextKey,
+            await user1.getAddress(), // to
+            3, // amount
+            grantType // fundingType
+        );
+
+        await stopContractAsSigner(mockGrantModule);
+
+        // Approve funding request
+        await treasuryInstance.connect(governor).approveTransfer(voteContextKey);
+
+        // Skip Timelock
+        await skipDays(3);
+
+        // Fund the treasury instance with ETH
+        await treasuryInstance.fund({ value: ethers.parseEther("5.0") });
+
+        // Execute funding request
+        await treasuryInstance.connect(governor).executeTransfer(voteContextKey);
+
+        // Attempt to approve the already executed funding request
+        await expect(treasuryInstance.connect(governor).approveTransfer(voteContextKey))
+            .to.be.revertedWithCustomError(treasuryInstance, "TransferAlreadyApproved");
+    });
+
+    
+    it(`FUNCTION: approveTransfer
+        TESTING: custom error: InconsistentFundingModule
+        EXPECTED: should not allow the treasury instance owner/admin to approve a transfer when the funding module is inconsistent`, async function () {
+        ({ mockGovernanceManager, mockTreasuryManager, mockBeaconManager } = await deployMock_GovernanceManager_TreasuryManager_BeaconManager());
+        await deployTreasuryFactoryWithContractOwner();
+        await deployMockGrantModule();
+
+        // Get governance manager signer
+        const governanceManagerSigner = await setContractAsSignerAndFund(mockGovernanceManager);
+        
+        // Deploy treasury instance: deployTreasuryInstanceWithEOAOwner(treasuryFactorySigner, treasuryMultisig, treasuryRecovery)
+        const treasuryInstance = await deployTreasuryInstanceWithEOAOwner(governanceManagerSigner, await governor.getAddress(), await governor.getAddress());
+
+        // Stop contract as signer
+        await stopContractAsSigner(mockGovernanceManager);
+
+        // Get mock grant module contract as signer with funds for gas
+        const mockGrantModuleSigner = await setContractAsSignerAndFund(mockGrantModule);
+       
+        // Request transfer
+        const grantType = ethers.id("grant");
+
+        await treasuryInstance.connect(mockGrantModuleSigner).requestTransfer(
+            voteContextKey,
+            await user1.getAddress(), // to
+            3, // amount
+            grantType // fundingType
+        );
+
+        await stopContractAsSigner(mockGrantModule);
+
+        // Change the grant module address in GovernanceManager after requesting the transfer
+        await mockGovernanceManager.connect(deployer).addFundingModule(
+            membershipManager.target, 
+            ethers.id("grant")
+        );
+
+        // Approve funding request
+        await expect(treasuryInstance.connect(governor).approveTransfer(voteContextKey))
+            .to.be.revertedWithCustomError(treasuryInstance, "InconsistentFundingModule");
+    });
+
+    it(`FUNCTION: executeTransfer
+        TESTING: event: TransferExecuted
+        EXPECTED: should allow the treasury instance owner/admin to execute a transfer`, async function () {
+        ({ mockGovernanceManager, mockTreasuryManager, mockBeaconManager } = await deployMock_GovernanceManager_TreasuryManager_BeaconManager());
+        await deployTreasuryFactoryWithContractOwner();
+        await deployMockGrantModule();
+
+        // Get governance manager signer
+        const governanceManagerSigner = await setContractAsSignerAndFund(mockGovernanceManager);
+        
+        // Deploy treasury instance: deployTreasuryInstanceWithEOAOwner(treasuryFactorySigner, treasuryMultisig, treasuryRecovery)
+        const treasuryInstance = await deployTreasuryInstanceWithEOAOwner(governanceManagerSigner, await governor.getAddress(), await governor.getAddress());
+
+        // Stop contract as signer
+        await stopContractAsSigner(mockGovernanceManager);
+
+        // Get mock grant module contract as signer with funds for gas
+        const mockGrantModuleSigner = await setContractAsSignerAndFund(mockGrantModule);
+       
+        // Request transfer
+        const grantType = ethers.id("grant");
+
+        await treasuryInstance.connect(mockGrantModuleSigner).requestTransfer(
+            voteContextKey,
+            await user1.getAddress(), // to
+            3, // amount
+            grantType // fundingType
+        );
+
+        await stopContractAsSigner(mockGrantModule);
+
+        // Approve funding request
+        await treasuryInstance.connect(governor).approveTransfer(voteContextKey);
+
+        // Skip Timelock
+        await skipDays(3);
+
+        // Fund the treasury instance with ETH
+        await treasuryInstance.fund({ value: ethers.parseEther("5.0") });
+
+        // Execute funding request
+        expect(await treasuryInstance.connect(governor).executeTransfer(voteContextKey))
+            .to.emit(treasuryInstance, "TransferExecuted")
+            .withArgs(voteContextKey, await user1.getAddress(), 3);
+    });
+
+    it(`FUNCTION: executeTransfer
+        TESTING: reentrancy attack
+        EXPECTED: should not allow the fund recipient to re-enter`, async function () {
+        ({ mockGovernanceManager, mockTreasuryManager, mockBeaconManager } = await deployMock_GovernanceManager_TreasuryManager_BeaconManager());
+        await deployTreasuryFactoryWithContractOwner();
+        await deployMockGrantModule();
+
+        // Get governance manager signer
+        const governanceManagerSigner = await setContractAsSignerAndFund(mockGovernanceManager);
+        
+        // Deploy treasury instance: deployTreasuryInstanceWithEOAOwner(treasuryFactorySigner, treasuryMultisig, treasuryRecovery)
+        const treasuryInstance = await deployTreasuryInstanceWithEOAOwner(governanceManagerSigner, await governor.getAddress(), await governor.getAddress());
+
+        // Stop contract as signer
+        await stopContractAsSigner(mockGovernanceManager);
+
+        // Deploy the malicious contract
+        const MockAttacker = await ethers.getContractFactory("MockMaliciousFundRecipient");
+        const mockAttacker = await MockAttacker.deploy(treasuryInstance.target, voteContextKey);
+        await mockAttacker.waitForDeployment();
+       
+        // Get mock grant module contract as signer with funds for gas
+        const mockGrantModuleSigner = await setContractAsSignerAndFund(mockGrantModule);
+       
+        // Request transfer
+        const grantType = ethers.id("grant");
+
+        await treasuryInstance.connect(mockGrantModuleSigner).requestTransfer(
+            voteContextKey,
+            mockAttacker.target, // to
+            ethers.parseEther("1.0"), // amount
+            grantType // fundingType
+        );
+
+        await stopContractAsSigner(mockGrantModule);
+
+        // Approve funding request
+        await treasuryInstance.connect(governor).approveTransfer(voteContextKey);
+
+        // Skip Timelock
+        await skipDays(3);
+
+        // Fund the treasury instance with ETH
+        await treasuryInstance.fund({ value: ethers.parseEther("5.0") });
+
+        const treasuryBalanceBefore = await treasuryInstance.connect(governor).getBalance();
+        expect(treasuryBalanceBefore).to.equal(ethers.parseEther("5.0"));
+
+        // Execute funding request (with Reentrancy!)
+        await expect(treasuryInstance.connect(governor).executeTransfer(voteContextKey))
+            .to.emit(mockAttacker, "ReentrancyAttempt");
+
+        // Ensure that the treasury balance is 4ETH (only 1 ETH was transferred)
+        const treasuryBalanceAfter = await treasuryInstance.connect(governor).getBalance();
+        expect(treasuryBalanceAfter).to.equal(ethers.parseEther("4.0"));
+
+        // Check if reentrancy was attempted
+        const hasReentered = await mockAttacker.entered();
+        expect(hasReentered).to.be.true;
+    });
+
+    it(`FUNCTION: executeTransfer
+        TESTING: custom error: RequestDoesNotExist
+        EXPECTED: should not allow the treasury instance owner/admin to execute a transfer for a request that does not exist`, async function () {
+        ({ mockGovernanceManager, mockTreasuryManager, mockBeaconManager } = await deployMock_GovernanceManager_TreasuryManager_BeaconManager());
+        await deployTreasuryFactoryWithContractOwner();
+        await deployMockGrantModule();
+
+        // Get governance manager signer
+        const governanceManagerSigner = await setContractAsSignerAndFund(mockGovernanceManager);
+        
+        // Deploy treasury instance: deployTreasuryInstanceWithEOAOwner(treasuryFactorySigner, treasuryMultisig, treasuryRecovery)
+        const treasuryInstance = await deployTreasuryInstanceWithEOAOwner(governanceManagerSigner, await governor.getAddress(), await governor.getAddress());
+
+        // Stop contract as signer
+        await stopContractAsSigner(mockGovernanceManager);
+
+        // Execute funding request
+        await expect(treasuryInstance.connect(governor).executeTransfer(voteContextKey))
+            .to.be.revertedWithCustomError(treasuryInstance, "RequestDoesNotExist");
+    });
+
+    it(`FUNCTION: executeTransfer
+        TESTING: custom error: TransferNotApproved
+        EXPECTED: should not allow the treasury instance owner/admin to execute a transfer that has not been approved`, async function () {
+        ({ mockGovernanceManager, mockTreasuryManager, mockBeaconManager } = await deployMock_GovernanceManager_TreasuryManager_BeaconManager());
+        await deployTreasuryFactoryWithContractOwner();
+        await deployMockGrantModule();
+
+        // Get governance manager signer
+        const governanceManagerSigner = await setContractAsSignerAndFund(mockGovernanceManager);
+        
+        // Deploy treasury instance: deployTreasuryInstanceWithEOAOwner(treasuryFactorySigner, treasuryMultisig, treasuryRecovery)
+        const treasuryInstance = await deployTreasuryInstanceWithEOAOwner(governanceManagerSigner, await governor.getAddress(), await governor.getAddress());
+
+        // Stop contract as signer
+        await stopContractAsSigner(mockGovernanceManager);
+
+        // Get mock grant module contract as signer with funds for gas
+        const mockGrantModuleSigner = await setContractAsSignerAndFund(mockGrantModule);
+       
+        // Request transfer
+        const grantType = ethers.id("grant");
+
+        await treasuryInstance.connect(mockGrantModuleSigner).requestTransfer(
+            voteContextKey,
+            await user1.getAddress(), // to
+            3, // amount
+            grantType // fundingType
+        );
+
+        await stopContractAsSigner(mockGrantModule);
+
+        // Skip Timelock
+        await skipDays(3);
+
+        // Fund the treasury instance with ETH
+        await treasuryInstance.fund({ value: ethers.parseEther("5.0") });
+
+        // Execute funding request
+        await expect(treasuryInstance.connect(governor).executeTransfer(voteContextKey))
+            .to.be.revertedWithCustomError(treasuryInstance, "TransferNotApproved");
+    });
+
+    it(`FUNCTION: executeTransfer
+        TESTING: event: TransferAlreadyExecuted
+        EXPECTED: should not allow the treasury instance owner/admin to execute an already executed transfer`, async function () {
+        ({ mockGovernanceManager, mockTreasuryManager, mockBeaconManager } = await deployMock_GovernanceManager_TreasuryManager_BeaconManager());
+        await deployTreasuryFactoryWithContractOwner();
+        await deployMockGrantModule();
+
+        // Get governance manager signer
+        const governanceManagerSigner = await setContractAsSignerAndFund(mockGovernanceManager);
+        
+        // Deploy treasury instance: deployTreasuryInstanceWithEOAOwner(treasuryFactorySigner, treasuryMultisig, treasuryRecovery)
+        const treasuryInstance = await deployTreasuryInstanceWithEOAOwner(governanceManagerSigner, await governor.getAddress(), await governor.getAddress());
+
+        // Stop contract as signer
+        await stopContractAsSigner(mockGovernanceManager);
+
+        // Get mock grant module contract as signer with funds for gas
+        const mockGrantModuleSigner = await setContractAsSignerAndFund(mockGrantModule);
+       
+        // Request transfer
+        const grantType = ethers.id("grant");
+
+        await treasuryInstance.connect(mockGrantModuleSigner).requestTransfer(
+            voteContextKey,
+            await user1.getAddress(), // to
+            3, // amount
+            grantType // fundingType
+        );
+
+        await stopContractAsSigner(mockGrantModule);
+
+        // Approve funding request
+        await treasuryInstance.connect(governor).approveTransfer(voteContextKey);
+        
+        // Skip Timelock 
+        await skipDays(3);
+
+        // Fund the treasury instance with ETH
+        await treasuryInstance.fund({ value: ethers.parseEther("5.0") });
+
+        // Execute funding request
+        await treasuryInstance.connect(governor).executeTransfer(voteContextKey);
+
+        // Execute funding request
+        await expect(treasuryInstance.connect(governor).executeTransfer(voteContextKey))
+            .to.be.revertedWithCustomError(treasuryInstance, "TransferAlreadyExecuted");
+    });
+
+    it(`FUNCTION: executeTransfer
+        TESTING: event: RequestInTimelock
+        EXPECTED: should not allow the treasury instance owner/admin to execute a transfer that is still in the timelock period`, async function () {
+        ({ mockGovernanceManager, mockTreasuryManager, mockBeaconManager } = await deployMock_GovernanceManager_TreasuryManager_BeaconManager());
+        await deployTreasuryFactoryWithContractOwner();
+        await deployMockGrantModule();
+
+        // Get governance manager signer
+        const governanceManagerSigner = await setContractAsSignerAndFund(mockGovernanceManager);
+        
+        // Deploy treasury instance: deployTreasuryInstanceWithEOAOwner(treasuryFactorySigner, treasuryMultisig, treasuryRecovery)
+        const treasuryInstance = await deployTreasuryInstanceWithEOAOwner(governanceManagerSigner, await governor.getAddress(), await governor.getAddress());
+
+        // Stop contract as signer
+        await stopContractAsSigner(mockGovernanceManager);
+
+        // Get mock grant module contract as signer with funds for gas
+        const mockGrantModuleSigner = await setContractAsSignerAndFund(mockGrantModule);
+       
+        // Request transfer
+        const grantType = ethers.id("grant");
+
+        await treasuryInstance.connect(mockGrantModuleSigner).requestTransfer(
+            voteContextKey,
+            await user1.getAddress(), // to
+            3, // amount
+            grantType // fundingType
+        );
+
+        await stopContractAsSigner(mockGrantModule);
+
+        // Approve funding request
+        await treasuryInstance.connect(governor).approveTransfer(voteContextKey);
+        
+        // Skip Timelock
+        await skipDays(2);
+
+        // Fund the treasury instance with ETH
+        await treasuryInstance.fund({ value: ethers.parseEther("5.0") });
+
+        // Execute funding request
+        await expect(treasuryInstance.connect(governor).executeTransfer(voteContextKey))
+            .to.be.revertedWithCustomError(treasuryInstance, "RequestInTimelock");
+    });
+
+    it(`FUNCTION: executeTransfer
+        TESTING: event: InconsistentFundingModule
+        EXPECTED: should not allow the treasury instance owner/admin to execute a transfer with an inconsistent funding module`, async function () {
+        ({ mockGovernanceManager, mockTreasuryManager, mockBeaconManager } = await deployMock_GovernanceManager_TreasuryManager_BeaconManager());
+        await deployTreasuryFactoryWithContractOwner();
+        await deployMockGrantModule();
+
+        // Get governance manager signer
+        const governanceManagerSigner = await setContractAsSignerAndFund(mockGovernanceManager);
+        
+        // Deploy treasury instance: deployTreasuryInstanceWithEOAOwner(treasuryFactorySigner, treasuryMultisig, treasuryRecovery)
+        const treasuryInstance = await deployTreasuryInstanceWithEOAOwner(governanceManagerSigner, await governor.getAddress(), await governor.getAddress());
+
+        // Stop contract as signer
+        await stopContractAsSigner(mockGovernanceManager);
+
+        // Get mock grant module contract as signer with funds for gas
+        const mockGrantModuleSigner = await setContractAsSignerAndFund(mockGrantModule);
+       
+        // Request transfer
+        const grantType = ethers.id("grant");
+
+        await treasuryInstance.connect(mockGrantModuleSigner).requestTransfer(
+            voteContextKey,
+            await user1.getAddress(), // to
+            3, // amount
+            grantType // fundingType
+        );
+
+        await stopContractAsSigner(mockGrantModule);
+
+        // Approve funding request
+        await treasuryInstance.connect(governor).approveTransfer(voteContextKey);
+
+        // Change the grant module address in GovernanceManager after approving the transfer
+        await mockGovernanceManager.connect(deployer).addFundingModule(
+            membershipManager.target, 
+            ethers.id("grant")
+        );
+        
+        // Skip Timelock 
+        await skipDays(3);
+
+        // Fund the treasury instance with ETH
+        await treasuryInstance.fund({ value: ethers.parseEther("5.0") });
+
+        // Execute funding request
+        await expect(treasuryInstance.connect(governor).executeTransfer(voteContextKey))
+            .to.be.revertedWithCustomError(treasuryInstance, "InconsistentFundingModule");
+    });
+
+    it(`FUNCTION: executeTransfer
+        TESTING: event: InsufficientBalance
+        EXPECTED: should not allow the treasury instance owner/admin to execute a transfer with an insufficient treasury balance`, async function () {
+        ({ mockGovernanceManager, mockTreasuryManager, mockBeaconManager } = await deployMock_GovernanceManager_TreasuryManager_BeaconManager());
+        await deployTreasuryFactoryWithContractOwner();
+        await deployMockGrantModule();
+
+        // Get governance manager signer
+        const governanceManagerSigner = await setContractAsSignerAndFund(mockGovernanceManager);
+        
+        // Deploy treasury instance: deployTreasuryInstanceWithEOAOwner(treasuryFactorySigner, treasuryMultisig, treasuryRecovery)
+        const treasuryInstance = await deployTreasuryInstanceWithEOAOwner(governanceManagerSigner, await governor.getAddress(), await governor.getAddress());
+
+        // Stop contract as signer
+        await stopContractAsSigner(mockGovernanceManager);
+
+        // Get mock grant module contract as signer with funds for gas
+        const mockGrantModuleSigner = await setContractAsSignerAndFund(mockGrantModule);
+       
+        // Request transfer
+        const grantType = ethers.id("grant");
+
+        await treasuryInstance.connect(mockGrantModuleSigner).requestTransfer(
+            voteContextKey,
+            await user1.getAddress(), // to
+            ethers.parseEther("3.0"), // amount
+            grantType // fundingType
+        );
+
+        await stopContractAsSigner(mockGrantModule);
+
+        // Approve funding request
+        await treasuryInstance.connect(governor).approveTransfer(voteContextKey);
+        
+        // Skip Timelock
+        await skipDays(3);
+
+        // Fund the treasury instance with ETH
+        await treasuryInstance.fund({ value: ethers.parseEther("2.0") });
+
+        // Execute funding request
+        await expect(treasuryInstance.connect(governor).executeTransfer(voteContextKey))
+            .to.be.revertedWithCustomError(treasuryInstance, "InsufficientBalance");
+    });
+
+    it(`FUNCTION: executeTransfer
+        TESTING: mapping: fundingRequests, execute status
+        EXPECTED: should store the correct funding request details and executed status in the mapping`, async function () {
+        ({ mockGovernanceManager, mockTreasuryManager, mockBeaconManager } = await deployMock_GovernanceManager_TreasuryManager_BeaconManager());
+        await deployTreasuryFactoryWithContractOwner();
+        await deployMockGrantModule();
+
+        // Get governance manager signer
+        const governanceManagerSigner = await setContractAsSignerAndFund(mockGovernanceManager);
+        
+        // Deploy treasury instance: deployTreasuryInstanceWithEOAOwner(treasuryFactorySigner, treasuryMultisig, treasuryRecovery)
+        const treasuryInstance = await deployTreasuryInstanceWithEOAOwner(governanceManagerSigner, await governor.getAddress(), await governor.getAddress());
+
+        // Stop contract as signer
+        await stopContractAsSigner(mockGovernanceManager);
+
+        // Get mock grant module contract as signer with funds for gas
+        const mockGrantModuleSigner = await setContractAsSignerAndFund(mockGrantModule);
+
+        // Request transfer
+        const grantType = ethers.id("grant");
+        await treasuryInstance.connect(mockGrantModuleSigner).requestTransfer(
+            voteContextKey,
+            await user1.getAddress(), // to
+            ethers.parseEther("1"), // amount
+            grantType // fundingType
+        );
+
+        // Request a different transfer
+        const voteContextKey2 = Conversions.stringToBytes32("voteContextKey2");;
+        await treasuryInstance.connect(mockGrantModuleSigner).requestTransfer(
+            voteContextKey2,
+            await relayer.getAddress(), // to
+            ethers.parseEther("2"), // amount
+            grantType // fundingType
+        );
+
+        await stopContractAsSigner(mockGrantModule);
+
+        // Approve funding requests
+        await treasuryInstance.connect(governor).approveTransfer(voteContextKey);
+        await treasuryInstance.connect(governor).approveTransfer(voteContextKey2);
+
+        // Skip Timelock
+        await skipDays(3);
+
+        // Fund the treasury instance with ETH
+        await treasuryInstance.fund({ value: ethers.parseEther("3.0") });
+
+        // Execute funding requests
+        await treasuryInstance.connect(governor).executeTransfer(voteContextKey);
+        await treasuryInstance.connect(governor).executeTransfer(voteContextKey2);
+
+        // Get the stored funding request
+        const fundingRequest = await treasuryInstance.connect(governor).getFundingRequest(voteContextKey);
+
+        // Check that the funding request details are correct
+        expect(fundingRequest).to.deep.equal([
+            grantType,
+            await mockGrantModuleSigner.getAddress(),
+            await user1.getAddress(),
+            ethers.parseEther("1"),
+            fundingRequest.requestedAt,
+            fundingRequest.requestedAt + BigInt(3 * 24 * 60 * 60),
+            true,
+            true
+        ]);
+
+        // Check that the funding request details for the second request are correct
+        const fundingRequest2 = await treasuryInstance.connect(governor).getFundingRequest(voteContextKey2);
+        expect(fundingRequest2).to.deep.equal([
+            grantType,
+            await mockGrantModuleSigner.getAddress(),
+            await relayer.getAddress(),
+            ethers.parseEther("2"),
+            fundingRequest2.requestedAt,
+            fundingRequest2.requestedAt + BigInt(3 * 24 * 60 * 60),
+            true,
+            true
+        ]);
+
+    });
+
+    it(`FUNCTION: executeTransfer
+        TESTING: authorization (failure)
+        EXPECTED: should not allow a non-owner/admin to execute a transfer`, async function () {
+        ({ mockGovernanceManager, mockTreasuryManager, mockBeaconManager } = await deployMock_GovernanceManager_TreasuryManager_BeaconManager());
+        await deployTreasuryFactoryWithContractOwner();
+        await deployMockGrantModule();
+
+        // Get governance manager signer
+        const governanceManagerSigner = await setContractAsSignerAndFund(mockGovernanceManager);
+        
+        // Deploy treasury instance: deployTreasuryInstanceWithEOAOwner(treasuryFactorySigner, treasuryMultisig, treasuryRecovery)
+        const treasuryInstance = await deployTreasuryInstanceWithEOAOwner(governanceManagerSigner, await governor.getAddress(), await governor.getAddress());
+
+        // Stop contract as signer
+        await stopContractAsSigner(mockGovernanceManager);
+
+        // Get mock grant module contract as signer with funds for gas
+        const mockGrantModuleSigner = await setContractAsSignerAndFund(mockGrantModule);
+       
+        // Request transfer
+        const grantType = ethers.id("grant");
+
+        await treasuryInstance.connect(mockGrantModuleSigner).requestTransfer(
+            voteContextKey,
+            await user1.getAddress(), // to
+            ethers.parseEther("3.0"), // amount
+            grantType // fundingType
+        );
+
+        await stopContractAsSigner(mockGrantModule);
+
+        // Approve funding request
+        await treasuryInstance.connect(governor).approveTransfer(voteContextKey);
+        
+        // Skip Timelock
+        await skipDays(3);
+
+        // Fund the treasury instance with ETH
+        await treasuryInstance.fund({ value: ethers.parseEther("2.0") });
+
+        // Execute funding request
+        await expect(treasuryInstance.connect(deployer).executeTransfer(voteContextKey))
+            .to.be.revertedWithCustomError(treasuryInstance, "AccessControlUnauthorizedAccount");
+    });
+
+    it(`FUNCTION: executeTransfer
+        TESTING: custom error: TransferFailed
+        EXPECTED: should not alter state after a failed transfer`, async function () {
+        ({ mockGovernanceManager, mockTreasuryManager, mockBeaconManager } = await deployMock_GovernanceManager_TreasuryManager_BeaconManager());
+        await deployTreasuryFactoryWithContractOwner();
+        await deployMockGrantModule();
+
+        // Get governance manager signer
+        const governanceManagerSigner = await setContractAsSignerAndFund(mockGovernanceManager);
+        
+        // Deploy treasury instance: deployTreasuryInstanceWithEOAOwner(treasuryFactorySigner, treasuryMultisig, treasuryRecovery)
+        const treasuryInstance = await deployTreasuryInstanceWithEOAOwner(governanceManagerSigner, await governor.getAddress(), await governor.getAddress());
+
+        // Stop contract as signer
+        await stopContractAsSigner(mockGovernanceManager);
+
+        // Get mock grant module contract as signer with funds for gas
+        const mockGrantModuleSigner = await setContractAsSignerAndFund(mockGrantModule);
+       
+        // Request transfer
+        const grantType = ethers.id("grant");
+
+        await treasuryInstance.connect(mockGrantModuleSigner).requestTransfer(
+            voteContextKey,
+            await membershipManager.target, // to: does not have a receive() function
+            ethers.parseEther("3.0"), // amount
+            grantType // fundingType
+        );
+
+        await stopContractAsSigner(mockGrantModule);
+
+        // Approve funding request
+        await treasuryInstance.connect(governor).approveTransfer(voteContextKey);
+        
+        // Skip Timelock
+        await skipDays(3);
+
+        // Fund the treasury instance with ETH
+        await treasuryInstance.fund({ value: ethers.parseEther("3.0") });
+
+        // Execute funding request
+        await expect(treasuryInstance.connect(governor).executeTransfer(voteContextKey))
+            .to.be.revertedWithCustomError(treasuryInstance, "TransferFailed");
+        
+        const fundingRequest = await treasuryInstance.connect(governor).getFundingRequest(voteContextKey);
+        // Ensure the request was not marked as executed
+        expect(fundingRequest.executed).to.be.false; 
+        // Ensure that the treasury's balance remains unchanged
+        expect(await treasuryInstance.connect(governor).getBalance()).to.equal(ethers.parseEther("3.0"));
+    });
+
+    it(`FUNCTION: approveAndExecuteTransfer
+        TESTING: authorization (failure)
+        EXPECTED: should not allow a non-owner/admin to approve and execute a transfer`, async function () {
+        ({ mockGovernanceManager, mockTreasuryManager, mockBeaconManager } = await deployMock_GovernanceManager_TreasuryManager_BeaconManager());
+        await deployTreasuryFactoryWithContractOwner();
+        await deployMockGrantModule();
+
+        // Get governance manager signer
+        const governanceManagerSigner = await setContractAsSignerAndFund(mockGovernanceManager);
+        
+        // Deploy treasury instance: deployTreasuryInstanceWithEOAOwner(treasuryFactorySigner, treasuryMultisig, treasuryRecovery)
+        const treasuryInstance = await deployTreasuryInstanceWithEOAOwner(governanceManagerSigner, await governor.getAddress(), await governor.getAddress());
+
+        // Stop contract as signer
+        await stopContractAsSigner(mockGovernanceManager);
+
+        // Get mock grant module contract as signer with funds for gas
+        const mockGrantModuleSigner = await setContractAsSignerAndFund(mockGrantModule);
+       
+        // Request transfer
+        const grantType = ethers.id("grant");
+
+        await treasuryInstance.connect(mockGrantModuleSigner).requestTransfer(
+            voteContextKey,
+            await user1.getAddress(), // to
+            ethers.parseEther("3.0"), // amount
+            grantType // fundingType
+        );
+
+        await stopContractAsSigner(mockGrantModule);
+ 
+        // Skip Timelock
+        await skipDays(3);
+
+        // Fund the treasury instance with ETH
+        await treasuryInstance.fund({ value: ethers.parseEther("2.0") });
+
+        // Execute funding request
+        await expect(treasuryInstance.connect(deployer).approveAndExecuteTransfer(voteContextKey))
+            .to.be.revertedWithCustomError(treasuryInstance, "AccessControlUnauthorizedAccount");
+    });
+
+    it(`FUNCTION: approveAndExecuteTransfer
+        TESTING: authorization (success), events: TransferApproved, TransferExecuted
+        EXPECTED: should allow an owner/admin to approve and execute a transfer`, async function () {
+        ({ mockGovernanceManager, mockTreasuryManager, mockBeaconManager } = await deployMock_GovernanceManager_TreasuryManager_BeaconManager());
+        await deployTreasuryFactoryWithContractOwner();
+        await deployMockGrantModule();
+
+        // Get governance manager signer
+        const governanceManagerSigner = await setContractAsSignerAndFund(mockGovernanceManager);
+        
+        // Deploy treasury instance: deployTreasuryInstanceWithEOAOwner(treasuryFactorySigner, treasuryMultisig, treasuryRecovery)
+        const treasuryInstance = await deployTreasuryInstanceWithEOAOwner(governanceManagerSigner, await governor.getAddress(), await governor.getAddress());
+
+        // Stop contract as signer
+        await stopContractAsSigner(mockGovernanceManager);
+
+        // Get mock grant module contract as signer with funds for gas
+        const mockGrantModuleSigner = await setContractAsSignerAndFund(mockGrantModule);
+       
+        // Request transfer
+        const grantType = ethers.id("grant");
+
+        await treasuryInstance.connect(mockGrantModuleSigner).requestTransfer(
+            voteContextKey,
+            await user1.getAddress(), // to
+            ethers.parseEther("3.0"), // amount
+            grantType // fundingType
+        );
+
+        await stopContractAsSigner(mockGrantModule);
+ 
+        // Skip Timelock
+        await skipDays(3);
+
+        // Fund the treasury instance with ETH
+        await treasuryInstance.fund({ value: ethers.parseEther("3.0") });
+
+        // Execute funding request
+        expect(await treasuryInstance.connect(governor).approveAndExecuteTransfer(voteContextKey))
+            .to.emit(treasuryInstance, "TransferApproved")
+            .to.emit(treasuryInstance, "TransferExecuted");
+    });
+
+    it(`FUNCTION: approveAndExecuteTransfer
+        TESTING: events: TransferExecuted
+        EXPECTED: should only execute the transfer and skip approval if it is already approved`, async function () {
+        ({ mockGovernanceManager, mockTreasuryManager, mockBeaconManager } = await deployMock_GovernanceManager_TreasuryManager_BeaconManager());
+        await deployTreasuryFactoryWithContractOwner();
+        await deployMockGrantModule();
+
+        // Get governance manager signer
+        const governanceManagerSigner = await setContractAsSignerAndFund(mockGovernanceManager);
+        
+        // Deploy treasury instance: deployTreasuryInstanceWithEOAOwner(treasuryFactorySigner, treasuryMultisig, treasuryRecovery)
+        const treasuryInstance = await deployTreasuryInstanceWithEOAOwner(governanceManagerSigner, await governor.getAddress(), await governor.getAddress());
+
+        // Stop contract as signer
+        await stopContractAsSigner(mockGovernanceManager);
+
+        // Get mock grant module contract as signer with funds for gas
+        const mockGrantModuleSigner = await setContractAsSignerAndFund(mockGrantModule);
+       
+        // Request transfer
+        const grantType = ethers.id("grant");
+
+        await treasuryInstance.connect(mockGrantModuleSigner).requestTransfer(
+            voteContextKey,
+            await user1.getAddress(), // to
+            ethers.parseEther("3.0"), // amount
+            grantType // fundingType
+        );
+
+        await stopContractAsSigner(mockGrantModule);
+ 
+        // Skip Timelock
+        await skipDays(3);
+
+        // Fund the treasury instance with ETH
+        await treasuryInstance.fund({ value: ethers.parseEther("3.0") });
+
+        // Approve transfer
+        await treasuryInstance.connect(governor).approveTransfer(voteContextKey);
+        const fundingRequest = await treasuryInstance.connect(governor).getFundingRequest(voteContextKey);
+        expect(fundingRequest.approved).to.be.true;
+
+        // Execute funding request
+        expect(await treasuryInstance.connect(governor).approveAndExecuteTransfer(voteContextKey))
+            .to.emit(treasuryInstance, "ApprovalSkipped")
+            .to.emit(treasuryInstance, "TransferExecuted");
+    });
 
 
+    it(`FUNCTION: cancelTransfer
+        TESTING: authorization (success), events: TransferCancelled
+        EXPECTED: should allow an owner/admin to cancel a requested transfer`, async function () {
+        ({ mockGovernanceManager, mockTreasuryManager, mockBeaconManager } = await deployMock_GovernanceManager_TreasuryManager_BeaconManager());
+        await deployTreasuryFactoryWithContractOwner();
+        await deployMockGrantModule();
 
+        // Get governance manager signer
+        const governanceManagerSigner = await setContractAsSignerAndFund(mockGovernanceManager);
+
+        // Deploy treasury instance: deployTreasuryInstanceWithEOAOwner(treasuryFactorySigner, treasuryMultisig, treasuryRecovery)
+        const treasuryInstance = await deployTreasuryInstanceWithEOAOwner(governanceManagerSigner, await governor.getAddress(), await governor.getAddress());
+
+        // Stop contract as signer
+        await stopContractAsSigner(mockGovernanceManager);
+
+        // Get mock grant module contract as signer with funds for gas
+        const mockGrantModuleSigner = await setContractAsSignerAndFund(mockGrantModule);
+
+        // Request transfer
+        const grantType = ethers.id("grant");
+
+        await treasuryInstance.connect(mockGrantModuleSigner).requestTransfer(
+            voteContextKey,
+            await user1.getAddress(), // to
+            ethers.parseEther("3.0"), // amount
+            grantType // fundingType
+        );
+
+        await stopContractAsSigner(mockGrantModule);
+
+        // Fund the treasury instance with ETH
+        await treasuryInstance.fund({ value: ethers.parseEther("3.0") });
+
+        // Cancel the funding request
+        expect(await treasuryInstance.connect(governor).cancelTransfer(voteContextKey))
+            .to.emit(treasuryInstance, "TransferCancelled")
+            .withArgs(voteContextKey);
+
+        // Check that the funding request does not exist
+        const fundingRequest = await treasuryInstance.connect(governor).getFundingRequest(voteContextKey);
+        expect(fundingRequest).to.deep.equal([
+            ethers.ZeroHash,
+            ethers.ZeroAddress,
+            ethers.ZeroAddress,
+            BigInt(0),
+            BigInt(0),
+            BigInt(0),
+            false,
+            false
+        ]);
+
+        // Attempt to re-request same transfer
+        // Get mock grant module contract as signer with funds for gas
+        await setContractAsSignerAndFund(mockGrantModule);
+
+        // Request transfer
+        expect(await treasuryInstance.connect(mockGrantModuleSigner).requestTransfer(
+            voteContextKey,
+            await user1.getAddress(), // to
+            ethers.parseEther("3.0"), // amount
+            grantType // fundingType
+        )).to.emit(treasuryInstance, "TransferRequested");
+
+        await stopContractAsSigner(mockGrantModule);
+
+    });
+
+    it(`FUNCTION: cancelTransfer
+        TESTING: authorization (failure)
+        EXPECTED: should not allow a non-owner/admin to cancel a requested transfer`, async function () {
+        ({ mockGovernanceManager, mockTreasuryManager, mockBeaconManager } = await deployMock_GovernanceManager_TreasuryManager_BeaconManager());
+        await deployTreasuryFactoryWithContractOwner();
+        await deployMockGrantModule();
+
+        // Get governance manager signer
+        const governanceManagerSigner = await setContractAsSignerAndFund(mockGovernanceManager);
+
+        // Deploy treasury instance: deployTreasuryInstanceWithEOAOwner(treasuryFactorySigner, treasuryMultisig, treasuryRecovery)
+        const treasuryInstance = await deployTreasuryInstanceWithEOAOwner(governanceManagerSigner, await governor.getAddress(), await governor.getAddress());
+
+        // Stop contract as signer
+        await stopContractAsSigner(mockGovernanceManager);
+
+        // Get mock grant module contract as signer with funds for gas
+        const mockGrantModuleSigner = await setContractAsSignerAndFund(mockGrantModule);
+
+        // Request transfer
+        const grantType = ethers.id("grant");
+
+        await treasuryInstance.connect(mockGrantModuleSigner).requestTransfer(
+            voteContextKey,
+            await user1.getAddress(), // to
+            ethers.parseEther("3.0"), // amount
+            grantType // fundingType
+        );
+
+        await stopContractAsSigner(mockGrantModule);
+
+        // Fund the treasury instance with ETH
+        await treasuryInstance.fund({ value: ethers.parseEther("3.0") });
+
+        // Cancel the funding request
+        await expect(treasuryInstance.connect(deployer).cancelTransfer(voteContextKey))
+            .to.be.revertedWithCustomError(treasuryInstance, "AccessControlUnauthorizedAccount");
+    });
+
+    it(`FUNCTION: cancelTransfer
+        TESTING: custom error: RequestDoesNotExist
+        EXPECTED: should not allow the owner/admin to cancel a transfer that has never been requested`, async function () {
+        ({ mockGovernanceManager, mockTreasuryManager, mockBeaconManager } = await deployMock_GovernanceManager_TreasuryManager_BeaconManager());
+        await deployTreasuryFactoryWithContractOwner();
+        await deployMockGrantModule();
+
+        // Get governance manager signer
+        const governanceManagerSigner = await setContractAsSignerAndFund(mockGovernanceManager);
+
+        // Deploy treasury instance: deployTreasuryInstanceWithEOAOwner(treasuryFactorySigner, treasuryMultisig, treasuryRecovery)
+        const treasuryInstance = await deployTreasuryInstanceWithEOAOwner(governanceManagerSigner, await governor.getAddress(), await governor.getAddress());
+
+        // Stop contract as signer
+        await stopContractAsSigner(mockGovernanceManager);
+
+        // Fund the treasury instance with ETH
+        await treasuryInstance.fund({ value: ethers.parseEther("3.0") });
+
+        // Cancel the funding request
+        await expect(treasuryInstance.connect(governor).cancelTransfer(voteContextKey))
+            .to.be.revertedWithCustomError(treasuryInstance, "RequestDoesNotExist");
+    });
+
+    it(`FUNCTION: cancelTransfer
+        TESTING: custom error: TransferAlreadyExecuted
+        EXPECTED: should not allow the owner/admin to cancel a transfer that has already been executed`, async function () {
+        ({ mockGovernanceManager, mockTreasuryManager, mockBeaconManager } = await deployMock_GovernanceManager_TreasuryManager_BeaconManager());
+        await deployTreasuryFactoryWithContractOwner();
+        await deployMockGrantModule();
+
+        // Get governance manager signer
+        const governanceManagerSigner = await setContractAsSignerAndFund(mockGovernanceManager);
+
+        // Deploy treasury instance: deployTreasuryInstanceWithEOAOwner(treasuryFactorySigner, treasuryMultisig, treasuryRecovery)
+        const treasuryInstance = await deployTreasuryInstanceWithEOAOwner(governanceManagerSigner, await governor.getAddress(), await governor.getAddress());
+
+        // Stop contract as signer
+        await stopContractAsSigner(mockGovernanceManager);
+
+        // Get mock grant module contract as signer with funds for gas
+        const mockGrantModuleSigner = await setContractAsSignerAndFund(mockGrantModule);
+
+        // Request transfer
+        const grantType = ethers.id("grant");
+
+        await treasuryInstance.connect(mockGrantModuleSigner).requestTransfer(
+            voteContextKey,
+            await user1.getAddress(), // to
+            ethers.parseEther("3.0"), // amount
+            grantType // fundingType
+        );
+
+        await stopContractAsSigner(mockGrantModule);
+
+        // Skip Timelock
+        await skipDays(3);
+
+        // Fund the treasury instance with ETH
+        await treasuryInstance.fund({ value: ethers.parseEther("3.0") });
+
+        // Execute funding request
+        await treasuryInstance.connect(governor).approveAndExecuteTransfer(voteContextKey);
+
+        // Attempt to cancel the funding request
+        await expect(treasuryInstance.connect(governor).cancelTransfer(voteContextKey))
+            .to.be.revertedWithCustomError(treasuryInstance, "TransferAlreadyExecuted");
+    });
+
+    it(`FUNCTION: fund
+        TESTING: custom error: AmountCannotBeZero
+        EXPECTED: should not allow to fund the treasury with zero amount`, async function () {
+        ({ mockGovernanceManager, mockTreasuryManager, mockBeaconManager } = await deployMock_GovernanceManager_TreasuryManager_BeaconManager());
+        await deployTreasuryFactoryWithContractOwner();
+        await deployMockGrantModule();
+
+        // Get governance manager signer
+        const governanceManagerSigner = await setContractAsSignerAndFund(mockGovernanceManager);
+
+        // Deploy treasury instance: deployTreasuryInstanceWithEOAOwner(treasuryFactorySigner, treasuryMultisig, treasuryRecovery)
+        const treasuryInstance = await deployTreasuryInstanceWithEOAOwner(governanceManagerSigner, await governor.getAddress(), await governor.getAddress());
+
+        // Stop contract as signer
+        await stopContractAsSigner(mockGovernanceManager);
+
+        await expect(treasuryInstance.connect(governor).fund({ value: 0 }))
+            .to.be.revertedWithCustomError(treasuryInstance, "AmountCannotBeZero");
+    });
 });

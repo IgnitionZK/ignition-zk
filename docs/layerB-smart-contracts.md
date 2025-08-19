@@ -18,17 +18,19 @@ This layer provides the foundational smart contract architecture, ensuring the f
 
 | Smart Contract | Function | Type | Stores | Responsibilities | Owner |
 |---|---|---|---|---|---|
-| [Membership Manager](hardhat/contracts/managers/MembershipManager.sol) | ZK Engine | UUPS ERC-1967 | <ul><li>Merkle roots</ul>| <ul><li>Deploy Group NFTs<li>Manage DAO members <li> Verify DAO membership </ul> | Governance Mgr
-| [Proposal Manager](hardhat/contracts/managers/ProposalManager.sol)  | ZK Engine | UUPS ERC-1967 | <ul><li>Proposal submission nullifiers <li> Proposal claim nullifiers</ul> | <ul><li>Verify proposal submissions <li>Verify proposal claims</ul> | Governance Mgr
-| [Vote Manager](hardhat/contracts/managers/VoteManager.sol) | ZK Engine | UUPS ERC-1967 | <ul><li>Vote Nullifiers<li>Proposal results: tally, passed status<li> quorum parameters <li> group member count and quorum </ul> | <ul><li>Verify vote validity <li> Store and update proposal status </ul> | Governance Mgr
-| [Membership Verifier](hardhat/contracts/verifiers/MembershipVerifier.sol) |  ZK Engine | Immutable | | <ul><li>Verify DAO membership claims (via MM)</ul> | Unrestricted
-| [Proposal Submission Verifier](hardhat/contracts/verifiers/ProposalVerifier.sol) |  ZK Engine | Immutable | | <ul><li>Verify proposal submission proofs (via PM)</ul> | Unrestricted
-| [Proposal Claim Verifier](hardhat/contracts/verifiers/ProposalVerifier.sol) |  ZK Engine | Immutable | | <ul><li>Verify proposal claim proofs (via PM)</ul> | Unrestricted
-| [Vote Verifier](hardhat/contracts/verifiers/VoteVerifier.sol) | ZK Engine | Immutable | | <ul><li>Verify voting proofs (via VM)</ul> | Unrestricted
+| [MembershipManager](hardhat/contracts/managers/MembershipManager.sol) | ZK Engine | UUPS ERC-1967 | <ul><li>Merkle roots</ul>| <ul><li>Deploy Group NFTs<li>Manage DAO members <li> Verify DAO membership </ul> | Governance Mgr
+| [ProposalManager](hardhat/contracts/managers/ProposalManager.sol)  | ZK Engine | UUPS ERC-1967 | <ul><li>Proposal submission nullifiers <li> Proposal claim nullifiers</ul> | <ul><li>Verify proposal submissions <li>Verify proposal claims</ul> | Governance Mgr
+| [VoteManager](hardhat/contracts/managers/VoteManager.sol) | ZK Engine | UUPS ERC-1967 | <ul><li>Vote Nullifiers<li>Proposal results: tally, passed status, proposal nullifier<li> quorum parameters <li> group member count and quorum </ul> | <ul><li>Verify vote validity <li> Store and update proposal status </ul> | Governance Mgr
+| [MembershipVerifier](hardhat/contracts/verifiers/MembershipVerifier.sol) |  ZK Engine | Immutable | | <ul><li>Verify DAO membership claims (via MM)</ul> | Unrestricted
+| [ProposalSubmissionVerifier](hardhat/contracts/verifiers/ProposalVerifier.sol) |  ZK Engine | Immutable | | <ul><li>Verify proposal submission proofs (via PM)</ul> | Unrestricted
+| [ProposalClaimVerifier](hardhat/contracts/verifiers/ProposalVerifier.sol) |  ZK Engine | Immutable | | <ul><li>Verify proposal claim proofs (via PM)</ul> | Unrestricted
+| [VoteVerifier](hardhat/contracts/verifiers/VoteVerifier.sol) | ZK Engine | Immutable | | <ul><li>Verify voting proofs (via VM)</ul> | Unrestricted
 | [ERC721IgnitionZK](hardhat/contracts/token/ERC721IgnitionZK.sol) | NFT Factory  | Clone EIP-1167 | | <ul><li>Deploy NFT Clones for DAOs</ul> | Membership Mgr
-| [Governance Manager](hardhat/contracts/governance/GovernanceManager.sol)  | Governance | UUPS ERC-1967 | | <ul><li>Delegate calls to Managers via the relayer </ul> | Multi-sig
-| Treasury Manager | Treasury | ... | ... | ... | Governance Mgr
-| Grant Module | Funding Module | ... | ... | ... | Governance Mgr
+| [GovernanceManager](hardhat/contracts/governance/GovernanceManager.sol)  | Governance | UUPS ERC-1967 | <ul><li>Addresses of active funding modules </ul> | <ul><li>Delegate calls to Managers via the relayer </ul> | IgnitionZK MultiSig
+| [TreasuryManager](hardhat/contracts/treasury/TreasuryManager.sol) | Treasury | Immutable  | Beacon proxy instances store: <ul><li> funding request records </ul> | <ul><li>Template for beacon proxy instance deployment <li> Creates Access-Controled upgradeable proxies </ul> | <ul><li> TreasuryManager: not initialized on deployment <li> Beacon proxies: DAO Treasury MultiSig</ul>
+| [BeaconManager](hardhat/contracts/treasury/BeaconManager.sol) | Treasury | Beacon (immutable) | Implementation address | <ul><li>Holds implementation for TreasuryManager BeaconProxies <li> Owner can update implementation (upgrades all treasuries) </ul> | IgnitionZK MultiSig
+| [TreasuryFactory](hardhat/contracts/treasury/TreasuryFactory.sol) | Treasury | Immutable  | <ul><li> Beacon proxy addresses </ul> | <ul><li>Deploys beacon proxy instances </ul> | Governance Mgr
+| [GrantModule](hardhat/contracts/fundingModules/GrantModule.sol) | Funding Module | UUPS ERC-1967 | | <ul><li> Initiates grant funding requests to the treasury instances</ul> | Governance Mgr
 | Quadratic Funding Module | Funding Module | ... | ... | ... | Governance Mgr
 
 </details>
