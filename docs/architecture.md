@@ -84,6 +84,11 @@ The Ignition ZK protocol enables privacy-preserving governance through zero-know
    User → Generate ZK Proof → relayer → GovernanceManager → ProposalManager → ProposalClaimVerifier → Release Funds
    ```
 
+5. **Fund Rekease Flow**:
+  ```
+   relayer → GovernanceManager → Funding Module → Treasury instance →  funding request (starts timelock) → Admin approves → Timelock elapses → Admin executes → TreasuryManager sends ETH → Recipient
+   ```
+
 ## Security Model
 
 - **Privacy Protection**: User identities remain private through ZK proofs

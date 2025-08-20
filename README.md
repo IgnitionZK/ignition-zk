@@ -34,7 +34,8 @@
     * [Phase 1: DAO Formation and Membership](#phase-1-dao-formation-and-membership)
     * [Phase 2: Anonymous Proposal Submissions](#phase-2-anonymous-proposal-submissions)
     * [Phase 3: Anonymous Voting](#phase-3-anonymous-voting)
-    * [Phase 4: Proposal Funding Claims & Execution](#phase-4-proposal-funding-claims)
+    * [Phase 4: Claiming Proposal Awards](#phase-4-claiming-proposal-awards)
+    * [Phase 5: Proposal Execution](#phase-5-proposal-executio)
 
 ## Key Features & Capabilities
 
@@ -55,7 +56,7 @@ The IgnitionZK framework combines a zero-knowledge cryptographic engine with a f
 
 ## Layer A: ZK Engine
 
-The ZK Engine enables privacy-preserving governance through specialized zero-knowledge circuits and supporting tools. Using the PLONK ZKP protocol and Poseidon hashing, it allows members to prove statements without revealing underlying data.
+The ZK Engine enables privacy-preserving governance through specialized zero-knowledge circuits and supporting tools. Using the PLONK ZKP protocol, it allows members to prove statements without revealing underlying data.
 
 **Key Components:**
 * **ZK Circuits**: Mathematical constructs for proving membership, proposal submission, voting, and claiming
@@ -127,6 +128,7 @@ Members anonymously submit proposals during governance campaigns:
 ### Phase 3: Anonymous Voting
 
 ![Vote casting](frontend/src/assets/vote_casting.png)
+*Casting a vote*
 
 DAO members vote on proposals anonymously while maintaining verifiability:
 
@@ -138,12 +140,21 @@ DAO members vote on proposals anonymously while maintaining verifiability:
 [➡️ Detailed Voting Documentation](./docs/lifecycle-phase3-voting.md)
 
 
+### Phase 4: Claiming Proposal Awards
 
-### **Phase 4:** Proposal Claims
+![Proposal claim](frontend/src/assets/proposal-claims.png)
+*Proposer submits a ZK-proof to claim ownership of an accepted proposal*
 
+Once a proposal passes, a process begins to allow the release of the awarded funds: 
 
+1. **Review Phase**: A designated period after voting ends allows for final review before any funds are claimed or released.
+2. **Ownership Claim**: The original proposer generates and submits a ZK-proof to verifiably claim ownership of the passed proposal. This action proves they are the rightful creator without revealing their private identity.
+3. **Proposal Claimed Status**: Upon successful verification of the claim proof, the proposal's status is updated to "claimed," officially linking the anonymous submission to the proposer.
 
+If successfully claimed, the proposal can move on to the execution phase.
 
+[➡️ Detailed Claims Documentation](./docs/lifecycle-phase4-claims.md)
 
+### Phase 5: Proposal Execution
 
 
