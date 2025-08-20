@@ -15,7 +15,7 @@ This request immediately triggers an approval vote by the rest of the DAO. If th
 
 2. **Voting Phase**: The DAO members vote on the submitted proposals using their ZK credentials.
 
-3. **Timelock / Review Phase**: A final review period ensures the integrity and security of the approved proposals before execution.
+3. **Review Phase**: A final review period allows the proposal creators to claim ownership of their accepted proposal award.
 
 IgnitionZK's governance model is built for flexibility and agility:
 
