@@ -304,8 +304,8 @@ contract GovernanceManager is Initializable, UUPSUpgradeable, OwnableUpgradeable
         onlyOwner
     {   
         if (!FundingTypes.isKnownType(_fundingType)) revert UnknownFundingType();
-        //if (_module.code.length == 0) revert AddressIsNotAContract();
         if (_module == address(0)) revert AddressCannotBeZero();
+        if (_module.code.length == 0) revert AddressIsNotAContract();
 
         address currentModule = activeModuleRegistry[_fundingType];
         activeModuleRegistry[_fundingType] = _module;
@@ -330,7 +330,7 @@ contract GovernanceManager is Initializable, UUPSUpgradeable, OwnableUpgradeable
         external 
         onlyOwner
     {   
-        if (_module == address(0)) revert AddressCannotBeZero();
+        //if (_module == address(0)) revert AddressCannotBeZero();
         if (activeModuleRegistry[_fundingType] != _module) revert ModuleMismatch();
         delete activeModuleRegistry[_fundingType];
         emit FundingModuleRemoved(_fundingType, _module);
@@ -651,92 +651,10 @@ contract GovernanceManager is Initializable, UUPSUpgradeable, OwnableUpgradeable
     // ================================================================================================================
     // 5. TreasuryManager Delegation Functions
     // ================================================================================================================
-    
-    // Note!!!
-    // The GM can call the following functions only while it is still has DEFAULT_ADMIN_ROLE of the DAO treasury instance.
-    // Once DEFAULT_ADMIN_ROLE is transferred to the DAO multiSig the GM will no longer have access to these functions.
-    
-    /**
-     * @notice Delegates the transfer of the admin role to a new address.
-     * @dev Only callable by the relayer.
-     * @param groupKey The unique identifier for the voting group.
-     * @param newAdmin The address of the new admin.
-     */
-    function delegateTransferAdminRole(bytes32 groupKey, address newAdmin) external onlyRelayer {
-        address groupTreasury = _getGroupTreasuryAddress(groupKey);
-        ITreasuryManager(groupTreasury).transferAdminRole(newAdmin);
-    }
-
-    /**
-     * @notice Delegates the approval of a transfer within the group treasury.
-     * @dev Only callable by the relayer.
-     * @param groupKey The unique identifier for the voting group.
-     * @param contextKey The pre-computed context hash (group, epoch, proposal).
-     */
-    function delegateApproveTransfer(bytes32 groupKey, bytes32 contextKey) external onlyRelayer {
-        address groupTreasury = _getGroupTreasuryAddress(groupKey);
-        ITreasuryManager(groupTreasury).approveTransfer(contextKey);
-    }
-
-    /**
-     * @notice Delegates the execution of a transfer within the group treasury.
-     * @dev Only callable by the relayer.
-     * @param groupKey The unique identifier for the voting group.
-     * @param contextKey The pre-computed context hash (group, epoch, proposal).
-     */
-    function delegateExecuteTransfer(bytes32 groupKey, bytes32 contextKey) external onlyRelayer {
-        address groupTreasury = _getGroupTreasuryAddress(groupKey);
-        ITreasuryManager(groupTreasury).executeTransfer(contextKey);
-    }
-
-    /**
-     * @notice Delegates the approval and execution of a transfer within the group treasury.
-     * @dev Only callable by the relayer.
-     * @param groupKey The unique identifier for the voting group.
-     * @param contextKey The pre-computed context hash (group, epoch, proposal).
-     */
-    function delegateApproveAndExecuteTransfer(bytes32 groupKey, bytes32 contextKey) external onlyRelayer {
-        address groupTreasury = _getGroupTreasuryAddress(groupKey);
-        ITreasuryManager(groupTreasury).approveAndExecuteTransfer(contextKey);
-    }
 
     // ================================================================================================================
     // 6. Funding Modules Delegation Functions
     // ================================================================================================================
-
-    /**
-     * @notice Delegates the distribution of a grant to the grant module.
-     * @dev Only callable by the relayer.
-     * @param groupKey The unique identifier for the voting group.
-     * @param contextKey The pre-computed context hash (group, epoch, proposal).
-     * @param to The address to send the grant to.
-     * @param amount The amount of the grant.
-     */
-    /*
-    function delegateDistributeGrant(
-        bytes32 groupKey, 
-        bytes32 contextKey, 
-        address to, 
-        uint256 amount, 
-        bytes32 expectedProposalNullifier
-    ) external onlyRelayer {
-        address groupTreasury = _getGroupTreasuryAddress(groupKey);
-        if (groupTreasury == address(0)) revert TreasuryAddressNotFound();
-        
-        // checks that the proposal with the given contextKey exists and that its passed status it set to true
-        VoteTypes.ProposalResult memory proposalResult = _getProposalResult(contextKey);
-        if (proposalResult.passed == false) revert ProposalNotPassed();
-
-        // checks that the expected proposal submission nullifier matches the stored nullifier
-        if (proposalResult.submissionNullifier != expectedProposalNullifier) revert InvalidNullifier();
-
-        // Get the active address of the grant module
-        address grantModule = activeModuleRegistry[FundingTypes.GRANT_TYPE];
-        if (grantModule == address(0)) revert FundingModuleNotFound();
-
-        IGrantModule(grantModule).distributeGrant(groupTreasury, contextKey, to, amount);
-    }
-    */
 
     /**
      * @notice Executes a proposal by distributing funds from the group treasury.
@@ -761,7 +679,7 @@ contract GovernanceManager is Initializable, UUPSUpgradeable, OwnableUpgradeable
         bytes32 fundingType,
         bytes32 expectedProposalNullifier
     ) external onlyRelayer {
-        if (address(treasuryFactory) == address(0)) revert TreasuryFactoryAddressNotSet();
+        // Check that the treasury instance has been deployed
         address groupTreasury = _getGroupTreasuryAddress(groupKey);
         if (groupTreasury == address(0)) revert TreasuryAddressNotFound();
 
@@ -1042,6 +960,14 @@ contract GovernanceManager is Initializable, UUPSUpgradeable, OwnableUpgradeable
      */
     function getActiveModule(bytes32 fundingType) external view returns (address) {
         return activeModuleRegistry[fundingType];
+    }
+
+    /**
+     * @notice Gets the address of the treasury factory.
+     * @return address of the treasury factory.
+     */
+    function getTreasuryFactory() external view onlyOwner returns (address) {
+        return address(treasuryFactory);
     }
 
     /**

@@ -1,4 +1,4 @@
-const { ethers, upgrades, keccak256 , toUtf8Bytes, HashZero} = require("hardhat");
+const { ethers, upgrades, keccak256 , toUtf8Bytes, HashZero, userConfig} = require("hardhat");
 const { expect } = require("chai");
 const { anyUint, anyValue } = require("@nomicfoundation/hardhat-chai-matchers/withArgs");
 const { Conversions } = require("./utils");
@@ -16,6 +16,9 @@ describe("Governance Manager Unit Tests:", function () {
         ({
             // Signers
             governor, user1, deployer, relayer,
+
+            // Contracts
+            TreasuryFactory, GrantModule,
             
             // Test constants
             groupKey, epochKey, proposalKey, 
@@ -35,7 +38,7 @@ describe("Governance Manager Unit Tests:", function () {
             realVoteProof, realVotePublicSignals, voteProofContextHash, voteProofNullifier, voteProofChoice, voteProofRoot, voteProofSubmissionNullifier,
             realProposalProof, realProposalPublicSignals, proposalProofContextHash, proposalProofSubmissionNullifier, proposalProofClaimNullifier, proposalProofRoot, proposalProofContentHash
         } = fixtures);
-        
+
     });
 
     // RUN BEFORE EACH TEST
@@ -44,8 +47,9 @@ describe("Governance Manager Unit Tests:", function () {
         const deployedFixtures = await deployFixtures();
 
         ({
-            membershipManager, proposalManager, voteManager, governanceManager, nftImplementation,
-            membershipVerifier, proposalVerifier, proposalClaimVerifier, voteVerifier,
+            membershipManager, proposalManager, voteManager, governanceManager, 
+            nftImplementation, beaconManager, treasuryManager,
+            membershipVerifier, proposalVerifier, proposalClaimVerifier, voteVerifier, 
             mockMembershipVerifier, mockProposalVerifier, mockProposalClaimVerifier, mockVoteVerifier
         } = deployedFixtures);
 
@@ -57,6 +61,36 @@ describe("Governance Manager Unit Tests:", function () {
 
         // Transfer ownership of VoteManager to GovernanceManager
         await voteManager.connect(governor).transferOwnership(governanceManager.target);
+
+        // Deploy TreasuryFactory with the BeaconManager address
+        treasuryFactory = await TreasuryFactory.deploy(
+            beaconManager.target,
+            governanceManager.target
+        );
+        await treasuryFactory.waitForDeployment();
+
+        // Set TreasuryFactory address in GovernanceManager
+        //await governanceManager.connect(deployer).setTreasuryFactory(treasuryFactory.target);
+
+        // Deploy the GrantModule UUPS Proxy (ERC‑1967) contract
+        grantModule = await upgrades.deployProxy(
+            GrantModule,
+            [
+                await governanceManager.target
+            ],
+            {
+                initializer: "initialize",
+                kind: "uups"
+            }
+        );
+        await grantModule.waitForDeployment();
+
+        // Set grant module address in GovernanceManager
+        await governanceManager.connect(deployer).addFundingModule(
+            grantModule.target,
+            ethers.id("grant")
+        );
+        
     });
 
     // Helper functions for testing:
@@ -128,6 +162,14 @@ describe("Governance Manager Unit Tests:", function () {
             groupKey,
             proposalContextKey
         );
+    }
+
+    async function skipDays(numDays) {
+        /// Skip timelock
+        const daysInSeconds = numDays * 24 * 60 * 60;
+        await network.provider.send("evm_increaseTime", [daysInSeconds]);
+        // Mine a new block to apply the time change
+        await network.provider.send("evm_mine");
     }
 
     it(`SET UP: contract deployment
@@ -1120,4 +1162,619 @@ describe("Governance Manager Unit Tests:", function () {
 
     });
 
-})
+    it(`FUNCTION: delegateDeployTreasury
+        TESTING: onlyRelayer authorization (success), event: TreasuryDeployed
+        EXPECTED: should allow the relayer to trigger deployment of a treasury instance`, async function () {
+        // Deploy the group NFT 
+        await governanceManager.connect(relayer).delegateDeployGroupNft(groupKey, nftName, nftSymbol);
+        // Set TreasuryFactory address in GovernanceManager
+        await governanceManager.connect(deployer).setTreasuryFactory(treasuryFactory.target);
+
+        // Deploy the treasury instance
+        const tx = await governanceManager.connect(relayer).delegateDeployTreasury(
+            groupKey, 
+            await user1.getAddress(), // treasuryMultiSig
+            await user1.getAddress() // treasuryRecovery
+        );
+
+        expect(tx).to.emit(
+            treasuryFactory, 
+            "TreasuryDeployed"
+        ).withArgs(
+            groupKey, 
+            anyValue
+        );
+
+        const receipt = await tx.wait();
+ 
+        // Parse the logs to find the TreasuryDeployed event
+        const parsedEvents = [];
+        for (const log of receipt.logs) {
+            try {
+                const parsedLog = treasuryFactory.interface.parseLog(log);
+                parsedEvents.push(parsedLog);
+            } catch (error) {
+                console.log("Could not parse log:", log, "Error:", error.message);
+            }
+        }
+        const TreasuryDeployedEvent = parsedEvents.find((event) => event && event.name === "TreasuryDeployed");
+        expect(TreasuryDeployedEvent).to.exist;
+
+        // Get the treasury instance address
+        const treasuryAddress = TreasuryDeployedEvent.args[1];
+
+        // Get the stored address of the treasury instance
+        const storedTreasuryAddress = await governanceManager.connect(relayer).delegateGetTreasuryAddress(groupKey);
+        
+        // Check that the addresses match
+        expect(storedTreasuryAddress).to.equal(treasuryAddress);
+    });
+
+    it(`FUNCTION: delegateDeployTreasury
+        TESTING: onlyRelayer authorization (failure)
+        EXPECTED: should not allow a non-relayer to trigger deployment of a treasury instance`, async function () {
+        // Deploy the group NFT 
+        await governanceManager.connect(relayer).delegateDeployGroupNft(groupKey, nftName, nftSymbol);
+        // Set TreasuryFactory address in GovernanceManager
+        await governanceManager.connect(deployer).setTreasuryFactory(treasuryFactory.target);
+
+        // Deploy the treasury instance
+        await expect(governanceManager.connect(deployer).delegateDeployTreasury(
+            groupKey, 
+            await user1.getAddress(), // treasuryMultiSig
+            await user1.getAddress() // treasuryRecovery
+        )).to.be.revertedWithCustomError(governanceManager, "OnlyRelayerAllowed");
+
+    });
+
+    it(`FUNCTION: delegateDeployTreasury
+        TESTING: custom error: TreasuryFactoryAddressNotSet
+        EXPECTED: should not allow the relayer to trigger deployment of a treasury instance without a set treasury factory address`, async function () {
+        // Deploy the group NFT 
+        await governanceManager.connect(relayer).delegateDeployGroupNft(groupKey, nftName, nftSymbol);
+        
+        // Deploy the treasury instance
+        await expect(governanceManager.connect(relayer).delegateDeployTreasury(
+            groupKey, 
+            await user1.getAddress(), // treasuryMultiSig
+            await user1.getAddress() // treasuryRecovery
+        )).to.be.revertedWithCustomError(governanceManager, "TreasuryFactoryAddressNotSet");
+
+    });
+
+    it(`FUNCTION: getActiveModule
+        TESTING: stored data: module address
+        EXPECTED: should store the correct active funding module addresses`, async function () {
+        // Get stored address for the grant funding type
+        const fundingType = ethers.id("grant");
+        const storedModuleAddress = await governanceManager.connect(relayer).getActiveModule(fundingType);
+        // Check that the stored address matches the address of the deployed funding module
+        expect(storedModuleAddress).to.equal(grantModule.target);
+
+        // Get the stored address for an unknown funding type
+        const unknownType = ethers.id("unknown");
+        const unknownModuleAddress = await governanceManager.connect(relayer).getActiveModule(unknownType);
+        // Check that no address exists for an unknown type
+        expect(unknownModuleAddress).to.equal(ethers.ZeroAddress);
+    });
+
+    it(`FUNCTION: addFundingModule
+        TESTING: authorization (success), data stored: funding module address
+        EXPECTED: should allow the owner to store the an active funding module address`, async function () {
+        const fundingType = ethers.id("grant");
+        // Update the address corresponding to the grant funding type to a fake one
+        await governanceManager.connect(deployer).addFundingModule(membershipManager.target, fundingType);
+        
+        // Get stored address for the grant funding type
+        const storedModuleAddress = await governanceManager.connect(relayer).getActiveModule(fundingType);
+        // Check that the stored address matches the address that was added
+        expect(storedModuleAddress).to.equal(membershipManager.target);
+    });
+
+    it(`FUNCTION: addFundingModule
+        TESTING: events: FundingModuleUpdated, FundingModuleAdded
+        EXPECTED: should allow the owner to add modules and emit the correct events`, async function () {
+        const fundingType = ethers.id("grant");
+        // Get stored address for the grant funding type
+        const storedModuleAddress = await governanceManager.connect(relayer).getActiveModule(fundingType);
+   
+        // Update the address corresponding to the grant funding type to a fake one
+        expect(await governanceManager.connect(deployer).addFundingModule(membershipManager.target, fundingType))
+            .to.emit(governanceManager, "FundingModuleUpdated")
+            .withArgs(fundingType, storedModuleAddress, membershipManager.target);
+
+        // Add a new funding type
+        const fundingType2 = ethers.id("bounty");
+        // Update the address corresponding to the bounty funding type to a fake one
+        expect(await governanceManager.connect(deployer).addFundingModule(proposalManager.target, fundingType2))
+            .to.emit(governanceManager, "FundingModuleAdded")
+            .withArgs(fundingType2, proposalManager.target);
+    });
+
+    it(`FUNCTION: addFundingModule
+        TESTING: authorization (failure)
+        EXPECTED: should not allow a non-owner to add a funding module address`, async function () {
+        const fundingType = ethers.id("grant");
+        
+        await expect(governanceManager.connect(relayer).addFundingModule(grantModule.target, fundingType))
+            .to.be.revertedWithCustomError(governanceManager, "OwnableUnauthorizedAccount");
+    });
+
+    it(`FUNCTION: addFundingModule
+        TESTING: custom error: UnknownFundingType
+        EXPECTED: should not allow the owner to add a module address for an unknown funding type`, async function () {
+       
+        // Add a funding module address for a different funding type
+        const fundingType = ethers.id("unknown");
+        await expect(governanceManager.connect(deployer).addFundingModule(grantModule.target, fundingType))
+            .to.be.revertedWithCustomError(governanceManager, "UnknownFundingType");
+    });
+
+    it(`FUNCTION: addFundingModule
+        TESTING: custom error: AddressIsNotAContract
+        EXPECTED: should not allow the owner to add a module address for an unknown funding type`, async function () {
+       
+        // Add an EOA as the funding module address for the grant type
+        const fundingType = ethers.id("grant");
+        await expect(governanceManager.connect(deployer).addFundingModule(await user1.getAddress(), fundingType))
+            .to.be.revertedWithCustomError(governanceManager, "AddressIsNotAContract");
+    });
+
+    it(`FUNCTION: addFundingModule
+        TESTING: custom error: AddressCannotBeZero
+        EXPECTED: should not allow the owner to add the zero address as a funding module`, async function () {
+       
+        // Add a funding module address for a different funding type
+        const fundingType = ethers.id("grant");
+        await expect(governanceManager.connect(deployer).addFundingModule(ethers.ZeroAddress, fundingType))
+            .to.be.revertedWithCustomError(governanceManager, "AddressCannotBeZero");
+    });
+
+    it(`FUNCTION: removeFundingModule
+        TESTING: custom error: ModuleMismatch
+        EXPECTED: should not allow the owner to remove a funding module that is not set`, async function () {
+        const fundingType = ethers.id("grant");
+        // Current set module
+        const currentModule = await governanceManager.connect(relayer).getActiveModule(fundingType);
+        expect(currentModule).to.equal(grantModule.target);
+        // Attempt to remove a different module from the grant funding type
+        await expect(governanceManager.connect(deployer).removeFundingModule(proposalManager.target, fundingType))
+            .to.be.revertedWithCustomError(governanceManager, "ModuleMismatch");
+    });
+
+    it(`FUNCTION: removeFundingModule
+        TESTING: authorization (success), stored data
+        EXPECTED: should allow the owner to remove a funding module and correctly update the mapping`, async function () {
+        const fundingType = ethers.id("grant");
+        // Current set module
+        const currentModule = await governanceManager.connect(relayer).getActiveModule(fundingType);
+        expect(currentModule).to.equal(grantModule.target);
+
+        // Remove the grant module
+        await expect(governanceManager.connect(deployer).removeFundingModule(grantModule.target, fundingType))
+            .to.emit(governanceManager, "FundingModuleRemoved")
+            .withArgs(fundingType, grantModule.target);
+
+        // Check that no address is stored
+        const removedModule = await governanceManager.connect(relayer).getActiveModule(fundingType);
+        expect(removedModule).to.equal(ethers.ZeroAddress);
+    });
+
+    it(`FUNCTION: removeFundingModule
+        TESTING: authorization (failure)
+        EXPECTED: should not allow a non-owner to remove a funding module`, async function () {
+        const fundingType = ethers.id("grant");
+        // Remove the grant module
+        await expect(governanceManager.connect(relayer).removeFundingModule(grantModule.target, fundingType))
+            .to.be.revertedWithCustomError(governanceManager, "OwnableUnauthorizedAccount");
+    });
+
+    it(`FUNCTION: setTreasuryFactory
+        TESTING: authorization (failure)
+        EXPECTED: should not allow a non-owner to set the treasury factory address`, async function () {
+        await expect(governanceManager.connect(relayer).setTreasuryFactory(treasuryFactory.target))
+            .to.be.revertedWithCustomError(governanceManager, "OwnableUnauthorizedAccount");
+    });
+
+    it(`FUNCTION: setTreasuryFactory
+        TESTING: authorization (success)
+        EXPECTED: should allow the owner to set the treasury factory address`, async function () {
+        await expect(governanceManager.connect(deployer).setTreasuryFactory(treasuryFactory.target))
+            .to.emit(governanceManager, "TreasuryFactorySet")
+            .withArgs(treasuryFactory.target);
+
+        // Check that the treasury factory address is updated
+        const updatedTreasuryFactory = await governanceManager.connect(deployer).getTreasuryFactory();
+        expect(updatedTreasuryFactory).to.equal(treasuryFactory.target);
+    });
+
+    it(`FUNCTION: setTreasuryFactory
+        TESTING: custom error: AddressIsNotAContract
+        EXPECTED: should not allow the owner to set the treasury factory address to an EOA`, async function () {
+        await expect(governanceManager.connect(deployer).setTreasuryFactory(await user1.getAddress()))
+            .to.be.revertedWithCustomError(governanceManager, "AddressIsNotAContract");
+    });
+
+    it(`FUNCTION: setTreasuryFactory
+        TESTING: custom error: InterfaceIdNotSupported
+        EXPECTED: should not allow the owner to set the treasury factory address to contract with the wrong interface`, async function () {
+        await expect(governanceManager.connect(deployer).setTreasuryFactory(membershipManager.target))
+            .to.be.revertedWithCustomError(governanceManager, "InterfaceIdNotSupported");
+    });
+
+    it(`FUNCTION: delegateDistributeFunding
+        TESTING: authorization (success), event: GrantDistributionDelegated, GrantRequested
+        EXPECTED: should allow the relayer to trigger grant distribution`, async function () {
+        // Set TreasuryFactory address in GovernanceManager
+        await governanceManager.connect(deployer).setTreasuryFactory(treasuryFactory.target);
+
+        // Deploy Group Nft and set root
+        await governanceManager.connect(relayer).delegateDeployGroupNft(realGroupKey, nftName, nftSymbol);
+        await governanceManager.connect(relayer).delegateSetRoot(realRoot, realGroupKey);
+        
+        // Deploy the treasury instance
+       await governanceManager.connect(relayer).delegateDeployTreasury(
+            realGroupKey, 
+            await user1.getAddress(), // treasuryMultiSig
+            await user1.getAddress() // treasuryRecovery
+        );
+
+        // Set number of group members
+        await governanceManager.connect(relayer).delegateSetMemberCount(realGroupKey, 2);
+
+        // submit and verify a proposal
+        await governanceManager.connect(relayer).delegateVerifyProposal(
+            realProposalProof, 
+            realProposalPublicSignals, 
+            realGroupKey,
+            realProposalContextKey
+        );
+
+        // verify a vote on the submitted proposal
+        await governanceManager.connect(relayer).delegateVerifyVote(
+            realVoteProof,
+            realVotePublicSignals,
+            realGroupKey,
+            realVoteContextKey
+        );
+
+        // trigger funding request
+        const fundingType = ethers.id("grant");
+        await expect(governanceManager.connect(relayer).delegateDistributeFunding(
+            realGroupKey,
+            realVoteContextKey,
+            await user1.getAddress(), // to,
+            ethers.parseEther("1.0"), // amount,
+            fundingType,
+            proposalProofSubmissionNullifier // expectedProposalNullifier
+        )).to.emit(governanceManager, "GrantDistributionDelegated")
+        .to.emit(grantModule, "GrantRequested");
+    });
+
+    it(`FUNCTION: delegateDistributeFunding
+        TESTING: authorization (failure)
+        EXPECTED: should not allow a non-relayer to trigger grant distribution`, async function () {
+        // Set TreasuryFactory address in GovernanceManager
+        await governanceManager.connect(deployer).setTreasuryFactory(treasuryFactory.target);
+
+        // Deploy Group Nft and set root
+        await governanceManager.connect(relayer).delegateDeployGroupNft(realGroupKey, nftName, nftSymbol);
+        await governanceManager.connect(relayer).delegateSetRoot(realRoot, realGroupKey);
+        
+        // Deploy the treasury instance
+        await governanceManager.connect(relayer).delegateDeployTreasury(
+            realGroupKey, 
+            await user1.getAddress(), // treasuryMultiSig
+            await user1.getAddress() // treasuryRecovery
+        );
+
+        // Set number of group members
+        await governanceManager.connect(relayer).delegateSetMemberCount(realGroupKey, 2);
+
+        // submit and verify a proposal
+        await governanceManager.connect(relayer).delegateVerifyProposal(
+            realProposalProof, 
+            realProposalPublicSignals, 
+            realGroupKey,
+            realProposalContextKey
+        );
+
+        // verify a vote on the submitted proposal
+        await governanceManager.connect(relayer).delegateVerifyVote(
+            realVoteProof,
+            realVotePublicSignals,
+            realGroupKey,
+            realVoteContextKey
+        );
+
+        // trigger funding request
+        const fundingType = ethers.id("grant");
+        await expect(governanceManager.connect(deployer).delegateDistributeFunding(
+            realGroupKey,
+            realVoteContextKey,
+            await user1.getAddress(), // to,
+            ethers.parseEther("1.0"), // amount,
+            fundingType,
+            proposalProofSubmissionNullifier // expectedProposalNullifier
+        )).to.be.revertedWithCustomError(governanceManager, "OnlyRelayerAllowed");
+    });
+
+    it(`FUNCTION: delegateDistributeFunding
+        TESTING: custom error: TreasuryAddressNotFound
+        EXPECTED: should not allow the relayer to trigger grant distribution if the treasury instance has not been deployed`, async function () {
+        // Set TreasuryFactory address in GovernanceManager
+        await governanceManager.connect(deployer).setTreasuryFactory(treasuryFactory.target);
+
+        // Deploy Group Nft and set root
+        await governanceManager.connect(relayer).delegateDeployGroupNft(realGroupKey, nftName, nftSymbol);
+        await governanceManager.connect(relayer).delegateSetRoot(realRoot, realGroupKey);
+
+        // Set number of group members
+        await governanceManager.connect(relayer).delegateSetMemberCount(realGroupKey, 2);
+
+        // submit and verify a proposal
+        await governanceManager.connect(relayer).delegateVerifyProposal(
+            realProposalProof, 
+            realProposalPublicSignals, 
+            realGroupKey,
+            realProposalContextKey
+        );
+
+        // verify a vote on the submitted proposal
+        await governanceManager.connect(relayer).delegateVerifyVote(
+            realVoteProof,
+            realVotePublicSignals,
+            realGroupKey,
+            realVoteContextKey
+        );
+
+        // trigger funding request
+        const fundingType = ethers.id("grant");
+        await expect(governanceManager.connect(relayer).delegateDistributeFunding(
+            realGroupKey,
+            realVoteContextKey,
+            await user1.getAddress(), // to,
+            ethers.parseEther("1.0"), // amount,
+            fundingType,
+            proposalProofSubmissionNullifier // expectedProposalNullifier
+        )).to.be.revertedWithCustomError(governanceManager, "TreasuryAddressNotFound");
+    });
+
+    it(`FUNCTION: delegateDistributeFunding
+        TESTING: custom error: ProposalNotPassed
+        EXPECTED: should not allow the relayer to trigger grant distribution if the proposal has not passed`, async function () {
+        // Set TreasuryFactory address in GovernanceManager
+        await governanceManager.connect(deployer).setTreasuryFactory(treasuryFactory.target);
+
+        // Deploy Group Nft and set root
+        await governanceManager.connect(relayer).delegateDeployGroupNft(realGroupKey, nftName, nftSymbol);
+        await governanceManager.connect(relayer).delegateSetRoot(realRoot, realGroupKey);
+
+        // Deploy the treasury instance
+        await governanceManager.connect(relayer).delegateDeployTreasury(
+            realGroupKey, 
+            await user1.getAddress(), // treasuryMultiSig
+            await user1.getAddress() // treasuryRecovery
+        );
+
+        // Set number of group members
+        await governanceManager.connect(relayer).delegateSetMemberCount(realGroupKey, 2);
+
+        // submit and verify a proposal
+        await governanceManager.connect(relayer).delegateVerifyProposal(
+            realProposalProof, 
+            realProposalPublicSignals, 
+            realGroupKey,
+            realProposalContextKey
+        );
+
+        // trigger funding request
+        const fundingType = ethers.id("grant");
+        await expect(governanceManager.connect(relayer).delegateDistributeFunding(
+            realGroupKey,
+            realVoteContextKey,
+            await user1.getAddress(), // to,
+            ethers.parseEther("1.0"), // amount,
+            fundingType,
+            proposalProofSubmissionNullifier // expectedProposalNullifier
+        )).to.be.revertedWithCustomError(governanceManager, "ProposalNotPassed");
+    });
+
+    it(`FUNCTION: delegateDistributeFunding
+        TESTING: custom error: InvalidNullifier
+        EXPECTED: should not allow the relayer to trigger grant distribution if the proposal nullifier does not match`, async function () {
+        // Set TreasuryFactory address in GovernanceManager
+        await governanceManager.connect(deployer).setTreasuryFactory(treasuryFactory.target);
+
+        // Deploy Group Nft and set root
+        await governanceManager.connect(relayer).delegateDeployGroupNft(realGroupKey, nftName, nftSymbol);
+        await governanceManager.connect(relayer).delegateSetRoot(realRoot, realGroupKey);
+
+        // Deploy the treasury instance
+        await governanceManager.connect(relayer).delegateDeployTreasury(
+            realGroupKey, 
+            await user1.getAddress(), // treasuryMultiSig
+            await user1.getAddress() // treasuryRecovery
+        );
+
+        // Set number of group members
+        await governanceManager.connect(relayer).delegateSetMemberCount(realGroupKey, 2);
+
+        // submit and verify a proposal
+        await governanceManager.connect(relayer).delegateVerifyProposal(
+            realProposalProof, 
+            realProposalPublicSignals, 
+            realGroupKey,
+            realProposalContextKey
+        );
+        
+        // verify a vote on the submitted proposal
+        await governanceManager.connect(relayer).delegateVerifyVote(
+            realVoteProof,
+            realVotePublicSignals,
+            realGroupKey,
+            realVoteContextKey
+        );
+
+        // trigger funding request
+        const fundingType = ethers.id("grant");
+        const invalidNullifier = Conversions.stringToBytes32("invalidNullifier");
+        await expect(governanceManager.connect(relayer).delegateDistributeFunding(
+            realGroupKey,
+            realVoteContextKey,
+            await user1.getAddress(), // to,
+            ethers.parseEther("1.0"), // amount,
+            fundingType,
+            invalidNullifier // expectedProposalNullifier
+        )).to.be.revertedWithCustomError(governanceManager, "InvalidNullifier");
+    });
+
+    it(`FUNCTION: delegateDistributeFunding
+        TESTING: custom error: UnknownFundingType
+        EXPECTED: should not allow the relayer to trigger grant distribution if the funding type is not known`, async function () {
+        // Set TreasuryFactory address in GovernanceManager
+        await governanceManager.connect(deployer).setTreasuryFactory(treasuryFactory.target);
+
+        // Deploy Group Nft and set root
+        await governanceManager.connect(relayer).delegateDeployGroupNft(realGroupKey, nftName, nftSymbol);
+        await governanceManager.connect(relayer).delegateSetRoot(realRoot, realGroupKey);
+
+        // Deploy the treasury instance
+        await governanceManager.connect(relayer).delegateDeployTreasury(
+            realGroupKey, 
+            await user1.getAddress(), // treasuryMultiSig
+            await user1.getAddress() // treasuryRecovery
+        );
+
+        // Set number of group members
+        await governanceManager.connect(relayer).delegateSetMemberCount(realGroupKey, 2);
+
+        // submit and verify a proposal
+        await governanceManager.connect(relayer).delegateVerifyProposal(
+            realProposalProof, 
+            realProposalPublicSignals, 
+            realGroupKey,
+            realProposalContextKey
+        );
+        
+        // verify a vote on the submitted proposal
+        await governanceManager.connect(relayer).delegateVerifyVote(
+            realVoteProof,
+            realVotePublicSignals,
+            realGroupKey,
+            realVoteContextKey
+        );
+
+        // trigger funding request
+        const fundingType = ethers.id("unknown");
+        await expect(governanceManager.connect(relayer).delegateDistributeFunding(
+            realGroupKey,
+            realVoteContextKey,
+            await user1.getAddress(), // to,
+            ethers.parseEther("1.0"), // amount,
+            fundingType,
+            proposalProofSubmissionNullifier // expectedProposalNullifier
+        )).to.be.revertedWithCustomError(governanceManager, "UnknownFundingType");
+    });
+
+    it(`FUNCTION: delegateDistributeFunding
+        TESTING: custom error: FundingModuleNotFound
+        EXPECTED: should not allow the relayer to trigger grant distribution if the module for the funding type is not set`, async function () {
+        // Set TreasuryFactory address in GovernanceManager
+        await governanceManager.connect(deployer).setTreasuryFactory(treasuryFactory.target);
+
+        // Remove grant funding module
+        await governanceManager.connect(deployer).removeFundingModule(grantModule.target, ethers.id("grant"));
+
+        // Deploy Group Nft and set root
+        await governanceManager.connect(relayer).delegateDeployGroupNft(realGroupKey, nftName, nftSymbol);
+        await governanceManager.connect(relayer).delegateSetRoot(realRoot, realGroupKey);
+
+        // Deploy the treasury instance
+        await governanceManager.connect(relayer).delegateDeployTreasury(
+            realGroupKey, 
+            await user1.getAddress(), // treasuryMultiSig
+            await user1.getAddress() // treasuryRecovery
+        );
+
+        // Set number of group members
+        await governanceManager.connect(relayer).delegateSetMemberCount(realGroupKey, 2);
+
+        // submit and verify a proposal
+        await governanceManager.connect(relayer).delegateVerifyProposal(
+            realProposalProof, 
+            realProposalPublicSignals, 
+            realGroupKey,
+            realProposalContextKey
+        );
+        
+        // verify a vote on the submitted proposal
+        await governanceManager.connect(relayer).delegateVerifyVote(
+            realVoteProof,
+            realVotePublicSignals,
+            realGroupKey,
+            realVoteContextKey
+        );
+
+        // trigger funding request
+        const fundingType = ethers.id("grant");
+        await expect(governanceManager.connect(relayer).delegateDistributeFunding(
+            realGroupKey,
+            realVoteContextKey,
+            await user1.getAddress(), // to,
+            ethers.parseEther("1.0"), // amount,
+            fundingType,
+            proposalProofSubmissionNullifier // expectedProposalNullifier
+        )).to.be.revertedWithCustomError(governanceManager, "FundingModuleNotFound");
+    });
+
+    it(`FUNCTION: delegateGetTreasuryAddress
+        TESTING: custom error: TreasuryFactoryAddressNotSet
+        EXPECTED: should not allow the relayer to get the treasury instance address if the factory is not set`, async function () {
+        await expect(governanceManager.connect(relayer).delegateGetTreasuryAddress(realGroupKey))
+            .to.be.revertedWithCustomError(governanceManager, "TreasuryFactoryAddressNotSet");
+    });
+
+    it(`FUNCTION: delegateGetTreasuryAddress
+        TESTING: authorization (failure)
+        EXPECTED: should not allow a non-relayer to get the treasury instance address`, async function () {
+        // Set TreasuryFactory address in GovernanceManager
+        await governanceManager.connect(deployer).setTreasuryFactory(treasuryFactory.target);
+
+        await expect(governanceManager.connect(deployer).delegateGetTreasuryAddress(realGroupKey))
+            .to.be.revertedWithCustomError(governanceManager, "OnlyRelayerAllowed");
+    });
+
+    
+});
+
+// to do: implement interface check for add module. Dynamically pull interface?
+
+
+
+
+    /*
+        function delegateGetTreasuryAddress(bytes32 groupKey) external view onlyRelayer returns (address) {
+        if (address(treasuryFactory) == address(0)) revert TreasuryFactoryAddressNotSet();
+        return treasuryFactory.getTreasuryAddress(groupKey);
+    }
+
+    */
+
+    /*
+    Functions to test:
+    - setTreasuryFactory - done
+    - addFundingModule - done
+    - removeFundingModule - done
+    - delegateDistributeFunding - done
+    - delegateGetTreasuryAddress - done
+    - delegateGetBalance
+    - delegateIsPendingApproval
+    - delegateIsPendingExecution
+    - delegateIsExecuted
+    - delegateGetFundingRequest
+    - getActiveModule - done
+    - delegateDeployTreasury - done
+    */
+
+
