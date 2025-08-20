@@ -9,11 +9,6 @@ import { keccak256, toUtf8Bytes } from "ethers";
  * A class for generating and managing zero-knowledge credentials.
  * This class provides methods for generating mnemonic seeds, cryptographic keys,
  * and zero-knowledge credentials for identity management.
- */
-/**
- * @class ZkCredential
- * @description This class encapsulates methods for generating zero-knowledge credentials,
- * including mnemonic seed generation, key derivation, and identity creation.
  * It uses cryptographic primitives such as SHA-256, HKDF, and Poseidon hashing.
  */
 export class ZkCredential {
@@ -41,6 +36,7 @@ export class ZkCredential {
 
   /**
    * Converts a string to a BigInt representation.
+   * @private
    * @param {string} str - The string to convert
    * @returns {bigint} The BigInt representation of the string
    */
@@ -58,9 +54,10 @@ export class ZkCredential {
   }
 
   /**
-   * Converts a UUID string to a BigInt representation.
-   * @param {string} uuid - The UUID string to convert.
-   * @returns {bigint} The BigInt representation of the UUID.
+   * Converts a UUID string to a BigInt representation using Keccak-256.
+   * @private
+   * @param {string} uuid - The UUID string to convert
+   * @returns {bigint} The BigInt representation of the UUID
    */
   static #uuidToBigInt(uuid) {
     return BigInt(keccak256(toUtf8Bytes(uuid)));
@@ -79,7 +76,7 @@ export class ZkCredential {
   }
 
   /**
-   * Performs modular reduction on a BigInt value.
+   * Performs modular reduction on a BigInt value to ensure it fits within the field.
    * @private
    * @param {bigint} rawBigInt - The BigInt value to reduce
    * @returns {bigint} The reduced value modulo FIELD_PRIME
@@ -104,8 +101,10 @@ export class ZkCredential {
 
   /**
    * Generates a mnemonic seed phrase and its corresponding seed.
-   * @param {number} [bits=128] - The number of bits of entropy for the mnemonic
-   * @returns {{seed: Buffer, mnemonic: string}} Object containing the seed and mnemonic phrase
+   * @param {number} bits - The number of bits of entropy for the mnemonic, defaults to 128
+   * @returns {Object} Object containing the seed and mnemonic phrase
+   * @returns {Buffer} returns.seed - The generated seed buffer
+   * @returns {string} returns.mnemonic - The mnemonic phrase
    * @throws {Error} If bits is less than 128
    */
   static generateMnemonicSeed(bits = this.#ENTROPY_BITS) {
@@ -122,7 +121,11 @@ export class ZkCredential {
     return { seed, mnemonic };
   }
 
-  // recover identity
+  /**
+   * Generates a seed from an existing mnemonic phrase.
+   * @param {string} mnemonic - The mnemonic phrase to recover from
+   * @returns {Buffer} The recovered seed buffer
+   */
   static generateSeedFromMnemonic(mnemonic) {
     // Generate seed from mnemonic
     const seed = bip39.mnemonicToSeedSync(mnemonic);
@@ -130,9 +133,11 @@ export class ZkCredential {
   }
 
   /**
-   * Generates trapdoor and nullifier keys from an initial key material.
+   * Generates trapdoor and nullifier keys from initial key material using HKDF.
    * @param {Uint8Array} ikm - The initial key material
-   * @returns {{trapdoorKey: bigint, nullifierKey: bigint}} Object containing the trapdoor and nullifier keys
+   * @returns {Object} Object containing the trapdoor and nullifier keys
+   * @returns {bigint} returns.trapdoorKey - The derived trapdoor key
+   * @returns {bigint} returns.nullifierKey - The derived nullifier key
    */
   static generateKeys(ikm) {
     // ikm must be Uint8Array; if you have Buffer, do: new Uint8Array(ikm)
@@ -160,6 +165,15 @@ export class ZkCredential {
     return { trapdoorKey: trapdoor, nullifierKey: nullifier };
   }
 
+  /**
+   * Generates an identity using trapdoor and nullifier keys with Poseidon hashing.
+   * @param {bigint} trapdoorKey - The trapdoor key for the identity
+   * @param {bigint} nullifierKey - The nullifier key for the identity
+   * @returns {Promise<Object>} Object containing the identity components
+   * @returns {bigint} returns.trapdoor - The hashed trapdoor value
+   * @returns {bigint} returns.nullifier - The hashed nullifier value
+   * @returns {bigint} returns.commitment - The commitment hash
+   */
   static async generateIdentity(trapdoorKey, nullifierKey) {
     const poseidon = await this.#getPoseidon();
     const F = poseidon.F;
@@ -174,6 +188,14 @@ export class ZkCredential {
     return { trapdoor, nullifier, commitment };
   }
 
+  /**
+   * Generates a public nullifier by combining identity nullifier with an external nullifier.
+   * @param {bigint} identityNullifier - The identity nullifier value
+   * @param {string} externalNullifier - The external nullifier string, typically a UUID
+   * @returns {Promise<bigint>} The generated public nullifier
+   * @throws {Error} If required parameters are missing
+   * @throws {TypeError} If parameters have incorrect types
+   */
   static async generatePublicNullifier(identityNullifier, externalNullifier) {
     if (!identityNullifier || !externalNullifier) {
       throw new Error(
@@ -201,9 +223,13 @@ export class ZkCredential {
 
   /**
    * Generates complete zero-knowledge credentials including identity and commitment.
-   * @param {number} [bits=128] - The number of bits of entropy for the mnemonic
-   * @returns {Promise<{identity: {trapdoor: bigint, nullifier: bigint}, commitment: bigint, mnemonic: string}>}
-   * Object containing the identity (trapdoor and nullifier), commitment, and mnemonic phrase
+   * @param {number} bits - The number of bits of entropy for the mnemonic, defaults to 128
+   * @returns {Promise<Object>} Object containing the complete credentials
+   * @returns {Object} returns.identity - The identity object
+   * @returns {bigint} returns.identity.trapdoor - The trapdoor value
+   * @returns {bigint} returns.identity.nullifier - The nullifier value
+   * @returns {bigint} returns.commitment - The commitment hash
+   * @returns {string} returns.mnemonic - The mnemonic phrase
    */
   static async generateCredentials(bits = this.#ENTROPY_BITS) {
     const { seed, mnemonic } = this.generateMnemonicSeed(bits);

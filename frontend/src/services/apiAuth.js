@@ -5,7 +5,7 @@ import { supabase } from "./supabase";
  * @param {Object} params - The login parameters
  * @param {string} params.email - The user's email address
  * @param {string} params.password - The user's password
- * @returns {Promise<Object>} The authentication data containing user and session information
+ * @returns {Promise<{user: Object, session: Object}>} The authentication data containing user and session information
  * @throws {Error} If authentication fails
  */
 export async function login({ email, password }) {
@@ -21,7 +21,7 @@ export async function login({ email, password }) {
 
 /**
  * Signs out the currently authenticated user
- * @returns {Promise<void>}
+ * @returns {Promise<void>} Resolves when sign out completes successfully
  * @throws {Error} If sign out fails
  */
 export async function logout() {
@@ -35,7 +35,7 @@ export async function logout() {
 
 /**
  * Retrieves the currently authenticated user's information
- * @returns {Promise<Object|null>} The user object if authenticated, null otherwise
+ * @returns {Promise<Object|null>} The user object if authenticated, null if no active session
  * @throws {Error} If there's an error fetching the user data
  */
 export async function getCurrentUser() {

@@ -2,24 +2,12 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { getUserGroups } from "../../../services/apiGroupMembers";
 
 /**
- * Custom hook to fetch and manage user groups data
+ * Custom hook to fetch and manage user groups data.
  *
- * @returns {Object} Object containing:
- *   - isLoading: boolean - Loading state of the query
- *   - userGroups: Array - List of user groups
- *   - error: Error | null - Error state of the query
- *
- * @notes
- *   - queryKey
- *   - ["userGroups", userId] - Query key includes:
- *   - "userGroups": Base key for user groups data
- *   - userId: User ID to fetch groups for
- *
- *    - queryFn
- *    - Fetches user groups using getUserGroups API call
- *    - Requires valid user ID from queryClient
- *    - Throws error if no user ID is available
- *    - Only enabled when user ID exists
+ * This hook retrieves all groups that a user is a member of by querying the user's ID
+ * from the query client cache. It automatically handles loading states, error handling,
+ * and only executes the query when a valid user ID is available.
+
  */
 export function useGetUserGroups() {
   const queryClient = useQueryClient();

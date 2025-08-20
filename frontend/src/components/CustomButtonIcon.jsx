@@ -1,3 +1,4 @@
+// libraries
 import styled from "styled-components";
 
 const ButtonContainer = styled.div`
@@ -47,6 +48,10 @@ const Tooltip = styled.div`
   }
 `;
 
+/**
+ * A customizable icon button component with hover effects and tooltip functionality.
+ * Displays an icon that changes color on hover and shows a tooltip with custom text.
+ */
 function CustomButtonIcon({
   tooltipText,
   onClick,

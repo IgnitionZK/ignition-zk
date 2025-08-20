@@ -78,7 +78,7 @@ export class ZKProofGenerator {
   /**
    * Gets or initializes the Poseidon hash instance.
    * @private
-   * @returns {Promise<Object>} The Poseidon hash instance
+   * @returns {Promise<Object>} The Poseidon hash instance.
    */
   static async #getPoseidon() {
     if (!this.#poseidonInstance) {
@@ -90,7 +90,7 @@ export class ZKProofGenerator {
   /**
    * Converts a file to an ArrayBuffer.
    * @param {string} filePath - Path to the file to be converted.
-   * @returns {Promise<Uint8Array>} A promise that resolves to the ArrayBuffer representation of the file.
+   * @returns {Promise<Uint8Array>} A promise that resolves to the Uint8Array representation of the file.
    */
   static async #convertToArrayBuffer(filePath) {
     try {
@@ -224,8 +224,7 @@ export class ZKProofGenerator {
    * @param {Object} proposalPayload - The payload of the proposal, which can include various parameters.
    * @param {Object} proposalFunding - The funding information for the proposal.
    * @param {Object} proposalMetadata - The metadata information for the proposal.
-   * @returns {Promise<Object>}
-   * An object containing the circuit input including root, identity trapdoor, identity nullifier, group hash, epoch hash, proposal title, proposal description, proposal payload, proposal funding, proposal metadata, and path elements.
+   * @returns {Promise<Object>} An object containing the circuit input including root, identity trapdoor, identity nullifier, group hash, epoch hash, proposal title, proposal description, proposal payload, proposal funding, proposal metadata, and path elements.
    */
   static async generateProposalCircuitInput(
     mnemonic,
@@ -322,8 +321,8 @@ export class ZKProofGenerator {
    * @param {Array<BigInt>} commitmentArray - An array of commitment values to use for the Merkle proof.
    * @param {string} groupId - The group ID to include as context in the circuit input.
    * @param {string} epochId - The epoch ID to include as context in the circuit input.
-   * @param {string} proposalClaimHash - The proposal claim nullifier (output of the proposal circuit in the public signals).
-   * @param {string} proposalSubmissionHash - The proposal submission  nullifier (output of the proposal circuit in the public signals).
+   * @param {string} proposalClaimHash - The proposal claim nullifier output of the proposal circuit in the public signals.
+   * @param {string} proposalSubmissionHash - The proposal submission nullifier output of the proposal circuit in the public signals.
    * @returns {Promise<Object>} An object containing the circuit input including proposal claim nullifier, proposal submission nullifier, proposal context hash, and identity nullifier.
    */
   static async generateProposalClaimCircuitInput(
@@ -386,8 +385,14 @@ export class ZKProofGenerator {
    * @param {string} groupId - The group ID to include as context in the circuit input.
    * @param {string} epochId - The epoch ID to include as context in the circuit input.
    * @param {string} proposalId - The proposal ID to include as context in the circuit input.
-   * @param {number} voteChoice - The choice of vote (e.g., 0 for no, 1 for yes, 2 for abstain).
-   * @return {Promise<Object>} An object containing the circuit input including root, identity trapdoor, identity nullifier, group hash, epoch hash, proposal hash, vote choice, and path elements.
+   * @param {number} voteChoice - The choice of vote such as 0 for no, 1 for yes, 2 for abstain.
+   * @param {string} proposalTitle - The title of the proposal.
+   * @param {string} proposalDescription - The description of the proposal.
+   * @param {Object} proposalPayload - The payload of the proposal.
+   * @param {Object} proposalFunding - The funding information for the proposal.
+   * @param {Object} proposalMetadata - The metadata information for the proposal.
+   * @param {string} proposalSubmissionNullifier - The proposal submission nullifier.
+   * @returns {Promise<Object>} An object containing the circuit input including root, identity trapdoor, identity nullifier, group hash, epoch hash, proposal hash, vote choice, and path elements.
    */
   static async generateVoteCircuitInput(
     mnemonic,
@@ -460,7 +465,7 @@ export class ZKProofGenerator {
       proposalPayloadHash: proposalPayloadBigInt.toString(),
       proposalMetadataHash: proposalMetadataBigInt.toString(),
       proposalFundingHash: proposalFundingBigInt.toString(),
-      proposalSubmissionNullifier: proposalSubmissionNullifier.toString()
+      proposalSubmissionNullifier: proposalSubmissionNullifier.toString(),
     };
 
     console.log("Circuit Input for Vote circuit:", circuitInput);
@@ -471,7 +476,7 @@ export class ZKProofGenerator {
   /**
    * Generates a zero-knowledge proof for the specified circuit input.
    * @param {Object} circuitInput - The input data for the circuit.
-   * @param {string} circuitType - The type of circuit to use (e.g., "membership", "vote", "proposal").
+   * @param {string} circuitType - The type of circuit to use such as membership, vote, proposal.
    * @returns {Promise<Object>} An object containing the generated proof and public signals.
    */
   static async generateProof(circuitInput, circuitType) {
@@ -523,7 +528,7 @@ export class ZKProofGenerator {
    * Verifies a zero-knowledge proof off-chain using the provided verification key.
    * @param {Object} proof - The proof object to verify.
    * @param {Array} publicSignals - The public signals associated with the proof.
-   * @param {string} circuitType - The type of circuit used for the proof (e.g., "membership", "vote", "proposal").
+   * @param {string} circuitType - The type of circuit used for the proof such as membership, vote, proposal.
    * @returns {Promise<boolean>} A promise that resolves to true if the proof is valid, false otherwise.
    */
   static async verifyProofOffChain(proof, publicSignals, circuitType) {
@@ -548,11 +553,11 @@ export class ZKProofGenerator {
   }
 
   /**
-   *  Generates Solidity calldata from the proof and public signals.
-   *  This function converts the proof and public signals into a format suitable for Solidity smart contracts.
-   *  @param {Object} proof - The proof object generated by the ZK circuit.
-   *  @param {Array} publicSignals - The public signals associated with the proof.
-   *  @returns {Promise<Object>} An object containing the proof and public signals formatted for Solidity.
+   * Generates Solidity calldata from the proof and public signals.
+   * This function converts the proof and public signals into a format suitable for Solidity smart contracts.
+   * @param {Object} proof - The proof object generated by the ZK circuit.
+   * @param {Array} publicSignals - The public signals associated with the proof.
+   * @returns {Promise<Object>} An object containing the proof and public signals formatted for Solidity.
    */
   static async generateSolidityCalldata(proof, publicSignals) {
     try {

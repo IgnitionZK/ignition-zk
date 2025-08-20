@@ -1,4 +1,7 @@
+// Libraries
 import styled from "styled-components";
+
+// Components
 import CustomButton from "./CustomButton";
 
 const Overlay = styled.div`
@@ -101,7 +104,6 @@ function MnemonicDisplay({ mnemonic, onClose }) {
   const columns = getGridColumns(words.length);
   const rows = Math.ceil(words.length / columns);
 
-  // Build a 2D array for column-major order
   const grid = Array.from({ length: rows }, (_, rowIdx) =>
     Array.from({ length: columns }, (_, colIdx) => {
       const wordIdx = colIdx * rows + rowIdx;

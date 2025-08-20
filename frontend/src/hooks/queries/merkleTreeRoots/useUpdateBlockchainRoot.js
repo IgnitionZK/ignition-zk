@@ -1,23 +1,17 @@
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation } from "@tanstack/react-query";
 import { useRelayerUpdateRoot } from "../../relayers/useRelayerUpdateRoot";
 import { uuidToBytes32 } from "../../../scripts/utils/uuidToBytes32";
 import { getActiveMerkleTreeRoot } from "../../../services/apiMerkleTreeRoots";
 import { getLeavesByGroupId } from "../../../services/apiMerkleTreeLeaves";
 
 /**
- * Custom hook to update the blockchain root when campaigns are created
- * This batches all pending root updates to reduce blockchain transactions
- *
- * @returns {Object} An object containing:
- *   @property {Function} updateBlockchainRoot - Function to trigger the blockchain root update
- *   @property {boolean} isLoading - Whether the update is currently in progress
- *   @property {boolean} isError - Whether the last update attempt resulted in an error
- *   @property {boolean} isSuccess - Whether the last update attempt was successful
- *   @property {Object} error - Error object if the update failed
- *   @property {Object} data - Response data from the successful update
+ * Custom hook to update the blockchain root when campaigns are created.
+ * This batches all pending root updates to reduce blockchain transactions.
+ * The hook fetches the current active Merkle tree root from the database,
+ * calculates the member count from active commitments, and updates the
+ * blockchain with the current root hash and member count.
  */
 export function useUpdateBlockchainRoot() {
-  const queryClient = useQueryClient();
   const { updateMerkleRoot } = useRelayerUpdateRoot();
 
   const mutation = useMutation({
@@ -26,7 +20,6 @@ export function useUpdateBlockchainRoot() {
         console.log("Starting blockchain root update for campaign creation...");
         console.log("Group ID:", groupId);
 
-        // Get the current active Merkle tree root from the database
         const activeRoot = await getActiveMerkleTreeRoot({ groupId });
 
         if (!activeRoot) {
@@ -35,7 +28,6 @@ export function useUpdateBlockchainRoot() {
 
         console.log("Active root from database:", activeRoot);
 
-        // Get the current member count by counting active commitments
         const activeCommitments = await getLeavesByGroupId({ groupId });
         const memberCount = activeCommitments.length;
 
@@ -48,11 +40,9 @@ export function useUpdateBlockchainRoot() {
           memberCount
         );
 
-        // Convert the groupId UUID to bytes32 format
         const groupKeyBytes32 = uuidToBytes32(groupId);
         console.log("Group key bytes32:", groupKeyBytes32);
 
-        // Update blockchain with the current active root
         await updateMerkleRoot({
           treeVersion: activeRoot.tree_version,
           rootValue: activeRoot.root_hash,

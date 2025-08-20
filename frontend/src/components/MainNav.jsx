@@ -1,7 +1,12 @@
+// Libraries
 import { NavLink } from "react-router-dom";
 import styled from "styled-components";
 import { useState } from "react";
+
+// Hooks
 import { useLogout } from "../hooks/queries/authentication/useLogout";
+
+// Components
 import ConfirmationModal from "./ConfirmationModal";
 
 const NavList = styled.ul`
@@ -31,7 +36,6 @@ const StyledNavLink = styled(NavLink)`
     transition: all 0.3s;
   }
 
-  /* This works because react-router places the active class on the active NavLink */
   &:hover,
   &:active,
   &.active:link,
@@ -98,7 +102,9 @@ const LogoutContainer = styled.div`
 
 /**
  * MainNav is a navigation component that renders the primary navigation menu.
- * It includes links to Home and Settings pages, along with a logout button positioned at the bottom of the navigation.
+ * It includes navigation links to Home, Inbox, Campaigns, Proposals, and Settings pages,
+ * along with a logout button positioned at the bottom of the navigation.
+ * The component handles logout confirmation through a modal dialog.
  */
 function MainNav() {
   const { logout, isPending } = useLogout();

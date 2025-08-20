@@ -5,39 +5,29 @@ import { getStatusId } from "./apiProposalStatus";
  * Retrieves proposals by group ID(s) from the database using an RPC function
  * @param {Object} params - The parameters object
  * @param {string|string[]} params.groupId - Single group ID or array of group IDs to fetch proposals for
- * @returns {Promise<Array<Object>|null>} Array of proposal objects with group names and status types, or null if no proposals found
+ * @returns {Promise<Array<Object>|null>} Array of proposal objects returned by the RPC function, or null if no proposals found
  * @throws {Error} If groupId is not provided or if there's a database error
- * @example
- * // Get proposals for a single group
- * const proposals = await getProposalsByGroupId({ groupId: '123' });
- *
- * // Get proposals for multiple groups
- * const proposals = await getProposalsByGroupId({ groupId: ['123', '456'] });
  */
 export async function getProposalsByGroupId({ groupId }) {
   if (!groupId) {
     throw new Error("groupId is required");
   }
 
-  // Convert single groupId to array if it's not already
   const groupIds = Array.isArray(groupId) ? groupId : [groupId];
 
   const { data, error } = await supabase
     .schema("ignitionzk")
     .rpc("get_proposals_with_details", {
       p_group_ids: groupIds,
-    }); // Call the RPC function with explicit schema
+    });
 
   if (error) {
     if (error.code === "PGRST116") {
-      // This error code typically means "no rows found", so return null
       return null;
     }
     throw new Error(error.message);
   }
 
-  // The RPC function already returns the data in the desired format,
-  // so no further transformation is needed here for group_name or status_type.
   return data;
 }
 
@@ -48,11 +38,6 @@ export async function getProposalsByGroupId({ groupId }) {
  * @param {string} params.statusId - The new status ID to set for the proposal
  * @returns {Promise<Object>} The updated proposal object
  * @throws {Error} If proposalId or statusId is not provided, or if there's a database error
- * @example
- * const updatedProposal = await updateProposalStatus({
- *   proposalId: '123',
- *   statusId: '456'
- * });
  */
 export async function updateProposalStatus({ proposalId, statusId }) {
   if (!proposalId) {
@@ -132,7 +117,6 @@ export async function insertProposal({
     throw new Error("funding is required");
   }
 
-  // Get the status_id for "active" status if not provided
   let finalStatusId = statusId;
   if (!finalStatusId) {
     try {
@@ -140,7 +124,7 @@ export async function insertProposal({
       console.log("Retrieved active status ID:", finalStatusId);
     } catch (statusError) {
       console.error("Could not get active status ID:", statusError.message);
-      // We cannot proceed without a status_id as it's required by the database
+
       throw new Error(
         `Failed to get active status ID: ${statusError.message}. Please contact support.`
       );
@@ -180,7 +164,6 @@ export async function insertProposal({
     context_key: contextKey,
   };
 
-  // Try without .single() first to see what we get
   const { data, error } = await supabase
     .schema("ignitionzk")
     .from("proposals")
@@ -229,13 +212,6 @@ export async function insertProposal({
  * @param {string} params.title - The title of the proposal
  * @returns {Promise<Object>} The proposal object
  * @throws {Error} If required parameters are missing or if there's a database error
- * @example
- * const proposal = await getProposalByIdentifiers({
- *   epochId: '123',
- *   groupId: '456',
- *   groupMemberId: '789',
- *   title: 'My Proposal'
- * });
  */
 export async function getProposalByIdentifiers({
   epochId,
@@ -283,18 +259,6 @@ export async function getProposalByIdentifiers({
  * @param {string} params.groupMemberId - The current user's group member ID to check for existing votes
  * @returns {Promise<Array<Object>|null>} Array of pending proposal objects, or null if no proposals found
  * @throws {Error} If groupId or groupMemberId is not provided or if there's a database error
- * @example
- * // Get pending proposals for a single group
- * const proposals = await getPendingInboxProposals({
- *   groupId: '123',
- *   groupMemberId: 'member456'
- * });
- *
- * // Get pending proposals for multiple groups
- * const proposals = await getPendingInboxProposals({
- *   groupId: ['123', '456'],
- *   groupMemberId: 'member456'
- * });
  */
 export async function getPendingInboxProposals({ groupId, groupMemberId }) {
   if (!groupId) {
@@ -304,7 +268,6 @@ export async function getPendingInboxProposals({ groupId, groupMemberId }) {
     throw new Error("groupMemberId is required");
   }
 
-  // Convert single groupId to array if it's not already
   const groupIds = Array.isArray(groupId) ? groupId : [groupId];
 
   const { data, error } = await supabase
@@ -316,7 +279,6 @@ export async function getPendingInboxProposals({ groupId, groupMemberId }) {
 
   if (error) {
     if (error.code === "PGRST116") {
-      // This error code typically means "no rows found", so return null
       return null;
     }
     throw new Error(error.message);

@@ -4,29 +4,9 @@ import { insertGroupMember } from "../../services/apiGroupMembers";
 import { uuidToBytes32 } from "../../scripts/utils/uuidToBytes32";
 
 /**
- * Custom hook to deploy an ERC721 contract using the Supabase edge function relayer
- *
- * @returns {Object} An object containing:
- *   @property {Function} deployERC721 - Function to trigger the ERC721 deployment
- *   @property {boolean} isLoading - Whether the deployment is currently in progress
- *   @property {boolean} isError - Whether the last deployment attempt resulted in an error
- *   @property {boolean} isSuccess - Whether the last deployment attempt was successful
- *   @property {Object} error - Error object if the deployment failed
- *   @property {Object} data - Response data from the successful deployment
- *
- * @example
- * const { deployERC721, isLoading, isError, error, data } = useRelayerDeployERC721();
- *
- * // Usage
- * deployERC721({
- *   groupId: "123",
- *   tokenName: "MyToken",
- *   tokenSymbol: "MTK",
- *   memberAddresses: ["0x123...", "0x456..."]
- * }, {
- *   onSuccess: (data) => console.log('ERC721 deployed:', data),
- *   onError: (error) => console.error('Deployment failed:', error)
- * });
+ * Custom hook to deploy an ERC721 contract using the Supabase edge function relayer.
+ * Handles authentication, parameter validation, contract deployment, and automatically
+ * adds the group creator to the group_members table upon successful deployment.
  */
 export function useRelayerDeployERC721() {
   const deployERC721Mutation = useMutation({
@@ -37,7 +17,6 @@ export function useRelayerDeployERC721() {
       memberAddresses,
       userId,
     }) => {
-      // Get the current session to extract the JWT token
       const {
         data: { session },
         error: sessionError,
@@ -65,24 +44,20 @@ export function useRelayerDeployERC721() {
         throw new Error("userId is required");
       }
 
-      // Validate memberAddresses if provided
       if (memberAddresses && !Array.isArray(memberAddresses)) {
         throw new Error("memberAddresses must be an array");
       }
 
-      // Convert the groupId UUID to bytes32 format
       const groupKeyBytes32 = uuidToBytes32(groupId);
 
-      // Call the Supabase edge function
       const { data, error } = await supabase.functions.invoke(
         "relayer-deploy-erc721",
         {
           body: {
-            // !!!
-            groupKey: groupKeyBytes32.toString(), // Convert to string as expected by edge function
+            groupKey: groupKeyBytes32.toString(),
             name: tokenName,
             symbol: tokenSymbol,
-            memberAddresses: memberAddresses || [], // Pass the array of addresses
+            memberAddresses: memberAddresses || [],
           },
           headers: {
             Authorization: `Bearer ${session.access_token}`,
@@ -91,13 +66,10 @@ export function useRelayerDeployERC721() {
       );
 
       if (error) {
-        // Try to get more detailed error information
         let errorMessage = `Edge function error: ${error.message}`;
 
-        // Log the full error object for debugging
         console.error("Full edge function error:", error);
 
-        // Try to extract more details from the error object
         if (error.context) {
           console.error("Error context:", error.context);
         }
@@ -110,7 +82,6 @@ export function useRelayerDeployERC721() {
           console.error("Error status text:", error.statusText);
         }
 
-        // If there's response data, it might contain more error details
         if (error.context && error.context.body) {
           try {
             const errorBody = JSON.parse(error.context.body);
@@ -121,7 +92,6 @@ export function useRelayerDeployERC721() {
               console.error("Error details:", errorBody.details);
             }
           } catch (e) {
-            // If we can't parse the error body, use the original message
             console.error("Could not parse error body:", e);
           }
         }
@@ -131,7 +101,6 @@ export function useRelayerDeployERC721() {
 
       console.log("Edge function response:", data);
 
-      // If deployment was successful and we have a deployed NFT address, add the group creator to group_members
       if (data.deployedNftAddress) {
         try {
           console.log("Adding group creator to group_members table...");
@@ -141,15 +110,13 @@ export function useRelayerDeployERC721() {
           });
           console.log("Group creator added to group_members:", groupMemberData);
 
-          // Add the group member data to the response
           data.groupMemberData = groupMemberData;
         } catch (groupMemberError) {
           console.error(
             "Failed to add group creator to group_members:",
             groupMemberError
           );
-          // Don't throw here as the main deployment was successful
-          // Just log the error and continue
+
           data.groupMemberError = groupMemberError.message;
         }
       }

@@ -1,9 +1,14 @@
+// Libraries
 import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import styled from "styled-components";
+
+// Components
 import CustomButton from "./CustomButton";
 import MiniSpinner from "./MiniSpinner";
 import ConfirmationModal from "./ConfirmationModal";
+
+// Hooks
 import { useWalletQuery } from "../hooks/wallet/useWalletQuery";
 import { useERC721Ownership } from "../hooks/wallet/useERC721Ownership";
 import { insertGroupMember } from "../services/apiGroupMembers";
@@ -49,7 +54,8 @@ const ErrorMessage = styled.p`
 
 /**
  * Renders a search result item for a group, displaying group information and handling group joining functionality.
- * The component now shows a "Check Eligibility" button initially, and only performs ERC721 checks on demand.
+ * The component shows a "Check Eligibility" button initially, and only performs ERC721 checks on demand.
+ * Users can check if they own tokens from the group's NFT collection and join if eligible.
  */
 function SearchResultItemComponent({ group, onJoinSuccess }) {
   const queryClient = useQueryClient();
@@ -59,16 +65,12 @@ function SearchResultItemComponent({ group, onJoinSuccess }) {
   const [error, setError] = useState(null);
   const [showJoinConfirm, setShowJoinConfirm] = useState(false);
 
-  // Only check ownership if user has clicked "Check Eligibility"
   const {
     isOwner,
     isChecking,
     error: ownershipError,
     checkOwnership,
-  } = useERC721Ownership(
-    group.erc721_contract_address,
-    hasCheckedEligibility // Only enable the hook when eligibility check is requested
-  );
+  } = useERC721Ownership(group.erc721_contract_address, hasCheckedEligibility);
 
   const handleCheckEligibility = async () => {
     if (!address) {
@@ -150,7 +152,6 @@ function SearchResultItemComponent({ group, onJoinSuccess }) {
     );
   }
 
-  // Show "Check Eligibility" button if eligibility hasn't been checked yet
   if (!hasCheckedEligibility) {
     return (
       <SearchResultItem>
@@ -170,7 +171,6 @@ function SearchResultItemComponent({ group, onJoinSuccess }) {
     );
   }
 
-  // Show loading state while checking eligibility
   if (isChecking) {
     return (
       <SearchResultItem>
@@ -183,7 +183,6 @@ function SearchResultItemComponent({ group, onJoinSuccess }) {
     );
   }
 
-  // Show error if eligibility check failed
   if (ownershipError) {
     return (
       <SearchResultItem>
@@ -196,7 +195,6 @@ function SearchResultItemComponent({ group, onJoinSuccess }) {
     );
   }
 
-  // Show join button or not eligible message based on ownership check
   return (
     <>
       <SearchResultItem>

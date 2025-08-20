@@ -1,7 +1,7 @@
 import { supabase } from "./supabase";
 
-// Known status IDs for common status types
 export const PROPOSAL_STATUS_IDS = {
+  // uuid from "claimed" status_type from backend
   CLAIMED: "a9f2bdcf-ab17-44d5-96c3-afcb742c696a",
 };
 
@@ -10,9 +10,6 @@ export const PROPOSAL_STATUS_IDS = {
  * @param {string} statusType - The status type (e.g., "active", "approved", etc.)
  * @returns {Promise<string>} The status ID
  * @throws {Error} If status type is not found or if there's a database error
- * @example
- * const activeStatusId = await getStatusId("active");
- * console.log("Active status ID:", activeStatusId);
  */
 export async function getStatusId(statusType) {
   if (!statusType) {
@@ -40,11 +37,8 @@ export async function getStatusId(statusType) {
 }
 
 /**
- * Gets the claimed status ID (optimized to avoid database call for known value)
+ * Gets the claimed status ID
  * @returns {string} The claimed status ID
- * @example
- * const claimedStatusId = getClaimedStatusId();
- * console.log("Claimed status ID:", claimedStatusId);
  */
 export function getClaimedStatusId() {
   return PROPOSAL_STATUS_IDS.CLAIMED;
@@ -54,9 +48,6 @@ export function getClaimedStatusId() {
  * Gets all available proposal status types
  * @returns {Promise<Array<Object>>} Array of status objects with status_id and status_type
  * @throws {Error} If there's a database error
- * @example
- * const statuses = await getAllProposalStatuses();
- * console.log("Available statuses:", statuses);
  */
 export async function getAllProposalStatuses() {
   const { data, error } = await supabase
@@ -77,9 +68,6 @@ export async function getAllProposalStatuses() {
  * @param {string} statusId - The status ID to look up
  * @returns {Promise<Object>} The status object with status_id and status_type
  * @throws {Error} If status ID is not found or if there's a database error
- * @example
- * const status = await getProposalStatusById("some-uuid");
- * console.log("Status type:", status.status_type);
  */
 export async function getProposalStatusById(statusId) {
   if (!statusId) {

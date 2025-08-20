@@ -1,9 +1,13 @@
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation } from "@tanstack/react-query";
 import { supabase } from "../../../services/supabase";
 
+/**
+ * Hook for atomically inserting a commitment into the merkle tree.
+ * This hook handles the insertion of a new commitment value for a group member,
+ * ensuring atomicity through a database RPC function. It returns a mutation
+ * function along with loading and error states.
+ */
 export const useAtomicCommitmentInsertion = () => {
-  const queryClient = useQueryClient();
-
   const mutation = useMutation({
     mutationFn: async ({
       groupId,
@@ -13,12 +17,6 @@ export const useAtomicCommitmentInsertion = () => {
       onError,
     }) => {
       try {
-        console.log("Starting atomic commitment insertion...");
-        console.log("Group ID:", groupId);
-        console.log("Group Member ID:", groupMemberId);
-        console.log("Commitment:", commitment.toString());
-
-        // Step 1: Call RPC function to insert commitment
         const { data: rpcResult, error: rpcError } = await supabase.rpc(
           "atomic_commitment_insertion",
           {
@@ -28,9 +26,6 @@ export const useAtomicCommitmentInsertion = () => {
           }
         );
 
-        console.log("RPC Result:", rpcResult);
-        console.log("RPC Error:", rpcError);
-
         if (rpcError) {
           throw new Error(rpcError.message);
         }
@@ -38,8 +33,6 @@ export const useAtomicCommitmentInsertion = () => {
         if (!rpcResult.success) {
           throw new Error("Commitment insertion failed");
         }
-
-        console.log("Commitment inserted successfully");
 
         if (onSuccess) {
           onSuccess({
@@ -50,7 +43,6 @@ export const useAtomicCommitmentInsertion = () => {
 
         return rpcResult;
       } catch (error) {
-        console.error("Error in atomic commitment insertion:", error);
         if (onError) {
           onError(error);
         }

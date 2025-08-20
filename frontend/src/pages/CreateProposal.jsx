@@ -2,7 +2,11 @@ import React, { useState, useMemo, useRef } from "react";
 import styled from "styled-components";
 import toast from "react-hot-toast";
 
-// components
+// React Icons
+import { IoIosInformationCircle } from "react-icons/io";
+import { IoCloudUploadOutline, IoClose } from "react-icons/io5";
+
+// Components
 import PageHeader from "../components/PageHeader";
 import CustomDropdown from "../components/CustomDropdown";
 import CustomButton from "../components/CustomButton";
@@ -10,7 +14,7 @@ import MnemonicInput from "../components/MnemonicInput";
 import ConfirmationModal from "../components/ConfirmationModal";
 import Spinner from "../components/Spinner";
 
-// hooks
+// Hooks
 import { useGetUserGroups } from "../hooks/queries/groupMembers/useGetUserGroups";
 import { useGetEpochsByGroupId } from "../hooks/queries/epochs/useGetEpochsByGroupId";
 import { useVerifyProposal } from "../hooks/queries/proofs/useVerifyProposal";
@@ -20,15 +24,10 @@ import { useInsertProposal } from "../hooks/queries/proposals/useInsertProposal"
 import { useInsertProof } from "../hooks/queries/proofs/useInsertProof";
 import { useValidateGroupCredentials } from "../hooks/queries/groups/useValidateGroupCredentials";
 
-// utils
+// Utilities
 import { getCurrentPhase } from "../scripts/utils/epochPhaseCalculator";
 import { uploadFile } from "../scripts/uploadFile";
 import { ZKProofGenerator } from "../scripts/generateZKProof";
-
-// icons
-import { IoIosInformationCircle } from "react-icons/io";
-import { IoCloudUploadOutline } from "react-icons/io5";
-import { IoClose } from "react-icons/io5";
 
 const PageContainer = styled.div`
   display: flex;
@@ -99,7 +98,6 @@ const Input = styled.input`
     background: rgba(165, 180, 252, 0.08);
   }
 
-  /* Remove increment/decrement arrows for number inputs */
   &[type="number"]::-webkit-outer-spin-button,
   &[type="number"]::-webkit-inner-spin-button {
     -webkit-appearance: none;
@@ -187,19 +185,6 @@ const Tooltip = styled.div`
   transition: all 0.2s ease-in-out;
   z-index: 10;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
-`;
-
-const FormRow = styled.div`
-  display: flex;
-  gap: 1.6rem;
-  align-items: flex-start;
-`;
-
-const FormFieldRow = styled.div`
-  display: flex;
-  gap: 1.6rem;
-  align-items: flex-start;
-  flex: 1;
 `;
 
 const UploadSection = styled.div`
@@ -353,7 +338,6 @@ const ErrorMessage = styled.div`
   font-weight: 500;
 `;
 
-// Loading Overlay Styles
 const LoadingOverlay = styled.div`
   position: fixed;
   top: 0;
@@ -374,6 +358,26 @@ const LoadingText = styled.p`
   margin-top: 16px;
   text-align: center;
 `;
+
+/**
+ * CreateProposal Component
+ *
+ * A comprehensive form component that allows authenticated group members to create
+ * new proposals within their groups. The component handles proposal creation with
+ * zero-knowledge proof verification, file uploads to IPFS, and database storage.
+ *
+ * Features include:
+ * - Group and campaign selection with phase validation
+ * - Proposal details input (name, description, funding details)
+ * - File upload with drag & drop support
+ * - ZK proof generation using mnemonic phrases
+ * - Real-time validation and error handling
+ * - IPFS integration for document storage
+ *
+ * The component ensures only valid proposals can be submitted by verifying
+ * group membership, campaign phase eligibility, and generating cryptographic
+ * proofs for anonymous submission.
+ */
 
 export default function CreateProposal({ onSuccess, onCancel }) {
   // Form state

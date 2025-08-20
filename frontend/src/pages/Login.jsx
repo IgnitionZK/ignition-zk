@@ -1,4 +1,7 @@
+// Libraries
 import styled from "styled-components";
+
+// Components
 import LoginForm from "../components/LoginForm";
 
 const LoginLayout = styled.main`

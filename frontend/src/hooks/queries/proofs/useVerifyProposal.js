@@ -5,11 +5,16 @@ import { ZKProofGenerator } from "../../../scripts/generateZKProof";
 import { useRelayerVerifyProposal } from "../../relayers/useRelayerVerifyProposal";
 
 /**
- * Custom hook for verifying proposal submission using zero-knowledge proofs
- * @returns {Object} An object containing the verification function and state
- * @property {Function} verifyProposal - Function to verify proposal submission
- * @property {boolean} isVerifying - Loading state for verification process
- * @property {string|null} error - Error message if verification fails
+ * Custom hook for verifying proposal submissions using zero-knowledge proofs.
+ *
+ * This hook handles the complete proposal verification workflow:
+ * 1. Generates a ZK proof from user inputs (commitment array, mnemonic, proposal details)
+ * 2. Converts the proof to Solidity-compatible format
+ * 3. Submits the proof to a relayer for on-chain verification
+ * 4. Returns verification status and associated data
+ *
+ * The hook manages loading states, error handling, and coordinates between
+ * proof generation, wallet connection, and relayer communication.
  */
 export function useVerifyProposal() {
   const [isVerifying, setIsVerifying] = useState(false);
@@ -18,23 +23,8 @@ export function useVerifyProposal() {
   const { generateProofFromInput, isLoading: isGeneratingProof } =
     useGenerateProof();
 
-  // Hook for verifying proposal
   const { verifyProposal: relayerVerifyProposal } = useRelayerVerifyProposal();
 
-  /**
-   * Verifies proposal submission using zero-knowledge proofs
-   * @param {Array<number>} commitmentArray - Array of commitment values
-   * @param {string} mnemonic - Mnemonic phrase for proof generation
-   * @param {string} groupId - Group ID for proof generation
-   * @param {string} epochId - Epoch ID for proof generation
-   * @param {string} proposalTitle - Title of the proposal
-   * @param {string} proposalDescription - Description of the proposal
-   * @param {string} proposalPayload - Payload of the proposal
-   * @param {Object} proposalFunding - Funding information for the proposal
-   * @param {Object} proposalMetadata - Metadata information for the proposal
-   * @returns {Promise<{isValid: boolean, publicSignals: Array<number>}>} Object containing verification result and public signals
-   * @throws {Error} If wallet is not connected or verification fails
-   */
   const verifyProposal = async (
     commitmentArray,
     mnemonic,
@@ -46,7 +36,6 @@ export function useVerifyProposal() {
     proposalFunding = {},
     proposalMetadata = {}
   ) => {
-    // LOG: Input to proof generation
     console.log("[FRONTEND/useVerifyProposal] Inputs:", {
       commitmentArray,
       mnemonic,
@@ -77,7 +66,6 @@ export function useVerifyProposal() {
     setError(null);
 
     try {
-      // Generate the proof
       const { proof, publicSignals } = await generateProofFromInput(
         commitmentArray,
         mnemonic,
@@ -91,7 +79,6 @@ export function useVerifyProposal() {
         "proposal"
       );
 
-      // LOG: Proof and public signals after generation
       console.log("[FRONTEND/useVerifyProposal] Proof generated:", proof);
       console.log(
         "[FRONTEND/useVerifyProposal] Public signals generated:",
@@ -104,11 +91,9 @@ export function useVerifyProposal() {
       // publicSignals[3]: root
       // publicSignals[4]: proposalContentHash
 
-      // Convert proof and public signals to Solidity calldata
       const { proofSolidity, publicSignalsSolidity } =
         await ZKProofGenerator.generateSolidityCalldata(proof, publicSignals);
 
-      // LOG: Solidity calldata
       console.log(
         "[FRONTEND/useVerifyProposal] Proof Solidity:",
         proofSolidity
@@ -118,7 +103,6 @@ export function useVerifyProposal() {
         publicSignalsSolidity
       );
 
-      // LOG: Data sent to relayer
       console.log("[FRONTEND/useVerifyProposal] Data sent to relayer:", {
         proof: proofSolidity,
         publicSignals: publicSignalsSolidity,
@@ -126,7 +110,6 @@ export function useVerifyProposal() {
         epochKey: epochId.toString(),
       });
 
-      // Verify the proof using the relayer
       console.log("Verifying proposal with relayer...");
       console.log("Group ID: ", groupId);
       console.log("Epoch ID: ", epochId);
@@ -136,8 +119,8 @@ export function useVerifyProposal() {
           {
             proof: proofSolidity,
             publicSignals: publicSignalsSolidity,
-            groupKey: groupId.toString(), // Convert to string as expected by edge function
-            epochKey: epochId.toString(), // Convert to string as expected by edge function
+            groupKey: groupId.toString(),
+            epochKey: epochId.toString(),
           },
           {
             onSuccess: (data) => {
@@ -145,7 +128,7 @@ export function useVerifyProposal() {
               resolve({
                 isValid: true,
                 publicSignals,
-                contextKey: data.contextKey || null, // Return contextKey from relayer response
+                contextKey: data.contextKey || null,
               });
             },
             onError: (error) => {

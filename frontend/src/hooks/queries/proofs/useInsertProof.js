@@ -2,28 +2,16 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { insertProof } from "../../../services/apiProofs";
 
 /**
- * Custom hook for inserting a new proof
- * @returns {Object} An object containing the mutation function and loading state
- * @property {Function} insertProof - Function to insert a new proof
- * @property {boolean} isLoading - Boolean indicating if the mutation is in progress
+ * Custom hook for inserting a new ZK proof into the system
+ * This hook provides a mutation function to submit zero-knowledge proofs for various
+ * circuit types (membership, proposal, proposal-claim, vote) along with their associated
+ * metadata. It automatically invalidates and refetches proofs queries on successful
+ * submission to keep the UI in sync.
  */
 export function useInsertProof() {
   const queryClient = useQueryClient();
 
   const { mutateAsync: insertProofMutation, isLoading } = useMutation({
-    /**
-     * Mutation function to insert a new proof
-     * @param {Object} params - The parameters for inserting a proof
-     * @param {string} params.proposalId - The ID of the proposal
-     * @param {string} params.groupId - The ID of the group
-     * @param {string} params.groupMemberId - The ID of the group member
-     * @param {string} params.nullifierHash - The nullifier hash
-     * @param {string} params.circuitType - The type of circuit used
-     * @param {Array<string>} [params.proof] - The proof array (required for voting circuit)
-     * @param {Array<string>} [params.publicSignals] - The public signals array (required for voting circuit)
-     * @param {string} [params.contextKey] - The context key for the proof (computed from group, epoch, proposal)
-     * @returns {Promise} A promise that resolves when the proof is inserted
-     */
     mutationFn: ({
       proposalId,
       groupId,
@@ -45,7 +33,6 @@ export function useInsertProof() {
         contextKey,
       }),
     onSuccess: () => {
-      // Invalidate and refetch proofs queries
       queryClient.invalidateQueries({ queryKey: ["proofs"] });
     },
     onError: (err) => {

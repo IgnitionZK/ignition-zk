@@ -7,12 +7,12 @@ import { supabase } from "./supabase";
  * @param {string} params.groupId - The ID of the group this proof belongs to
  * @param {string} params.groupMemberId - The ID of the group member who created this proof
  * @param {string} params.nullifierHash - The nullifier hash of the proof
- * @param {string} params.circuitType - The type of circuit used (e.g., "proposal", "voting", "membership")
- * @param {Array<string>} [params.proof] - The proof array (required for voting circuit)
- * @param {Array<string>} [params.publicSignals] - The public signals array (required for voting circuit)
+ * @param {string} params.circuitType - The type of circuit used (e.g., "proposal", "voting", "membership", "claim")
+ * @param {Array<string>} [params.proof] - The proof array (required for voting circuit, optional for others)
+ * @param {Array<string>} [params.publicSignals] - The public signals array (required for voting circuit, optional for others)
  * @param {string} [params.contextKey] - The context key for the proof (computed from group, epoch, proposal)
- * @returns {Promise<Object>} The inserted proof record
- * @throws {Error} If any required parameter is missing or if the database operation fails
+ * @returns {Promise<Object>} The inserted proof record with database fields (proposal_id, circuit_id, group_id, group_member_id, nullifier_hash, is_verified, context_key, proof, public_signals)
+ * @throws {Error} If any required parameter is missing, if circuit type is unknown, or if the database operation fails
  */
 export async function insertProof({
   proposalId,
@@ -92,8 +92,8 @@ export async function insertProof({
     insertData.public_signals = publicSignals;
   }
 
-  console.log("📝 insertProof - Data to be inserted:", insertData);
-  console.log("🔗 insertProof - Circuit ID mapped:", circuitId);
+  console.log("insertProof - Data to be inserted:", insertData);
+  console.log("insertProof - Circuit ID mapped:", circuitId);
 
   const { data, error } = await supabase
     .schema("ignitionzk")
@@ -102,21 +102,21 @@ export async function insertProof({
     .select()
     .single();
 
-  console.log("✅ insertProof - Supabase response:", { data, error });
+  console.log("insertProof - Supabase response:", { data, error });
 
   if (error) {
-    console.error("❌ insertProof - Database error:", error);
+    console.error("insertProof - Database error:", error);
     throw new Error(error.message);
   }
 
-  console.log("🎉 insertProof - Successfully inserted proof:", data);
+  console.log("insertProof - Successfully inserted proof:", data);
   return data;
 }
 
 /**
  * Retrieves all proofs associated with one or more group member IDs.
  * @param {string|string[]} groupMemberId - A single group member ID or an array of group member IDs
- * @returns {Promise<Array<Object>>} An array of proof records
+ * @returns {Promise<Array<Object>>} An array of proof records with database fields
  * @throws {Error} If groupMemberId is not provided or if the database operation fails
  */
 export async function getProofsByGroupMemberId(groupMemberId) {
@@ -143,7 +143,7 @@ export async function getProofsByGroupMemberId(groupMemberId) {
 /**
  * Retrieves all proofs associated with a specific proposal ID.
  * @param {string} proposalId - The ID of the proposal
- * @returns {Promise<Array<Object>>} An array of proof records
+ * @returns {Promise<Array<Object>>} An array of proof records with database fields
  * @throws {Error} If proposalId is not provided or if the database operation fails
  */
 export async function getProofsByProposalId(proposalId) {
@@ -167,8 +167,8 @@ export async function getProofsByProposalId(proposalId) {
 /**
  * Retrieves the proposal submission nullifier for a specific proposal.
  * @param {string} proposalId - The ID of the proposal
- * @returns {Promise<string|null>} The proposal submission nullifier hash, or null if not found
- * @throws {Error} If proposalId is not provided or if the database operation fails
+ * @returns {Promise<string|null>} The proposal submission nullifier hash, or null if no proof is found
+ * @throws {Error} If proposalId is not provided or if the database operation fails (excluding "not found" cases)
  */
 export async function getProposalSubmissionNullifier(proposalId) {
   if (!proposalId) {
@@ -180,18 +180,17 @@ export async function getProposalSubmissionNullifier(proposalId) {
     .from("proofs")
     .select("nullifier_hash")
     .eq("proposal_id", proposalId)
-    .eq("circuit_id", "a1a0a504-e3aa-4e5d-bb9f-bbd98aefbd52") // proposal circuit ID
+    .eq("circuit_id", "a1a0a504-e3aa-4e5d-bb9f-bbd98aefbd52") // proposal circuit uuid
     .single();
 
   if (error) {
     if (error.code === "PGRST116") {
-      // No rows returned
       console.log(
-        `❌ getProposalSubmissionNullifier - No proposal submission proof found for proposal_id: ${proposalId}`
+        `getProposalSubmissionNullifier - No proposal submission proof found for proposal_id: ${proposalId}`
       );
       return null;
     }
-    console.error(`❌ getProposalSubmissionNullifier - Database error:`, error);
+    console.error(`getProposalSubmissionNullifier - Database error:`, error);
     throw new Error(error.message);
   }
 

@@ -5,18 +5,6 @@ import { getLeavesByGroupId } from "../../../services/apiMerkleTreeLeaves";
 /**
  * React hook to validate if all group members have generated credentials
  * by comparing ERC721 total supply with database commitments count
- *
- * @param {string} contractAddress - The ERC721 contract address
- * @param {string} groupId - The group ID
- * @param {boolean} enabled - Whether to run the validation (default: true)
- * @returns {Object} Object containing validation state and functions
- * @property {boolean} isLoading - Whether validation is in progress
- * @property {boolean} isValid - Whether all members have generated credentials
- * @property {number} totalMembers - Total number of members from ERC721
- * @property {number} commitmentsCount - Number of commitments in database
- * @property {string} message - Human-readable validation message
- * @property {string|null} error - Error message if validation failed
- * @property {Function} validate - Function to manually trigger validation
  */
 export function useValidateGroupCredentials(
   contractAddress,
@@ -40,14 +28,11 @@ export function useValidateGroupCredentials(
     setError(null);
 
     try {
-      // Get total supply from ERC721 contract via edge function
       const totalMembers = await getERC721TokenSupply(contractAddress, groupId);
 
-      // Get commitments count from database
       const leaves = await getLeavesByGroupId({ groupId });
       const commitmentsCount = leaves.length;
 
-      // Handle case where no tokens have been minted
       if (totalMembers === 0) {
         setError(
           "No members have been minted in the ERC721 contract. Please ensure group members have been added to the contract before creating campaigns."
@@ -83,7 +68,6 @@ export function useValidateGroupCredentials(
     }
   }, [contractAddress, groupId, enabled]);
 
-  // Auto-validate when dependencies change
   useEffect(() => {
     if (enabled && contractAddress && groupId) {
       validate();

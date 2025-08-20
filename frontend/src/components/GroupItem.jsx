@@ -2,11 +2,13 @@ import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import styled from "styled-components";
 import { toast } from "react-hot-toast";
+
 // components
 import MiniSpinner from "./MiniSpinner";
 import CustomButtonIcon from "./CustomButtonIcon";
 import GenerateCredentialsOverlay from "./GenerateCredentialsOverlay";
 import ConfirmationModal from "./ConfirmationModal";
+
 // hooks
 import { useCheckCommitment } from "../hooks/queries/groupMembers/useCheckCommitment";
 import { useGetActiveMerkleTreeRoot } from "../hooks/queries/merkleTreeRoots/useGetActiveMerkleTreeRoot";
@@ -107,14 +109,11 @@ function GroupItem({ group, groupMemberId, groupId }) {
     setShowGenerateCredentials(false);
 
     if (success) {
-      // Invalidate the commitment query to refresh the hasCommitment status
       queryClient.invalidateQueries({
         queryKey: ["hasCommitment", groupMemberId],
       });
-      // Show success message only when credentials were actually generated
       toast.success(`Credentials generated successfully for ${group.name}!`);
     }
-    // If success is false, user cancelled - no action needed
   };
 
   return (

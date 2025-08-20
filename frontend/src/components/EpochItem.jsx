@@ -1,24 +1,28 @@
+// Libraries
 import React from "react";
 import styled from "styled-components";
+
+// Utils
 import {
   calculateEpochPhases,
   getCurrentPhase,
   formatDate,
 } from "../scripts/utils/epochPhaseCalculator";
+
+// Icons
 import { IoIosInformationCircle } from "react-icons/io";
 
-// Dot color logic (solid colors, ProposalItem style)
 const getDotColor = (phase, currentPhase) => {
-  if (phase === currentPhase) return "#22c55e"; // green
+  if (phase === currentPhase) return "#22c55e";
   if (
     (phase === "proposal" &&
       ["voting", "review", "completed"].includes(currentPhase)) ||
     (phase === "voting" && ["review", "completed"].includes(currentPhase)) ||
     (phase === "review" && currentPhase === "completed")
   ) {
-    return "#ef4444"; // red
+    return "#ef4444";
   }
-  return "#6b7280"; // gray
+  return "#6b7280";
 };
 
 const EpochItemContainer = styled.div`
@@ -147,6 +151,12 @@ const RightSection = styled.div`
   min-width: 200px;
 `;
 
+/**
+ * EpochItem component displays information about a governance epoch including its phases,
+ * current status, and timeline. Shows proposal, voting, and review phases with visual
+ * indicators for current, completed, and upcoming phases.
+ */
+
 export default function EpochItem({ epoch }) {
   const phases = calculateEpochPhases(epoch);
   const { currentPhase } = getCurrentPhase(epoch);
@@ -176,7 +186,6 @@ export default function EpochItem({ epoch }) {
     },
   ];
 
-  // Duration in weeks
   const weeks = Math.round(epoch.epoch_duration / 7);
 
   return (

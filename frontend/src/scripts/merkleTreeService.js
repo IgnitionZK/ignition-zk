@@ -5,7 +5,7 @@ import { IMT } from "@zk-kit/imt";
  * @class MerkleTreeService
  * A service for creating and managing Merkle trees using Poseidon hash function.
  * It provides methods to create a Merkle tree from hashed leaves and generate Merkle proofs.
- * The tree depth is fixed at 10, and it uses a binary tree structure (arity of 2).
+ * The tree depth is fixed at 10, and it uses a binary tree structure with arity of 2.
  * The zero element is set to BigInt(0).
  */
 export class MerkleTreeService {
@@ -17,7 +17,7 @@ export class MerkleTreeService {
   /**
    * Initializes the Poseidon hash function.
    * @private
-   * @returns {Promise<Function>} A promise that resolves to the Poseidon hash function.
+   * @returns {Function} The Poseidon hash function that takes inputs and returns a BigInt hash.
    */
   static async #getPoseidonHashFn() {
     if (!this.#poseidonInstance) {
@@ -31,7 +31,7 @@ export class MerkleTreeService {
 
   /**
    * Creates a new Merkle tree using the provided hashed leaves.
-   * @param {Array<BigInt>} hashedLeaves - An array of BigInts representing the hashed leaves.
+   * @param {BigInt[]} hashedLeaves - An array of BigInt values representing the hashed leaves.
    * @returns {Promise<{tree: IMT, root: string}>} An object containing the generated Merkle tree instance and its root.
    */
   static async createMerkleTree(hashedLeaves) {
@@ -54,7 +54,7 @@ export class MerkleTreeService {
   /**
    * Generates a Merkle proof for a specific leaf at a given index.
    * @param {number} index - The index of the leaf for which to generate the proof.
-   * @param {Array<BigInt>} hashedLeaves - An array of BigInts representing all hashed leaves in the tree.
+   * @param {BigInt[]} hashedLeaves - An array of BigInt values representing all hashed leaves in the tree.
    * @returns {Promise<{root: string, leaf: string, pathElements: string[], pathIndices: number[]}>} An object containing the Merkle proof details.
    */
   static async generateMerkleProof(index, hashedLeaves) {

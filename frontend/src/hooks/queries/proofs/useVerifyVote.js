@@ -6,10 +6,6 @@ import { useRelayerVerifyVote } from "../../relayers/useRelayerVerifyVote";
 
 /**
  * Custom hook for verifying vote submission using zero-knowledge proofs
- * @returns {Object} An object containing the verification function and state
- * @property {Function} verifyVote - Function to verify vote submission
- * @property {boolean} isVerifying - Loading state for verification process
- * @property {string|null} error - Error message if verification fails
  */
 export function useVerifyVote() {
   const [isVerifying, setIsVerifying] = useState(false);
@@ -18,26 +14,8 @@ export function useVerifyVote() {
   const { generateProofFromInput, isLoading: isGeneratingProof } =
     useGenerateProof();
 
-  // Hook for verifying vote
   const { verifyVote: relayerVerifyVote } = useRelayerVerifyVote();
 
-  /**
-   * Verifies vote submission using zero-knowledge proofs
-   * @param {Array<number>} commitmentArray - Array of commitment values
-   * @param {string} mnemonic - Mnemonic phrase for proof generation
-   * @param {string} groupId - Group ID for proof generation
-   * @param {string} epochId - Epoch ID for proof generation
-   * @param {string} proposalId - Proposal ID for proof generation
-   * @param {number} voteChoice - Vote choice (0 for No, 1 for Yes, 2 for Abstain)
-   * @param {string} proposalTitle - Proposal title
-   * @param {string} proposalDescription - Proposal description
-   * @param {Object} proposalPayload - Proposal payload object
-   * @param {Object} proposalFunding - Proposal funding object
-   * @param {Object} proposalMetadata - Proposal metadata object
-   * @param {string} proposalSubmissionNullifier - Proposal submission nullifier hash
-   * @returns {Promise<{isValid: boolean, publicSignals: Array<number>}>} Object containing verification result and public signals
-   * @throws {Error} If wallet is not connected or verification fails
-   */
   const verifyVote = async (
     commitmentArray,
     mnemonic,
@@ -52,7 +30,6 @@ export function useVerifyVote() {
     proposalMetadata,
     proposalSubmissionNullifier
   ) => {
-    // LOG: Input to proof generation
     console.log("[FRONTEND/useVerifyVote] Inputs:", {
       commitmentArray,
       mnemonic,
@@ -89,7 +66,6 @@ export function useVerifyVote() {
     setError(null);
 
     try {
-      // Generate the vote circuit input with all required parameters
       const circuitInput = await ZKProofGenerator.generateVoteCircuitInput(
         mnemonic,
         commitmentArray,
@@ -105,13 +81,11 @@ export function useVerifyVote() {
         proposalSubmissionNullifier
       );
 
-      // Generate the proof
       const { proof, publicSignals } = await ZKProofGenerator.generateProof(
         circuitInput,
         "vote"
       );
 
-      // LOG: Proof and public signals after generation
       console.log("[FRONTEND/useVerifyVote] Proof generated:", proof);
       console.log(
         "[FRONTEND/useVerifyVote] Public signals generated:",
@@ -127,21 +101,18 @@ export function useVerifyVote() {
         publicSignals[4], // proposalSubmissionNullifier
       ];
 
-      // Convert proof and public signals to Solidity calldata
       const { proofSolidity, publicSignalsSolidity } =
         await ZKProofGenerator.generateSolidityCalldata(
           proof,
           reorderedPublicSignals
         );
 
-      // LOG: Solidity calldata
       console.log("[FRONTEND/useVerifyVote] Proof Solidity:", proofSolidity);
       console.log(
         "[FRONTEND/useVerifyVote] Public Signals Solidity:",
         publicSignalsSolidity
       );
 
-      // LOG: Data sent to relayer
       console.log("[FRONTEND/useVerifyVote] Data sent to relayer:", {
         proof: proofSolidity,
         publicSignals: publicSignalsSolidity,
@@ -150,7 +121,6 @@ export function useVerifyVote() {
         proposalKey: proposalId.toString(),
       });
 
-      // Verify the proof using the relayer
       console.log("Verifying vote with relayer...");
       console.log("Group ID: ", groupId);
       console.log("Epoch ID: ", epochId);
@@ -161,9 +131,9 @@ export function useVerifyVote() {
           {
             proof: proofSolidity,
             publicSignals: publicSignalsSolidity,
-            groupKey: groupId.toString(), // Convert to string as expected by edge function
-            epochKey: epochId.toString(), // Convert to string as expected by edge function
-            proposalKey: proposalId.toString(), // Convert to string as expected by edge function
+            groupKey: groupId.toString(),
+            epochKey: epochId.toString(),
+            proposalKey: proposalId.toString(),
           },
           {
             onSuccess: (data) => {
@@ -172,7 +142,7 @@ export function useVerifyVote() {
                 isValid: true,
                 publicSignals: publicSignalsSolidity,
                 proof: proofSolidity,
-                contextKey: data.contextKey || null, // Return contextKey from relayer response
+                contextKey: data.contextKey || null,
               });
             },
             onError: (error) => {

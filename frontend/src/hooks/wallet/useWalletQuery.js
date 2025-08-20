@@ -10,7 +10,6 @@ const WALLET_QUERY_KEY = "wallet";
 async function getWalletState() {
   if (!window.ethereum) return null;
 
-  // Only try to get wallet state if there's already a selected account
   if (!window.ethereum.selectedAddress) return null;
 
   try {
@@ -29,7 +28,10 @@ async function getWalletState() {
 }
 
 /**
- * A React hook that provides wallet connection functionality and wallet state.
+ * A React hook that provides wallet connection functionality, wallet state management,
+ * and automatic wallet event handling. It uses React Query for caching and provides
+ * methods to connect to MetaMask, retrieve wallet state (provider, signer, address),
+ * and automatically handles account/chain change events.
  */
 export function useWalletQuery() {
   const queryClient = useQueryClient();
@@ -48,14 +50,12 @@ export function useWalletQuery() {
       const provider = new BrowserProvider(window.ethereum);
       await provider.send("eth_requestAccounts", []);
 
-      // Refetch the wallet state after connecting
       await queryClient.invalidateQueries([WALLET_QUERY_KEY]);
     } catch (error) {
       console.error("Failed to connect wallet:", error);
     }
   };
 
-  // Set up event listeners for wallet changes
   useEffect(() => {
     if (!window.ethereum) return;
 

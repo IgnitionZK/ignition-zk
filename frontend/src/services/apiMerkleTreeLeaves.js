@@ -6,8 +6,8 @@ import { supabase } from "./supabase";
  * @param {string} params.groupMemberId - The ID of the group member
  * @param {string} params.commitment - The commitment value to be stored
  * @param {string} params.groupId - The ID of the group
- * @returns {Promise<Object>} The inserted data
- * @throws {Error} If there is an error during the database operation
+ * @returns {Promise<Object>} The inserted data object
+ * @throws {Error} When required parameters are missing or database operation fails
  */
 export async function insertLeaf({ groupMemberId, commitment, groupId }) {
   if (!groupMemberId || !commitment || !groupId) {
@@ -21,7 +21,7 @@ export async function insertLeaf({ groupMemberId, commitment, groupId }) {
     is_active: true,
   };
 
-  console.log("📝 insertLeaf - Data to be inserted:", insertData);
+  console.log("insertLeaf - Data to be inserted:", insertData);
 
   const { data, error } = await supabase
     .schema("ignitionzk")
@@ -29,7 +29,7 @@ export async function insertLeaf({ groupMemberId, commitment, groupId }) {
     .insert(insertData);
 
   if (error) {
-    console.error("❌ insertLeaf - Database error:", error);
+    console.error("insertLeaf - Database error:", error);
     throw new Error(error.message);
   }
 
@@ -40,8 +40,8 @@ export async function insertLeaf({ groupMemberId, commitment, groupId }) {
  * Retrieves all merkle tree leaves for a specific group
  * @param {Object} params - The parameters object
  * @param {string} params.groupId - The ID of the group to fetch leaves for
- * @returns {Promise<Array<Object>>} Array of merkle tree leaves for the specified group
- * @throws {Error} If there is an error during the database operation
+ * @returns {Promise<Array<Object>>} Array of merkle tree leaf objects for the specified group
+ * @throws {Error} When groupId is missing or database operation fails
  */
 export async function getLeavesByGroupId({ groupId }) {
   if (!groupId) {
@@ -64,8 +64,8 @@ export async function getLeavesByGroupId({ groupId }) {
  * Retrieves an array of commitment values for a specific group, ordered by creation time
  * @param {Object} params - The parameters object
  * @param {string} params.groupId - The ID of the group to fetch commitments for
- * @returns {Promise<Array<{commitment_value: string}>>} Array of commitment values for the specified group
- * @throws {Error} If there is an error during the database operation or if groupId is not provided
+ * @returns {Promise<Array<Object>>} Array of objects containing commitment_value strings, ordered by creation time
+ * @throws {Error} When groupId is missing or database operation fails
  */
 export async function getCommitmentArray({ groupId }) {
   if (!groupId) {

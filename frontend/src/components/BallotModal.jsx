@@ -1,5 +1,8 @@
+// React and core libraries
 import React, { useEffect, useState } from "react";
 import styled from "styled-components";
+
+// Components
 import CustomButton from "./CustomButton";
 
 const ModalOverlay = styled.div`
@@ -141,35 +144,26 @@ const CancelButton = styled(CustomButton)`
 
 /**
  * BallotModal component for voting on proposals
- *
- * @param {Object} props - Component props
- * @param {boolean} props.isOpen - Whether the modal is visible
- * @param {string} props.proposalTitle - Title of the proposal being voted on
- * @param {Function} props.onConfirm - Callback when confirm button is clicked (receives selected vote)
- * @param {Function} props.onCancel - Callback when cancel button is clicked
  */
 function BallotModalComponent({ isOpen, proposalTitle, onConfirm, onCancel }) {
   const [selectedVote, setSelectedVote] = useState(null);
 
-  // Reset selection when modal opens
   useEffect(() => {
     if (isOpen) {
       setSelectedVote(null);
     }
   }, [isOpen]);
 
-  // Handle keyboard events for modal
   useEffect(() => {
     const handleKeyDown = (e) => {
       if (isOpen && e.key === "Escape") {
-        setSelectedVote(null); // Reset selection
+        setSelectedVote(null);
         onCancel();
       }
     };
 
     if (isOpen) {
       document.addEventListener("keydown", handleKeyDown);
-      // Prevent body scroll when modal is open
       document.body.style.overflow = "hidden";
     }
 
@@ -179,23 +173,22 @@ function BallotModalComponent({ isOpen, proposalTitle, onConfirm, onCancel }) {
     };
   }, [isOpen, onCancel]);
 
-  // Handle clicking outside the modal to close it
   const handleModalOverlayClick = (e) => {
     if (e.target === e.currentTarget) {
-      setSelectedVote(null); // Reset selection
+      setSelectedVote(null);
       onCancel();
     }
   };
 
   const handleConfirm = () => {
     if (!selectedVote) {
-      return; // Don't proceed if no vote is selected
+      return;
     }
     onConfirm(selectedVote);
   };
 
   const handleCancel = () => {
-    setSelectedVote(null); // Reset selection
+    setSelectedVote(null);
     onCancel();
   };
 

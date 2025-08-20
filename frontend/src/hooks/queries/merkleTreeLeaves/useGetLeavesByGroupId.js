@@ -2,31 +2,14 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { getLeavesByGroupId } from "../../../services/apiMerkleTreeLeaves";
 
 /**
- * Custom hook to fetch merkle tree leaves for a specific group or the current group.
- * Uses React Query to manage the data fetching state and caching.
+ * Custom hook to fetch merkle tree leaves (commitments) for a specific group or the current group.
  *
- * @param {Object} params - The parameters object
- * @param {string} [params.groupId] - The ID of the group to fetch leaves for. If not provided, uses currentGroupId from cache.
+ * This hook automatically determines the group ID to use - either from the provided groupId parameter
+ * or by falling back to the current group ID stored in the query client. It returns the loading state,
+ * group commitments data, and any error that occurred during the fetch operation.
  *
- * The query uses a compound key ["groupCommitments", groupId] where:
- * - groupId is either the provided parameter or retrieved from the query cache using the "currentGroupId" key
- * - The query is only enabled when groupId is available
- *
- * The query function will:
- * - Throw an error if no groupId is available
- * - Call getLeavesByGroupId with the group ID when available
- *
- * @returns {Object} An object containing:
- *   @property {boolean} isLoading - Indicates if the query is currently loading
- *   @property {Array} groupCommitments - Array of merkle tree leaves for the specified group
- *   @property {Error|null} error - Any error that occurred during the query
- *
- * @example
- * // Use current group from cache
- * const { isLoading, groupCommitments, error } = useGetLeavesByGroupId();
- *
- * // Use specific group
- * const { isLoading, groupCommitments, error } = useGetLeavesByGroupId({ groupId: "group-123" });
+ * The hook is only enabled when a valid group ID is available and uses React Query for efficient
+ * data fetching, caching, and state management.
  */
 export function useGetLeavesByGroupId({ groupId } = {}) {
   const queryClient = useQueryClient();

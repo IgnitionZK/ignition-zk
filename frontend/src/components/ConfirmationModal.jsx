@@ -1,5 +1,10 @@
+// React and hooks
 import React, { useEffect } from "react";
+
+// Styling
 import styled from "styled-components";
+
+// Components
 import CustomButton from "./CustomButton";
 
 const ModalOverlay = styled.div`
@@ -50,26 +55,8 @@ const ModalButtons = styled.div`
 `;
 
 /**
- * A reusable confirmation modal component that can be customized with different messages,
- * titles, and button configurations.
- *
- * @param {Object} props - Component props
- * @param {boolean} props.isOpen - Whether the modal is visible
- * @param {string} props.title - Modal title
- * @param {string} props.message - Modal message/description
- * @param {string} props.confirmText - Text for the confirm button
- * @param {string} props.cancelText - Text for the cancel button
- * @param {string} props.confirmButtonColor - Background color for confirm button
- * @param {string} props.confirmButtonHoverColor - Hover color for confirm button
- * @param {string} props.cancelButtonColor - Background color for cancel button
- * @param {string} props.cancelButtonHoverColor - Hover color for cancel button
- * @param {Function} props.onConfirm - Callback when confirm button is clicked
- * @param {Function} props.onCancel - Callback when cancel button is clicked
- * @param {boolean} props.showCancelButton - Whether to show the cancel button (default: true)
- * @param {boolean} props.disableConfirmButton - Whether to disable the confirm button
- * @param {boolean} props.disableCancelButton - Whether to disable the cancel button
- * @param {string} props.confirmButtonTextColor - Text color for confirm button
- * @param {string} props.cancelButtonTextColor - Text color for cancel button
+ * A reusable confirmation modal component that displays a customizable dialog with confirm and cancel actions.
+ * Supports keyboard navigation (Escape key), click-outside-to-close, and customizable button styling.
  */
 function ConfirmationModalComponent({
   isOpen,
@@ -89,7 +76,6 @@ function ConfirmationModalComponent({
   disableConfirmButton = false,
   disableCancelButton = false,
 }) {
-  // Handle keyboard events for modal
   useEffect(() => {
     const handleKeyDown = (e) => {
       if (isOpen && e.key === "Escape") {
@@ -99,7 +85,6 @@ function ConfirmationModalComponent({
 
     if (isOpen) {
       document.addEventListener("keydown", handleKeyDown);
-      // Prevent body scroll when modal is open
       document.body.style.overflow = "hidden";
     }
 
@@ -109,7 +94,6 @@ function ConfirmationModalComponent({
     };
   }, [isOpen, onCancel]);
 
-  // Handle clicking outside the modal to close it
   const handleModalOverlayClick = (e) => {
     if (e.target === e.currentTarget) {
       onCancel();

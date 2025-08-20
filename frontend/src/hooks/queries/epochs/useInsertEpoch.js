@@ -4,18 +4,15 @@ import { useCalculateAndStoreRoot } from "../merkleTreeRoots/useCalculateAndStor
 import { useUpdateBlockchainRoot } from "../merkleTreeRoots/useUpdateBlockchainRoot";
 
 /**
- * Custom hook to insert a new epoch with root calculation and blockchain update
+ * Custom hook to insert a new epoch with root calculation and blockchain update.
  *
- * @returns {Object} Object containing:
- *   - insertEpoch: function - Function to insert new epoch with root calculation and blockchain update
- *   - isLoading: boolean - Loading state of the mutation
- *   - error: Error | null - Error state of the mutation
+ * This hook orchestrates the complete epoch creation process:
+ * 1. Calculates and stores the new Merkle tree root in the database
+ * 2. Updates the blockchain root if it has changed
+ * 3. Creates the epoch/campaign record
  *
- * @notes
- *   - Uses React Query's useMutation for optimistic updates
- *   - Automatically invalidates related queries after successful insertion
- *   - Calculates and stores root before creating campaign to ensure consistency
- *   - Skips blockchain updates when root is unchanged for efficiency
+ * The hook handles all three operations sequentially and provides loading states
+ * for each step. It also invalidates related queries to ensure UI consistency.
  */
 export function useInsertEpoch() {
   const queryClient = useQueryClient();
@@ -42,8 +39,6 @@ export function useInsertEpoch() {
           "Starting epoch creation with root calculation and blockchain update..."
         );
 
-        // Step 1: Calculate and store root in database
-        console.log("Calculating and storing root...");
         const rootData = await calculateAndStoreRoot({
           groupId: group_id,
           onSuccess: (rootResult) => {
@@ -55,7 +50,6 @@ export function useInsertEpoch() {
           },
         });
 
-        // Step 2: Update blockchain only if root has changed
         if (rootData.rootUnchanged) {
           console.log("Root unchanged, skipping blockchain update...");
         } else {
@@ -77,7 +71,6 @@ export function useInsertEpoch() {
           });
         }
 
-        // Step 3: Create the epoch/campaign
         console.log("Creating epoch...");
         const epochData = await insertEpoch({
           group_id,
@@ -102,14 +95,11 @@ export function useInsertEpoch() {
       }
     },
     onSuccess: (data, variables) => {
-      // Invalidate and refetch related queries
       queryClient.invalidateQueries(["epochsByGroupId", variables.group_id]);
       queryClient.invalidateQueries(["userEpochs"]);
     },
   });
 
-  // Only include blockchain update loading if we're actually updating
-  // For now, we'll keep it simple and include it in the loading state
   return {
     insertEpoch: insertEpochMutation,
     isLoading: isInsertingEpoch || isCalculatingRoot || isUpdatingRoot,
