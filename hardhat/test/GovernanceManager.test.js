@@ -1748,33 +1748,9 @@ describe("Governance Manager Unit Tests:", function () {
     
 });
 
-// to do: implement interface check for add module. Dynamically pull interface?
+// to do: implement interface check for add module. Dynamically pull interface
+// Test delegateGetBalance, delegateIsPendingApproval, delegateIsPendingExecution, delegateIsExecuted, delegateGetFundingRequest
 
 
-
-
-    /*
-        function delegateGetTreasuryAddress(bytes32 groupKey) external view onlyRelayer returns (address) {
-        if (address(treasuryFactory) == address(0)) revert TreasuryFactoryAddressNotSet();
-        return treasuryFactory.getTreasuryAddress(groupKey);
-    }
-
-    */
-
-    /*
-    Functions to test:
-    - setTreasuryFactory - done
-    - addFundingModule - done
-    - removeFundingModule - done
-    - delegateDistributeFunding - done
-    - delegateGetTreasuryAddress - done
-    - delegateGetBalance
-    - delegateIsPendingApproval
-    - delegateIsPendingExecution
-    - delegateIsExecuted
-    - delegateGetFundingRequest
-    - getActiveModule - done
-    - delegateDeployTreasury - done
-    */
 
 
