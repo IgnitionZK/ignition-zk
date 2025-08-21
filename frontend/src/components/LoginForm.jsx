@@ -1,6 +1,11 @@
+// React and libraries
 import React, { useState } from "react";
 import styled from "styled-components";
+
+// Components
 import CustomButton from "./CustomButton";
+
+// Hooks
 import { useLogin } from "../hooks/queries/authentication/useLogin";
 
 const FormContainer = styled.div`
@@ -23,12 +28,6 @@ const StyledForm = styled.form`
   display: flex;
   flex-direction: column;
   gap: 18px;
-`;
-
-const Label = styled.label`
-  font-size: 1rem;
-  color: #444;
-  margin-bottom: 6px;
 `;
 
 const Input = styled.input`
@@ -71,7 +70,6 @@ const LoginForm = () => {
       <FormTitle>Login</FormTitle>
       <StyledForm onSubmit={handleSubmit}>
         <div>
-          {/* <Label htmlFor="email">Email address</Label> */}
           <Input
             id="email"
             type="email"
@@ -84,7 +82,6 @@ const LoginForm = () => {
           />
         </div>
         <div>
-          {/* <Label htmlFor="password">Password</Label> */}
           <Input
             id="password"
             type="password"

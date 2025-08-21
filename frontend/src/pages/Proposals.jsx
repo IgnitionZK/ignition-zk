@@ -65,8 +65,9 @@ const SectionTitleInline = styled.h2`
 `;
 
 /**
- * Proposals page component that displays active and historical proposals
- * @component
+ * Proposals page component that displays active and historical proposals for user groups.
+ * Shows active proposals with filtering by group, allows creation of new proposals,
+ * and displays proposal activity history.
  */
 export default function Proposals() {
   const { userGroups, isLoading: isLoadingGroups } = useGetUserGroups();
@@ -77,7 +78,6 @@ export default function Proposals() {
 
   const [selectedGroup, setSelectedGroup] = useState("All Groups");
 
-  // Auto-refetch proposals when refreshKey changes
   useEffect(() => {
     if (refreshKey > 0) {
       refetch();
@@ -89,7 +89,6 @@ export default function Proposals() {
     ...(userGroups?.map((group) => group.name) || []),
   ];
 
-  // Filter active proposals that have proposal proofs, then by selected group
   const activeProposals = proposals
     ?.filter((proposal) => proposal.status_type === "active")
     .filter((proposal) =>
@@ -98,28 +97,23 @@ export default function Proposals() {
         : proposal.group_name === selectedGroup
     );
 
-  const filteredProposals = activeProposals
-    // Get unique proposals, ensuring we get the proposal circuit row for each
-    ?.reduce((acc, proposal) => {
-      const existingIndex = acc.findIndex(
-        (p) => p.proposal_id === proposal.proposal_id
-      );
+  const filteredProposals = activeProposals?.reduce((acc, proposal) => {
+    const existingIndex = acc.findIndex(
+      (p) => p.proposal_id === proposal.proposal_id
+    );
 
-      if (existingIndex === -1) {
-        // First time seeing this proposal_id
-        if (proposal.circuit_id === "a1a0a504-e3aa-4e5d-bb9f-bbd98aefbd52") {
-          acc.push(proposal);
-        }
-      } else {
-        // We already have this proposal_id, but check if current row is the proposal circuit
-        if (proposal.circuit_id === "a1a0a504-e3aa-4e5d-bb9f-bbd98aefbd52") {
-          // Replace the existing entry with the proposal circuit row
-          acc[existingIndex] = proposal;
-        }
+    if (existingIndex === -1) {
+      if (proposal.circuit_id === "a1a0a504-e3aa-4e5d-bb9f-bbd98aefbd52") {
+        acc.push(proposal);
       }
+    } else {
+      if (proposal.circuit_id === "a1a0a504-e3aa-4e5d-bb9f-bbd98aefbd52") {
+        acc[existingIndex] = proposal;
+      }
+    }
 
-      return acc;
-    }, []);
+    return acc;
+  }, []);
 
   if (showCreateProposal) {
     return (
@@ -193,15 +187,13 @@ export default function Proposals() {
                     : proposal.group_name === selectedGroup
                 );
 
-              const filteredHistoryProposals = historyProposals
-                // Get unique proposals, ensuring we get the proposal circuit row for each
-                ?.reduce((acc, proposal) => {
+              const filteredHistoryProposals = historyProposals?.reduce(
+                (acc, proposal) => {
                   const existingIndex = acc.findIndex(
                     (p) => p.proposal_id === proposal.proposal_id
                   );
 
                   if (existingIndex === -1) {
-                    // First time seeing this proposal_id
                     if (
                       proposal.circuit_id ===
                       "a1a0a504-e3aa-4e5d-bb9f-bbd98aefbd52"
@@ -209,18 +201,18 @@ export default function Proposals() {
                       acc.push(proposal);
                     }
                   } else {
-                    // We already have this proposal_id, but check if current row is the proposal circuit
                     if (
                       proposal.circuit_id ===
                       "a1a0a504-e3aa-4e5d-bb9f-bbd98aefbd52"
                     ) {
-                      // Replace the existing entry with the proposal circuit row
                       acc[existingIndex] = proposal;
                     }
                   }
 
                   return acc;
-                }, []);
+                },
+                []
+              );
 
               return filteredHistoryProposals?.map((proposal) => (
                 <ProposalItem

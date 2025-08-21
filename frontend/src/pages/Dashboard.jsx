@@ -1,19 +1,20 @@
+// Libraries
 import { useQueryClient } from "@tanstack/react-query";
 import styled from "styled-components";
 import { useState, useMemo } from "react";
 
-// custom hooks
+// Custom hooks
 import { useGetUserGroups } from "../hooks/queries/groupMembers/useGetUserGroups";
 import { useSearchGroups } from "../hooks/queries/groups/useSearchGroups";
 
-//components
+// Components
 import GroupItem from "../components/GroupItem";
 import SearchResultItemComponent from "../components/SearchResultItem";
 import PageHeader from "../components/PageHeader";
 import CustomButtonIcon from "../components/CustomButtonIcon";
 import CreateGroup from "./CreateGroup";
 
-// icon
+// Icons
 import { FaCirclePlus } from "react-icons/fa6";
 
 const DashboardContainer = styled.div`
@@ -101,7 +102,9 @@ const SectionTitleInline = styled.h2`
 `;
 
 /**
- * Dashboard component that displays user's groups and allows searching for new groups
+ * Dashboard component that displays user's groups, allows searching for new groups,
+ * shows search results for unjoined groups, and provides functionality to create
+ * new groups or join existing ones.
  */
 function Dashboard() {
   const queryClient = useQueryClient();

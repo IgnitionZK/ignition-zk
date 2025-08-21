@@ -1,11 +1,7 @@
 import { supabase } from "../../services/supabase";
 
 /**
- * Gets the total supply of tokens from an ERC721 contract via the edge function
- * @param {string} contractAddress - The address of the ERC721 contract
- * @param {string} groupId - The ID of the group
- * @returns {Promise<number>} The total supply of tokens
- * @throws {Error} If there's an error calling the edge function
+ * Utility function to get the total supply of tokens from an ERC721 contract via the Supabase edge function
  */
 export async function getERC721TokenSupply(contractAddress, groupId) {
   if (!contractAddress || !groupId) {
@@ -13,7 +9,6 @@ export async function getERC721TokenSupply(contractAddress, groupId) {
   }
 
   try {
-    // Get the current session for authentication
     const {
       data: { session },
       error: sessionError,
@@ -27,7 +22,6 @@ export async function getERC721TokenSupply(contractAddress, groupId) {
       throw new Error("No active session. Please log in.");
     }
 
-    // Call the edge function
     const { data, error } = await supabase.functions.invoke(
       "relayer-ERC721-get-token-supply",
       {

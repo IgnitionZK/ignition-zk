@@ -5,7 +5,7 @@ import { supabase } from "./supabase";
  * @param {Object} params - The parameters object
  * @param {string} params.userId - The ID of the user to get the group member ID for
  * @param {string} params.groupId - The ID of the group to get the group member ID for
- * @returns {Promise<string>} The group member ID
+ * @returns {Promise<string|undefined>} The group member ID or undefined if not found
  * @throws {Error} If userId is not provided or if there's a database error
  */
 export async function getGroupMemberId({ userId, groupId }) {
@@ -35,7 +35,7 @@ export async function getGroupMemberId({ userId, groupId }) {
  * Retrieves all groups that a user is a member of
  * @param {Object} params - The parameters object
  * @param {string} params.userId - The ID of the user to get groups for
- * @returns {Promise<Array<Object>>} Array of group objects containing group details and group_member_id
+ * @returns {Promise<Array<Object>>} Array of group objects with group details and group_member_id
  * @throws {Error} If userId is not provided or if there's a database error
  */
 export async function getUserGroups({ userId }) {
@@ -64,7 +64,6 @@ export async function getUserGroups({ userId }) {
     throw new Error(error.message);
   }
 
-  // Return both group info and group_member_id
   return data.map((row) => ({
     ...row.groups,
     group_member_id: row.group_member_id,
@@ -93,13 +92,12 @@ export async function checkCommitmentExists({ groupMemberId }) {
 
   if (error) {
     if (error.code === "PGRST116") {
-      // No rows returned - this means no commitment exists
       return false;
     }
     throw new Error(error.message);
   }
 
-  return !!data; // Returns true if commitment exists, false otherwise
+  return !!data;
 }
 
 /**

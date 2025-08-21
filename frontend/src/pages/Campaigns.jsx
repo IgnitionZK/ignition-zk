@@ -1,20 +1,33 @@
 import React, { useState, useMemo } from "react";
+
+// Libraries
 import styled from "styled-components";
 
-// custom hooks
-import { useGetEpochByUserId } from "../hooks/queries/epochs/useGetEpochByUserId";
+// Components
 import CustomButtonIcon from "../components/CustomButtonIcon";
 import CustomDropdown from "../components/CustomDropdown";
-
-// components
 import Spinner from "../components/Spinner";
 import PageHeader from "../components/PageHeader";
 import EpochItem from "../components/EpochItem";
+
+// Hooks
+import { useGetEpochByUserId } from "../hooks/queries/epochs/useGetEpochByUserId";
+
+// Icons
+import { FaCirclePlus } from "react-icons/fa6";
+
+// Pages
+import CreateCampaign from "./CreateCampaign";
+
+// Utils
 import { getCurrentPhase } from "../scripts/utils/epochPhaseCalculator";
 
-// icon
-import { FaCirclePlus } from "react-icons/fa6";
-import CreateCampaign from "./CreateCampaign";
+/**
+ * Campaigns component displays a list of active and completed campaigns (epochs)
+ * with filtering capabilities by group. Users can view campaign details, filter
+ * campaigns by group, and create new campaigns. The component separates active
+ * campaigns from completed ones and provides a clean interface for campaign management.
+ */
 
 const SectionHeader = styled.div`
   display: flex;

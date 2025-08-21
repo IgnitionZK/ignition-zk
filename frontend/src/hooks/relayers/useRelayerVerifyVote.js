@@ -4,29 +4,10 @@ import { ZKProofGenerator } from "../../scripts/generateZKProof";
 import { uuidToBytes32 } from "../../scripts/utils/uuidToBytes32";
 
 /**
- * Custom hook to verify vote using the Supabase edge function relayer
- *
- * @returns {Object} An object containing:
- *   @property {Function} verifyVote - Function to trigger the vote verification
- *   @property {boolean} isLoading - Whether the verification is currently in progress
- *   @property {boolean} isError - Whether the last verification attempt resulted in an error
- *   @property {boolean} isSuccess - Whether the last verification attempt was successful
- *   @property {Object} error - Error object if the verification failed
- *   @property {Object} data - Response data from the successful verification
- *
- * @example
- * const { verifyVote, isLoading, isError, error, data } = useRelayerVerifyVote();
- *
- * // Usage
- * verifyVote({
- *   proof: "0x123...",
- *   publicSignals: ["0xabc...", "0xdef..."],
- *   groupKey: "group-123",
- *   epochKey: "epoch-123"
- * }, {
- *   onSuccess: (data) => console.log('Vote verified:', data),
- *   onError: (error) => console.error('Verification failed:', error)
- * });
+ * Custom hook to verify vote proofs using the Supabase edge function relayer.
+ * This hook handles ZK proof verification for votes by computing vote context keys,
+ * converting group keys to bytes32 format, and delegating verification to the backend.
+ * It returns verification status and computed context keys for vote validation.
  */
 export function useRelayerVerifyVote() {
   const verifyVoteMutation = useMutation({
@@ -37,7 +18,6 @@ export function useRelayerVerifyVote() {
       epochKey,
       proposalKey,
     }) => {
-      // Get the current session to extract the JWT token
       const {
         data: { session },
         error: sessionError,
@@ -51,7 +31,6 @@ export function useRelayerVerifyVote() {
         throw new Error("No authentication token found. Please log in.");
       }
 
-      // Validate required parameters
       if (!proof) {
         throw new Error("proof is required");
       }
@@ -68,7 +47,6 @@ export function useRelayerVerifyVote() {
         throw new Error("proposalKey is required");
       }
 
-      // LOG: Data received by relayer hook
       console.log("[FRONTEND/useRelayerVerifyVote] Data received:", {
         proof,
         publicSignals,
@@ -115,7 +93,6 @@ export function useRelayerVerifyVote() {
         groupKeyBytes32
       );
 
-      // Call the Supabase edge function
       const { data, error } = await supabase.functions.invoke(
         "delegate-verify-vote",
         {
@@ -131,7 +108,6 @@ export function useRelayerVerifyVote() {
         }
       );
 
-      // LOG: Response from edge function
       console.log(
         "[FRONTEND/useRelayerVerifyVote] Edge function response:",
         data,
@@ -139,13 +115,10 @@ export function useRelayerVerifyVote() {
       );
 
       if (error) {
-        // Try to get more detailed error information
         let errorMessage = `Edge function error: ${error.message}`;
 
-        // Log the full error object for debugging
         console.error("Full edge function error:", error);
 
-        // Try to extract more details from the error object
         if (error.context) {
           console.error("Error context:", error.context);
         }
@@ -158,7 +131,6 @@ export function useRelayerVerifyVote() {
           console.error("Error status text:", error.statusText);
         }
 
-        // If there's response data, it might contain more error details
         if (error.context && error.context.body) {
           try {
             const errorBody = JSON.parse(error.context.body);
@@ -169,7 +141,6 @@ export function useRelayerVerifyVote() {
               console.error("Error details:", errorBody.details);
             }
           } catch (e) {
-            // If we can't parse the error body, use the original message
             console.error("Could not parse error body:", e);
           }
         }
@@ -180,7 +151,7 @@ export function useRelayerVerifyVote() {
       console.log("Edge function response:", data);
       return {
         ...data,
-        contextKey: contextKey, // Include the computed contextKey in the response
+        contextKey: contextKey,
       };
     },
   });

@@ -1,5 +1,8 @@
+// React and libraries
 import React, { useState, useEffect } from "react";
 import styled from "styled-components";
+
+// Components
 import CustomButton from "./CustomButton";
 import ConfirmationModal from "./ConfirmationModal";
 
@@ -133,26 +136,8 @@ const Input = styled.input`
 `;
 
 /**
- * A generic modal component for entering mnemonic phrases.
- * Can be customized for different use cases like proposal submission or inbox unlocking.
- *
- * @param {Object} props - Component props
- * @param {string} props.title - Modal title
- * @param {string} props.subtitle - Modal subtitle
- * @param {number} props.wordCount - Number of words in the mnemonic phrase
- * @param {Object} props.contextInfo - Context information to display (title, groupName, description)
- * @param {Function} props.onClose - Function to call when modal is closed
- * @param {Function} props.onSubmit - Function to call when mnemonic is submitted
- * @param {string} props.confirmButtonText - Text for confirm button
- * @param {string} props.cancelButtonText - Text for cancel button
- * @param {string} props.confirmationMessage - Message for confirmation modal
- * @param {boolean} props.showConfirmation - Whether to show confirmation modal
- * @param {string} props.confirmButtonColor - Color for confirm button
- * @param {string} props.confirmButtonHoverColor - Hover color for confirm button
- * @param {string} props.cancelButtonColor - Color for cancel button
- * @param {string} props.cancelButtonHoverColor - Hover color for cancel button
- * @param {string} props.prePopulatedMnemonic - Pre-populated mnemonic phrase (words separated by spaces)
- * @param {Object} props.proposal - Legacy prop for backward compatibility
+ * A modal component for entering mnemonic phrases with customizable context and confirmation.
+ * Supports pre-populated mnemonics, voting contexts, and backward compatibility with legacy props.
  */
 function MnemonicInput({
   // Generic props
@@ -175,7 +160,6 @@ function MnemonicInput({
   // Legacy props for backward compatibility
   proposal = null,
 }) {
-  // Initialize words with pre-populated mnemonic if provided
   const initializeWords = () => {
     if (prePopulatedMnemonic) {
       const mnemonicWords = prePopulatedMnemonic.split(" ");
@@ -193,7 +177,6 @@ function MnemonicInput({
   const [words, setWords] = useState(initializeWords);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
 
-  // Update words when prePopulatedMnemonic changes
   useEffect(() => {
     if (prePopulatedMnemonic) {
       const mnemonicWords = prePopulatedMnemonic.split(" ");
@@ -207,7 +190,6 @@ function MnemonicInput({
     }
   }, [prePopulatedMnemonic, wordCount]);
 
-  // Handle legacy proposal prop for backward compatibility
   const finalContextInfo =
     contextInfo ||
     (proposal
@@ -243,17 +225,14 @@ function MnemonicInput({
     setShowConfirmModal(false);
   };
 
-  // Check if all words are filled
   const areAllWordsFilled = words.every((word) => word.trim() !== "");
 
-  // Split words into two columns
   const firstColumn = words.slice(0, Math.ceil(wordCount / 2));
   const secondColumn = words.slice(Math.ceil(wordCount / 2), wordCount);
 
   const renderContextInfo = () => {
     if (!finalContextInfo) return null;
 
-    // Check if this is a voting context (has selectedVote)
     const isVotingContext = !!selectedVote;
 
     return (
@@ -261,7 +240,6 @@ function MnemonicInput({
         {finalContextInfo.title && (
           <ContextTitle>{finalContextInfo.title}</ContextTitle>
         )}
-        {/* Only show group name and description if NOT in voting context */}
         {!isVotingContext && finalContextInfo.groupName && (
           <ContextSubtitle>{finalContextInfo.groupName}</ContextSubtitle>
         )}
@@ -283,7 +261,6 @@ function MnemonicInput({
             {selectedVote.charAt(0).toUpperCase() + selectedVote.slice(1)}
           </ContextDescription>
         )}
-        {/* Only show warning if in voting context */}
         {isVotingContext && (
           <WarningText>
             ⚠️ Warning: Once submitted, this action cannot be undone.

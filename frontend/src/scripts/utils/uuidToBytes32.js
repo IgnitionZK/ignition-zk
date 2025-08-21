@@ -5,11 +5,7 @@ import { ethers } from "ethers";
  * This ensures consistency between frontend, backend, and smart contract operations
  *
  * @param {string} uuid - The UUID string to convert
- * @returns {string} The bytes32 hex string (0x-prefixed)
- *
- * @example
- * const bytes32Key = uuidToBytes32("dc75c359-8724-426e-84d9-31df9e330d42");
- * // Returns: "0x1234567890abcdef..."
+ * @returns {string} The bytes32 hex string with 0x prefix
  */
 export const uuidToBytes32 = (uuid) => {
   if (!uuid || typeof uuid !== "string") {
@@ -25,7 +21,7 @@ export const uuidToBytes32 = (uuid) => {
 };
 
 /**
- * Converts a UUID string to BigInt format (for ZK circuit inputs)
+ * Converts a UUID string to BigInt format for ZK circuit inputs
  * This is used internally by the ZK proof generation
  *
  * @param {string} uuid - The UUID string to convert

@@ -4,34 +4,12 @@ import { ZKProofGenerator } from "../../scripts/generateZKProof";
 import { uuidToBytes32 } from "../../scripts/utils/uuidToBytes32";
 
 /**
- * Custom hook to update Merkle tree root using the Supabase edge function relayer
- *
- * @returns {Object} An object containing:
- *   @property {Function} verifyProposal - Function to trigger the proposal verification
- *   @property {boolean} isLoading - Whether the verification is currently in progress
- *   @property {boolean} isError - Whether the last verification attempt resulted in an error
- *   @property {boolean} isSuccess - Whether the last verification attempt was successful
- *   @property {Object} error - Error object if the verification failed
- *   @property {Object} data - Response data from the successful verification
- *
- * @example
- * const { verifyProposal, isLoading, isError, error, data } = useRelayerVerifyProposal();
- *
- * // Usage
- * verifyProposal({
- *   proof: "0x123...",
- *   publicSignals: ["0xabc...", "0xdef..."],
- *   groupKey: "group-123",
- *   epochKey: "epoch-123"
- * }, {
- *   onSuccess: (data) => console.log('Proposal verified:', data),
- *   onError: (error) => console.error('Verification failed:', error)
- * });
+ * Custom hook to verify proposals using ZK proofs via the Supabase edge function relayer.
+ * This hook handles proposal verification by sending ZK proof data to the backend for validation.
  */
 export function useRelayerVerifyProposal() {
   const verifyProposalMutation = useMutation({
     mutationFn: async ({ proof, publicSignals, groupKey, epochKey }) => {
-      // Get the current session to extract the JWT token
       const {
         data: { session },
         error: sessionError,
@@ -45,7 +23,6 @@ export function useRelayerVerifyProposal() {
         throw new Error("No authentication token found. Please log in.");
       }
 
-      // Validate required parameters
       if (!proof) {
         throw new Error("proof is required");
       }
@@ -59,7 +36,6 @@ export function useRelayerVerifyProposal() {
         throw new Error("epochKey is required");
       }
 
-      // LOG: Data received by relayer hook
       console.log("[FRONTEND/useRelayerVerifyProposal] Data received:", {
         proof,
         publicSignals,
@@ -67,8 +43,6 @@ export function useRelayerVerifyProposal() {
         epochKey,
       });
 
-      // Compute the context_key using Poseidon hash (groupKey, epochKey)
-      // this function applies modular reduction internally
       let contextKey;
       try {
         contextKey = await ZKProofGenerator.computeContextKey(
@@ -92,7 +66,6 @@ export function useRelayerVerifyProposal() {
         throw new Error(`Failed to compute context_key: ${error.message}`);
       }
 
-      // Convert the groupId UUID to bytes32 format
       console.log(
         "[FRONTEND/useRelayerVerifyProposal] Converting groupKey to bytes32 format"
       );
@@ -103,15 +76,14 @@ export function useRelayerVerifyProposal() {
         groupKeyBytes32
       );
 
-      // Call the Supabase edge function
       const { data, error } = await supabase.functions.invoke(
         "relayer-verify-proposal",
         {
           body: {
             proof: proof.map((item) => item.toString()),
             public_signals: publicSignals.map((item) => item.toString()),
-            group_key: groupKeyBytes32.toString(), //groupKey.toString(),
-            context_key: contextKey, // Send the pre-computed context_key
+            group_key: groupKeyBytes32.toString(),
+            context_key: contextKey,
           },
           headers: {
             Authorization: `Bearer ${session.access_token}`,
@@ -119,7 +91,6 @@ export function useRelayerVerifyProposal() {
         }
       );
 
-      // LOG: Response from edge function
       console.log(
         "[FRONTEND/useRelayerVerifyProposal] Edge function response:",
         data,
@@ -127,13 +98,10 @@ export function useRelayerVerifyProposal() {
       );
 
       if (error) {
-        // Try to get more detailed error information
         let errorMessage = `Edge function error: ${error.message}`;
 
-        // Log the full error object for debugging
         console.error("Full edge function error:", error);
 
-        // Try to extract more details from the error object
         if (error.context) {
           console.error("Error context:", error.context);
         }
@@ -146,7 +114,6 @@ export function useRelayerVerifyProposal() {
           console.error("Error status text:", error.statusText);
         }
 
-        // If there's response data, it might contain more error details
         if (error.context && error.context.body) {
           try {
             const errorBody = JSON.parse(error.context.body);
@@ -157,7 +124,6 @@ export function useRelayerVerifyProposal() {
               console.error("Error details:", errorBody.details);
             }
           } catch (e) {
-            // If we can't parse the error body, use the original message
             console.error("Could not parse error body:", e);
           }
         }
@@ -168,7 +134,7 @@ export function useRelayerVerifyProposal() {
       console.log("Edge function response:", data);
       return {
         ...data,
-        contextKey: contextKey, // Include the computed contextKey in the response
+        contextKey: contextKey,
       };
     },
   });

@@ -9,6 +9,8 @@ import { useGetUserGroups } from "../hooks/queries/groupMembers/useGetUserGroups
 import { useGetEpochsByGroupId } from "../hooks/queries/epochs/useGetEpochsByGroupId";
 import { useInsertEpoch } from "../hooks/queries/epochs/useInsertEpoch";
 import { useValidateGroupCredentials } from "../hooks/queries/groups/useValidateGroupCredentials";
+
+// components
 import CustomButton from "../components/CustomButton";
 import CustomDropdown from "../components/CustomDropdown";
 import PageHeader from "../components/PageHeader";
@@ -183,7 +185,6 @@ const ErrorMessage = styled.div`
   font-weight: 500;
 `;
 
-// Loading Overlay Styles
 const LoadingOverlay = styled.div`
   position: fixed;
   top: 0;
@@ -205,6 +206,13 @@ const LoadingText = styled.p`
   text-align: center;
 `;
 
+/**
+ * CreateCampaign component allows users to create new governance campaigns/epochs for their groups.
+ * Users can select a group, set campaign name, duration, and start date. The component validates
+ * that campaigns don't overlap with existing ones and ensures all group members have generated
+ * credentials before allowing campaign creation. Campaigns are automatically divided into three
+ * phases: proposal, voting, and review.
+ */
 export default function CreateCampaign({ onCancel }) {
   const [selectedGroup, setSelectedGroup] = useState("");
   const [eventName, setEventName] = useState("");

@@ -3,8 +3,8 @@ import { supabase } from "./supabase";
 /**
  * Retrieves the single active Merkle tree root for a specific group.
  * @param {Object} params - The parameters object
- * @param {string} params.groupId - The ID of the group to get the active root for
- * @returns {Promise<Object|null>} The active Merkle tree root object, or null if none exists
+ * @param {string} params.groupId - The UUID of the group to get the active root for
+ * @returns {Promise<Object|null>} The active Merkle tree root object with fields, or null if none exists
  * @throws {Error} If groupId is not provided or if there's a database error
  */
 export async function getActiveMerkleTreeRoot({ groupId }) {
@@ -33,10 +33,10 @@ export async function getActiveMerkleTreeRoot({ groupId }) {
 /**
  * Inserts a new Merkle tree root into the database. The root is inserted with is_active set to false by default.
  * @param {Object} params - The parameters object
- * @param {string} params.groupId - The ID of the group this root belongs to
- * @param {string} params.rootHash - The hash of the Merkle tree root
+ * @param {string} params.groupId - The UUID of the group this root belongs to
+ * @param {string|BigInt} params.rootHash - The hash of the Merkle tree root
  * @param {number} params.treeVersion - The version number of the tree
- * @returns {Promise<Object>} The newly created Merkle tree root object
+ * @returns {Promise<Object>} The newly created Merkle tree root object with fields
  * @throws {Error} If required parameters are missing or if there's a database error
  */
 export async function insertMerkleTreeRoot({ groupId, rootHash, treeVersion }) {
@@ -66,9 +66,9 @@ export async function insertMerkleTreeRoot({ groupId, rootHash, treeVersion }) {
 /**
  * Updates the active status of a Merkle tree root. This is typically used to toggle between active and inactive states.
  * @param {Object} params - The parameters object
- * @param {string} params.rootId - The ID of the root to update
- * @param {boolean} params.isActive - The new active status to set (true for active, false for inactive)
- * @returns {Promise<Object>} The updated Merkle tree root object
+ * @param {string|number} params.rootId - The ID of the root to update
+ * @param {boolean} params.isActive - The new active status to set
+ * @returns {Promise<Object>} The updated Merkle tree root object with fields
  * @throws {Error} If required parameters are missing or if there's a database error
  */
 export async function updateMerkleTreeRootActiveStatus({ rootId, isActive }) {
@@ -95,8 +95,8 @@ export async function updateMerkleTreeRootActiveStatus({ rootId, isActive }) {
  * Atomically toggles the active status of Merkle tree roots for a group.
  * Deactivates all current active roots and activates the specified new root.
  * @param {Object} params - The parameters object
- * @param {string} params.groupId - The ID of the group
- * @param {string} params.newRootId - The ID of the new root to activate
+ * @param {string} params.groupId - The UUID of the group
+ * @param {string|number} params.newRootId - The ID of the new root to activate
  * @returns {Promise<void>} Promise that resolves when the operation is complete
  * @throws {Error} If required parameters are missing or if there's a database error
  */

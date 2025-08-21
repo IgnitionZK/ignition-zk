@@ -2,33 +2,12 @@ import { useMutation } from "@tanstack/react-query";
 import { supabase } from "../../services/supabase";
 
 /**
- * Custom hook to update Merkle tree root using the Supabase edge function relayer
- *
- * @returns {Object} An object containing:
- *   @property {Function} updateMerkleRoot - Function to trigger the Merkle root update
- *   @property {boolean} isLoading - Whether the update is currently in progress
- *   @property {boolean} isError - Whether the last update attempt resulted in an error
- *   @property {boolean} isSuccess - Whether the last update attempt was successful
- *   @property {Object} error - Error object if the update failed
- *   @property {Object} data - Response data from the successful update
- *
- * @example
- * const { updateMerkleRoot, isLoading, isError, error, data } = useRelayerUpdateRoot();
- *
- * // Usage
- * updateMerkleRoot({
- *   treeVersion: 1,
- *   rootValue: "0x123...",
- *   groupKey: "group-123"
- * }, {
- *   onSuccess: (data) => console.log('Merkle root updated:', data),
- *   onError: (error) => console.error('Update failed:', error)
- * });
+ * Custom hook to update Merkle tree roots on the blockchain through a Supabase edge function relayer.
+ * Handles authentication, parameter validation, and provides mutation state management for the root update operation.
  */
 export function useRelayerUpdateRoot() {
   const updateMerkleRootMutation = useMutation({
     mutationFn: async ({ treeVersion, rootValue, groupKey, memberCount }) => {
-      // Get the current session to extract the JWT token
       const {
         data: { session },
         error: sessionError,
@@ -42,7 +21,6 @@ export function useRelayerUpdateRoot() {
         throw new Error("No authentication token found. Please log in.");
       }
 
-      // Validate required parameters
       if (typeof treeVersion === "undefined" || treeVersion === null) {
         throw new Error("treeVersion is required");
       }
@@ -58,15 +36,14 @@ export function useRelayerUpdateRoot() {
 
       console.log("Initiating blockchain transaction...");
 
-      // Call the Supabase edge function
       const { data, error } = await supabase.functions.invoke(
         "relayer-update-root",
         {
           body: {
             tree_version: treeVersion,
             root_value: rootValue,
-            group_key: groupKey.toString(), // Convert to string as expected by edge function
-            member_count: memberCount.toString(), // Convert to string as expected by edge function
+            group_key: groupKey.toString(),
+            member_count: memberCount.toString(),
           },
           headers: {
             Authorization: `Bearer ${session.access_token}`,
@@ -75,13 +52,10 @@ export function useRelayerUpdateRoot() {
       );
 
       if (error) {
-        // Try to get more detailed error information
         let errorMessage = `Edge function error: ${error.message}`;
 
-        // Log the full error object for debugging
         console.error("Full edge function error:", error);
 
-        // Try to extract more details from the error object
         if (error.context) {
           console.error("Error context:", error.context);
         }
@@ -94,7 +68,6 @@ export function useRelayerUpdateRoot() {
           console.error("Error status text:", error.statusText);
         }
 
-        // If there's response data, it might contain more error details
         if (error.context && error.context.body) {
           try {
             const errorBody = JSON.parse(error.context.body);
@@ -105,7 +78,6 @@ export function useRelayerUpdateRoot() {
               console.error("Error details:", errorBody.details);
             }
           } catch (e) {
-            // If we can't parse the error body, use the original message
             console.error("Could not parse error body:", e);
           }
         }
@@ -115,7 +87,6 @@ export function useRelayerUpdateRoot() {
 
       console.log("Blockchain transaction completed:", data);
 
-      // Check if the response includes block number (indicating confirmation)
       if (data.blockNumber) {
         console.log(`Transaction confirmed in block ${data.blockNumber}`);
       } else {

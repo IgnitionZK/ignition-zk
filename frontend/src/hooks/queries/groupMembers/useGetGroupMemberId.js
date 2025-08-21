@@ -2,20 +2,9 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { getGroupMemberId } from "../../../services/apiGroupMembers";
 
 /**
- * Custom hook to fetch the group member ID for a specific group
- *
- * @param {Object} params - The parameters object
- * @param {string} params.groupId - The ID of the group to get the member ID for
- * @returns {Object} Object containing:
- *   - isLoading: boolean - Loading state of the query
- *   - groupMemberId: string | null - The group member ID if found
- *   - error: Error | null - Error state of the query
- *
- * @notes
- *   - queryKey: ["groupMemberId", userId, groupId] - Query key includes user and group IDs
- *   - queryFn: Fetches group member ID using getGroupMemberId API call
- *   - Requires valid user ID and group ID
- *   - Only enabled when both user ID and group ID exist
+ * Custom hook to fetch the group member ID for a specific user and group combination.
+ * Returns the group member ID along with loading state and error handling.
+ * The query is only enabled when both user ID and group ID are available.
  */
 export function useGetGroupMemberId({ groupId }) {
   const queryClient = useQueryClient();

@@ -1,15 +1,22 @@
-import styled from "styled-components";
+// React and styling libraries
 import { useState } from "react";
+import styled from "styled-components";
+import toast from "react-hot-toast";
+
+// Components
 import CustomButton from "./CustomButton";
 import MnemonicInput from "./MnemonicInput";
 import BallotModal from "./BallotModal";
 import Spinner from "./Spinner";
-import toast from "react-hot-toast";
+
+// Hooks
 import { useVerifyVote } from "../hooks/queries/proofs/useVerifyVote";
 import { useGetCommitmentArray } from "../hooks/queries/merkleTreeLeaves/useGetCommitmentArray";
 import { useInsertProof } from "../hooks/queries/proofs/useInsertProof";
 import { useGetUserGroups } from "../hooks/queries/groupMembers/useGetUserGroups";
 import { useGetProposalSubmissionNullifier } from "../hooks/queries/proofs/useGetProposalSubmissionNullifier";
+
+// Utilities
 import { calculateEpochPhases } from "../scripts/utils/epochPhaseCalculator";
 import { ZKProofGenerator } from "../scripts/generateZKProof";
 
@@ -76,7 +83,6 @@ const VotingWindow = styled.div`
   flex: 1;
 `;
 
-// Loading Overlay Styles
 const LoadingOverlay = styled.div`
   position: fixed;
   top: 0;
@@ -98,6 +104,11 @@ const LoadingText = styled.p`
   text-align: center;
 `;
 
+/**
+ * InboxItem component displays a proposal in the user's inbox with options to view details,
+ * download documents, and cast votes using zero-knowledge proofs. The component handles
+ * the complete voting workflow including ballot selection, mnemonic input, and proof submission.
+ */
 function InboxItem({
   proposal = {},
   showSubmitButton = true,
@@ -124,13 +135,11 @@ function InboxItem({
 
   const { insertProof } = useInsertProof();
 
-  // Get the proposal submission nullifier
   const {
     isLoading: isLoadingNullifier,
     nullifierHash: proposalSubmissionNullifier,
   } = useGetProposalSubmissionNullifier(proposal.proposal_id);
 
-  // Guard clause to handle undefined/null proposal
   if (!proposal || typeof proposal !== "object") {
     return (
       <InboxItemContainer>
@@ -147,7 +156,6 @@ function InboxItem({
     );
   }
 
-  // Calculate voting window using epochPhaseCalculator
   const getVotingWindow = () => {
     if (!proposal.epoch_start_time || !proposal.epoch_duration) {
       return "Voting window not available";
@@ -180,7 +188,6 @@ function InboxItem({
     }
   };
 
-  // Check if proposal is currently in voting phase
   const isInVotingPhase = () => {
     if (!proposal.epoch_start_time || !proposal.epoch_duration) {
       return false;
@@ -204,14 +211,12 @@ function InboxItem({
     }
   };
 
-  // Find the user's group member ID for this proposal's group
   const userGroupMemberId = userGroups?.find(
     (group) => group.group_id === proposal.group_id
   )?.group_member_id;
 
   const handleDownloadDetails = () => {
     try {
-      // Check if proposal has metadata with ipfs_cid
       if (!proposal.metadata || !proposal.metadata.ipfs_cid) {
         console.warn("No IPFS CID found in proposal metadata");
         toast.error("No document available for this proposal.");
@@ -219,12 +224,7 @@ function InboxItem({
       }
 
       const ipfsCid = proposal.metadata.ipfs_cid;
-
-      // Construct the IPFS gateway URL
-      // Using Pinata's gateway for better reliability
       const ipfsUrl = `https://gateway.pinata.cloud/ipfs/${ipfsCid}`;
-
-      // Open the document in a new window
       window.open(ipfsUrl, "_blank", "noopener,noreferrer");
     } catch (error) {
       console.error("Error opening document:", error);
@@ -270,7 +270,6 @@ function InboxItem({
         );
       }
 
-      // Get the proof and verification result
       const {
         isValid,
         publicSignals,
@@ -282,7 +281,7 @@ function InboxItem({
         proposal.group_id,
         proposal.epoch_id,
         proposal.proposal_id,
-        selectedVote === "reject" ? 0 : selectedVote === "approve" ? 1 : 2, // 0 for Reject, 1 for Approve, 2 for Abstain
+        selectedVote === "reject" ? 0 : selectedVote === "approve" ? 1 : 2,
         proposal.title || "",
         proposal.description || "",
         proposal.payload || {},
@@ -292,14 +291,11 @@ function InboxItem({
       );
 
       if (isValid) {
-        const nullifierHash = publicSignals[1]; // Second value in publicSignals is the vote nullifier hash
+        const nullifierHash = publicSignals[1];
 
-        // Convert proof and public signals to string arrays for database storage
-        // Both proof and publicSignals should now be arrays from the Solidity calldata
         const proofArray = proof.map((p) => p.toString());
         const publicSignalsArray = publicSignals.map((s) => s.toString());
 
-        // Use the contextKey returned from the verification process
         if (!returnedContextKey) {
           throw new Error(
             "contextKey not returned from verification process. This indicates an issue with the relayer or verification chain."
@@ -324,7 +320,6 @@ function InboxItem({
           contextKey: returnedContextKey,
         });
 
-        // TODO: Store vote information when the API supports it
         console.log("Vote selected:", selectedVote);
         setHasSubmittedProof(true);
         toast.success(`Vote submitted successfully: ${selectedVote}`);
@@ -340,7 +335,7 @@ function InboxItem({
       toast.error("Failed to submit vote. Please try again.");
     } finally {
       setIsSubmitting(false);
-      setSelectedVote(null); // Reset selected vote
+      setSelectedVote(null);
     }
   };
 
@@ -433,7 +428,6 @@ function InboxItem({
         onCancel={handleBallotCancel}
       />
 
-      {/* Loading Overlay */}
       {isSubmitting && (
         <LoadingOverlay>
           <Spinner />

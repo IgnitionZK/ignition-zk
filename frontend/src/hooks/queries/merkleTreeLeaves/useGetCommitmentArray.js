@@ -2,14 +2,9 @@ import { useQuery } from "@tanstack/react-query";
 import { getCommitmentArray } from "../../../services/apiMerkleTreeLeaves";
 
 /**
- * Custom hook to fetch and manage commitment array data for a specific group
- * @param {Object} params - The parameters object
- * @param {string} params.groupId - The ID of the group to fetch commitments for
- * @returns {Object} An object containing:
- *   @property {boolean} isLoading - Whether the data is currently loading
- *   @property {BigInt[]|undefined} commitmentArray - Array of commitment values as BigInt
- *   @property {Error|null} error - Any error that occurred during the fetch
- * @throws {Error} If no groupId is provided
+ * Custom hook to fetch and manage commitment array data for a specific group.
+ * Retrieves commitment values from the merkle tree leaves and converts them to BigInt format.
+ * The hook automatically handles loading states, error handling, and data transformation.
  */
 export function useGetCommitmentArray({ groupId }) {
   const {

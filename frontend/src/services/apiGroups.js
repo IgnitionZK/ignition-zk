@@ -7,13 +7,9 @@ import { supabase } from "./supabase";
  * For example, searching for "dev" would match "Dev Team", "DEVELOPERS", "Frontend Dev", etc.
  *
  * @param {Object} params - The search parameters
- * @param {string} params.name - The name to search for (required)
+ * @param {string} params.name - The name to search for
  * @returns {Promise<Array>} A promise that resolves to an array of matching group objects
- * @throws {Error} If name parameter is missing or if there's a database error
- *
- * @example
- * // Search for groups containing "dev" in their name
- * const groups = await searchGroups({ name: "dev" });
+ * @throws {Error} If name parameter is missing or if there's a Supabase error
  */
 export async function searchGroups({ name }) {
   if (!name) {
@@ -38,14 +34,9 @@ export async function searchGroups({ name }) {
  * Inserts a new record into the groups table and returns the created group data.
  *
  * @param {Object} params - The group creation parameters
- * @param {string} params.name - The name of the group to create (required)
+ * @param {string} params.name - The name of the group to create
  * @returns {Promise<Array>} A promise that resolves to an array containing the created group object
- * @throws {Error} If name parameter is missing or if there's a database error
- *
- * @example
- * // Create a new group called "Development Team"
- * const newGroup = await insertNewGroup({ name: "Development Team" });
- * console.log(newGroup[0].id); // Access the created group's ID
+ * @throws {Error} If name parameter is missing or if there's a Supabase error
  */
 export async function insertNewGroup({ name }) {
   if (!name) {
@@ -71,18 +62,10 @@ export async function insertNewGroup({ name }) {
  * This is typically used after deploying an ERC721 contract for a specific group.
  *
  * @param {Object} params - The update parameters
- * @param {number|string} params.group_id - The ID of the group to update (required)
- * @param {string} params.erc721_contract_address - The Ethereum address of the ERC721 contract (required)
+ * @param {number|string} params.group_id - The ID of the group to update
+ * @param {string} params.erc721_contract_address - The Ethereum address of the ERC721 contract
  * @returns {Promise<Array>} A promise that resolves to an array containing the updated group object
- * @throws {Error} If group_id or erc721_contract_address parameters are missing, or if there's a database error
- *
- * @example
- * // Update group with ID 123 to have the ERC721 contract address
- * const updatedGroup = await insertERC721ContractAddress({
- *   group_id: 123,
- *   erc721_contract_address: "0x1234567890abcdef1234567890abcdef12345678"
- * });
- * console.log(updatedGroup[0].erc721_contract_address); // Access the updated contract address
+ * @throws {Error} If group_id or erc721_contract_address parameters are missing, or if there's a Supabase error
  */
 export async function insertERC721ContractAddress({
   group_id,

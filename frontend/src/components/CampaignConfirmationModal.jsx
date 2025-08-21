@@ -1,6 +1,13 @@
+// React and hooks
 import React, { useEffect } from "react";
+
+// Styling
 import styled from "styled-components";
+
+// Components
 import CustomButton from "./CustomButton";
+
+// Utilities
 import { calculateEpochPhases } from "../scripts/utils/epochPhaseCalculator";
 
 const ModalOverlay = styled.div`
@@ -124,6 +131,11 @@ const ModalButtons = styled.div`
   justify-content: center;
 `;
 
+/**
+ * Modal component that displays campaign creation confirmation details including
+ * campaign information, calculated phases, and confirmation/cancel actions.
+ * Handles keyboard events (ESC to close) and prevents body scroll when open.
+ */
 function CampaignConfirmationModal({
   isOpen,
   campaignData,
@@ -131,7 +143,6 @@ function CampaignConfirmationModal({
   onCancel,
   isCreating = false,
 }) {
-  // Handle keyboard events for modal
   useEffect(() => {
     const handleKeyDown = (e) => {
       if (isOpen && e.key === "Escape") {
@@ -141,7 +152,6 @@ function CampaignConfirmationModal({
 
     if (isOpen) {
       document.addEventListener("keydown", handleKeyDown);
-      // Prevent body scroll when modal is open
       document.body.style.overflow = "hidden";
     }
 
@@ -151,14 +161,12 @@ function CampaignConfirmationModal({
     };
   }, [isOpen, onCancel]);
 
-  // Handle clicking outside the modal to close it
   const handleModalOverlayClick = (e) => {
     if (e.target === e.currentTarget) {
       onCancel();
     }
   };
 
-  // Calculate phases for display
   const getPhases = () => {
     if (!campaignData?.startDate || !campaignData?.duration) return null;
 
@@ -175,7 +183,6 @@ function CampaignConfirmationModal({
 
   const phases = getPhases();
 
-  // Format date for display
   const formatDate = (date) => {
     return date.toLocaleDateString("en-US", {
       year: "numeric",

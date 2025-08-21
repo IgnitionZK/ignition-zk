@@ -8,17 +8,12 @@ import { calculateEpochPhases } from "../scripts/utils/epochPhaseCalculator";
  * @param {string} userId - The user ID to search for
  * @returns {Promise<Array>} A promise that resolves to an array of epoch objects with group information
  * @throws {Error} If userId parameter is missing or if there's a database error
- *
- * @example
- * // Get all epochs where user "user123" is a member
- * const epochs = await getEpochByUserId("user123");
  */
 export async function getEpochByUserId(userId) {
   if (!userId) {
     throw new Error("userId is required");
   }
 
-  // First, get the user's groups
   const { data: userGroups, error: groupsError } = await supabase
     .schema("ignitionzk")
     .from("group_members")
@@ -33,10 +28,8 @@ export async function getEpochByUserId(userId) {
     return [];
   }
 
-  // Extract group IDs
   const groupIds = userGroups.map((group) => group.group_id);
 
-  // Then, get epochs for those groups
   const { data: epochs, error: epochsError } = await supabase
     .schema("ignitionzk")
     .from("epochs")
@@ -70,10 +63,6 @@ export async function getEpochByUserId(userId) {
  * @param {string} groupId - The group ID to search for
  * @returns {Promise<Array>} A promise that resolves to an array of epoch objects
  * @throws {Error} If groupId parameter is missing or if there's a database error
- *
- * @example
- * // Get all epochs for group "group123"
- * const epochs = await getEpochsByGroupId("group123");
  */
 export async function getEpochsByGroupId(groupId) {
   if (!groupId) {
@@ -105,13 +94,14 @@ export async function getEpochsByGroupId(groupId) {
 }
 
 /**
- * Inserts a new epoch into the database
+ * Inserts a new epoch into the database and calculates voting and review phase start times.
+ *
  * @param {Object} params - The parameters object
  * @param {string} params.group_id - The group ID for the epoch
  * @param {number} params.epoch_duration - The duration in days
  * @param {string} params.epoch_name - The name of the epoch
- * @param {Date} params.epoch_start_time - The start time of the epoch
- * @returns {Promise<Object>} The newly created epoch record
+ * @param {Date|string} params.epoch_start_time - The start time of the epoch as Date object or ISO string
+ * @returns {Promise<Object>} The newly created epoch record with all fields including calculated voting_start and review_start times
  * @throws {Error} If required parameters are missing or if there's a database error
  */
 export async function insertEpoch({
@@ -133,10 +123,8 @@ export async function insertEpoch({
     throw new Error("epoch_start_time is required");
   }
 
-  // Convert epoch_start_time to ISO string for timestamptz compatibility
   const formattedStartTime = new Date(epoch_start_time).toISOString();
 
-  // Calculate voting and review start times using epochPhaseCalculator
   const epochForPhaseCalculation = {
     epoch_start_time: formattedStartTime,
     epoch_duration: epoch_duration,

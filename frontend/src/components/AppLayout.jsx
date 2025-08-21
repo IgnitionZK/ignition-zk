@@ -1,3 +1,4 @@
+// React imports
 import { Outlet } from "react-router-dom";
 
 /**

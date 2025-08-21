@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from "react";
+
+// libraries
 import toast from "react-hot-toast";
+import styled from "styled-components";
 
 // components
-import styled from "styled-components";
 import PageHeader from "../components/PageHeader";
 import CustomButton from "../components/CustomButton";
 import CustomButtonIcon from "../components/CustomButtonIcon";
@@ -18,8 +20,7 @@ import { useUser } from "../hooks/queries/authentication/useUser";
 
 // icons
 import { IoIosInformationCircle } from "react-icons/io";
-import { FaCirclePlus } from "react-icons/fa6";
-import { FaCircleMinus } from "react-icons/fa6";
+import { FaCirclePlus, FaCircleMinus } from "react-icons/fa6";
 
 const PageContainer = styled.div`
   display: flex;
@@ -144,7 +145,6 @@ const Tooltip = styled.div`
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
 `;
 
-// Loading Overlay Styles
 const LoadingOverlay = styled.div`
   position: fixed;
   top: 0;
@@ -169,6 +169,23 @@ const LoadingText = styled.p`
 // Utility function to validate Ethereum address
 const isValidEthAddress = (address) => /^0x[a-fA-F0-9]{40}$/.test(address);
 
+/**
+ * CreateGroup Component
+ *
+ * A comprehensive form component for creating new groups in the Ignition ZK system.
+ * Allows users to define group details, configure ERC721 NFT contracts for membership,
+ * and add initial members. The component handles wallet connection validation,
+ * form validation, ERC721 contract deployment, and database operations.
+ *
+ * Features:
+ * - Group name and ERC721 token configuration
+ * - Member address management (up to 30 members)
+ * - Wallet connection status display
+ * - Form validation with error handling
+ * - Confirmation modals for create/cancel actions
+ * - Loading states during operations
+ * - Automatic inclusion of creator's wallet address
+ */
 export default function CreateGroup({ onCancel }) {
   const [groupName, setGroupName] = useState("");
   const [tokenName, setTokenName] = useState("");

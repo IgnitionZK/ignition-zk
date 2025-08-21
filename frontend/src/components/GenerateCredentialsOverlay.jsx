@@ -2,14 +2,16 @@ import React, { useState } from "react";
 import styled from "styled-components";
 import { toast } from "react-hot-toast";
 
-//components
+// Components
 import MnemonicDisplay from "./MnemonicDisplay";
 import CustomButton from "./CustomButton";
 import ConfirmationModal from "./ConfirmationModal";
 import Spinner from "./Spinner";
-// scripts
+
+// Scripts
 import { ZkCredential } from "../scripts/generateCredentials-browser-safe";
-// hooks
+
+// Hooks
 import { useGetGroupMemberId } from "../hooks/queries/groupMembers/useGetGroupMemberId";
 import { useAtomicCommitmentInsertion } from "../hooks/queries/merkleTreeRoots/useAtomicCommitmentInsertion";
 
@@ -119,7 +121,6 @@ const ContractAddress = styled.p`
   font-family: monospace;
 `;
 
-// Loading Overlay Styles
 const LoadingOverlay = styled.div`
   position: fixed;
   top: 0;
@@ -161,22 +162,15 @@ function GenerateCredentialsOverlay({ group, onClose }) {
   const { insertCommitment, isLoading: isInsertingCommitment } =
     useAtomicCommitmentInsertion();
 
-  /**
-   * Shows the generate confirmation modal
-   */
   const handleGenerateClick = () => {
     setShowGenerateConfirmModal(true);
   };
 
-  /**
-   * Generates new credentials using the atomic commitment insertion
-   */
   const handleGenerate = async () => {
     try {
       setIsGenerating(true);
       console.log("Starting credential generation...");
 
-      // Step 1: Generate credentials (local computation)
       const result = await ZkCredential.generateCredentials(128);
       console.log("Generated credentials:", result);
 
@@ -187,7 +181,6 @@ function GenerateCredentialsOverlay({ group, onClose }) {
       console.log("Group Member ID:", groupMemberId);
       console.log("Group ID:", groupId);
 
-      // Step 2: Use the atomic commitment insertion (database only, no blockchain update)
       const dbResult = await insertCommitment({
         groupId,
         groupMemberId,
@@ -206,13 +199,11 @@ function GenerateCredentialsOverlay({ group, onClose }) {
 
       console.log("Atomic commitment insertion completed:", dbResult);
 
-      // Step 3: Set credentials for display
       setCredentials(result);
     } catch (error) {
       console.error("Error generating credentials:", error);
       setCredentials(null);
 
-      // Provide specific error messages based on the error type
       let errorMessage = "Failed to generate credentials. Please try again.";
 
       if (
@@ -234,34 +225,20 @@ function GenerateCredentialsOverlay({ group, onClose }) {
     }
   };
 
-  /**
-   * Handles the closing of the mnemonic display
-   *
-   * Clears the credentials state and calls the onClose callback with success flag
-   */
   const handleCloseMnemonic = () => {
     setCredentials(null);
     onClose(true);
   };
 
-  /**
-   * Shows the cancel confirmation modal
-   */
   const handleCancelClick = () => {
     setShowCancelConfirmModal(true);
   };
 
-  /**
-   * Handles the actual generation after confirmation
-   */
   const handleConfirmGenerate = async () => {
     setShowGenerateConfirmModal(false);
     await handleGenerate();
   };
 
-  /**
-   * Handles the actual cancellation after confirmation
-   */
   const handleConfirmCancel = () => {
     setShowCancelConfirmModal(false);
     onClose(false);
@@ -361,7 +338,6 @@ function GenerateCredentialsOverlay({ group, onClose }) {
         </Modal>
       </Overlay>
 
-      {/* Loading Overlay */}
       {isGenerating && (
         <LoadingOverlay>
           <Spinner />
@@ -378,7 +354,6 @@ function GenerateCredentialsOverlay({ group, onClose }) {
         </LoadingOverlay>
       )}
 
-      {/* Confirmation Modal for Generate */}
       <ConfirmationModal
         isOpen={showGenerateConfirmModal}
         title="Generate Credentials"
@@ -393,7 +368,6 @@ function GenerateCredentialsOverlay({ group, onClose }) {
         onCancel={() => setShowGenerateConfirmModal(false)}
       />
 
-      {/* Confirmation Modal for Cancel */}
       <ConfirmationModal
         isOpen={showCancelConfirmModal}
         title="Cancel Credential Generation"

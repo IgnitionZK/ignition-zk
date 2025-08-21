@@ -1,12 +1,12 @@
 /**
- * Calculates the three phases (proposal, voting, review) for an epoch
- * Each phase consists of whole 24-hour periods
+ * Calculates the three phases for an epoch: proposal, voting, and review
+ * Each phase duration is calculated in days, with the voting phase receiving any remainder days
  * When epoch_duration is not evenly divisible by 3, the voting phase gets extended
  *
- * @param {Object} epoch - The epoch object
- * @param {string} epoch.epoch_start_time - Start time of the epoch (ISO string)
+ * @param {Object} epoch - The epoch object containing start time and duration
+ * @param {string} epoch.epoch_start_time - Start time of the epoch as ISO string
  * @param {number} epoch.epoch_duration - Duration of the epoch in days
- * @returns {Object} Object containing the three phases with start and end times
+ * @returns {Object} Object containing the three phases with start, end times and durations
  */
 export function calculateEpochPhases(epoch) {
   const { epoch_start_time, epoch_duration } = epoch;
@@ -67,9 +67,9 @@ export function calculateEpochPhases(epoch) {
 /**
  * Determines the current phase of an epoch based on the current time
  *
- * @param {Object} epoch - The epoch object
- * @param {Date} [currentTime=new Date()] - Current time to check against
- * @returns {Object} Object containing current phase info and next phase info
+ * @param {Object} epoch - The epoch object containing start time and duration
+ * @param {Date} currentTime - Current time to check against, defaults to current date
+ * @returns {Object} Object containing current phase information and next phase details
  */
 export function getCurrentPhase(epoch, currentTime = new Date()) {
   const phases = calculateEpochPhases(epoch);
@@ -140,10 +140,10 @@ export function getCurrentPhase(epoch, currentTime = new Date()) {
 }
 
 /**
- * Formats a date for display
+ * Formats a date for display using locale-specific formatting
  *
- * @param {Date} date - Date to format
- * @returns {string} Formatted date string
+ * @param {Date} date - Date object to format
+ * @returns {string} Formatted date string in locale format
  */
 export function formatDate(date) {
   return date.toLocaleDateString("en-US", {
@@ -156,11 +156,11 @@ export function formatDate(date) {
 }
 
 /**
- * Calculates the percentage of completion for the current phase
+ * Calculates the percentage of completion for the current phase of an epoch
  *
- * @param {Object} epoch - The epoch object
- * @param {Date} [currentTime=new Date()] - Current time to check against
- * @returns {number} Percentage of completion (0-100)
+ * @param {Object} epoch - The epoch object containing start time and duration
+ * @param {Date} currentTime - Current time to check against, defaults to current date
+ * @returns {number} Percentage of completion from 0 to 100
  */
 export function getPhaseProgress(epoch, currentTime = new Date()) {
   const phases = calculateEpochPhases(epoch);

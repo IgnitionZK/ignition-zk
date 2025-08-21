@@ -14,8 +14,8 @@ const PageContainer = styled.div`
 `;
 
 /**
- * Settings component that renders the application settings page.
- * This component serves as a container for various user settings and preferences.
+ * Settings component that renders a basic settings page placeholder.
+ * Currently displays a simple "Settings" text as a placeholder for future settings functionality.
  */
 export default function Settings() {
   return (

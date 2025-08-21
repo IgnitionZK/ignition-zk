@@ -1,4 +1,7 @@
+// Libraries
 import styled from "styled-components";
+
+// Hooks
 import { useWalletQuery } from "../hooks/wallet/useWalletQuery";
 
 const Header = styled.header`
@@ -50,6 +53,10 @@ const ConnectedAddress = styled.span`
   border: 1px solid rgba(165, 180, 252, 0.2);
 `;
 
+/**
+ * PageHeader component that displays a page title and wallet connection status.
+ * Shows either a connected wallet address or a connect button based on connection state.
+ */
 function PageHeader({ title }) {
   const { connect, address, isLoading } = useWalletQuery();
 

@@ -6,11 +6,10 @@ import { useRelayerUpdateRoot } from "../../relayers/useRelayerUpdateRoot";
 import { uuidToBytes32 } from "../../../scripts/utils/uuidToBytes32";
 
 /**
- * Custom hook for creating a new Merkle tree root using blockchain-first approach
- * @param {Object} params - The parameters object
- * @param {string} params.groupId - The ID of the group
- * @param {BigInt} params.newCommitment - The new commitment to add
- * @returns {Object} Object containing the createMerkleTreeRoot function and loading states
+ * Custom hook for creating a new Merkle tree root using blockchain-first approach.
+ * This hook handles the complete flow of calculating a new Merkle tree root,
+ * updating it on the blockchain via a relayer, and then inserting it into the database.
+ * It follows a blockchain-first pattern where blockchain updates happen before database operations.
  */
 export const useCreateMerkleTreeRoot = ({ groupId } = {}) => {
   const queryClient = useQueryClient();
@@ -21,12 +20,7 @@ export const useCreateMerkleTreeRoot = ({ groupId } = {}) => {
   const { updateMerkleRoot, isLoading: isLoadingUpdateMerkleRoot } =
     useRelayerUpdateRoot();
 
-  /**
-   * Calculates a new Merkle tree root without inserting it into the database
-   * This is used for blockchain updates first, then database insertion follows
-   */
   const calculateMerkleTreeRoot = async ({ newCommitment }) => {
-    // Create array of all commitment values
     const allCommitments = [
       ...(groupCommitments || []).map((commitment) =>
         BigInt(commitment.commitment_value)
@@ -34,7 +28,6 @@ export const useCreateMerkleTreeRoot = ({ groupId } = {}) => {
       newCommitment,
     ];
 
-    // Create new merkle tree with all commitments
     const { root } = await MerkleTreeService.createMerkleTree(allCommitments);
     const memberCount = allCommitments.length;
 
@@ -42,7 +35,6 @@ export const useCreateMerkleTreeRoot = ({ groupId } = {}) => {
       "currentMerkleTreeRootVersion",
     ]);
 
-    // Calculate the tree version
     const treeVersion = currentTreeVersion ? currentTreeVersion + 1 : 1;
     console.log(
       `[FRONTEND/useCreateMerkleTreeRoot] Current Tree Version: ${currentTreeVersion}, New Tree Version: ${treeVersion}`
@@ -51,10 +43,6 @@ export const useCreateMerkleTreeRoot = ({ groupId } = {}) => {
     return { root, treeVersion, memberCount };
   };
 
-  /**
-   * Inserts the calculated Merkle tree root into the database
-   * This should be called after successful blockchain update
-   */
   const insertMerkleTreeRoot = async ({ groupId, rootHash, treeVersion }) => {
     await insertNewMerkleTreeRoot({
       groupId,
@@ -63,9 +51,6 @@ export const useCreateMerkleTreeRoot = ({ groupId } = {}) => {
     });
   };
 
-  /**
-   * Complete flow: Calculate root, update blockchain, then insert into database
-   */
   const createMerkleTreeRoot = async ({
     newCommitment,
     onBlockchainSuccess,
@@ -73,12 +58,10 @@ export const useCreateMerkleTreeRoot = ({ groupId } = {}) => {
     onError,
   }) => {
     try {
-      // Step 1: Calculate new Merkle tree root (local computation)
       const { root, treeVersion, memberCount } = await calculateMerkleTreeRoot({
         newCommitment,
       });
 
-      // Convert the groupId UUID to bytes32 format
       const groupKeyBytes32 = uuidToBytes32(groupId);
       console.log(
         "[FRONTEND/useCreateMerkleTreeRoot] Group Key Bytes32:",
@@ -93,7 +76,6 @@ export const useCreateMerkleTreeRoot = ({ groupId } = {}) => {
         treeVersion
       );
 
-      // Step 2: Update Merkle tree root on blockchain via relayer
       await updateMerkleRoot({
         treeVersion,
         rootValue: root,
@@ -105,7 +87,6 @@ export const useCreateMerkleTreeRoot = ({ groupId } = {}) => {
         onBlockchainSuccess({ root, treeVersion, memberCount });
       }
 
-      // Step 3: Insert the new Merkle tree root into database
       await insertMerkleTreeRoot({
         groupId,
         rootHash: root,
@@ -120,16 +101,13 @@ export const useCreateMerkleTreeRoot = ({ groupId } = {}) => {
     } catch (error) {
       console.error("Merkle tree root creation failed:", error);
 
-      // Provide more context about where the failure occurred
       let enhancedError = error;
 
       if (error.message.includes("Edge function error")) {
-        // This is a blockchain transaction failure
         enhancedError = new Error(
           `Blockchain transaction failed: ${error.message}`
         );
       } else if (error.message.includes("Failed to insert")) {
-        // This is a database insertion failure
         enhancedError = new Error(
           `Database insertion failed: ${error.message}`
         );

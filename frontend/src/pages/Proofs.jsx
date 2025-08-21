@@ -1,14 +1,14 @@
 import React, { useState, useEffect } from "react";
 import styled from "styled-components";
 
-// components
+// Components
 import PageHeader from "../components/PageHeader";
 import InboxItem from "../components/InboxItem";
 import CustomDropdown from "../components/CustomDropdown";
 import MnemonicInput from "../components/MnemonicInput";
 import Spinner from "../components/Spinner";
 
-//hooks
+// Hooks
 import { useGetProposalsByGroupId } from "../hooks/queries/proposals/useGetActiveProposalsByGroupId";
 import { useGetPendingInboxProposals } from "../hooks/queries/proposals/useGetPendingInboxProposals";
 import { useGetUserGroups } from "../hooks/queries/groupMembers/useGetUserGroups";
@@ -17,7 +17,7 @@ import { useVerifyMembership } from "../hooks/queries/proofs/useVerifyMembership
 import { useGetCommitmentArray } from "../hooks/queries/merkleTreeLeaves/useGetCommitmentArray";
 import { useValidateGroupCredentials } from "../hooks/queries/groups/useValidateGroupCredentials";
 
-// icons
+// Icons
 import { IoIosInformationCircle } from "react-icons/io";
 
 const PageContainer = styled.div`
@@ -94,12 +94,6 @@ const ToggleInput = styled.input`
   opacity: 0;
   width: 0;
   height: 0;
-`;
-
-const RightSection = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 1.2rem;
 `;
 
 const HiddenMessage = styled.div`
@@ -276,7 +270,6 @@ export default function Proofs() {
 
   const groupNames = userGroups?.map((group) => group.name) || [];
 
-  // Get the selected group's ID
   const selectedGroupData = userGroups?.find(
     (group) => group.name === selectedGroup
   );
@@ -284,7 +277,6 @@ export default function Proofs() {
   const { commitmentArray, isLoading: isLoadingCommitments } =
     useGetCommitmentArray({ groupId: selectedGroupData?.group_id });
 
-  // Get group credentials validation
   const {
     isLoading: isValidatingCredentials,
     isValid: areCredentialsValid,
@@ -344,14 +336,11 @@ export default function Proofs() {
       );
 
       if (existingIndex === -1) {
-        // First time seeing this proposal_id
         if (proposal.circuit_id === "a1a0a504-e3aa-4e5d-bb9f-bbd98aefbd52") {
           acc.push(proposal);
         }
       } else {
-        // We already have this proposal_id, but check if current row is the proposal circuit
         if (proposal.circuit_id === "a1a0a504-e3aa-4e5d-bb9f-bbd98aefbd52") {
-          // Replace the existing entry with the proposal circuit row
           acc[existingIndex] = proposal;
         }
       }
@@ -360,13 +349,12 @@ export default function Proofs() {
     }, [])
     .map((proposal) => ({
       ...proposal,
-      is_verified: true, // Since we're only including proposals with verified voting proofs
+      is_verified: true,
     }));
 
   const handleToggleChange = () => {
     if (selectedGroup === "") return;
 
-    // Check if credentials are valid before allowing inbox unlock
     if (selectedGroupData && !areCredentialsValid && !isValidatingCredentials) {
       setLocalVerificationError(
         "All group members must generate credentials before unlocking the inbox."
@@ -533,7 +521,6 @@ export default function Proofs() {
               : "Select a group using the dropdown and use toggle button to reveal inbox items. Mnemonic re-entry required each time."}
           </HiddenSubtitle>
 
-          {/* Loading and error states */}
           {isValidatingCredentials && (
             <div
               style={{
@@ -651,7 +638,6 @@ export default function Proofs() {
         />
       )}
 
-      {/* Loading Overlay */}
       {showLoadingOverlay && (
         <LoadingOverlay>
           <Spinner />

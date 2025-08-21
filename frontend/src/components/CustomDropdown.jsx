@@ -1,4 +1,7 @@
+// React imports
 import React, { useState, useRef, useEffect } from "react";
+
+// Styling libraries
 import styled from "styled-components";
 
 const DropdownContainer = styled.div`
@@ -88,6 +91,10 @@ const ItemStatus = styled.span`
   font-weight: 500;
 `;
 
+/**
+ * A customizable dropdown component that supports both simple string options and complex objects with status information.
+ * Features include click-outside-to-close functionality, full-width support, and conditional selection based on proposal phase status.
+ */
 const CustomDropdown = ({
   options,
   selectedOption,
@@ -110,19 +117,16 @@ const CustomDropdown = ({
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // Helper function to get display text for an option
   const getDisplayText = (option) => {
     if (typeof option === "string") return option;
     return option.name || option;
   };
 
-  // Helper function to get option value for comparison
   const getOptionValue = (option) => {
     if (typeof option === "string") return option;
     return option.name || option;
   };
 
-  // Helper function to check if option is selected
   const isOptionSelected = (option) => {
     const optionValue = getOptionValue(option);
     return optionValue === selectedOption;
@@ -141,7 +145,6 @@ const CustomDropdown = ({
               key={getOptionValue(option)}
               selected={isOptionSelected(option)}
               onClick={() => {
-                // Only allow selection if it's a string or if it's in proposal phase
                 if (typeof option === "string" || option.isInProposalPhase) {
                   onSelect(getOptionValue(option));
                   setIsOpen(false);

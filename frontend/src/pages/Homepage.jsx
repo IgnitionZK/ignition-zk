@@ -1,4 +1,7 @@
+// Libraries
 import styled from "styled-components";
+
+// Components
 import HomepageHeader from "../components/HomepageHeader";
 
 const StyledHomepage = styled.div`
@@ -27,8 +30,10 @@ const Footer = styled.footer`
 `;
 
 /**
- * Homepage component that serves as the landing page for IgnitionZK
- * Displays the application header, title, description, and credits
+ * Homepage component that serves as the landing page for IgnitionZK.
+ * Displays the application header, main content with title and description,
+ * and footer with credits. Provides a clean, centered layout for introducing
+ * users to the zero-knowledge proof-based governance platform.
  */
 function Homepage() {
   return (
