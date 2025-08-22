@@ -101,6 +101,20 @@ const Note = styled.p`
   margin-bottom: 1.6rem;
 `;
 
+const CheckboxLabel = styled.label`
+  font-size: 1.3rem;
+  color: var(--color-grey-200);
+  margin-bottom: 0.8rem;
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  user-select: none;
+
+  &:hover {
+    color: var(--color-grey-100);
+  }
+`;
+
 const ButtonRow = styled.div`
   display: flex;
   gap: 1.6rem;
@@ -194,6 +208,11 @@ export default function CreateGroup({ onCancel }) {
   const [touched, setTouched] = useState([]);
   const [formSubmitted, setFormSubmitted] = useState(false);
 
+  // Treasury state variables
+  const [treasuryEnabled, setTreasuryEnabled] = useState(false);
+  const [ownerMultisig, setOwnerMultisig] = useState("");
+  const [recoveryMultisig, setRecoveryMultisig] = useState("");
+
   // New state for confirmation modal and loading
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [showLoadingOverlay, setShowLoadingOverlay] = useState(false);
@@ -214,15 +233,18 @@ export default function CreateGroup({ onCancel }) {
   // Hook for querying user
   const { user } = useUser();
 
+  // Initialize touched array when component mounts
+  useEffect(() => {
+    setTouched([false, false, false, false]); // Initialize for groupName, tokenName, tokenSymbol, and memberInputs
+  }, []);
+
   // Initialize member inputs with connected wallet address
   useEffect(() => {
     if (walletAddress && memberInputs.length === 0) {
       setMemberInputs([walletAddress]);
-      setTouched([false]);
     } else if (!walletAddress && memberInputs.length > 0) {
       // Clear member inputs if wallet is disconnected
       setMemberInputs([]);
-      setTouched([]);
     }
   }, [walletAddress, memberInputs.length]);
 
@@ -233,7 +255,8 @@ export default function CreateGroup({ onCancel }) {
       return;
     }
     setMemberInputs((prev) => [...prev, ""]);
-    setTouched((prev) => [...prev, false]);
+    // Keep the first 3 elements (groupName, tokenName, tokenSymbol) and add false for new member input
+    setTouched((prev) => [...prev.slice(0, 3), ...prev.slice(3), false]);
   };
 
   // Remove a member input row by index
@@ -247,7 +270,11 @@ export default function CreateGroup({ onCancel }) {
       return;
     }
     setMemberInputs((prev) => prev.filter((_, i) => i !== idx));
-    setTouched((prev) => prev.filter((_, i) => i !== idx));
+    // Keep the first 3 elements (groupName, tokenName, tokenSymbol) and filter member inputs
+    setTouched((prev) => [
+      ...prev.slice(0, 3),
+      ...prev.slice(3).filter((_, i) => i !== idx),
+    ]);
   };
 
   // Update the value of a member input row
@@ -261,16 +288,93 @@ export default function CreateGroup({ onCancel }) {
       return;
     }
     setMemberInputs((prev) => prev.map((v, i) => (i === idx ? value : v)));
-    setTouched((prev) => prev.map((v, i) => (i === idx ? true : v)));
+    // Update touched for member input (index 3 + member index)
+    setTouched((prev) => prev.map((v, i) => (i === 3 + idx ? true : v)));
+  };
+
+  // Real-time validation functions
+  const validateGroupName = () => {
+    return groupName.trim() !== "";
+  };
+
+  const validateTokenName = () => {
+    return tokenName.trim() !== "";
+  };
+
+  const validateTokenSymbol = () => {
+    const symbol = tokenSymbol.trim();
+    return symbol !== "" && /^[A-Z0-9]{1,4}$/.test(symbol);
+  };
+
+  const validateOwnerMultisig = () => {
+    if (!treasuryEnabled) return true;
+    if (ownerMultisig.trim() === "") return false;
+    return isValidEthAddress(ownerMultisig);
+  };
+
+  const validateRecoveryMultisig = () => {
+    if (!treasuryEnabled) return true;
+    if (recoveryMultisig.trim() === "") return false;
+    return isValidEthAddress(recoveryMultisig);
+  };
+
+  const validateMultisigDifferent = () => {
+    if (!treasuryEnabled) return true;
+    if (ownerMultisig.trim() === "" || recoveryMultisig.trim() === "")
+      return true;
+    return ownerMultisig.toLowerCase() !== recoveryMultisig.toLowerCase();
+  };
+
+  const validateMemberInputs = () => {
+    if (memberInputs.length === 0) return false;
+
+    // Check if all member inputs are valid Ethereum addresses
+    const allValidAddresses = memberInputs.every(
+      (input) => input.trim() !== "" && isValidEthAddress(input)
+    );
+
+    if (!allValidAddresses) return false;
+
+    // Check for duplicates
+    const lowerInputs = memberInputs.map((addr) => addr.toLowerCase());
+    const uniqueAddresses = new Set(lowerInputs);
+    return uniqueAddresses.size === lowerInputs.length;
+  };
+
+  const validateUserWalletIncluded = () => {
+    if (!walletAddress) return false;
+    return memberInputs.some(
+      (input) => input.toLowerCase() === walletAddress.toLowerCase()
+    );
+  };
+
+  // Comprehensive form validation
+  const isFormValid = () => {
+    return (
+      validateGroupName() &&
+      validateTokenName() &&
+      validateTokenSymbol() &&
+      validateOwnerMultisig() &&
+      validateRecoveryMultisig() &&
+      validateMultisigDifferent() &&
+      validateMemberInputs() &&
+      validateUserWalletIncluded() &&
+      !!walletAddress &&
+      !!user?.id
+    );
   };
 
   // Field validation for group name, token name, token symbol
   const groupNameError =
-    formSubmitted && groupName.trim() === "" ? "Group name is required" : null;
+    (formSubmitted || touched[0]) && groupName.trim() === ""
+      ? "Group name is required"
+      : null;
   const tokenNameError =
-    formSubmitted && tokenName.trim() === "" ? "Token name is required" : null;
+    (formSubmitted || touched[1]) && tokenName.trim() === ""
+      ? "Token name is required"
+      : null;
   let tokenSymbolError = null;
-  if (formSubmitted) {
+  if (formSubmitted || touched[2]) {
     if (tokenSymbol.trim() === "") {
       tokenSymbolError = "Token symbol is required";
     } else if (!/^[A-Z0-9]{1,4}$/.test(tokenSymbol)) {
@@ -278,13 +382,47 @@ export default function CreateGroup({ onCancel }) {
         "Token symbol must be 1-4 characters, A-Z and 0-9 only";
     }
   }
-  const hasFieldErrors = !!(
-    groupNameError ||
-    tokenNameError ||
-    tokenSymbolError
-  );
 
-  // Validation logic
+  // Treasury validation
+  const ownerMultisigError =
+    (formSubmitted || (treasuryEnabled && ownerMultisig.trim() !== "")) &&
+    treasuryEnabled &&
+    ownerMultisig.trim() === ""
+      ? "Owner multisig address is required when treasury is enabled"
+      : null;
+  const recoveryMultisigError =
+    (formSubmitted || (treasuryEnabled && recoveryMultisig.trim() !== "")) &&
+    treasuryEnabled &&
+    recoveryMultisig.trim() === ""
+      ? "Recovery multisig address is required when treasury is enabled"
+      : null;
+  const ownerMultisigInvalidError =
+    (formSubmitted || (treasuryEnabled && ownerMultisig.trim() !== "")) &&
+    treasuryEnabled &&
+    ownerMultisig.trim() !== "" &&
+    !isValidEthAddress(ownerMultisig)
+      ? "Invalid Ethereum address for owner multisig"
+      : null;
+  const recoveryMultisigInvalidError =
+    (formSubmitted || (treasuryEnabled && recoveryMultisig.trim() !== "")) &&
+    treasuryEnabled &&
+    recoveryMultisig.trim() !== "" &&
+    !isValidEthAddress(recoveryMultisig)
+      ? "Invalid Ethereum address for recovery multisig"
+      : null;
+  const multisigDuplicateError =
+    (formSubmitted ||
+      (treasuryEnabled &&
+        ownerMultisig.trim() !== "" &&
+        recoveryMultisig.trim() !== "")) &&
+    treasuryEnabled &&
+    ownerMultisig.trim() !== "" &&
+    recoveryMultisig.trim() !== "" &&
+    ownerMultisig.toLowerCase() === recoveryMultisig.toLowerCase()
+      ? "Owner and recovery multisig addresses must be different"
+      : null;
+
+  // Validation logic for member inputs
   const lowerInputs = memberInputs.map((addr) => addr.toLowerCase());
   const memberInputErrors = memberInputs.map((input) => {
     if (input.length === 0) return "Address required";
@@ -295,14 +433,14 @@ export default function CreateGroup({ onCancel }) {
     }
     return null;
   });
-  const hasErrors = memberInputErrors.some((err) => err !== null);
 
   // Check if at least one member is added
   const hasAtLeastOneMember =
     memberInputs.length > 0 &&
     memberInputs.some((input) => input.trim() !== "");
   const noMembersError =
-    formSubmitted && !hasAtLeastOneMember
+    (formSubmitted || memberInputs.some((input) => input.trim() !== "")) &&
+    !hasAtLeastOneMember
       ? "At least one member is required"
       : null;
 
@@ -313,7 +451,9 @@ export default function CreateGroup({ onCancel }) {
       (input) => input.toLowerCase() === walletAddress.toLowerCase()
     );
   const noUserWalletError =
-    formSubmitted && walletAddress && !hasUserWalletAddress
+    (formSubmitted || memberInputs.length > 0) &&
+    walletAddress &&
+    !hasUserWalletAddress
       ? "Your wallet address must be included as a member"
       : null;
 
@@ -328,16 +468,7 @@ export default function CreateGroup({ onCancel }) {
   const handleCreateClick = (e) => {
     e.preventDefault();
     setFormSubmitted(true);
-    if (
-      groupName.trim() === "" ||
-      tokenName.trim() === "" ||
-      tokenSymbol.trim() === "" ||
-      hasErrors ||
-      !hasAtLeastOneMember ||
-      noUserWalletError ||
-      walletNotConnectedError ||
-      !user?.id
-    ) {
+    if (!isFormValid()) {
       return;
     }
 
@@ -368,6 +499,17 @@ export default function CreateGroup({ onCancel }) {
 
   // Handle the actual group creation
   const handleCreateGroup = () => {
+    // Log treasury data if enabled
+    if (treasuryEnabled) {
+      console.log("Treasury enabled with:", {
+        ownerMultisig,
+        recoveryMultisig,
+      });
+      // TODO: Implement treasury deployment logic
+      // This would involve deploying a TreasuryManager contract
+      // and storing the treasury configuration in the database
+    }
+
     // Insert the new group using the hook
     insertNewGroup(
       { name: groupName.trim() },
@@ -472,8 +614,12 @@ export default function CreateGroup({ onCancel }) {
     setTokenName("");
     setTokenSymbol("");
     setMemberInputs([]);
-    setTouched([]);
+    setTouched([false, false, false, false]);
     setFormSubmitted(false);
+    // Reset treasury state
+    setTreasuryEnabled(false);
+    setOwnerMultisig("");
+    setRecoveryMultisig("");
     toast.success("Group creation cancelled.");
     onCancel(); // Use onCancel to properly reset Dashboard state
   };
@@ -587,8 +733,13 @@ export default function CreateGroup({ onCancel }) {
             type="text"
             placeholder="Enter group name"
             value={groupName}
-            onChange={(e) => setGroupName(e.target.value)}
-            style={{ borderColor: groupNameError ? "#f87171" : undefined }}
+            onChange={(e) => {
+              setGroupName(e.target.value);
+              if (!touched[0]) setTouched((prev) => [true, ...prev.slice(1)]);
+            }}
+            style={{
+              borderColor: groupNameError ? "#f87171" : undefined,
+            }}
           />
           {groupNameError && (
             <div
@@ -601,6 +752,7 @@ export default function CreateGroup({ onCancel }) {
               {groupNameError}
             </div>
           )}
+
           <SectionTitle>
             ERC721 NFT Contract
             <InfoIconWrapper>
@@ -627,8 +779,14 @@ export default function CreateGroup({ onCancel }) {
             type="text"
             placeholder="Enter token name"
             value={tokenName}
-            onChange={(e) => setTokenName(e.target.value)}
-            style={{ borderColor: tokenNameError ? "#f87171" : undefined }}
+            onChange={(e) => {
+              setTokenName(e.target.value);
+              if (!touched[1])
+                setTouched((prev) => [prev[0], true, ...prev.slice(2)]);
+            }}
+            style={{
+              borderColor: tokenNameError ? "#f87171" : undefined,
+            }}
           />
           {tokenNameError && (
             <div
@@ -641,6 +799,7 @@ export default function CreateGroup({ onCancel }) {
               {tokenNameError}
             </div>
           )}
+
           <Label>
             Token Symbol
             <InfoIconWrapper>
@@ -659,8 +818,19 @@ export default function CreateGroup({ onCancel }) {
             placeholder="e.g. ZKGP"
             maxLength={4}
             value={tokenSymbol}
-            onChange={(e) => setTokenSymbol(e.target.value)}
-            style={{ borderColor: tokenSymbolError ? "#f87171" : undefined }}
+            onChange={(e) => {
+              setTokenSymbol(e.target.value);
+              if (!touched[2])
+                setTouched((prev) => [
+                  prev[0],
+                  prev[1],
+                  true,
+                  ...prev.slice(3),
+                ]);
+            }}
+            style={{
+              borderColor: tokenSymbolError ? "#f87171" : undefined,
+            }}
           />
           {tokenSymbolError && (
             <div
@@ -672,6 +842,154 @@ export default function CreateGroup({ onCancel }) {
             >
               {tokenSymbolError}
             </div>
+          )}
+
+          <SectionTitle>
+            Treasury
+            <InfoIconWrapper>
+              <InfoIcon />
+              <Tooltip>
+                Create an optional Treasury for your group to manage funds,
+                grants, and financial operations. The Treasury will be deployed
+                as a smart contract with configurable ownership and recovery
+                mechanisms. You can enable this feature by checking the box
+                below and providing the required multisig addresses.
+              </Tooltip>
+            </InfoIconWrapper>
+          </SectionTitle>
+
+          <div style={{ marginBottom: "1.6rem" }}>
+            <CheckboxLabel>
+              <input
+                type="checkbox"
+                checked={treasuryEnabled}
+                onChange={(e) => {
+                  setTreasuryEnabled(e.target.checked);
+                  if (!e.target.checked) {
+                    setOwnerMultisig("");
+                    setRecoveryMultisig("");
+                  }
+                }}
+                style={{
+                  marginRight: "0.8rem",
+                  transform: "scale(1.3)",
+                  accentColor: "#a5b4fc",
+                  cursor: "pointer",
+                }}
+              />
+              Enable Treasury
+            </CheckboxLabel>
+          </div>
+
+          {treasuryEnabled && (
+            <>
+              <Label>
+                Owner Multisig
+                <InfoIconWrapper>
+                  <InfoIcon />
+                  <Tooltip>
+                    The multisig wallet address that will have full control over
+                    the Treasury. This address will be able to approve spending,
+                    manage grants, and control all Treasury operations. Must be
+                    a valid Ethereum address.
+                  </Tooltip>
+                </InfoIconWrapper>
+              </Label>
+              <Input
+                type="text"
+                placeholder="Enter owner multisig address (0x123...abc)"
+                value={ownerMultisig}
+                onChange={(e) => {
+                  setOwnerMultisig(e.target.value);
+                  // Mark as touched for validation
+                  if (e.target.value.trim() !== "") {
+                    setTouched((prev) => [...prev, true]);
+                  }
+                }}
+                autoComplete="new-password"
+                style={{
+                  borderColor:
+                    ownerMultisigError || ownerMultisigInvalidError
+                      ? "#f87171"
+                      : undefined,
+                  marginBottom:
+                    ownerMultisigError || ownerMultisigInvalidError
+                      ? "0.8rem"
+                      : "1.6rem",
+                }}
+              />
+              {(ownerMultisigError || ownerMultisigInvalidError) && (
+                <div
+                  style={{
+                    color: "#f87171",
+                    fontSize: "1.1rem",
+                    marginBottom: "0.8rem",
+                  }}
+                >
+                  {ownerMultisigError || ownerMultisigInvalidError}
+                </div>
+              )}
+
+              <Label>
+                Recovery Multisig
+                <InfoIconWrapper>
+                  <InfoIcon />
+                  <Tooltip>
+                    A backup multisig wallet address for emergency recovery
+                    operations. This address can be used to recover Treasury
+                    funds or change ownership in emergency situations. Must be a
+                    valid Ethereum address and different from the owner
+                    multisig.
+                  </Tooltip>
+                </InfoIconWrapper>
+              </Label>
+              <Input
+                type="text"
+                placeholder="Enter recovery multisig address (0x123...abc)"
+                value={recoveryMultisig}
+                onChange={(e) => {
+                  setRecoveryMultisig(e.target.value);
+                  // Mark as touched for validation
+                  if (e.target.value.trim() !== "") {
+                    setTouched((prev) => [...prev, true]);
+                  }
+                }}
+                autoComplete="new-password"
+                style={{
+                  borderColor:
+                    recoveryMultisigError || recoveryMultisigInvalidError
+                      ? "#f87171"
+                      : undefined,
+                  marginBottom:
+                    recoveryMultisigError || recoveryMultisigInvalidError
+                      ? "0.8rem"
+                      : "1.6rem",
+                }}
+              />
+              {(recoveryMultisigError || recoveryMultisigInvalidError) && (
+                <div
+                  style={{
+                    color: "#f87171",
+                    fontSize: "1.1rem",
+                    marginBottom: "0.8rem",
+                  }}
+                >
+                  {recoveryMultisigError || recoveryMultisigInvalidError}
+                </div>
+              )}
+
+              {multisigDuplicateError && (
+                <div
+                  style={{
+                    color: "#f87171",
+                    fontSize: "1.1rem",
+                    marginBottom: "0.8rem",
+                  }}
+                >
+                  {multisigDuplicateError}
+                </div>
+              )}
+            </>
           )}
         </FormSection>
         <FormSection>
@@ -834,15 +1152,7 @@ export default function CreateGroup({ onCancel }) {
             backgroundColor="#a5b4fc"
             textColor="#232328"
             hoverColor="#818cf8"
-            disabled={
-              hasErrors ||
-              hasFieldErrors ||
-              !hasAtLeastOneMember ||
-              noUserWalletError ||
-              walletNotConnectedError ||
-              isLoading ||
-              !user?.id
-            }
+            disabled={!isFormValid() || isLoading}
             onClick={handleCreateClick}
           >
             Create
