@@ -609,6 +609,7 @@ describe("Vote Manager Unit Tests:", function () {
         const proposalResult = await voteManager.connect(governor).getProposalResult(voteContextKey);
         expect(proposalResult.tally).to.deep.equal([1, 0, 0]);
         expect(proposalResult.passed).to.equal(false);
+        expect(proposalResult.submissionNullifier).to.equal(submissionNullifier1);
 
         // verify a second vote on the same context with a different choice
         await voteManager.connect(governor).verifyVote(
@@ -623,6 +624,7 @@ describe("Vote Manager Unit Tests:", function () {
         const proposalResult2 = await voteManager.connect(governor).getProposalResult(voteContextKey);
         expect(proposalResult2.tally).to.deep.equal([1, 1, 0]);
         expect(proposalResult2.passed).to.equal(false);
+        expect(proposalResult2.submissionNullifier).to.equal(submissionNullifier1);
 
         // verify a third vote on the same context with a different choice
         await voteManager.connect(governor).verifyVote(
@@ -637,6 +639,7 @@ describe("Vote Manager Unit Tests:", function () {
         const proposalResult3 = await voteManager.connect(governor).getProposalResult(voteContextKey);
         expect(proposalResult3.tally).to.deep.equal([1, 1, 1]);
         expect(proposalResult3.passed).to.equal(false);
+        expect(proposalResult3.submissionNullifier).to.equal(submissionNullifier1);
 
         // verify a fourth vote on the same context with a yes choice
         await voteManager.connect(governor).verifyVote(
@@ -651,6 +654,7 @@ describe("Vote Manager Unit Tests:", function () {
         const proposalResult4 = await voteManager.connect(governor).getProposalResult(voteContextKey);
         expect(proposalResult4.tally).to.deep.equal([1, 2, 1]);
         expect(proposalResult4.passed).to.equal(true);
+        expect(proposalResult4.submissionNullifier).to.equal(submissionNullifier1);
 
     });
 
@@ -673,6 +677,7 @@ describe("Vote Manager Unit Tests:", function () {
         const proposalResult = await voteManager.connect(governor).getProposalResult(voteContextKey);
         expect(proposalResult.tally).to.deep.equal([0, 1, 0 ]);
         expect(proposalResult.passed).to.equal(false);
+        expect(proposalResult.submissionNullifier).to.equal(submissionNullifier1);
     });
 
     it(`FUNCTION: verifyVote
@@ -1010,6 +1015,29 @@ describe("Vote Manager Unit Tests:", function () {
             realRoot,
             false // isProposalSubmitted
         )).to.be.revertedWithCustomError(voteManager, "ProposalHasNotBeenSubmitted");
+
+    });
+
+    it(`FUNCTION: verifyVote (with real verifier)
+        TESTING: stored data: proposalResult
+        EXPECTED: should not allow the governor to verify a vote if the context hash is invalid`, async function () {
+        
+        // set the member count to 2 (ie., only two members can vote)
+        await voteManager.connect(governor).setMemberCount(realGroupKey, 2);
+
+        await voteManager.connect(governor).verifyVote(
+            realVoteProof,
+            realVotePublicSignals,
+            realVoteContextKey,
+            realGroupKey,
+            realRoot,
+            true // isProposalSubmitted
+        );
+
+        const proposalResult = await voteManager.connect(governor).getProposalResult(realVoteContextKey);
+        expect(proposalResult.tally).to.deep.equal([0, 1, 0]);
+        expect(proposalResult.passed).to.equal(true);
+        expect(proposalResult.submissionNullifier).to.equal(proposalProofSubmissionNullifier);
 
     });
 

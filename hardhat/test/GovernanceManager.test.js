@@ -1745,12 +1745,246 @@ describe("Governance Manager Unit Tests:", function () {
             .to.be.revertedWithCustomError(governanceManager, "OnlyRelayerAllowed");
     });
 
+    it(`FUNCTION: delegateIsPendingApproval, delegateIsPendingExecution, delegateIsExecuted
+        TESTING: authorization (success), returned data
+        EXPECTED: should allow the relayer to view the transfer requests pending approval, execution, or execution status`, async function () {
+
+        // Set TreasuryFactory address in GovernanceManager
+        await governanceManager.connect(deployer).setTreasuryFactory(treasuryFactory.target);
     
+        // Deploy Group Nft and set root
+        await governanceManager.connect(relayer).delegateDeployGroupNft(realGroupKey, nftName, nftSymbol);
+        await governanceManager.connect(relayer).delegateSetRoot(realRoot, realGroupKey);
+
+        // Deploy the treasury instance
+        await governanceManager.connect(relayer).delegateDeployTreasury(
+            realGroupKey, 
+            await user1.getAddress(), // treasuryMultiSig
+            await user1.getAddress() // treasuryRecovery
+        );
+
+        // Set number of group members
+        await governanceManager.connect(relayer).delegateSetMemberCount(realGroupKey, 2);
+
+        // submit and verify a proposal
+        await governanceManager.connect(relayer).delegateVerifyProposal(
+            realProposalProof, 
+            realProposalPublicSignals, 
+            realGroupKey,
+            realProposalContextKey
+        );
+        
+        // verify a vote on the submitted proposal
+        await governanceManager.connect(relayer).delegateVerifyVote(
+            realVoteProof,
+            realVotePublicSignals,
+            realGroupKey,
+            realVoteContextKey
+        );
+
+        // trigger funding request
+        const fundingType = ethers.id("grant");
+        await governanceManager.connect(relayer).delegateDistributeFunding(
+            realGroupKey,
+            realVoteContextKey,
+            await user1.getAddress(), // to,
+            ethers.parseEther("1.0"), // amount,
+            fundingType,
+            proposalProofSubmissionNullifier // expectedProposalNullifier
+        );
+
+        // Check that the funding request is pending approval
+        const isPendingApproval = await governanceManager.connect(relayer).delegateIsPendingApproval(realGroupKey, realVoteContextKey);
+        expect(isPendingApproval).to.be.true;
+
+        // Approve the request
+        // Get treasury address
+        const treasuryAddress = await governanceManager.connect(relayer).delegateGetTreasuryAddress(realGroupKey);
+        const treasuryInstance = await ethers.getContractAt("TreasuryManager", treasuryAddress);
+
+        await treasuryInstance.connect(user1).approveTransfer(realVoteContextKey);
+
+        // Check that the funding request is pending execution
+        const isPendingExecution = await governanceManager.connect(relayer).delegateIsPendingExecution(realGroupKey, realVoteContextKey);
+        expect(isPendingExecution).to.be.true;
+
+        // Skip timelock
+        await skipDays(3);
+        
+        // Fund the treasury instance with ETH
+        await treasuryInstance.fund({ value: ethers.parseEther("5.0") });
+
+        // Execute the transfer
+        await treasuryInstance.connect(user1).executeTransfer(realVoteContextKey);
+
+        // Check that the funding request has been executed
+        const isExecuted = await governanceManager.connect(relayer).delegateIsExecuted(realGroupKey, realVoteContextKey);
+        expect(isExecuted).to.be.true;
+    });
+
+    it(`FUNCTION: delegateIsPendingApproval, delegateIsPendingExecution, delegateIsExecuted
+        TESTING: authorization (failure)
+        EXPECTED: should not allow a non-relayer to view the transfer requests pending approval, execution, or execution status`, async function () {
+     
+        await expect(governanceManager.connect(user1).delegateIsPendingApproval(realGroupKey, realVoteContextKey))
+            .to.be.revertedWithCustomError(governanceManager, "OnlyRelayerAllowed");
+
+        await expect(governanceManager.connect(user1).delegateIsPendingExecution(realGroupKey, realVoteContextKey))
+            .to.be.revertedWithCustomError(governanceManager, "OnlyRelayerAllowed");
+
+        await expect(governanceManager.connect(user1).delegateIsExecuted(realGroupKey, realVoteContextKey))
+            .to.be.revertedWithCustomError(governanceManager, "OnlyRelayerAllowed");
+    });
+
+    it(`FUNCTION: delegateGetBalance
+        TESTING: authorization (success), returned balance
+        EXPECTED: should allow the relayer to view the balance of a treasuryInstance`, async function () {
+        // Set TreasuryFactory address in GovernanceManager
+        await governanceManager.connect(deployer).setTreasuryFactory(treasuryFactory.target);
+    
+        // Deploy Group Nft and set root
+        await governanceManager.connect(relayer).delegateDeployGroupNft(realGroupKey, nftName, nftSymbol);
+        await governanceManager.connect(relayer).delegateSetRoot(realRoot, realGroupKey);
+
+        // Deploy the treasury instance
+        await governanceManager.connect(relayer).delegateDeployTreasury(
+            realGroupKey, 
+            await user1.getAddress(), // treasuryMultiSig
+            await user1.getAddress() // treasuryRecovery
+        );
+
+        // Get treasury address and instance
+        const treasuryAddress = await governanceManager.connect(relayer).delegateGetTreasuryAddress(realGroupKey);
+        const treasuryInstance = await ethers.getContractAt("TreasuryManager", treasuryAddress);
+
+        const currentBalance = await governanceManager.connect(relayer).delegateGetBalance(realGroupKey);
+        expect(currentBalance).to.equal(ethers.parseEther("0"));
+
+        // Fund the treasury with fund function
+        await treasuryInstance.fund({ value: ethers.parseEther("5.0") });
+
+        // Check that new balance is 5 ETH
+        const newBalance = await governanceManager.connect(relayer).delegateGetBalance(realGroupKey);
+        expect(newBalance).to.equal(ethers.parseEther("5.0"));
+
+        // Fund the treasury with sendTransaction
+        await deployer.sendTransaction({ 
+            to: treasuryAddress,
+            value: ethers.parseEther("5.0")
+        });
+
+        // Check that new balance is 10 ETH
+        const finalBalance = await governanceManager.connect(relayer).delegateGetBalance(realGroupKey);
+        expect(finalBalance).to.equal(ethers.parseEther("10.0"));
+
+    });
+
+    it(`FUNCTION: delegateGetBalance
+        TESTING: authorization (success), returned balance
+        EXPECTED: should allow the relayer to view the balance of a treasuryInstance`, async function () {
+        // Set TreasuryFactory address in GovernanceManager
+        await governanceManager.connect(deployer).setTreasuryFactory(treasuryFactory.target);
+    
+        // Deploy Group Nft and set root
+        await governanceManager.connect(relayer).delegateDeployGroupNft(realGroupKey, nftName, nftSymbol);
+        await governanceManager.connect(relayer).delegateSetRoot(realRoot, realGroupKey);
+
+        // Deploy the treasury instance
+        await governanceManager.connect(relayer).delegateDeployTreasury(
+            realGroupKey, 
+            await user1.getAddress(), // treasuryMultiSig
+            await user1.getAddress() // treasuryRecovery
+        );
+
+        await expect(governanceManager.connect(user1).delegateGetBalance(realGroupKey))
+            .to.be.revertedWithCustomError(governanceManager, "OnlyRelayerAllowed");
+    });
+
+    it(`FUNCTION: delegateGetFundingRequest
+        TESTING: authorization (success), returned data
+        EXPECTED: should allow the relayer to view the funding requests of a treasury instance`, async function () {
+
+        // Set TreasuryFactory address in GovernanceManager
+        await governanceManager.connect(deployer).setTreasuryFactory(treasuryFactory.target);
+    
+        // Deploy Group Nft and set root
+        await governanceManager.connect(relayer).delegateDeployGroupNft(realGroupKey, nftName, nftSymbol);
+        await governanceManager.connect(relayer).delegateSetRoot(realRoot, realGroupKey);
+
+        // Deploy the treasury instance
+        await governanceManager.connect(relayer).delegateDeployTreasury(
+            realGroupKey, 
+            await user1.getAddress(), // treasuryMultiSig
+            await user1.getAddress() // treasuryRecovery
+        );
+
+        // Set number of group members
+        await governanceManager.connect(relayer).delegateSetMemberCount(realGroupKey, 2);
+
+        // submit and verify a proposal
+        await governanceManager.connect(relayer).delegateVerifyProposal(
+            realProposalProof, 
+            realProposalPublicSignals, 
+            realGroupKey,
+            realProposalContextKey
+        );
+        
+        // verify a vote on the submitted proposal
+        await governanceManager.connect(relayer).delegateVerifyVote(
+            realVoteProof,
+            realVotePublicSignals,
+            realGroupKey,
+            realVoteContextKey
+        );
+
+        // trigger funding request
+        const fundingType = ethers.id("grant");
+        await governanceManager.connect(relayer).delegateDistributeFunding(
+            realGroupKey,
+            realVoteContextKey,
+            await user1.getAddress(), // to,
+            ethers.parseEther("1.0"), // amount,
+            fundingType,
+            proposalProofSubmissionNullifier // expectedProposalNullifier
+        );
+
+        // Get the funding request
+        const fundingRequest = await governanceManager.connect(relayer).delegateGetFundingRequest(realGroupKey, realVoteContextKey);
+        expect(fundingRequest).to.deep.equal([
+            fundingType,
+            grantModule.target,
+            await user1.getAddress(),
+            ethers.parseEther("1.0"),
+            fundingRequest.requestedAt,
+            fundingRequest.requestedAt + BigInt(3 * 24 * 60 * 60),
+            false,
+            false
+        ]);
+
+    });
+
+    it(`FUNCTION: delegateGetFundingRequest
+        TESTING: authorization (failure), returned data
+        EXPECTED: should not allow a non-relayer to view the funding requests of a treasury instance`, async function () {
+
+        // Set TreasuryFactory address in GovernanceManager
+        await governanceManager.connect(deployer).setTreasuryFactory(treasuryFactory.target);
+    
+        // Deploy Group Nft and set root
+        await governanceManager.connect(relayer).delegateDeployGroupNft(realGroupKey, nftName, nftSymbol);
+        await governanceManager.connect(relayer).delegateSetRoot(realRoot, realGroupKey);
+
+        // Deploy the treasury instance
+        await governanceManager.connect(relayer).delegateDeployTreasury(
+            realGroupKey, 
+            await user1.getAddress(), // treasuryMultiSig
+            await user1.getAddress() // treasuryRecovery
+        );
+
+        // Get the funding request
+        await expect(governanceManager.connect(user1).delegateGetFundingRequest(realGroupKey, realVoteContextKey))
+            .to.be.revertedWithCustomError(governanceManager, "OnlyRelayerAllowed");
+    });
+
 });
-
-// to do: implement interface check for add module. Dynamically pull interface
-// Test delegateGetBalance, delegateIsPendingApproval, delegateIsPendingExecution, delegateIsExecuted, delegateGetFundingRequest
-
-
-
 

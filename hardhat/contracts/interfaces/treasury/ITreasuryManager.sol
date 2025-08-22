@@ -75,6 +75,11 @@ interface ITreasuryManager {
      */
     function cancelTransfer(bytes32 contextKey) external;
 
+    /**
+     * @notice Funds the treasury contract.
+     */
+    function fund() external payable;
+
 // ====================================================================================================================
 //                                       EXTERNAL VIEW FUNCTIONS
 // ====================================================================================================================
