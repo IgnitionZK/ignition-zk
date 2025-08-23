@@ -17,6 +17,7 @@ import { FundingTypes } from "../libraries/FundingTypes.sol";
 /**
  * @title GrantModule
  * @notice This contract is responsible for requesting funding for grant proposals.
+ * @dev The GrantModule is a stateless contract that accepts calls from the GovernanceManager and forwards them to the relevant treasury instance.
  */
 contract GrantModule is Initializable, UUPSUpgradeable, OwnableUpgradeable, IGrantModule, IVersioned {
 
@@ -110,12 +111,6 @@ contract GrantModule is Initializable, UUPSUpgradeable, OwnableUpgradeable, IGra
         nonZeroAddress(groupTreasury)
         nonZeroAddress(to) 
     {
-        // Checks in funding module: 
-        // GM checks that 
-        // a) context key exists in VM and
-        // b) passed == true 
-        // !!! submission nullifier corresponds to voted contextKey in VM
-       
         ITreasuryManager(groupTreasury).requestTransfer(
             contextKey,
             to,

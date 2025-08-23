@@ -79,6 +79,9 @@ contract TreasuryManager is Initializable, AccessControlUpgradeable, ReentrancyG
     /// @notice Thrown if the timelock period for a transfer request has passed.
     error TimelockHasPassed();
 
+    /// @notice Thrown if the treasury is locked.
+    error TreasuryIsLocked();
+
     // ====================================================================================================
     // GENERAL ERRORS
     // ====================================================================================================
@@ -173,6 +176,16 @@ contract TreasuryManager is Initializable, AccessControlUpgradeable, ReentrancyG
      */
     event ApprovalSkipped(bytes32 indexed contextKey);
 
+    /**
+     * @notice Emitted when the treasury is locked.
+     */
+    event TreasuryLocked();
+
+    /**
+     * @notice Emitted when the treasury is unlocked.
+     */
+    event TreasuryUnlocked();
+
 // ====================================================================================================================
 //                                          STATE VARIABLES
 // NOTE: Once the contract is deployed do not change the order of the variables. If this contract is updated append new variables to the end of this list. 
@@ -193,11 +206,17 @@ contract TreasuryManager is Initializable, AccessControlUpgradeable, ReentrancyG
     mapping(bytes32 => TreasuryTypes.FundingRequest) private fundingRequests;
 
     // ====================================================================================================
-    // ADDRESSES
+    // STATE VARIABLES
     // ====================================================================================================
 
     /// @dev The interface of the governance manager contract.
     IGovernanceManager private governanceManager;
+
+    /// @dev Indicates whether the treasury is locked.
+    bool private isTreasuryLocked;
+
+    /// @dev The timestamp until which the treasury is locked.
+    uint256 private lockedUntil;
 
     // ====================================================================================================
     // CONSTANTS
@@ -248,6 +267,18 @@ contract TreasuryManager is Initializable, AccessControlUpgradeable, ReentrancyG
             !hasRole(DEFAULT_ADMIN_ROLE, msg.sender) &&
             !hasRole(EMERGENCY_RECOVERY_ROLE, msg.sender) &&
             !hasRole(GOVERNANCE_MANAGER_ROLE, msg.sender)
+        ) revert CallerNotAuthorized();
+        _;
+    }
+
+    /**
+     * @dev Ensures that the caller has the DEFAULT_ADMIN_ROLE or the EMERGENCY_RECOVERY_ROLE.
+     * This modifier is used to restrict access to certain functions to only the emergency role or default admin.
+     */
+    modifier onlyDefaultAdminOrEmergencyRecovery() {
+        if ( 
+            !hasRole(DEFAULT_ADMIN_ROLE, msg.sender) &&
+            !hasRole(EMERGENCY_RECOVERY_ROLE, msg.sender)
         ) revert CallerNotAuthorized();
         _;
     }
@@ -309,7 +340,7 @@ contract TreasuryManager is Initializable, AccessControlUpgradeable, ReentrancyG
 // ====================================================================================================================
 
     // ====================================================================================================
-    // ADMIN ROLE TRANSFER & EMERGENCY ACCESS
+    // ADMIN ROLE TRANSFER - EMERGENCY ACCESS - TREASURY LOCK
     // ====================================================================================================
 
     /**
@@ -339,6 +370,28 @@ contract TreasuryManager is Initializable, AccessControlUpgradeable, ReentrancyG
         if (hasRole(DEFAULT_ADMIN_ROLE, _newAdmin)) revert AlreadyHasRole();
         _grantRole(DEFAULT_ADMIN_ROLE, _newAdmin);
         emit EmergencyAccessGranted(_newAdmin);
+    }
+
+    /**
+     * @notice Locks the treasury, preventing any transfers.
+     * @dev This function can only be called by the DEFAULT_ADMIN_ROLE or EMERGENCY_RECOVERY_ROLE.
+     * It locks the treasury for a specified period.
+     */
+    function lockTreasury() external onlyDefaultAdminOrEmergencyRecovery {
+        isTreasuryLocked = true;
+        // Lock treasury for 3 days
+        lockedUntil = block.timestamp + TIMELOCK_DELAY_DAYS * 1 days;
+        emit TreasuryLocked();
+    }
+
+    /**
+     * @notice Manually unlocks the treasury, allowing transfers to occur.
+     * @dev This function can only be called by the DEFAULT_ADMIN_ROLE or EMERGENCY_RECOVERY_ROLE.
+     */
+    function unlockTreasury() external onlyDefaultAdminOrEmergencyRecovery {
+        isTreasuryLocked = false;
+        lockedUntil = 0;
+        emit TreasuryUnlocked();
     }
 
     // ====================================================================================================
@@ -415,6 +468,7 @@ contract TreasuryManager is Initializable, AccessControlUpgradeable, ReentrancyG
      * @dev This function can only be called by the DEFAULT_ADMIN_ROLE.
      * It is non-reentrant to prevent re-entrancy attacks.
      * @param contextKey The unique identifier for the transfer request.
+     * @custom:error TreasuryIsLocked Thrown if the treasury has been locked.
      * @custom:error RequestDoesNotExist Thrown if the transfer request for the specified contextKey does not exist.
      * @custom:error TransferNotApproved Thrown if the transfer has not been approved.
      * @custom:error TransferAlreadyExecuted Thrown if the transfer has already been executed.
@@ -545,6 +599,14 @@ contract TreasuryManager is Initializable, AccessControlUpgradeable, ReentrancyG
     }
 
     /**
+     * @notice Checks if the treasury is currently locked.
+     * @return True if the treasury is locked, false otherwise.
+     */
+    function isLocked() external view onlyGovernorOrDefaultAdmin returns (bool) {
+        return isTreasuryLocked && block.timestamp <= lockedUntil;
+    }
+
+    /**
      * @notice Retrieves the governance manager contract.
      * @return The address of the governance manager contract.
      */
@@ -592,6 +654,13 @@ contract TreasuryManager is Initializable, AccessControlUpgradeable, ReentrancyG
         address activeModule = governanceManager.getActiveModule(request.fundingType);
 
         // Checks
+        if (isTreasuryLocked && block.timestamp <= lockedUntil) revert TreasuryIsLocked();
+        // Auto-unlock treasury after lock period has passed
+        if (isTreasuryLocked && block.timestamp > lockedUntil) {
+            isTreasuryLocked = false;
+            lockedUntil = 0;
+            emit TreasuryUnlocked();
+        }
         if (request.requestedAt == 0) revert RequestDoesNotExist();
         if (!request.approved) revert TransferNotApproved();
         if (request.executed) revert TransferAlreadyExecuted();
