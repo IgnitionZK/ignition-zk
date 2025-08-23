@@ -629,7 +629,7 @@ export class ZKProofGenerator {
     );
 
     // Convert to hex string for better compatibility with ethers.js
-    return ethers.toBeHex(contextHashBigInt);
+    return ethers.toBeHex(contextHashBigInt, 32);
   }
 
   /**
@@ -658,6 +658,6 @@ export class ZKProofGenerator {
     );
 
     // Convert to hex string for better compatibility with ethers.js
-    return ethers.toBeHex(voteContextHashBigInt);
+    return ethers.toBeHex(voteContextHashBigInt, 32);
   }
 }
