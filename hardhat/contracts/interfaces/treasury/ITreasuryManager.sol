@@ -37,6 +37,16 @@ interface ITreasuryManager {
      */
     function emergencyAccessControl(address _newAdmin) external;
 
+    /**
+     * @notice Locks the treasury, preventing any further withdrawals.
+     */
+    function lockTreasury() external;
+
+    /**
+     * @notice Unlocks the treasury, allowing withdrawals to resume.
+     */
+    function unlockTreasury() external;
+    
      /**
      * @notice Requests a transfer of funds from the treasury to a specified address.
      * @param contextKey The unique identifier for the transfer request.
@@ -117,6 +127,12 @@ interface ITreasuryManager {
      * @return The funding request details for the specified transfer request.
      */
     function getFundingRequest(bytes32 contextKey) external view returns (TreasuryTypes.FundingRequest memory);
+
+    /**
+     * @notice Checks if the treasury is currently locked.
+     * @return True if the treasury is locked, false otherwise.
+     */
+    function isLocked() external view returns (bool);
 
     /**
      * @notice Retrieves the current version of the MembershipManager contract.
