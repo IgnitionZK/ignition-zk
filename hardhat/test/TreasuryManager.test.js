@@ -988,8 +988,8 @@ describe("Treasury Manager Unit Tests:", function () {
     });
 
     it(`FUNCTION: executeTransfer
-        TESTING: event: TransferAlreadyExecuted
-        EXPECTED: should not allow the treasury instance owner/admin to execute an already executed transfer`, async function () {
+        TESTING: custom error: TreasuryIsLocked
+        EXPECTED: should not allow the treasury instance owner/admin to execute a transfer when the treasury is locked`, async function () {
         ({ mockGovernanceManager, mockTreasuryManager, mockBeaconManager } = await deployMock_GovernanceManager_TreasuryManager_BeaconManager());
         await deployTreasuryFactoryWithContractOwner();
         await deployMockGrantModule();
@@ -1027,12 +1027,24 @@ describe("Treasury Manager Unit Tests:", function () {
         // Fund the treasury instance with ETH
         await treasuryInstance.fund({ value: ethers.parseEther("5.0") });
 
-        // Execute funding request
-        await treasuryInstance.connect(governor).executeTransfer(voteContextKey);
+        // Lock treasury
+        await treasuryInstance.connect(governor).lockTreasury();
 
         // Execute funding request
         await expect(treasuryInstance.connect(governor).executeTransfer(voteContextKey))
-            .to.be.revertedWithCustomError(treasuryInstance, "TransferAlreadyExecuted");
+            .to.be.revertedWithCustomError(treasuryInstance, "TreasuryIsLocked");
+
+        // Skip the timelock to automatically unlock the treasury 
+        await skipDays(3);
+
+        // Execute funding request
+        await expect(treasuryInstance.connect(governor).executeTransfer(voteContextKey))
+            .to.emit(treasuryInstance, "TreasuryUnlocked")
+            .to.emit(treasuryInstance, "TransferExecuted");
+
+        // Check if the treasury is unlocked
+        const isLocked = await treasuryInstance.connect(governor).isLocked();
+        expect(isLocked).to.be.false;
     });
 
     it(`FUNCTION: executeTransfer
@@ -1257,6 +1269,54 @@ describe("Treasury Manager Unit Tests:", function () {
             true
         ]);
 
+    });
+
+    it(`FUNCTION: executeTransfer
+        TESTING: custom error: TransferAlreadyExecuted
+        EXPECTED: should not allow the treasury instance owner/admin to execute an already executed transfer`, async function () {
+        ({ mockGovernanceManager, mockTreasuryManager, mockBeaconManager } = await deployMock_GovernanceManager_TreasuryManager_BeaconManager());
+        await deployTreasuryFactoryWithContractOwner();
+        await deployMockGrantModule();
+
+        // Get governance manager signer
+        const governanceManagerSigner = await setContractAsSignerAndFund(mockGovernanceManager);
+        
+        // Deploy treasury instance: deployTreasuryInstanceWithEOAOwner(treasuryFactorySigner, treasuryMultisig, treasuryRecovery)
+        const treasuryInstance = await deployTreasuryInstanceWithEOAOwner(governanceManagerSigner, await governor.getAddress(), await governor.getAddress());
+
+        // Stop contract as signer
+        await stopContractAsSigner(mockGovernanceManager);
+
+        // Get mock grant module contract as signer with funds for gas
+        const mockGrantModuleSigner = await setContractAsSignerAndFund(mockGrantModule);
+       
+        // Request transfer
+        const grantType = ethers.id("grant");
+
+        await treasuryInstance.connect(mockGrantModuleSigner).requestTransfer(
+            voteContextKey,
+            await user1.getAddress(), // to
+            3, // amount
+            grantType // fundingType
+        );
+
+        await stopContractAsSigner(mockGrantModule);
+
+        // Approve funding request
+        await treasuryInstance.connect(governor).approveTransfer(voteContextKey);
+        
+        // Skip Timelock 
+        await skipDays(3);
+
+        // Fund the treasury instance with ETH
+        await treasuryInstance.fund({ value: ethers.parseEther("5.0") });
+
+        // Execute funding request
+        await treasuryInstance.connect(governor).executeTransfer(voteContextKey);
+
+        // Execute funding request
+        await expect(treasuryInstance.connect(governor).executeTransfer(voteContextKey))
+            .to.be.revertedWithCustomError(treasuryInstance, "TransferAlreadyExecuted");
     });
 
     it(`FUNCTION: executeTransfer
@@ -1684,4 +1744,77 @@ describe("Treasury Manager Unit Tests:", function () {
         await expect(treasuryInstance.connect(governor).fund({ value: 0 }))
             .to.be.revertedWithCustomError(treasuryInstance, "AmountCannotBeZero");
     });
+
+    it(`FUNCTION: lockTreasury, unlockTreasury
+        TESTING: event: TreasuryLocked, TreasuryUnlocked
+        EXPECTED: should emit a TreasuryLocked event when the treasury is locked or unlocked`, async function () {
+        ({ mockGovernanceManager, mockTreasuryManager, mockBeaconManager } = await deployMock_GovernanceManager_TreasuryManager_BeaconManager());
+        await deployTreasuryFactoryWithContractOwner();
+        await deployMockGrantModule();
+
+        // Get governance manager signer
+        const governanceManagerSigner = await setContractAsSignerAndFund(mockGovernanceManager);
+
+        // Deploy treasury instance: deployTreasuryInstanceWithEOAOwner(treasuryFactorySigner, treasuryMultisig, treasuryRecovery)
+        const treasuryInstance = await deployTreasuryInstanceWithEOAOwner(governanceManagerSigner, await governor.getAddress(), await governor.getAddress());
+
+        // Stop contract as signer
+        await stopContractAsSigner(mockGovernanceManager);
+
+        // Lock the treasury
+        await expect(treasuryInstance.connect(governor).lockTreasury())
+            .to.emit(treasuryInstance, "TreasuryLocked");
+        
+        // Check that the treasury is locked
+        let isLocked = await treasuryInstance.connect(governor).isLocked();
+        expect(isLocked).to.be.true;
+
+        // Unlock the treasury
+        await expect(treasuryInstance.connect(governor).unlockTreasury())
+            .to.emit(treasuryInstance, "TreasuryUnlocked");
+
+        // Check that the treasury is unlocked
+        isLocked = await treasuryInstance.connect(governor).isLocked();
+        expect(isLocked).to.be.false;
+       
+        // lock the treasury again
+        await treasuryInstance.connect(governor).lockTreasury();
+        
+        // Check that the treasury is locked
+        isLocked = await treasuryInstance.connect(governor).isLocked();
+        expect(isLocked).to.be.true;
+        
+        // skip 3 days to auto-unlock
+        await skipDays(3.1);
+
+        // Check that the treasury is unlocked
+        isLocked = await treasuryInstance.connect(governor).isLocked();
+        expect(isLocked).to.be.false;  
+    });
+
+     it(`FUNCTION: lockTreasury, unlockTreasury
+        TESTING: authorization (failure)
+        EXPECTED: should not allow the non-admin or non-recovery to lock or unlock the treasury`, async function () {
+        ({ mockGovernanceManager, mockTreasuryManager, mockBeaconManager } = await deployMock_GovernanceManager_TreasuryManager_BeaconManager());
+        await deployTreasuryFactoryWithContractOwner();
+        await deployMockGrantModule();
+
+        // Get governance manager signer
+        const governanceManagerSigner = await setContractAsSignerAndFund(mockGovernanceManager);
+
+        // Deploy treasury instance: deployTreasuryInstanceWithEOAOwner(treasuryFactorySigner, treasuryMultisig, treasuryRecovery)
+        const treasuryInstance = await deployTreasuryInstanceWithEOAOwner(governanceManagerSigner, await governor.getAddress(), await governor.getAddress());
+
+        // Stop contract as signer
+        await stopContractAsSigner(mockGovernanceManager);
+
+        // Lock the treasury
+        await expect(treasuryInstance.connect(user1).lockTreasury())
+            .to.be.revertedWithCustomError(treasuryInstance, "CallerNotAuthorized");
+
+        // Unlock the treasury
+        await expect(treasuryInstance.connect(user1).unlockTreasury())
+            .to.be.revertedWithCustomError(treasuryInstance, "CallerNotAuthorized");
+    });
+
 });
