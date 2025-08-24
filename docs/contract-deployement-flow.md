@@ -40,7 +40,7 @@
 - Register TreasuryFactory in GovernanceManager via `setTreasuryFactory()`.
 - Register funding modules in GovernanceManager via `addFundingModule()`.
 
-**Step 7: Production Readiness (optional)**
+**Step 7: Production Readiness**
 - Transfer temporary ownership to permanent multisig wallets.
 - Verify all contracts on a block explorer.
 

@@ -35,7 +35,7 @@
     * [Phase 2: Anonymous Proposal Submissions](#phase-2-anonymous-proposal-submissions)
     * [Phase 3: Anonymous Voting](#phase-3-anonymous-voting)
     * [Phase 4: Claiming Proposal Awards](#phase-4-claiming-proposal-awards)
-    * [Phase 5: Proposal Execution](#phase-5-proposal-executio)
+    * [Phase 5: Proposal Execution](#phase-5-proposal-execution)
 
 ## Key Features & Capabilities
 
@@ -157,4 +157,18 @@ If successfully claimed, the proposal can move on to the execution phase.
 
 ### Phase 5: Proposal Execution
 
+![Proposal execution](frontend/src/assets/proposal-execution.png)
+*Executing a passed proposal and releasing funds from the DAO treasury*
 
+After a proposal is accepted and successfully claimed, the DAO moves to the execution phase, where funds are securely disbursed from the treasury according to the proposal's parameters. This process is modular, transparent, and governed by multiple layers of checks and timelocks.
+
+1. **Funding Module Trigger**: The system routes the approved proposal to the appropriate funding module based on its type.
+2. **Disbursement Request**: The funding module relays the disbursement request to the correct DAO treasury instance.
+3. **Treasury Timelock**: The DAO treasury stores the funding request and activates a 3-day timelock before any transfer can be executed, allowing for review and potential cancellation.
+4. **Admin Approval & Execution**: After the timelock, the treasury admin (DAO multisig) reviews, approves, and executes the transfer. Only the admin can approve, execute, or cancel requests, and all actions are logged on-chain.
+5. **Treasury Lock Mechanism**: For added security, the treasury can be locked in emergencies, halting all outgoing transfers for a set period.
+6. **Modular Treasury Deployment**: New, isolated treasury instances can be deployed for each group, ensuring scalable and secure fund management.
+
+This phase ensures that only proposals which have passed all governance checks and have been properly claimed can trigger the release of funds, with robust controls and auditability at every step.
+
+[➡️ Detailed Execution Documentation](./docs/lifecycle-phase5-execution.md)
