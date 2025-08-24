@@ -1,0 +1,62 @@
+create or replace function get_proofs_by_group_ids(group_ids uuid[], group_member_ids uuid[])
+returns table (
+    proof_id uuid,
+    group_member_id uuid,
+    group_id uuid,
+    circuit_id uuid,
+    proposal_id uuid,
+    nullifier_hash text,
+    is_verified bool,
+    created_at timestamptz,
+    proof text[],
+    public_signals text[],
+    context_key text,
+    group_name text,
+    proposal_title text,
+    proposal_description text,
+    epoch_name text,
+    epoch_duration integer,
+    epoch_start_time timestamptz
+)
+language plpgsql
+security definer
+as $$
+begin
+  return query
+  select
+    p.proof_id,
+    p.group_member_id,
+    p.group_id,
+    p.circuit_id,
+    p.proposal_id,
+    p.nullifier_hash,
+    p.is_verified,
+    p.created_at,
+    p.proof,
+    p.public_signals,
+    p.context_key,
+    g.name as group_name,
+    pr.title as proposal_title,
+    pr.description as proposal_description,
+    e.epoch_name,
+    e.epoch_duration,
+    e.epoch_start_time
+  from
+    ignitionzk.proofs p
+  join
+    ignitionzk.proposals pr on p.proposal_id = pr.proposal_id
+  join
+    ignitionzk.groups g on p.group_id = g.group_id
+  join
+    ignitionzk.epochs e on pr.epoch_id = e.epoch_id
+  join
+    ignitionzk.circuits c on p.circuit_id = c.circuit_id
+  where
+    (c.circuit_type = 'proposal' or c.circuit_type = 'voting')
+    and exists (
+      select 1
+      from generate_series(1, array_length(group_ids, 1)) as i
+      where group_ids[i] = p.group_id and group_member_ids[i] = p.group_member_id
+    );
+end;
+$$;
