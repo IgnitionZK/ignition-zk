@@ -168,7 +168,7 @@ describe("Proposal Manager Unit Tests:", function () {
         await setSubmissionVerifierAndVerifyProposal(governor, mockProposalVerifier.target, mockProof, mockProposalPublicSignals1, proposalContextKey, rootHash1);
 
         // check that the submission nullifier is stored correctly
-        expect(await proposalManager.connect(governor).getSubmissionNullifierStatus(submissionNullifier1)).to.equal(true);
+        expect(await proposalManager.submissionNullifiers(submissionNullifier1)).to.equal(true);
 
         // get the current proxy address and implementation address
         const proxyAddress = await proposalManager.target;
@@ -188,23 +188,8 @@ describe("Proposal Manager Unit Tests:", function () {
         const upgradedAddress = await proposalManagerV2.target;
         
         // Check if the submission nullifier is still stored correctly after the upgrade
-        expect(await proposalManagerV2.connect(governor).getSubmissionNullifierStatus(submissionNullifier1)).to.equal(true);
+        expect(await proposalManagerV2.submissionNullifiers(submissionNullifier1)).to.equal(true);
 
-    });
-
-    it(`FUNCTION: getProposalSubmissionVerifier
-        TESTING: onlyOwner authorization (success)
-        EXPECTED: should allow the governor to view the address of the proposal submission verifier contract`, async function () {
-        
-        expect(await proposalManager.connect(governor).getProposalSubmissionVerifier()).to.equal(proposalVerifier.target);
-    });
-
-    it(`FUNCTION: getProposalSubmissionVerifier
-        TESTING: onlyOwner authorization (failure)
-        EXPECTED: should not allow non-governor to view the address of the proposal verifier contract`, async function () {
-        
-        await expect(proposalManager.connect(user1).getProposalSubmissionVerifier())
-            .to.be.revertedWithCustomError(proposalManager, "OwnableUnauthorizedAccount");
     });
 
     it(`FUNCTION: setProposalSubmissionVerifier
@@ -218,7 +203,7 @@ describe("Proposal Manager Unit Tests:", function () {
         TESTING: onlyOwner authorization (success)
         EXPECTED: should allow the governor to set the proposal submission verifier`, async function () {
         await proposalManager.connect(governor).setProposalSubmissionVerifier(mockProposalVerifier.target);
-        expect(await proposalManager.connect(governor).getProposalSubmissionVerifier()).to.equal(mockProposalVerifier.target);
+        expect(await proposalManager.submissionVerifier()).to.equal(mockProposalVerifier.target);
     });
 
     it(`FUNCTION: setProposalSubmissionVerifier
@@ -246,7 +231,7 @@ describe("Proposal Manager Unit Tests:", function () {
         TESTING: onlyOwner authorization (success)
         EXPECTED: should allow the governor to set the proposal claim verifier`, async function () {
         await proposalManager.connect(governor).setProposalClaimVerifier(mockProposalClaimVerifier.target);
-        expect(await proposalManager.connect(governor).getProposalClaimVerifier()).to.equal(mockProposalClaimVerifier.target);
+        expect(await proposalManager.claimVerifier()).to.equal(mockProposalClaimVerifier.target);
     });
 
     it(`FUNCTION: setProposalClaimVerifier
@@ -263,21 +248,6 @@ describe("Proposal Manager Unit Tests:", function () {
             .to.be.revertedWithCustomError(proposalManager, "AddressIsNotAContract");
     });
 
-    it(`FUNCTION: getProposalClaimVerifier
-        TESTING: onlyOwner authorization (success)
-        EXPECTED: should allow the governor to view the address of the proposal claim verifier contract`, async function () {
-        
-        expect(await proposalManager.connect(governor).getProposalClaimVerifier()).to.equal(proposalClaimVerifier.target);
-    });
-
-    it(`FUNCTION: getProposalClaimVerifier
-        TESTING: onlyOwner authorization (failure)
-        EXPECTED: should not allow non-governor to view the address of the proposal claim verifier contract`, async function () {
-        
-        await expect(proposalManager.connect(user1).getProposalClaimVerifier())
-            .to.be.revertedWithCustomError(proposalManager, "OwnableUnauthorizedAccount");
-    });
-
     it(`FUNCTION: verifyProposal (with mock submission verifier)
         TESTING: event: SubmissionVerified, mapping: submissionNullifier
         EXPECTED: should store two submission nullifiers after verifying two different proposals`, async function () {
@@ -292,7 +262,7 @@ describe("Proposal Manager Unit Tests:", function () {
         await expect(tx).to.emit(proposalManager, "SubmissionVerified").withArgs(proposalContextKey, submissionNullifier1, claimNullifier1, contentHash1);
 
         // check if the submission nullifier status is stored correctly
-        expect(await proposalManager.connect(governor).getSubmissionNullifierStatus(submissionNullifier1)).to.equal(true);
+        expect(await proposalManager.submissionNullifiers(submissionNullifier1)).to.equal(true);
 
         // set a new root for the group key
         await membershipManager.connect(governor).setRoot(rootHash2, groupKey);
@@ -309,10 +279,10 @@ describe("Proposal Manager Unit Tests:", function () {
         await expect(tx2).to.emit(proposalManager, "SubmissionVerified").withArgs(proposalContextKey, submissionNullifier2, claimNullifier2, contentHash2);
         
         // check if the submission nullifier status is stored correctly
-        expect(await proposalManager.connect(governor).getSubmissionNullifierStatus(submissionNullifier2)).to.equal(true);
+        expect(await proposalManager.submissionNullifiers(submissionNullifier2)).to.equal(true);
         
         // check if the first submission nullifier is still valid
-        expect(await proposalManager.connect(governor).getSubmissionNullifierStatus(submissionNullifier1)).to.equal(true);
+        expect(await proposalManager.submissionNullifiers(submissionNullifier1)).to.equal(true);
     });
 
     it(`FUNCTION: verifyProposal (with mock submission verifier)
@@ -486,7 +456,7 @@ describe("Proposal Manager Unit Tests:", function () {
             proposalProofContentHash
         );
 
-        const submissionNullifierStatus = await proposalManager.connect(governor).getSubmissionNullifierStatus(proposalProofSubmissionNullifier);
+        const submissionNullifierStatus = await proposalManager.submissionNullifiers(proposalProofSubmissionNullifier);
         expect(submissionNullifierStatus).to.equal(true, "Submission nullifier status should be true after verification");
     });
 
@@ -659,7 +629,7 @@ describe("Proposal Manager Unit Tests:", function () {
             submissionNullifier1
         );
 
-        const claimNullifierStatus = await proposalManager.connect(governor).getClaimNullifierStatus(claimNullifier1);
+        const claimNullifierStatus = await proposalManager.claimNullifiers(claimNullifier1);
         expect(claimNullifierStatus).to.equal(true, "Claim nullifier status should be true after verification");
     });
 
@@ -750,7 +720,7 @@ describe("Proposal Manager Unit Tests:", function () {
             realRoot
         );
 
-        const submissionNullifierStatus = await proposalManager.connect(governor).getSubmissionNullifierStatus(proposalProofSubmissionNullifier);
+        const submissionNullifierStatus = await proposalManager.submissionNullifiers(proposalProofSubmissionNullifier);
         expect(submissionNullifierStatus).to.equal(true, "Submission nullifier status should be true after verification");
 
         await expect(proposalManager.connect(governor).verifyProposalClaim(
@@ -763,7 +733,7 @@ describe("Proposal Manager Unit Tests:", function () {
             proposalProofSubmissionNullifier
         );
 
-        const claimNullifierStatus = await proposalManager.connect(governor).getClaimNullifierStatus(proposalProofClaimNullifier);
+        const claimNullifierStatus = await proposalManager.claimNullifiers(proposalProofClaimNullifier);
         expect(claimNullifierStatus).to.equal(true, "Claim nullifier status should be true after verification");
     });
 
@@ -809,7 +779,7 @@ describe("Proposal Manager Unit Tests:", function () {
         invalidClaimPublicSignals[1] = invalidClaimPublicSignals[1] + BigInt(1);
 
         const submissionNullifier = ethers.toBeHex(invalidClaimPublicSignals[1],32);
-        const submissionNullifierStatus = await proposalManager.connect(governor).getSubmissionNullifierStatus(submissionNullifier);
+        const submissionNullifierStatus = await proposalManager.submissionNullifiers(submissionNullifier);
         expect(submissionNullifierStatus).to.equal(false, "Submission nullifier status should be false for an invalid submission nullifier");
 
         await expect(proposalManager.connect(governor).verifyProposalClaim(
@@ -841,7 +811,7 @@ describe("Proposal Manager Unit Tests:", function () {
         )).to.be.revertedWithCustomError(proposalManager, "InvalidContextHash");
     });
 
-    it(`FUNCTION: getClaimNullifierStatus
+    it(`FUNCTION: claimNullifiers
         TESTING: stored data: claimNullifier
         EXPECTED: should store two claim nullifiers after verifying two different proposal claims`, async function () {
         // deploy group NFT and initialize group root for the first proposal
@@ -854,7 +824,7 @@ describe("Proposal Manager Unit Tests:", function () {
         await setClaimVerifierAndVerifyClaim(governor, mockProposalClaimVerifier.target, mockProof, mockClaimPublicSignals1, proposalContextKey, rootHash1);
 
         // check if the claim nullifier status is stored correctly
-        expect(await proposalManager.connect(governor).getClaimNullifierStatus(claimNullifier1)).to.equal(true);
+        expect(await proposalManager.claimNullifiers(claimNullifier1)).to.equal(true);
 
         // set a new root for the group key
         await membershipManager.connect(governor).setRoot(rootHash2, groupKey);
@@ -874,42 +844,10 @@ describe("Proposal Manager Unit Tests:", function () {
             proposalContextKey
         );
         // check if the claim nullifier status is stored correctly
-        expect(await proposalManager.connect(governor).getClaimNullifierStatus(claimNullifier2)).to.equal(true);
+        expect(await proposalManager.claimNullifiers(claimNullifier2)).to.equal(true);
         // check if the first claim nullifier is still valid
-        expect(await proposalManager.connect(governor).getClaimNullifierStatus(claimNullifier1)).to.equal(true);
-    }); 
-
-    it(`FUNCTION: getClaimNullifierStatus
-        TESTING: onlyOwner authorization
-        EXPECTED: should not allow non-governor to check the status of a proposal claim nullifier`, async function () {
-        // deploy group NFT and initialize group root for the first proposal
-        await deployGroupNftAndSetRoot(governor, groupKey, nftName, nftSymbol, rootHash1);
-       
-        // set the proposal submission verifier to the mock verifier and verify the first proposal
-        await setSubmissionVerifierAndVerifyProposal(governor, mockProposalVerifier.target, mockProof, mockProposalPublicSignals1, proposalContextKey, rootHash1);
-        
-        // set the proposal claim verifier to the mock verifier and verify the first proposal claim
-        await setClaimVerifierAndVerifyClaim(governor, mockProposalClaimVerifier.target, mockProof, mockClaimPublicSignals1, proposalContextKey, rootHash1);
-       
-        // check if the claim nullifier status is stored correctly
-        await expect(proposalManager.connect(user1).getClaimNullifierStatus(claimNullifier1)).to.be.revertedWithCustomError(proposalManager, "OwnableUnauthorizedAccount");
+        expect(await proposalManager.claimNullifiers(claimNullifier1)).to.equal(true);
     });
-
-    it(`FUNCTION: getSubmissionNullifierStatus
-        TESTING: onlyOwner authorization
-        EXPECTED: should not allow non-governor to check the status of a proposal submission nullifier`, async function () {
-        // deploy group NFT and initialize group root for the first proposal
-        await deployGroupNftAndSetRoot(governor, groupKey, nftName, nftSymbol, rootHash1);
-        
-       // set the proposal submission verifier to the mock verifier and verify the first proposal
-        await setSubmissionVerifierAndVerifyProposal(governor, mockProposalVerifier.target, mockProof, mockProposalPublicSignals1, proposalContextKey, rootHash1);
-
-        // check if the submission nullifier status is stored correctly
-        await expect(proposalManager.connect(user1).getSubmissionNullifierStatus(submissionNullifier1))
-            .to.be.revertedWithCustomError(proposalManager, "OwnableUnauthorizedAccount");
-    });
-
-    
 
 
 });

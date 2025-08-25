@@ -56,13 +56,13 @@ contract TreasuryFactory is Ownable, ERC165, ITreasuryFactory {
 // ====================================================================================================================
 
     /// @dev Mapping storing the DAO treasury addresses per groupKey (DAO identifier)
-    mapping(bytes32 => address) private groupTreasuryAddresses;
+    mapping(bytes32 => address) public groupTreasuryAddresses;
 
     /// @dev Address of the BeaconManager contract pointing to the current implementation.
-    address private immutable beaconManager;
+    address public immutable beaconManager;
 
     /// @dev Address of the GovernanceManager.
-    address private immutable governanceManager;
+    address public immutable governanceManager;
 
 // ====================================================================================================================
 //                                                  MODIFIERS
@@ -156,29 +156,6 @@ contract TreasuryFactory is Ownable, ERC165, ITreasuryFactory {
 // ====================================================================================================================
 //                                       EXTERNAL VIEW FUNCTIONS
 // ====================================================================================================================
-
-    /**
-     * @notice Returns the address of the treasury instance for a given group key.
-     * @param groupKey The unique identifier for the DAO group.
-     * @return The address of the treasury instance.
-     */
-    function getTreasuryAddress(bytes32 groupKey) external view onlyOwner returns (address) {
-        return groupTreasuryAddresses[groupKey];
-    }
-
-    /**
-     * @notice Returns the address of the beacon manager contract.
-     */
-    function getBeaconManager() external view onlyOwner returns (address) {
-        return beaconManager;
-    }
-
-    /**
-     * @notice Returns the address of the governance manager contract.
-     */
-    function getGovernanceManager() external view onlyOwner returns (address) {
-        return governanceManager;
-    }
     
     /**
      * @dev Checks if the contract supports a specific interface.

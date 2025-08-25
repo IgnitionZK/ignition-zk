@@ -203,27 +203,27 @@ contract MembershipManager is Initializable, UUPSUpgradeable, OwnableUpgradeable
     // ====================================================================================================
 
     /// @dev Maps a unique group key to its current Merkle root.
-    mapping(bytes32 => bytes32) private groupRoots; 
+    mapping(bytes32 => bytes32) public groupRoots; 
     
     /// @dev Maps a group key to the address of its associated ERC721 NFT contract.
-    mapping(bytes32 => address) private groupNftAddresses; 
+    mapping(bytes32 => address) public groupNftAddresses; 
 
     // ====================================================================================================
     // ADDRESSES
     // ====================================================================================================
     
     /// @dev The address of the NFT implementation contract used for creating new group NFTs.
-    address private nftImplementation;
+    address public nftImplementation;
 
     /// @dev The interface of the membership verifier contract.
-    IMembershipVerifier private membershipVerifier;
+    IMembershipVerifier public membershipVerifier;
 
     // ====================================================================================================
     // CONSTANTS
     // ====================================================================================================
 
     /// @dev The maximum number of members that can be added in a single batch transaction.
-    uint256 private constant MAX_MEMBERS_BATCH = 30;
+    uint256 public constant MAX_MEMBERS_BATCH = 30;
 
 // ====================================================================================================================
 //                                                  MODIFIERS
@@ -507,48 +507,6 @@ contract MembershipManager is Initializable, UUPSUpgradeable, OwnableUpgradeable
 // ====================================================================================================================
 
     /**
-     * @dev Only callable by the owner (governor). Returns the stored root for the given group key.
-     */
-    function getRoot(bytes32 groupKey) 
-        external 
-        view 
-        onlyOwner
-        returns (bytes32)
-    {
-        return groupRoots[groupKey];
-    }
-
-    /**
-     * @dev Only callable by the owner (governor). Returns the NFT contract address for the given group key.
-     * @custom:error KeyCannotBeZero If the provided group key is zero.
-     */
-    function getGroupNftAddress(bytes32 groupKey) external view onlyOwner nonZeroKey(groupKey) returns (address) {
-        return groupNftAddresses[groupKey];
-    }
-
-    
-    /**
-     * @dev Only callable by the owner (governor).
-     */
-    function getMembershipVerifier() external view onlyOwner returns (address) {
-        return address(membershipVerifier);
-    }
-
-    /**
-     * @dev Only callable by the owner (governor).
-     */
-    function getNftImplementation() external view onlyOwner returns (address) {
-        return nftImplementation;
-    }
-
-    /**
-     * @dev Only callable by the owner (governor).
-     */
-    function getMaxMembersBatch() external view onlyOwner returns (uint256) {
-        return MAX_MEMBERS_BATCH;
-    }
-
-    /**
      * @dev Checks if the contract supports a specific interface.
      * @param interfaceId The interface identifier to check.
      * @return bool True if the interface is supported, false otherwise.
@@ -562,7 +520,7 @@ contract MembershipManager is Initializable, UUPSUpgradeable, OwnableUpgradeable
      * @dev Returns the version of the contract.
      * @return string The version of the contract.
      */
-    function getContractVersion() external view override(IVersioned, IMembershipManager) onlyOwner returns (string memory) {
+    function getContractVersion() external view override(IVersioned, IMembershipManager) returns (string memory) {
         return "MembershipManager v1.0.0"; 
     }
     

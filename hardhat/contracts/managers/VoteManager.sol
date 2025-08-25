@@ -181,20 +181,20 @@ contract VoteManager is Initializable, OwnableUpgradeable, UUPSUpgradeable, IVot
     // ====================================================================================================
 
     /// @dev The mapping of context keys to proposal results (vote tally and passed status). Key: contextKey (bytes32) => ProposalResult 
-    mapping(bytes32 => VoteTypes.ProposalResult) private proposalResults; 
+    mapping(bytes32 => VoteTypes.ProposalResult) public proposalResults; 
 
     /// @dev The mapping of vote nullifiers. Key: voteNullifier (bytes32) => (bool) true if the vote nullifier has been used
-    mapping(bytes32 => bool) private voteNullifiers;  
+    mapping(bytes32 => bool) public voteNullifiers;  
 
     /// @dev The mapping of group governance parameters. Key: groupKey (bytes32) => GroupParams
-    mapping(bytes32 => VoteTypes.GroupParams) private groupParams; // groupKey => GroupParams
+    mapping(bytes32 => VoteTypes.GroupParams) public groupParams; // groupKey => GroupParams
 
     // ====================================================================================================
     // ADDRESSES
     // ====================================================================================================
 
     /// @dev The interface of the vote verifier contract.
-    IVoteVerifier private voteVerifier;
+    IVoteVerifier public voteVerifier;
 
     // ====================================================================================================
     // STATE VARIABLES
@@ -202,16 +202,16 @@ contract VoteManager is Initializable, OwnableUpgradeable, UUPSUpgradeable, IVot
 
     /// @dev The quorum parameters, which include the minimum and maximum thresholds and group size parameters.
     /// These parameters are used to determine the quorum for proposals based on the group size.
-    VoteTypes.QuorumParams private quorumParams;
+    VoteTypes.QuorumParams public quorumParams;
 
     // ====================================================================================================
     // CONSTANTS
     // ====================================================================================================
 
     /// @dev The values corresponding to the Poseidon hash of the Abstain (0), Yes (1) and No (2) votes.
-    uint256 private constant POSEIDON_HASH_NO = 19014214495641488759237505126948346942972912379615652741039992445865937985820;
-    uint256 private constant POSEIDON_HASH_YES = 18586133768512220936620570745912940619677854269274689475585506675881198879027;
-    uint256 private constant POSEIDON_HASH_ABSTAIN = 8645981980787649023086883978738420856660271013038108762834452721572614684349;
+    uint256 public constant POSEIDON_HASH_NO = 19014214495641488759237505126948346942972912379615652741039992445865937985820;
+    uint256 public constant POSEIDON_HASH_YES = 18586133768512220936620570745912940619677854269274689475585506675881198879027;
+    uint256 public constant POSEIDON_HASH_ABSTAIN = 8645981980787649023086883978738420856660271013038108762834452721572614684349;
 
     // ====================================================================================================================
     //                                                  MODIFIERS
@@ -466,37 +466,23 @@ contract VoteManager is Initializable, OwnableUpgradeable, UUPSUpgradeable, IVot
 // ====================================================================================================================
 
     /**
-     * @dev Only callable by the owner (governor).
+     * @dev Returns the group parameters for a given group key.
      */
-    function getVoteVerifier() external view onlyOwner returns (address) {
-        return address(voteVerifier);
-    }
-
-    /**
-     * @dev Only callable by the owner (governor).
-     */
-    function getVoteNullifierStatus(bytes32 nullifier) external view onlyOwner returns (bool) {
-        return voteNullifiers[nullifier];
-    }
-
-    /**
-     * @dev Only callable by the owner (governor).
-     */
-    function getGroupParams(bytes32 groupKey) external view onlyOwner returns (VoteTypes.GroupParams memory params) {
+    function getGroupParams(bytes32 groupKey) external view returns (VoteTypes.GroupParams memory params) {
         return groupParams[groupKey];
     }
 
     /**
-     * @dev Only callable by the owner (governor).
+     * @dev Returns the proposal result for a given context key.
      */
-    function getProposalResult(bytes32 contextKey) external view onlyOwner returns (VoteTypes.ProposalResult memory result) {
+    function getProposalResult(bytes32 contextKey) external view returns (VoteTypes.ProposalResult memory result) {
         return proposalResults[contextKey];
     }
 
     /**
-     * @dev Only callable by the owner (governor).
+     * @dev Returns the quorum parameters for the voting system.
      */
-    function getQuorumParams() external view onlyOwner returns (VoteTypes.QuorumParams memory params) {
+    function getQuorumParams() external view returns (VoteTypes.QuorumParams memory params) {
         return quorumParams;
     }
 
@@ -504,7 +490,7 @@ contract VoteManager is Initializable, OwnableUpgradeable, UUPSUpgradeable, IVot
      * @dev Returns the version of the contract.
      * @return string The version of the contract.
      */
-    function getContractVersion() external view override(IVersioned, IVoteManager) onlyOwner returns (string memory) {
+    function getContractVersion() external view override(IVersioned, IVoteManager) returns (string memory) {
         return "VoteManager v1.0.0"; 
     }
 

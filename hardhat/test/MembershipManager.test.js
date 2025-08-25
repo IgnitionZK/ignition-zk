@@ -7,50 +7,6 @@ const { setUpFixtures, deployFixtures } = require("./fixtures");
 describe("Membership Manager Unit Tests:", function () {
 
     let fixtures;
-    /*
-    // Managers
-    let MembershipManager;
-    let membershipManager;
-
-    // Verifiers
-    let MembershipVerifier;
-    let membershipVerifier;
-    let MockMembershipVerifier;
-    let mockMembershipVerifier;
-
-    // NFT Implementation
-    let NFTImplementation;
-    let nftImplementation;
-
-    // Mock Attacker ERC721
-    let MockAttackerERC721;
-    let mockAttackerERC721;
-
-    let deployer;
-    let governor;
-    let relayer; 
-    let user1;
-
-    let groupId;
-    let groupId2;
-    let groupKey;
-    let groupKey2;
-    let rootHash1;
-    let rootHash12;
-
-    let nftName;
-    let nftSymbol;
-    let nftName2;
-    let nftSymbol2;
-
-    let realGroupId;
-    let realGroupKey;
-    let realRoot;
-    let realProof;
-    let realPublicSignals;
-    let proofRoot;
-    let proofGroupHash;
-    */
 
     // RUN ONCE BEFORE ALL TESTS
     before(async function () {
@@ -72,92 +28,6 @@ describe("Membership Manager Unit Tests:", function () {
             membershipProofRoot, membershipProofGroupHash
         } = fixtures);
 
-
-        /*
-        [deployer, governor, relayer, user1] = await ethers.getSigners();
-
-        // Get Contract Factory for MembershipManager
-        MembershipManager = await ethers.getContractFactory("MembershipManager");  
-
-        // Get Contract Factory for MembershipVerifier
-        MembershipVerifier = await ethers.getContractFactory("MembershipVerifier");
-
-        // Get Contract Factory for MockMembershipVerifier
-        MockMembershipVerifier = await ethers.getContractFactory("MockMembershipVerifier");
-        
-        // Get Contract Factory for NFT implementation
-        NFTImplementation = await ethers.getContractFactory("ERC721IgnitionZK");
-
-        // Get Contract Factory for MockAttackerERC721
-        MockAttackerERC721 = await ethers.getContractFactory("MockAttackerERC721");
-
-        // Initialize variables
-        groupId = '123e4567-e89b-12d3-a456-426614174000'; 
-        groupKey = Conversions.stringToBytes32(groupId);
-        groupId2 = '123e4567-e89b-12d3-a456-426614174001'; 
-        groupKey2 = Conversions.stringToBytes32(groupId2);
-        rootHash1 = Conversions.stringToBytes32("rootHash1");
-        rootHash12 = Conversions.stringToBytes32("newRootHash");
-        nftName = "Test Group NFT";
-        nftSymbol = "TG1";  
-        nftName2 = "Test Group NFT 2";
-        nftSymbol2 = "TG2";  
-
-        // invalid proof inputs:
-        
-        mockProof = [
-            1, 2, 3, 4, 5, 6,
-            7, 8, 9, 10, 11, 12,
-            13, 14, 15, 16, 17, 18,
-            19, 20, 21, 22, 23, 24
-        ];
-        mockPublicSignals1 = [
-            rootHash1,
-            groupKey
-        ];
-        mockPublicSignals2 = [
-            rootHash12,
-            groupKey
-        ];
-       
-        // Real membership proof inputs 
-        realGroupId = '21fae0f7-096f-4c8f-8515-93b9f247582d';
-        realGroupKey = Conversions.stringToBytes32(realGroupId);
-        realRoot = ethers.toBeHex(8382028473019880437532291517957501217880306914202305497790783762876650668442n);
-        realProof =  [           
-            14852185387147588968196183267888932970562245291707382385535882948222286854746n,
-            2605810935074760586177942025101594944905166763428271699569635356100663752828n,
-            15285281757244001062041009699022322994728899259765252894879600758526569759782n,
-            17790860735671041998343898338032116782378492738445928570540667969871981684474n,
-            14109817763688371830838443181397713200548953627942793522585990893207182926391n,
-            14469491624057854258037084962069419357690070350511186871794058808483393982518n,
-            20457989049586389633617021239939725544043137313310590389213648209720645472811n,
-            6529501368977311358476414407045080130025945576059290514681009670747874853874n,
-            10752733968440350211263769186700227123421141136931711387797412697817956291979n,
-            7354266079914592595559053244760281643882910353788950081322381980621326729475n,
-            1101817184593364996597693385984888782889652823871694359125652288005733135072n,
-            509969332025856222621244651961094983360622686807835992331956569756953262159n,
-            7816194575565064184881898795934207388442388429436615895200428407448354957785n,
-            9123373533038457295512098253834660294862409442386242856201350793059219339666n,
-            18980647723923850857133924832957360451482388152395959794418728234868104550317n,
-            15990176552532768502453414348532054681187523221551071207478358829564827426991n,
-            2372394654205646031573781628023381435922449231018155794248502332097974348010n,
-            21244530957900490929643461746919128415281732299610677840752861795458266010092n,
-            20018688137368020604627597778694575728924706999283112515011956355034274529849n,
-            14971606317008914026441480378823259818517031921339003910533105722205636476362n,
-            5512174821905863064194279991238238206920914113931557936457222895352342548595n,
-            6036444752706746130112014113429671088794176588854788207169735120998413611519n,
-            15170380335124550399812740412692772209285854613055633668856659387558767374871n,
-            17857832887917614917816887522404328641855162998495953719914341462557986046769n
-        ];
-
-        realPublicSignals = [
-            8382028473019880437532291517957501217880306914202305497790783762876650668442n,
-            2506629824618881676752327261089047969196809530490426743986964496311875247831n
-        ];
-        proofRoot = ethers.toBeHex(realPublicSignals[0], 32);
-        proofGroupHash = ethers.toBeHex(realPublicSignals[1], 32);
-        */
     });
 
     // RUN BEFORE EACH TEST
@@ -167,38 +37,7 @@ describe("Membership Manager Unit Tests:", function () {
         ({
             membershipManager, membershipVerifier, nftImplementation, mockMembershipVerifier
         } = deployedFixtures);
-        /*
-        // Deploy the NFT implementation minimal proxy (Clones EIP‑1167) contract
-        nftImplementation = await NFTImplementation.deploy();
-        await nftImplementation.waitForDeployment();
-
-        // Deploy the MembershipVerifier contract
-        membershipVerifier = await MembershipVerifier.deploy();
-        await membershipVerifier.waitForDeployment();
-
-        // Deploy the MockMembershipVerifier contract
-        mockMembershipVerifier = await MockMembershipVerifier.deploy();
-        await mockMembershipVerifier.waitForDeployment();
-
-        // Deploy the MembershipManager UUPS Proxy (ERC‑1967) contract
-        membershipManager = await upgrades.deployProxy(
-            MembershipManager, 
-            [
-                await governor.getAddress(),
-                nftImplementation.target,
-                membershipVerifier.target
-            ],
-            {
-                initializer: "initialize",
-                kind: "uups"
-            }
-        );
-        await membershipManager.waitForDeployment();
-  
-        // Deploy MockAttackerERC721 contract
-        mockAttackerERC721 = await MockAttackerERC721.deploy(membershipManager.target, groupKey);
-        await mockAttackerERC721.waitForDeployment();
-        */
+        
     });
 
     async function deployGroupNftAndSetRoot(signer, group, nftName, nftSymbol, root) {
@@ -215,7 +54,7 @@ describe("Membership Manager Unit Tests:", function () {
         
         // get the address of the deployed NFT contract
         // and attach the NFT implementation to it so we can interact with it
-        const cloneAddress = await membershipManager.connect(signer).getGroupNftAddress(groupKey);
+        const cloneAddress = await membershipManager.groupNftAddresses(groupKey);
         const clone = nftImplementation.attach(cloneAddress);
 
         return { clone, receipt };
@@ -309,7 +148,7 @@ describe("Membership Manager Unit Tests:", function () {
         await deployGroupNftAndSetRoot(governor, groupKey, nftName, nftSymbol, rootHash1);
 
         // check that the root for the groupKey is stored correctly
-        expect(await membershipManager.connect(governor).getRoot(groupKey)).to.equal(rootHash1);
+        expect(await membershipManager.groupRoots(groupKey)).to.equal(rootHash1);
 
         // get the current proxy address and implementation address
         const proxyAddress = await membershipManager.target;
@@ -329,7 +168,7 @@ describe("Membership Manager Unit Tests:", function () {
         const upgradedAddress = await mockMembershipManagerV2.target;
 
         // Check if the root is still stored correctly after the upgrade
-        expect(await mockMembershipManagerV2.connect(governor).getRoot(groupKey)).to.equal(rootHash1, "Root should remain the same after upgrade");
+        expect(await mockMembershipManagerV2.groupRoots(groupKey)).to.equal(rootHash1, "Root should remain the same after upgrade");
 
     });
 
@@ -345,7 +184,7 @@ describe("Membership Manager Unit Tests:", function () {
         TESTING: onlyOwner authorization (success)
         EXPECTED: should allow the governor to set the membership verifier`, async function () {
         await membershipManager.connect(governor).setMembershipVerifier(membershipVerifier.target);
-        expect(await membershipManager.connect(governor).getMembershipVerifier()).to.equal(membershipVerifier.target);
+        expect(await membershipManager.membershipVerifier()).to.equal(membershipVerifier.target);
     });
 
     it(`FUNCTION: setMembershipVerifier
@@ -479,7 +318,7 @@ describe("Membership Manager Unit Tests:", function () {
             realGroupKey
         )).to.emit(membershipManager, "ProofVerified").withArgs(realGroupKey);
 
-        const storedRoot = await membershipManager.connect(governor).getRoot(realGroupKey);
+        const storedRoot = await membershipManager.groupRoots(realGroupKey);
         expect(storedRoot).to.equal(realRoot, "Root hash should match the initialized value");
 
     });
@@ -531,7 +370,7 @@ describe("Membership Manager Unit Tests:", function () {
         await expect(membershipManager.connect(governor).setRoot(rootHash1, groupKey))
             .to.emit(membershipManager, "RootInitialized")
             .withArgs(groupKey, rootHash1);
-        const storedRoot = await membershipManager.connect(governor).getRoot(groupKey);
+        const storedRoot = await membershipManager.groupRoots(groupKey);
         expect(storedRoot).to.equal(rootHash1, "Root hash should match the initialized value");
 
         // set a new root for the group
@@ -539,7 +378,7 @@ describe("Membership Manager Unit Tests:", function () {
             .to.emit(membershipManager, "RootSet")
             .withArgs(groupKey, storedRoot, rootHash2);
             
-        const updatedRoot = await membershipManager.connect(governor).getRoot(groupKey);
+        const updatedRoot = await membershipManager.groupRoots(groupKey);
         expect(updatedRoot).to.equal(rootHash2, "Root hash should match the new value");
     });
 
@@ -594,8 +433,8 @@ describe("Membership Manager Unit Tests:", function () {
         await deployGroupNftAndSetRoot(governor, groupKey, nftName, nftSymbol, rootHash1);
         await deployGroupNftAndSetRoot(governor, groupKey2, nftName2, nftSymbol2, rootHash2);
 
-        const storedRoot1 = await membershipManager.connect(governor).getRoot(groupKey);
-        const storedRoot2 = await membershipManager.connect(governor).getRoot(groupKey2);
+        const storedRoot1 = await membershipManager.groupRoots(groupKey);
+        const storedRoot2 = await membershipManager.groupRoots(groupKey2);
 
         expect(storedRoot1).to.equal(rootHash1, "Root hash for groupKey should match the initialized value");
         expect(storedRoot2).to.equal(rootHash2, "Root hash for groupKey2 should match the initialized value");
@@ -628,7 +467,7 @@ describe("Membership Manager Unit Tests:", function () {
             .withArgs(groupKey, ethers.isAddress, nftName, nftSymbol);
 
         // Check if the NFT address is stored correctly
-        const storedNftAddress = await membershipManager.connect(governor).getGroupNftAddress(groupKey);
+        const storedNftAddress = await membershipManager.groupNftAddresses(groupKey);
         expect(storedNftAddress).to.not.equal(ethers.ZeroAddress, "NFT address should not be zero");
         expect(storedNftAddress).to.be.properAddress;
     });
@@ -641,8 +480,8 @@ describe("Membership Manager Unit Tests:", function () {
         await membershipManager.connect(governor).deployGroupNft(groupKey2, nftName2, nftSymbol2);
 
         // Check if the NFT address is stored correctly
-        const storedAddress1 = await membershipManager.connect(governor).getGroupNftAddress(groupKey);
-        const storedAddress2 = await membershipManager.connect(governor).getGroupNftAddress(groupKey2);
+        const storedAddress1 = await membershipManager.groupNftAddresses(groupKey);
+        const storedAddress2 = await membershipManager.groupNftAddresses(groupKey2);
 
         expect(storedAddress1).to.not.equal(ethers.ZeroAddress, "NFT address for groupKey should not be zero");
         expect(storedAddress1).to.be.properAddress;
@@ -832,7 +671,7 @@ describe("Membership Manager Unit Tests:", function () {
 
         // get the address of the deployed NFT contract
         // and attach the NFT implementation to it so we can interact with it
-        const cloneAddress = await membershipManager.connect(governor).getGroupNftAddress(groupKey);
+        const cloneAddress = await membershipManager.groupNftAddresses(groupKey);
         const clone = nftImplementation.attach(cloneAddress);
         
         // Revoke MINTER_ROLE from the membershipManager
@@ -855,7 +694,7 @@ describe("Membership Manager Unit Tests:", function () {
 
         // get the address of the deployed NFT contract
         // and attach the NFT implementation to it so we can interact with it
-        const cloneAddress = await membershipManager.connect(governor).getGroupNftAddress(groupKey);
+        const cloneAddress = await membershipManager.groupNftAddresses(groupKey);
         const clone = nftImplementation.attach(cloneAddress);
         
         // Revoke MINTER_ROLE from the membershipManager
@@ -885,7 +724,7 @@ describe("Membership Manager Unit Tests:", function () {
         const attackerAddress = await attackerERC721.getAddress();
         console.log("Attacker Address:", attackerAddress);
         await membershipManager.connect(governor).setGroupNftAddress(groupKey, attackerAddress);
-        const checkAddress = await membershipManager.connect(governor).getGroupNftAddress(groupKey);
+        const checkAddress = await membershipManager.connect(governor).groupNftAddresses(groupKey);
         console.log("Check Address:", checkAddress);
         await membershipManager.connect(governor).mintNftToMember(user1Address, groupKey);
     });
@@ -1079,7 +918,7 @@ describe("Membership Manager Unit Tests:", function () {
 
         // get the address of the deployed NFT contract
         // and attach the NFT implementation to it so we can interact with it
-        const cloneAddress = await membershipManager.connect(governor).getGroupNftAddress(groupKey);
+        const cloneAddress = await membershipManager.groupNftAddresses(groupKey);
         const clone = nftImplementation.attach(cloneAddress);
 
         // Revoke BURNER_ROLE from the membershipManager
@@ -1104,7 +943,7 @@ describe("Membership Manager Unit Tests:", function () {
         await membershipManager.connect(governor).mintNftToMember(user1Address, groupKey);
 
         // get the address of the deployed NFT contract
-        const cloneAddress = await membershipManager.connect(governor).getGroupNftAddress(groupKey);
+        const cloneAddress = await membershipManager.groupNftAddresses(groupKey);
         const clone = nftImplementation.attach(cloneAddress);
 
         // Revoke BURNER_ROLE from the membershipManager
@@ -1239,100 +1078,10 @@ describe("Membership Manager Unit Tests:", function () {
         );
     });
 
-    it(`FUNCTION: getRoot
-        TESTING: onlyOwner authorization (failure)
-        EXPECTED: should not allow non-governor to get the root for an existing group`, async function () {
-        // deploy group NFT and initialize group root
-        await deployGroupNftAndSetRoot(governor, groupKey, nftName, nftSymbol, rootHash1);
-
-        // Attempt to get root by a non-governor
-        await expect(
-            membershipManager.connect(user1).getRoot(groupKey)
-        ).to.be.revertedWithCustomError(
-            membershipManager,
-            "OwnableUnauthorizedAccount"
-        );
-    });
-
-    it(`FUNCTION: getRoot
-        TESTING: onlyOwner authorization (success)
-        EXPECTED: should allow the governor to get the root for an existing group`, async function () {
-        // deploy group NFT and initialize group root
-        await deployGroupNftAndSetRoot(governor, groupKey, nftName, nftSymbol, rootHash1);
-
-        // Attempt to get root by the governor
-        expect( await membershipManager.connect(governor).getRoot(groupKey)).to.equal(rootHash1, "Should return the correct root hash");
-    });
-
-    it(`FUNCTION: getGroupNftAddress
-        TESTING: onlyOwner authorization (failure)
-        EXPECTED: should not allow non-governor to get the NFT address for an existing group`, async function () {
-        // deploy group NFT
-        await membershipManager.connect(governor).deployGroupNft(groupKey, nftName, nftSymbol);
-
-        // Attempt to get NFT address by a non-governor
-        await expect(
-            membershipManager.connect(user1).getGroupNftAddress(groupKey)
-        ).to.be.revertedWithCustomError(
-            membershipManager,
-            "OwnableUnauthorizedAccount"
-        );
-    });
-
-    it(`FUNCTION: getGroupNftAddress
-        TESTING: onlyOwner authorization (success)
-        EXPECTED: should allow the governor to get the NFT address for an existing group`, async function () {
-        // deploy group NFT
-        await membershipManager.connect(governor).deployGroupNft(groupKey, nftName, nftSymbol);
-
-        // Attempt to get NFT address by the governor
-        expect( await membershipManager.connect(governor).getGroupNftAddress(groupKey)).to.be.properAddress;
-    });
-
-    it(`FUNCTION: getNftImplementation
-        TESTING: onlyOwner authorization (failure)
-        EXPECTED: should not allow non-governor to get the NFT implementation address`, async function () {
-        
-        await expect(membershipManager.connect(user1).getNftImplementation()).to.be.revertedWithCustomError(
-            membershipManager,
-            "OwnableUnauthorizedAccount"
-        );  
-    });
-
-    it(`FUNCTION: getNftImplementation
-        TESTING: onlyOwner authorization (success)
-        EXPECTED: should allow the governor to get the NFT implementation address`, async function () {
-        
-        expect(await membershipManager.connect(governor).getNftImplementation()).to.equal(
-            nftImplementation.target,
-            "Should return the correct NFT implementation address"
-        );
-    });
-
-    it(`FUNCTION: getMaxMembersBatch
-        TESTING: onlyOwner authorization (success)
-        EXPECTED: should allow the governor to get the max members batch`, async function () {
-
-        expect(await membershipManager.connect(governor).getMaxMembersBatch()).to.equal(
-            30,
-            "Should return the correct max members batch"
-        );
-    });
-
-    it(`FUNCTION: getMaxMembersBatch
-        TESTING: onlyOwner authorization (failure)
-        EXPECTED: should not allow a non-governor to get the max members batch`, async function () {
-
-        await expect(membershipManager.connect(user1).getMaxMembersBatch()).to.be.revertedWithCustomError(
-            membershipManager,
-            "OwnableUnauthorizedAccount"
-        );
-    });
-
     it(`FUNCTION: getContractVersion
-        TESTING: onlyOwner authorization (success)
+        TESTING: stored version
         EXPECTED: should allow the governor to view the current contract version`, async function () {
-        expect(await membershipManager.connect(governor).getContractVersion()).to.equal(
+        expect(await membershipManager.getContractVersion()).to.equal(
             "MembershipManager v1.0.0",
             "Should return the correct contract version"
         );

@@ -203,30 +203,30 @@ contract TreasuryManager is Initializable, AccessControlUpgradeable, ReentrancyG
     // ====================================================================================================
     
     /// @dev Mapping of unique context keys (context: group, epoch, proposal) to funding requests.
-    mapping(bytes32 => TreasuryTypes.FundingRequest) private fundingRequests;
+    mapping(bytes32 => TreasuryTypes.FundingRequest) public fundingRequests;
 
     // ====================================================================================================
     // STATE VARIABLES
     // ====================================================================================================
 
     /// @dev The interface of the governance manager contract.
-    IGovernanceManager private governanceManager;
+    IGovernanceManager public governanceManager;
 
     /// @dev Indicates whether the treasury is locked.
-    bool private isTreasuryLocked;
+    bool public isTreasuryLocked;
 
     /// @dev The timestamp until which the treasury is locked.
-    uint256 private lockedUntil;
+    uint256 public lockedUntil;
 
     // ====================================================================================================
     // CONSTANTS
     // ====================================================================================================
 
     /// @dev The role that grants access to the governance manager.
-    bytes32 private constant GOVERNANCE_MANAGER_ROLE = keccak256("GOVERNANCE_MANAGER_ROLE");
+    bytes32 public constant GOVERNANCE_MANAGER_ROLE = keccak256("GOVERNANCE_MANAGER_ROLE");
 
     /// @dev The role that grants access to the recovery treasury wallet.
-    bytes32 private constant EMERGENCY_RECOVERY_ROLE = keccak256("EMERGENCY_RECOVERY_ROLE");
+    bytes32 public constant EMERGENCY_RECOVERY_ROLE = keccak256("EMERGENCY_RECOVERY_ROLE");
 
     /// @dev The type identifiers for the different funding modules:
     // Imported from library FundingTypes.
@@ -234,7 +234,7 @@ contract TreasuryManager is Initializable, AccessControlUpgradeable, ReentrancyG
     /// @dev The delay in days for the timelock mechanism.
     /// @dev This is used to prevent immediate execution of transfers after they are requested.
     /// @dev The value is set to 3 days, which is equivalent to 3 * 24 * 60 * 60 seconds.
-    uint256 private constant TIMELOCK_DELAY_DAYS = 3;
+    uint256 public constant TIMELOCK_DELAY_DAYS = 3;
 
 // ====================================================================================================================
 //                                                  MODIFIERS
@@ -288,7 +288,7 @@ contract TreasuryManager is Initializable, AccessControlUpgradeable, ReentrancyG
      */
     modifier onlyActiveFundingModule(bytes32 _fundingType) { 
         if (!FundingTypes.isKnownType(_fundingType)) revert UnknownFundingType();
-        address activeModule = governanceManager.getActiveModule(_fundingType);
+        address activeModule = _getActiveModule(_fundingType);
         if (activeModule == address(0)) revert ActiveModuleNotSet();
         if (msg.sender != activeModule) revert UnauthorizedModule();
         _;
@@ -558,7 +558,7 @@ contract TreasuryManager is Initializable, AccessControlUpgradeable, ReentrancyG
      * @notice Returns the balance of the treasury.
      * @return The current balance of the treasury in wei.
      */
-    function getBalance() external view onlyGovernorOrDefaultAdmin returns (uint256) {
+    function getBalance() external view returns (uint256) {
         return address(this).balance;
     }
 
@@ -567,7 +567,7 @@ contract TreasuryManager is Initializable, AccessControlUpgradeable, ReentrancyG
      * @param contextKey The unique identifier for the funding request.
      * @return True if the funding request is pending approval, false otherwise.
      */
-    function isPendingApproval(bytes32 contextKey) external view onlyGovernorOrDefaultAdmin returns (bool) {
+    function isPendingApproval(bytes32 contextKey) external view returns (bool) {
         return !fundingRequests[contextKey].approved && !fundingRequests[contextKey].executed;
     }
 
@@ -576,7 +576,7 @@ contract TreasuryManager is Initializable, AccessControlUpgradeable, ReentrancyG
      * @param contextKey The unique identifier for the funding request.
      * @return True if the funding request is pending execution, false otherwise.
      */
-    function isPendingExecution(bytes32 contextKey) external view onlyGovernorOrDefaultAdmin returns (bool) {
+    function isPendingExecution(bytes32 contextKey) external view returns (bool) {
         return fundingRequests[contextKey].approved && !fundingRequests[contextKey].executed;
     }
 
@@ -585,7 +585,7 @@ contract TreasuryManager is Initializable, AccessControlUpgradeable, ReentrancyG
      * @param contextKey The unique identifier for the funding request.
      * @return True if the funding request has been executed, false otherwise.
      */
-    function isExecuted(bytes32 contextKey) external view onlyGovernorOrDefaultAdmin returns (bool) {
+    function isExecuted(bytes32 contextKey) external view returns (bool) {
         return fundingRequests[contextKey].executed;
     }
 
@@ -594,7 +594,7 @@ contract TreasuryManager is Initializable, AccessControlUpgradeable, ReentrancyG
      * @param contextKey The unique identifier for the funding request.
      * @return The funding request details.
      */
-    function getFundingRequest(bytes32 contextKey) external view onlyGovernorOrDefaultAdmin() returns (TreasuryTypes.FundingRequest memory) {
+    function getFundingRequest(bytes32 contextKey) external view returns (TreasuryTypes.FundingRequest memory) {
         return fundingRequests[contextKey];
     }
 
@@ -602,23 +602,15 @@ contract TreasuryManager is Initializable, AccessControlUpgradeable, ReentrancyG
      * @notice Checks if the treasury is currently locked.
      * @return True if the treasury is locked, false otherwise.
      */
-    function isLocked() external view onlyGovernorOrDefaultAdmin returns (bool) {
+    function isLocked() external view returns (bool) {
         return isTreasuryLocked && block.timestamp <= lockedUntil;
-    }
-
-    /**
-     * @notice Retrieves the governance manager contract.
-     * @return The address of the governance manager contract.
-     */
-    function getGovernanceManager() external view onlyGovernorOrDefaultAdmin returns (address) {
-        return address(governanceManager);
     }
 
     /**
      * @dev Returns the version of the contract.
      * @return string The version of the contract.
      */
-    function getContractVersion() external view override(IVersioned, ITreasuryManager) onlyGovernorOrDefaultAdmin returns (string memory) {
+    function getContractVersion() external view override(IVersioned, ITreasuryManager) returns (string memory) {
         return "TreasuryManager v1.0.0"; 
     }
 
@@ -632,7 +624,7 @@ contract TreasuryManager is Initializable, AccessControlUpgradeable, ReentrancyG
      */
     function _approve(bytes32 contextKey) private nonZeroKey(contextKey) {
         TreasuryTypes.FundingRequest storage request = fundingRequests[contextKey];
-        address activeModule = governanceManager.getActiveModule(request.fundingType);
+        address activeModule = _getActiveModule(request.fundingType);
 
         // Checks
         if (request.requestedAt == 0) revert RequestDoesNotExist();
@@ -651,7 +643,7 @@ contract TreasuryManager is Initializable, AccessControlUpgradeable, ReentrancyG
      */
     function _execute(bytes32 contextKey) private nonZeroKey(contextKey) {
         TreasuryTypes.FundingRequest storage request = fundingRequests[contextKey];
-        address activeModule = governanceManager.getActiveModule(request.fundingType);
+        address activeModule = _getActiveModule(request.fundingType);
 
         // Checks
         if (isTreasuryLocked && block.timestamp <= lockedUntil) revert TreasuryIsLocked();
@@ -680,6 +672,15 @@ contract TreasuryManager is Initializable, AccessControlUpgradeable, ReentrancyG
         }
     
         emit TransferExecuted(contextKey, request.to, request.amount);
+    }
+
+    /**
+     * @dev Retrieves the active module for a given funding type.
+     * @param fundingType The unique identifier for the funding type.
+     * @return address The address of the active module.
+     */
+    function _getActiveModule(bytes32 fundingType) private view returns (address) {
+        return governanceManager.activeModuleRegistry(fundingType);
     }
 
 

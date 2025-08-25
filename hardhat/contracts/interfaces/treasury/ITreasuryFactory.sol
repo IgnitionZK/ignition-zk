@@ -26,5 +26,5 @@ interface ITreasuryFactory {
      * @param groupKey The unique identifier for the DAO group.
      * @return The address of the treasury instance.
      */
-    function getTreasuryAddress(bytes32 groupKey) external view returns (address);
+    function groupTreasuryAddresses(bytes32 groupKey) external view returns (address);
 }

@@ -1,23 +1,26 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.28;
 
-// interfaces imports:
-import {IProposalManager} from "../interfaces/managers/IProposalManager.sol";
-import {IProposalVerifier} from "../interfaces/verifiers/IProposalVerifier.sol";
-import {IProposalClaimVerifier} from "../interfaces/verifiers/IProposalClaimVerifier.sol";
-import {IMembershipManager} from "../interfaces/managers/IMembershipManager.sol";
-import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
-import {IVersioned} from "../interfaces/IVersioned.sol";
-
-// UUPS imports:
+// OZ imports:
 import { UUPSUpgradeable } from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import { Initializable } from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import { OwnableUpgradeable } from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import { ERC165Upgradeable } from "@openzeppelin/contracts-upgradeable/utils/introspection/ERC165Upgradeable.sol";
 
-// tracks proposal submissions and verifications (pre-vote phase)
-contract MockProposalManagerV2 is Initializable, OwnableUpgradeable, UUPSUpgradeable, IProposalManager, ERC165Upgradeable, IVersioned {
+// Interfaces
+import { IProposalManager } from "../interfaces/managers/IProposalManager.sol";
+import { IProposalVerifier } from "../interfaces/verifiers/IProposalVerifier.sol";
+import { IProposalClaimVerifier } from "../interfaces/verifiers/IProposalClaimVerifier.sol";
+import { IMembershipManager } from "../interfaces/managers/IMembershipManager.sol";
+import { IERC165 } from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
+import { IVersioned } from "../interfaces/IVersioned.sol";
 
+/**
+ * @title ProposalManager
+ * @notice This contract manages the proposal submission and verification process.
+ * It ensures that proposals are submitted, verified, and claimed in a secure and efficient manner.
+ */
+contract MockProposalManagerV2 is Initializable, OwnableUpgradeable, UUPSUpgradeable, IProposalManager, ERC165Upgradeable, IVersioned {
 // ====================================================================================================================
 //                                                  CUSTOM ERRORS
 // ====================================================================================================================
@@ -77,7 +80,7 @@ contract MockProposalManagerV2 is Initializable, OwnableUpgradeable, UUPSUpgrade
 
     /// @notice Thrown if the provided address does not support the required interface.
     /// @dev This is used to check if the address supports the `verifyProof` function
-    error AddressDoesNotSupportInterface();
+    //error AddressDoesNotSupportInterface();
 
     /// @notice Thrown if the provided key (groupKey or contextKey) is zero.
     error KeyCannotBeZero();
@@ -120,17 +123,17 @@ contract MockProposalManagerV2 is Initializable, OwnableUpgradeable, UUPSUpgrade
 // ====================================================================================================================
     
     /// @dev The mapping of proposal submissions nullifiers. Key: submissionNullifier => true if the submission nullifier has been used
-    mapping(bytes32 => bool) private submissionNullifiers; 
+    mapping(bytes32 => bool) public submissionNullifiers; 
     
     /// @dev The mapping of proposal claim nullifiers. Key: claimNullifier => true if the claim nullifier has been used
-    mapping(bytes32 => bool) private claimNullifiers; 
+    mapping(bytes32 => bool) public claimNullifiers; 
 
     // Interfaces
     /// @dev The interface of the proposal submission verifier contract.
-    IProposalVerifier private submissionVerifier;
+    IProposalVerifier public submissionVerifier;
 
     /// @dev The interface of the proposal claim verifier contract.
-    IProposalClaimVerifier private claimVerifier;
+    IProposalClaimVerifier public claimVerifier;
 
 // ====================================================================================================================
 //                                                  MODIFIERS
@@ -207,11 +210,10 @@ contract MockProposalManagerV2 is Initializable, OwnableUpgradeable, UUPSUpgrade
      * @dev This function can only be called by the contract owner (governor).
      * @custom:error AddressCannotBeZero If the provided verifier address is zero.
      * @custom:error AddressIsNotAContract If the provided address is not a contract.
-     * @custom:error AddressDoesNotSupportInterface If the provided address does not support the `verifyProof` function.
      */
     function setProposalSubmissionVerifier(address _submissionVerifier) external onlyOwner nonZeroAddress(_submissionVerifier) {
         if(_submissionVerifier.code.length == 0) revert AddressIsNotAContract();
-        if(!_supportsIProposalInterface(_submissionVerifier)) revert AddressDoesNotSupportInterface();
+        //if(!_supportsIProposalInterface(_submissionVerifier)) revert AddressDoesNotSupportInterface();
 
         submissionVerifier = IProposalVerifier(_submissionVerifier);
         emit SubmissionVerifierAddressSet(_submissionVerifier);
@@ -221,11 +223,10 @@ contract MockProposalManagerV2 is Initializable, OwnableUpgradeable, UUPSUpgrade
      * @dev This function can only be called by the contract owner (governor).
      * @custom:error AddressCannotBeZero If the provided verifier address is zero.
      * @custom:error AddressIsNotAContract If the provided address is not a contract.
-     * @custom:error AddressDoesNotSupportInterface If the provided address does not support the `verifyProof` function.
      */
     function setProposalClaimVerifier(address _claimVerifier) external onlyOwner nonZeroAddress(_claimVerifier) {
         if(_claimVerifier.code.length == 0) revert AddressIsNotAContract();
-        if(!_supportsIProposalClaimInterface(_claimVerifier)) revert AddressDoesNotSupportInterface();
+        //if(!_supportsIProposalClaimInterface(_claimVerifier)) revert AddressDoesNotSupportInterface();
 
         claimVerifier = IProposalClaimVerifier(_claimVerifier);
         emit ClaimVerifierAddressSet(_claimVerifier);
@@ -307,34 +308,6 @@ contract MockProposalManagerV2 is Initializable, OwnableUpgradeable, UUPSUpgrade
 // ====================================================================================================================
 
     /**
-     * @dev Only callable by the owner (governor).
-     */
-    function getProposalSubmissionVerifier() external view onlyOwner returns (address) {
-        return address(submissionVerifier);
-    }
-
-    /**
-     * @dev Only callable by the owner (governor).
-     */
-    function getProposalClaimVerifier() external view onlyOwner returns (address) {
-        return address(claimVerifier);
-    }
-
-    /**
-     * @dev Only callable by the owner (governor).
-     */
-    function getSubmissionNullifierStatus(bytes32 nullifier) external view onlyOwner returns (bool) {
-        return submissionNullifiers[nullifier];
-    }
-
-    /**
-     * @dev Only callable by the owner (governor).
-     */
-    function getClaimNullifierStatus(bytes32 nullifier) external view onlyOwner returns (bool) {
-        return claimNullifiers[nullifier];
-    }
-
-    /**
      * @dev Checks if the contract supports a specific interface.
      * @param interfaceId The interface identifier to check.
      * @return bool True if the interface is supported, false otherwise.
@@ -354,47 +327,8 @@ contract MockProposalManagerV2 is Initializable, OwnableUpgradeable, UUPSUpgrade
         return "ProposalManager v1.0.0"; 
     }
 
-// ====================================================================================================================
-//                                       PRIVATE HELPER FUNCTIONS
-// ====================================================================================================================
-
-    /**
-     * @dev Checks if the provided address supports the `verifyProof` function for proposal submissions.
-     * @param _address The address to check.
-     * @return bool True if the address supports the IProposalVerifier interface, false otherwise.
-     */
-    function _supportsIProposalInterface(address _address) private view returns (bool) {
-        uint256[24] memory dummyProof = [uint256(1), 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24];
-        uint256[5] memory dummyPublicSignals = [uint256(1), 2, 3, 4, 5];
-
-        try IProposalVerifier(_address).verifyProof(dummyProof, dummyPublicSignals) returns (bool) {
-            return true;
-        } catch {
-            return false;
-        }
-    }
-
-    /**
-     * @dev Checks if the provided address supports the `verifyProof` function for proposal claims.
-     * @param _address The address to check.
-     * @return bool True if the address supports the IProposalClaimVerifier interface, false otherwise.
-     */
-    function _supportsIProposalClaimInterface(address _address) private view returns (bool) {
-        uint256[24] memory dummyProof = [uint256(1), 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24];
-        uint256[3] memory dummyPublicSignals = [uint256(1), 2, 3];
-
-        try IProposalClaimVerifier(_address).verifyProof(dummyProof, dummyPublicSignals) returns (bool) {
-            return true;
-        } catch {
-            return false;
-        }
-    }
-
-
     function dummy() external pure returns (string memory) {
-        return "This is a dummy function";
+        return "dummy";
     }
-
-
 
 }

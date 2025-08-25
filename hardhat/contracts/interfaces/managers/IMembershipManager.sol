@@ -1,6 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.28;
 
+// Interfaces:
+import { IMembershipVerifier } from "../verifiers/IMembershipVerifier.sol";
+
 /**
  * @title IMembershipManager
  * @notice Interface for the Membership Manager contract.
@@ -77,37 +80,31 @@ interface IMembershipManager {
 //                                       EXTERNAL VIEW FUNCTIONS
 // ====================================================================================================================
     /**
+     * @notice Retrieves the address of the membership verifier contract.
+     * @return The address of the membership verifier contract.
+     */
+    function membershipVerifier() external view returns (IMembershipVerifier);
+   
+    /**
      * @notice Retrieves the current Merkle root for a specific group.
      * @param groupKey The unique identifier for the group.
      * @return The current Merkle root for the specified group. Returns bytes32(0) if no root has been set.
      */
-    function getRoot(bytes32 groupKey) external view returns (bytes32);
-    
+    function groupRoots(bytes32 groupKey) external view returns (bytes32);
+
     /**
      * @notice Retrieves the address of the ERC721 NFT contract for a specific group.
      * @param groupKey The unique identifier for the group.
      * @return address of the ERC721 NFT contract associated with the specified group key.
      */
-    function getGroupNftAddress(bytes32 groupKey) external view returns (address);
+    function groupNftAddresses(bytes32 groupKey) external view returns (address);
 
     /**
      * @notice Retrieves the address of the NFT implementation contract.
      * @return address of the NFT implementation contract.
      */
-    function getNftImplementation() external view returns (address);
-
-    /**
-     * @notice Retrieves the address of the Membership Verifier contract.
-     * @return address of the Membership Verifier contract.
-     */
-    function getMembershipVerifier() external view returns (address);
-
-    /**
-     * @notice Retrieves the maximum number of members that can be added in a single batch transaction.
-     * @return The maximum batch size for member additions.
-     */
-    function getMaxMembersBatch() external view returns (uint256);
-
+    function nftImplementation() external view returns (address);
+    
     /**
      * @notice Retrieves the current version of the MembershipManager contract.
      * @return The version string of the MembershipManager contract.

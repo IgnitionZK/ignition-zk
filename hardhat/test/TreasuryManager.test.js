@@ -188,7 +188,7 @@ describe("Treasury Manager Unit Tests:", function () {
         );
 
         // Get address of deployed instance
-        const treasuryAddr = await treasuryFactory.connect(treasuryFactorySigner).getTreasuryAddress(groupKey);
+        const treasuryAddr = await treasuryFactory.groupTreasuryAddresses(groupKey);
         const treasuryInstance = await ethers.getContractAt("TreasuryManager", treasuryAddr);
         return treasuryInstance;
     }
@@ -312,16 +312,16 @@ describe("Treasury Manager Unit Tests:", function () {
         
         // Get governance manager signer
         const governanceManagerSigner = await setContractAsSignerAndFund(mockGovernanceManager);
-
+       
         // Deploy treasury instance: deployTreasuryInstanceWithEOAOwner(treasuryFactorySigner, treasuryMultisig, treasuryRecovery)
         const treasuryInstance = await deployTreasuryInstanceWithEOAOwner(governanceManagerSigner, await governor.getAddress(), await governor.getAddress());
-
+       
         // Stop contract as signer
         await stopContractAsSigner(mockGovernanceManager);
-
+        
         // Get mock grant module contract as signer with funds for gas
         const mockGrantModuleSigner = await setContractAsSignerAndFund(mockGrantModule);
-       
+        
         // Request transfer
         const grantType = ethers.id("grant");
         await expect(treasuryInstance.connect(mockGrantModuleSigner).requestTransfer(
@@ -336,7 +336,6 @@ describe("Treasury Manager Unit Tests:", function () {
             await user1.getAddress(), 
             2
         );
-
         await stopContractAsSigner(mockGrantModule);
     });
 

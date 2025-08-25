@@ -12,6 +12,6 @@ interface IGovernanceManager {
      * @param fundingType The unique identifier for the funding type.
      * @return address of the active funding module.
      */
-    function getActiveModule(bytes32 fundingType) external view returns (address);
+    function activeModuleRegistry(bytes32 fundingType) external view returns (address);
 
 }

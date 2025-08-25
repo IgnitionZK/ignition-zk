@@ -192,10 +192,10 @@ describe("Vote Manager Unit Tests:", function () {
         );
         
         // check that the vote nullifier is stored correctly
-        expect(await voteManager.connect(governor).getVoteNullifierStatus(voteNullifier1)).to.equal(true);
+        expect(await voteManager.voteNullifiers(voteNullifier1)).to.equal(true);
 
         // check the intial values of the quorum parameters:
-        const quorumParamsInitial = await voteManager.connect(governor).getQuorumParams();
+        const quorumParamsInitial = await voteManager.getQuorumParams();
         expect(quorumParamsInitial.minQuorumPercent).to.equal(25);
         expect(quorumParamsInitial.maxQuorumPercent).to.equal(50);
         expect(quorumParamsInitial.maxGroupSizeForMinQuorum).to.equal(200);
@@ -205,7 +205,7 @@ describe("Vote Manager Unit Tests:", function () {
         await voteManager.connect(governor).setQuorumParams(30, 40, 150, 10);
 
         // check that the quorum parameters are stored correctly
-        const quorumParams = await voteManager.connect(governor).getQuorumParams();
+        const quorumParams = await voteManager.getQuorumParams();
         expect(quorumParams.minQuorumPercent).to.equal(30);
         expect(quorumParams.maxQuorumPercent).to.equal(40);
         expect(quorumParams.maxGroupSizeForMinQuorum).to.equal(150);
@@ -228,10 +228,10 @@ describe("Vote Manager Unit Tests:", function () {
         const upgradedAddress = await voteManagerV2.target;
 
         // Check if the vote nullifier is still stored correctly after the upgrade
-        expect(await voteManagerV2.connect(governor).getVoteNullifierStatus(voteNullifier1)).to.equal(true);
+        expect(await voteManagerV2.voteNullifiers(voteNullifier1)).to.equal(true);
 
         // check that the quorum parameters are still stored correctly after the upgrade
-        const updatedQuorumParams = await voteManagerV2.connect(governor).getQuorumParams();
+        const updatedQuorumParams = await voteManagerV2.getQuorumParams();
         expect(updatedQuorumParams.minQuorumPercent).to.equal(30);
         expect(updatedQuorumParams.maxQuorumPercent).to.equal(40);
         expect(updatedQuorumParams.maxGroupSizeForMinQuorum).to.equal(150);
@@ -243,7 +243,7 @@ describe("Vote Manager Unit Tests:", function () {
         EXPECTED: should allow the governor to get group parameters`, async function () {
         
         // check the group parameters of an unitiialized group
-        const params = await voteManager.connect(governor).getGroupParams(groupKey);
+        const params = await voteManager.getGroupParams(groupKey);
         expect(params.memberCount).to.equal(0);
         expect(params.quorum).to.equal(0);
         
@@ -251,15 +251,9 @@ describe("Vote Manager Unit Tests:", function () {
         await deployGroupNftAndSetRoot(governor, groupKey, nftName, nftSymbol, rootHash1);
         await voteManager.connect(governor).setMemberCount(groupKey, 1);
 
-        const updatedParams = await voteManager.connect(governor).getGroupParams(groupKey);
+        const updatedParams = await voteManager.getGroupParams(groupKey);
         expect(updatedParams.memberCount).to.equal(1);
         expect(updatedParams.quorum).to.equal(50);
-    });
-
-    it(`FUNCTION: getGroupParams
-        TESTING: onlyOwner authorization (failure)
-        EXPECTED: should not allow a non-governor to get group parameters`, async function () {
-        await expect(voteManager.connect(user1).getGroupParams(groupKey)).to.be.revertedWithCustomError(voteManager, "OwnableUnauthorizedAccount");
     });
 
     it(`FUNCTION: setMemberCount, _setQuorum, getGroupParams
@@ -283,7 +277,7 @@ describe("Vote Manager Unit Tests:", function () {
 
             // set the member count and get the group parameters
             await voteManager.connect(governor).setMemberCount(groupKey, i);
-            const params = await voteManager.connect(governor).getGroupParams(groupKey);
+            const params = await voteManager.getGroupParams(groupKey);
             quorumValues.push(params.quorum);
             expectedMemberCountValues.push(params.memberCount);
         }
@@ -318,14 +312,14 @@ describe("Vote Manager Unit Tests:", function () {
         // check the quorum values for group sizes 1 to 30 and 200 to 1024
         for (i = 1; i < 31; i++ ) {
             await voteManager.connect(governor).setMemberCount(groupKey, i);
-            const params = await voteManager.connect(governor).getGroupParams(groupKey);
+            const params = await voteManager.getGroupParams(groupKey);
             expect(params.quorum).to.equal(50);
             expect(params.memberCount).to.equal(i);
         }
 
         for (i = 200; i < 1025; i++ ) {
             await voteManager.connect(governor).setMemberCount(groupKey, i);
-            const params = await voteManager.connect(governor).getGroupParams(groupKey);
+            const params = await voteManager.getGroupParams(groupKey);
             expect(params.quorum).to.equal(25);
             expect(params.memberCount).to.equal(i);
         }
@@ -393,7 +387,7 @@ describe("Vote Manager Unit Tests:", function () {
         );
 
         // get the quorum parameters and check if they were set correctly
-        const quorumParams = await voteManager.connect(governor).getQuorumParams();
+        const quorumParams = await voteManager.getQuorumParams();
         expect(quorumParams.minQuorumPercent).to.equal(newQuorumParams.minQuorumPercent);
         expect(quorumParams.maxQuorumPercent).to.equal(newQuorumParams.maxQuorumPercent);
         expect(quorumParams.maxGroupSizeForMinQuorum).to.equal(newQuorumParams.maxGroupSizeForMinQuorum);
@@ -488,7 +482,7 @@ describe("Vote Manager Unit Tests:", function () {
         TESTING: onlyOwner authorization (success)
         EXPECTED: should allow the governor to set the vote verifier`, async function () {
         await voteManager.connect(governor).setVoteVerifier(mockVoteVerifier.target);
-        expect(await voteManager.connect(governor).getVoteVerifier()).to.equal(mockVoteVerifier.target);
+        expect(await voteManager.voteVerifier()).to.equal(mockVoteVerifier.target);
     });
     
     it(`FUNCTION: setVoteVerifier
@@ -538,7 +532,7 @@ describe("Vote Manager Unit Tests:", function () {
         );
 
         // check that the vote nullifier is stored correctly
-        expect(await voteManager.connect(governor).getVoteNullifierStatus(voteNullifier1)).to.equal(true);
+        expect(await voteManager.voteNullifiers(voteNullifier1)).to.equal(true);
 
         // verify a second vote on the same context with a different choice
         expect(await voteManager.connect(governor).verifyVote(
@@ -557,10 +551,10 @@ describe("Vote Manager Unit Tests:", function () {
         );
 
         // check that the second vote nullifier is stored correctly
-        expect(await voteManager.connect(governor).getVoteNullifierStatus(voteNullifier2)).to.equal(true);
+        expect(await voteManager.voteNullifiers(voteNullifier2)).to.equal(true);
 
         // check that the first vote nullifier is still stored correctly
-        expect(await voteManager.connect(governor).getVoteNullifierStatus(voteNullifier1)).to.equal(true);
+        expect(await voteManager.voteNullifiers(voteNullifier1)).to.equal(true);
     });
 
     it(`FUNCTION: verifyVote
@@ -606,7 +600,7 @@ describe("Vote Manager Unit Tests:", function () {
         // set the vote verifier to the mock verifier and verify a vote on the first proposal
         await setVoteVerifierAndVerifyVote(governor, mockVoteVerifier.target, mockProof, mockVotePublicSignals1, voteContextKey, groupKey, rootHash1);
 
-        const proposalResult = await voteManager.connect(governor).getProposalResult(voteContextKey);
+        const proposalResult = await voteManager.getProposalResult(voteContextKey);
         expect(proposalResult.tally).to.deep.equal([1, 0, 0]);
         expect(proposalResult.passed).to.equal(false);
         expect(proposalResult.submissionNullifier).to.equal(submissionNullifier1);
@@ -621,7 +615,7 @@ describe("Vote Manager Unit Tests:", function () {
             true // isProposalSubmitted
         );
 
-        const proposalResult2 = await voteManager.connect(governor).getProposalResult(voteContextKey);
+        const proposalResult2 = await voteManager.getProposalResult(voteContextKey);
         expect(proposalResult2.tally).to.deep.equal([1, 1, 0]);
         expect(proposalResult2.passed).to.equal(false);
         expect(proposalResult2.submissionNullifier).to.equal(submissionNullifier1);
@@ -636,7 +630,7 @@ describe("Vote Manager Unit Tests:", function () {
             true // isProposalSubmitted
         );
 
-        const proposalResult3 = await voteManager.connect(governor).getProposalResult(voteContextKey);
+        const proposalResult3 = await voteManager.getProposalResult(voteContextKey);
         expect(proposalResult3.tally).to.deep.equal([1, 1, 1]);
         expect(proposalResult3.passed).to.equal(false);
         expect(proposalResult3.submissionNullifier).to.equal(submissionNullifier1);
@@ -651,7 +645,7 @@ describe("Vote Manager Unit Tests:", function () {
             true // isProposalSubmitted
         );
 
-        const proposalResult4 = await voteManager.connect(governor).getProposalResult(voteContextKey);
+        const proposalResult4 = await voteManager.getProposalResult(voteContextKey);
         expect(proposalResult4.tally).to.deep.equal([1, 2, 1]);
         expect(proposalResult4.passed).to.equal(true);
         expect(proposalResult4.submissionNullifier).to.equal(submissionNullifier1);
@@ -674,7 +668,7 @@ describe("Vote Manager Unit Tests:", function () {
         // set the vote verifier to the mock verifier and verify a vote on the first proposal
         await setVoteVerifierAndVerifyVote(governor, mockVoteVerifier.target, mockProof, mockVotePublicSignals2, voteContextKey, groupKey, rootHash1);
 
-        const proposalResult = await voteManager.connect(governor).getProposalResult(voteContextKey);
+        const proposalResult = await voteManager.getProposalResult(voteContextKey);
         expect(proposalResult.tally).to.deep.equal([0, 1, 0 ]);
         expect(proposalResult.passed).to.equal(false);
         expect(proposalResult.submissionNullifier).to.equal(submissionNullifier1);
@@ -781,7 +775,7 @@ describe("Vote Manager Unit Tests:", function () {
         // set the vote verifier to the mock verifier
         await setVoteVerifierAndVerifyVote(governor, mockVoteVerifier.target, mockProof, mockVotePublicSignals1, voteContextKey, groupKey, rootHash1);
 
-        await expect(voteManager.connect(governor).getVoteNullifierStatus(voteNullifier1))
+        await expect(voteManager.voteNullifiers(voteNullifier1))
             .to.eventually.equal(true, "Vote nullifier should be stored after first verification");
         
         // verify a second vote with the same nullifier
@@ -806,11 +800,11 @@ describe("Vote Manager Unit Tests:", function () {
             voteContextKey,
             voteNullifier2);
 
-        await expect(voteManager.connect(governor).getVoteNullifierStatus(voteNullifier2))
+        await expect(voteManager.voteNullifiers(voteNullifier2))
             .to.eventually.equal(true, "Second vote nullifier should be stored after second verification");
         
         // check that the first vote nullifier is still stored correctly
-        await expect(voteManager.connect(governor).getVoteNullifierStatus(voteNullifier1))
+        await expect(voteManager.voteNullifiers(voteNullifier1))
             .to.eventually.equal(true, "First vote nullifier should still be stored after second verification");
 
         // verify another vote with the same nullifier as in publicSignals2
@@ -987,7 +981,7 @@ describe("Vote Manager Unit Tests:", function () {
         )).to.emit(voteManager, "VoteVerified");
 
         const nullifier = ethers.toBeHex(realVotePublicSignals[1], 32);
-        expect(await voteManager.connect(governor).getVoteNullifierStatus(nullifier))
+        expect(await voteManager.voteNullifiers(nullifier))
             .to.equal(true, "Vote nullifier should be stored after first verification");
 
         await expect(voteManager.connect(governor).verifyVote(
@@ -1034,48 +1028,18 @@ describe("Vote Manager Unit Tests:", function () {
             true // isProposalSubmitted
         );
 
-        const proposalResult = await voteManager.connect(governor).getProposalResult(realVoteContextKey);
+        const proposalResult = await voteManager.getProposalResult(realVoteContextKey);
         expect(proposalResult.tally).to.deep.equal([0, 1, 0]);
         expect(proposalResult.passed).to.equal(true);
         expect(proposalResult.submissionNullifier).to.equal(proposalProofSubmissionNullifier);
 
     });
 
-    it(`FUNCTION: getVoteVerifier
-        TESTING: authorization (failure)
-        EXPECTED: should not allow a non-governor to get the current vote verifier address`, async function () {
-
-        await expect(voteManager.connect(user1).getVoteVerifier()).to.be.revertedWithCustomError(
-            voteManager,
-            "OwnableUnauthorizedAccount"
-        );
-    });
-
-    it(`FUNCTION: getProposalResult
-        TESTING: authorization (failure)
-        EXPECTED: should not allow a non-governor to get the current proposal result`, async function () {
-
-        await expect(voteManager.connect(user1).getProposalResult(voteContextKey)).to.be.revertedWithCustomError(
-            voteManager,
-            "OwnableUnauthorizedAccount"
-        );
-    });
-
-    it(`FUNCTION: getQuorumParams
-        TESTING: authorization (failure)
-        EXPECTED: should not allow a non-governor to get the current quorum parameters`, async function () {
-
-        await expect(voteManager.connect(user1).getQuorumParams()).to.be.revertedWithCustomError(
-            voteManager,
-            "OwnableUnauthorizedAccount"
-        );
-    });
-
     it(`FUNCTION: getContractVersion
-        TESTING: authorization (success)
+        TESTING: stored version
         EXPECTED: should allow the governor to get the current contract version`, async function () {
 
-        expect(await voteManager.connect(governor).getContractVersion()).to.equal("VoteManager v1.0.0");
+        expect(await voteManager.getContractVersion()).to.equal("VoteManager v1.0.0");
     });
 
     

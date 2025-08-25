@@ -123,17 +123,17 @@ contract ProposalManager is Initializable, OwnableUpgradeable, UUPSUpgradeable, 
 // ====================================================================================================================
     
     /// @dev The mapping of proposal submissions nullifiers. Key: submissionNullifier => true if the submission nullifier has been used
-    mapping(bytes32 => bool) private submissionNullifiers; 
+    mapping(bytes32 => bool) public submissionNullifiers; 
     
     /// @dev The mapping of proposal claim nullifiers. Key: claimNullifier => true if the claim nullifier has been used
-    mapping(bytes32 => bool) private claimNullifiers; 
+    mapping(bytes32 => bool) public claimNullifiers; 
 
     // Interfaces
     /// @dev The interface of the proposal submission verifier contract.
-    IProposalVerifier private submissionVerifier;
+    IProposalVerifier public submissionVerifier;
 
     /// @dev The interface of the proposal claim verifier contract.
-    IProposalClaimVerifier private claimVerifier;
+    IProposalClaimVerifier public claimVerifier;
 
 // ====================================================================================================================
 //                                                  MODIFIERS
@@ -308,34 +308,6 @@ contract ProposalManager is Initializable, OwnableUpgradeable, UUPSUpgradeable, 
 // ====================================================================================================================
 
     /**
-     * @dev Only callable by the owner (governor).
-     */
-    function getProposalSubmissionVerifier() external view onlyOwner returns (address) {
-        return address(submissionVerifier);
-    }
-
-    /**
-     * @dev Only callable by the owner (governor).
-     */
-    function getProposalClaimVerifier() external view onlyOwner returns (address) {
-        return address(claimVerifier);
-    }
-
-    /**
-     * @dev Only callable by the owner (governor).
-     */
-    function getSubmissionNullifierStatus(bytes32 nullifier) external view onlyOwner returns (bool) {
-        return submissionNullifiers[nullifier];
-    }
-
-    /**
-     * @dev Only callable by the owner (governor).
-     */
-    function getClaimNullifierStatus(bytes32 nullifier) external view onlyOwner returns (bool) {
-        return claimNullifiers[nullifier];
-    }
-
-    /**
      * @dev Checks if the contract supports a specific interface.
      * @param interfaceId The interface identifier to check.
      * @return bool True if the interface is supported, false otherwise.
@@ -351,7 +323,7 @@ contract ProposalManager is Initializable, OwnableUpgradeable, UUPSUpgradeable, 
      * @dev Returns the version of the contract.
      * @return string The version of the contract.
      */
-    function getContractVersion() external view override(IVersioned, IProposalManager) onlyOwner returns (string memory) {
+    function getContractVersion() external view override(IVersioned, IProposalManager) returns (string memory) {
         return "ProposalManager v1.0.0"; 
     }
 
