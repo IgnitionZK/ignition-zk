@@ -11,6 +11,8 @@ import { ERC165Upgradeable } from "@openzeppelin/contracts-upgradeable/utils/int
 import { IVoteVerifier } from "../interfaces/verifiers/IVoteVerifier.sol";
 import { IVoteManager } from "../interfaces/managers/IVoteManager.sol";
 import { IVersioned } from "../interfaces/IVersioned.sol";
+import { IMembershipManager } from "../interfaces/managers/IMembershipManager.sol";
+import { IProposalManager } from "../interfaces/managers/IProposalManager.sol";
 
 // Libraries:
 import { VoteTypes } from "../libraries/VoteTypes.sol";
@@ -114,6 +116,18 @@ contract MockVoteManagerV2 is Initializable, OwnableUpgradeable, UUPSUpgradeable
     event VoteVerifierAddressSet(address indexed voteVerifier);
 
     /**
+     * @notice Emitted when the membership manager address is set.
+     * @param membershipManager The address of the membership manager contract.
+     */
+    event MembershipManagerAddressSet(address indexed membershipManager);
+
+    /**
+     * @notice Emitted when the proposal manager address is set.
+     * @param proposalManager The address of the proposal manager contract.
+     */
+    event ProposalManagerAddressSet(address indexed proposalManager);
+
+    /**
      * @notice Emitted when a vote is verified.
      * @param contextKey The context key associated with the vote.
      * @param voteNullifier The nullifier associated with the vote proof.
@@ -196,6 +210,12 @@ contract MockVoteManagerV2 is Initializable, OwnableUpgradeable, UUPSUpgradeable
     /// @dev The interface of the vote verifier contract.
     IVoteVerifier public voteVerifier;
 
+    /// @dev The interface of the membership manager contract.
+    IMembershipManager public membershipManager;
+
+    /// @dev The interface of the proposal manager contract.
+    IProposalManager public proposalManager;
+
     // ====================================================================================================
     // STATE VARIABLES
     // ====================================================================================================
@@ -253,26 +273,37 @@ contract MockVoteManagerV2 is Initializable, OwnableUpgradeable, UUPSUpgradeable
     /**
      * @notice Initializes the VoteManager contract.
      * @dev This function replaces the constructor for upgradeable contracts and is called once
-     * after the proxy is deployed. It sets the initial verifier and governor.
-     * @param _governor The address of the governor (DAO) contract.
+     * after the proxy is deployed. It sets the initial owner, vote verifier, membership manager,
+     * and proposal manager.
+     * @param _initialOwner The address of the owner.
      * @param _voteVerifier The address of the vote verifier contract. 
+     * @param _membershipManager The address of the membership manager contract.
+     * @param _proposalManager The address of the proposal manager contract.
      * @custom:error AddressCannotBeZero If the provided verifier or governor address is zero.
      */
     function initialize(
-        address _governor,
-        address _voteVerifier
+        address _initialOwner,
+        address _voteVerifier,
+        address _membershipManager,
+        address _proposalManager
     ) 
         external 
         initializer 
-        nonZeroAddress(_governor) 
+        nonZeroAddress(_initialOwner) 
         nonZeroAddress(_voteVerifier)
+        nonZeroAddress(_membershipManager)
+        nonZeroAddress(_proposalManager)
     {
-        __Ownable_init(_governor);
+        __Ownable_init(_initialOwner);
         __UUPSUpgradeable_init();
         __ERC165_init();
 
         voteVerifier = IVoteVerifier(_voteVerifier);
+        membershipManager = IMembershipManager(_membershipManager);
+        proposalManager = IProposalManager(_proposalManager);
         emit VoteVerifierAddressSet(_voteVerifier);
+        emit MembershipManagerAddressSet(_membershipManager);
+        emit ProposalManagerAddressSet(_proposalManager);
 
         quorumParams = VoteTypes.QuorumParams({
             minQuorumPercent: 25,
@@ -315,9 +346,9 @@ contract MockVoteManagerV2 is Initializable, OwnableUpgradeable, UUPSUpgradeable
         uint256[24] calldata proof,
         uint256[5] calldata publicSignals,
         bytes32 contextKey,
-        bytes32 groupKey,
-        bytes32 currentRoot,
-        bool isProposalSubmitted
+        bytes32 groupKey
+        //bytes32 currentRoot,
+        //bool isProposalSubmitted
     ) 
         external 
         onlyOwner
@@ -332,10 +363,12 @@ contract MockVoteManagerV2 is Initializable, OwnableUpgradeable, UUPSUpgradeable
         bytes32 proofSubmissionNullifier = bytes32(publicSignals[4]);
 
         // check root
+        bytes32 currentRoot = membershipManager.groupRoots(groupKey);
         if (currentRoot == bytes32(0)) revert RootNotYetInitialized();
         if (proofRoot != currentRoot) revert InvalidMerkleRoot();
 
         // check that proposal has been submitted and verified
+        bool isProposalSubmitted = proposalManager.submissionNullifiers(proofSubmissionNullifier);
         if (!isProposalSubmitted) revert ProposalHasNotBeenSubmitted();
 
         // check that vote nullifier has not been used
@@ -490,7 +523,7 @@ contract MockVoteManagerV2 is Initializable, OwnableUpgradeable, UUPSUpgradeable
      * @dev Returns the version of the contract.
      * @return string The version of the contract.
      */
-    function getContractVersion() external view override(IVersioned, IVoteManager) onlyOwner returns (string memory) {
+    function getContractVersion() external view override(IVersioned, IVoteManager) returns (string memory) {
         return "VoteManager v1.0.0"; 
     }
 
@@ -596,8 +629,8 @@ contract MockVoteManagerV2 is Initializable, OwnableUpgradeable, UUPSUpgradeable
         return (a + b - 1) / b;
     }
 
-    function dummy() external pure returns (string memory) {
-        return "dummy";
+    function dummy() external pure returns (uint256) {
+        return 42;
     }
 
 }

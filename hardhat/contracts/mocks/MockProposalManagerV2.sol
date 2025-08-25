@@ -116,7 +116,13 @@ contract MockProposalManagerV2 is Initializable, OwnableUpgradeable, UUPSUpgrade
      * @param _claimVerifier The address of the new claim verifier contract.
      */
     event ClaimVerifierAddressSet(address indexed _claimVerifier);
-    
+
+    /**
+     * @notice Emitted when the membership manager address is set.
+     * @param _membershipManager The address of the new membership manager contract.
+     */
+    event MembershipManagerAddressSet(address indexed _membershipManager);
+
 // ====================================================================================================================
 //                                          STATE VARIABLES
 // NOTE: Once the contract is deployed do not change the order of the variables. If this contract is updated append new variables to the end of this list. 
@@ -134,6 +140,9 @@ contract MockProposalManagerV2 is Initializable, OwnableUpgradeable, UUPSUpgrade
 
     /// @dev The interface of the proposal claim verifier contract.
     IProposalClaimVerifier public claimVerifier;
+
+    /// @dev The interface of the membership manager contract.
+    IMembershipManager public membershipManager;
 
 // ====================================================================================================================
 //                                                  MODIFIERS
@@ -179,18 +188,21 @@ contract MockProposalManagerV2 is Initializable, OwnableUpgradeable, UUPSUpgrade
      * @param _governor The address of the governor (DAO) contract.
      * @param _submissionVerifier The address of the proposal submission verifier contract.
      * @param _claimVerifier The address of the proposal claim verifier contract.
+     * @param _membershipManager The address of the membership manager contract.
      * @custom:error AddressCannotBeZero If the provided verifier or governor address is zero.
      */
     function initialize(
         address _governor,
         address _submissionVerifier, 
-        address _claimVerifier
+        address _claimVerifier,
+        address _membershipManager
     ) 
         external 
         initializer 
         nonZeroAddress(_governor) 
         nonZeroAddress(_submissionVerifier) 
         nonZeroAddress(_claimVerifier)
+        nonZeroAddress(_membershipManager)
     {
         __Ownable_init(_governor);
         __UUPSUpgradeable_init();
@@ -198,8 +210,10 @@ contract MockProposalManagerV2 is Initializable, OwnableUpgradeable, UUPSUpgrade
 
         submissionVerifier = IProposalVerifier(_submissionVerifier);
         claimVerifier = IProposalClaimVerifier(_claimVerifier);
+        membershipManager = IMembershipManager(_membershipManager);
         emit SubmissionVerifierAddressSet(_submissionVerifier);
         emit ClaimVerifierAddressSet(_claimVerifier);
+        emit MembershipManagerAddressSet(_membershipManager);
     }
 
 // ====================================================================================================================
@@ -245,7 +259,8 @@ contract MockProposalManagerV2 is Initializable, OwnableUpgradeable, UUPSUpgrade
         uint256[24] calldata proof,
         uint256[5] calldata publicSignals,
         bytes32 contextKey,
-        bytes32 currentRoot
+        //bytes32 currentRoot
+        bytes32 groupKey
     ) external onlyOwner nonZeroKey(contextKey) {
 
         bytes32 proofContextHash = bytes32(publicSignals[0]);
@@ -255,6 +270,7 @@ contract MockProposalManagerV2 is Initializable, OwnableUpgradeable, UUPSUpgrade
         bytes32 proofContentHash = bytes32(publicSignals[4]);
 
         // check proofRoot matches currentRoot from MembershipManager
+        bytes32 currentRoot = membershipManager.groupRoots(groupKey);
         if (currentRoot == bytes32(0)) revert RootNotYetInitialized();
         if (proofRoot != currentRoot) revert InvalidMerkleRoot();
 
@@ -323,12 +339,12 @@ contract MockProposalManagerV2 is Initializable, OwnableUpgradeable, UUPSUpgrade
      * @dev Returns the version of the contract.
      * @return string The version of the contract.
      */
-    function getContractVersion() external view override(IVersioned, IProposalManager) onlyOwner returns (string memory) {
+    function getContractVersion() external view override(IVersioned, IProposalManager) returns (string memory) {
         return "ProposalManager v1.0.0"; 
     }
 
-    function dummy() external pure returns (string memory) {
-        return "dummy";
+    function dummyFunction() external pure returns (string memory) {
+        return "This is a dummy function";
     }
 
 }

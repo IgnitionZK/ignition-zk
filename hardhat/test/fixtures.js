@@ -487,7 +487,8 @@ async function deployFixtures() {
         [
             await fixtures.governor.getAddress(),
             fixtures.proposalVerifier.target, 
-            fixtures.proposalClaimVerifier.target
+            fixtures.proposalClaimVerifier.target,
+            fixtures.membershipManager.target
         ],
         {
             initializer: "initialize",
@@ -509,7 +510,9 @@ async function deployFixtures() {
         fixtures.VoteManager,
         [
             await fixtures.governor.getAddress(),
-            fixtures.voteVerifier.target
+            fixtures.voteVerifier.target,
+            fixtures.membershipManager.target,
+            fixtures.proposalManager.target
         ],
         {
             initializer: "initialize",

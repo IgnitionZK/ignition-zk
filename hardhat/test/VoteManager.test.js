@@ -56,7 +56,7 @@ describe("Vote Manager Unit Tests:", function () {
         await membershipManager.connect(signer).setRoot(root, group);
     }
 
-    async function setSubmissionVerifierAndVerifyProposal(signer, verifier, proof, publicSignals, voteContextKey, root) {
+    async function setSubmissionVerifierAndVerifyProposal(signer, verifier, proof, publicSignals, voteContextKey, groupKey) {
         // Set the proposal submission verifier
         await proposalManager.connect(signer).setProposalSubmissionVerifier(verifier);
         // Verify the proposal
@@ -64,11 +64,11 @@ describe("Vote Manager Unit Tests:", function () {
             proof,
             publicSignals,
             voteContextKey,
-            root
+            groupKey
         );
     }
 
-    async function setVoteVerifierAndVerifyVote(signer, verifier, proof, publicSignals, voteContextKey, groupKey, root) {
+    async function setVoteVerifierAndVerifyVote(signer, verifier, proof, publicSignals, voteContextKey, groupKey) {
         // Set the vote verifier
         await voteManager.connect(signer).setVoteVerifier(verifier);
         // Verify the vote
@@ -76,9 +76,7 @@ describe("Vote Manager Unit Tests:", function () {
             proof,
             publicSignals,
             voteContextKey,
-            groupKey,
-            root,
-            true // isProposalSubmitted
+            groupKey
         ); 
     }
 
@@ -176,7 +174,7 @@ describe("Vote Manager Unit Tests:", function () {
         await voteManager.connect(governor).setMemberCount(groupKey, 1);
    
         // set the proposal submission verifier to the mock verifier and verify the first proposal
-        await setSubmissionVerifierAndVerifyProposal(governor, mockProposalVerifier.target, mockProof, mockProposalPublicSignals1, proposalContextKey, rootHash1);
+        await setSubmissionVerifierAndVerifyProposal(governor, mockProposalVerifier.target, mockProof, mockProposalPublicSignals1, proposalContextKey, groupKey);
        
         // set the vote verifier to the mock verifier and verify a vote on the first proposal
         await voteManager.connect(governor).setVoteVerifier(mockVoteVerifier.target);
@@ -186,9 +184,7 @@ describe("Vote Manager Unit Tests:", function () {
             mockProof,
             mockVotePublicSignals1,
             voteContextKey,
-            groupKey,
-            rootHash1,
-            true // isProposalSubmitted
+            groupKey
         );
         
         // check that the vote nullifier is stored correctly
@@ -510,7 +506,7 @@ describe("Vote Manager Unit Tests:", function () {
         await voteManager.connect(governor).setMemberCount(groupKey, 2);
         
         // set the proposal submission verifier to the mock verifier and verify the first proposal
-        await setSubmissionVerifierAndVerifyProposal(governor, mockProposalVerifier.target, mockProof, mockProposalPublicSignals1, proposalContextKey, rootHash1);
+        await setSubmissionVerifierAndVerifyProposal(governor, mockProposalVerifier.target, mockProof, mockProposalPublicSignals1, proposalContextKey, groupKey);
        
         // set the vote verifier to the mock verifier
         await voteManager.connect(governor).setVoteVerifier(mockVoteVerifier.target);
@@ -520,9 +516,7 @@ describe("Vote Manager Unit Tests:", function () {
             mockProof,
             mockVotePublicSignals1,
             voteContextKey,
-            groupKey,
-            rootHash1,
-            true // isProposalSubmitted
+            groupKey
         )).to.emit(voteManager, "VoteVerified").withArgs(
             voteContextKey,
             voteNullifier1,
@@ -539,9 +533,7 @@ describe("Vote Manager Unit Tests:", function () {
             mockProof,
             mockVotePublicSignals2,
             voteContextKey,
-            groupKey,
-            rootHash1,
-            true // isProposalSubmitted
+            groupKey
         )).to.emit(voteManager, "VoteVerified").withArgs(
             voteContextKey,
             voteNullifier2,
@@ -568,19 +560,17 @@ describe("Vote Manager Unit Tests:", function () {
         await voteManager.connect(governor).setMemberCount(groupKey, 1);
         
         // set the proposal submission verifier to the mock verifier and verify a proposal
-        await setSubmissionVerifierAndVerifyProposal(governor, mockProposalVerifier.target, mockProof, mockProposalPublicSignals1, proposalContextKey, rootHash1);
+        await setSubmissionVerifierAndVerifyProposal(governor, mockProposalVerifier.target, mockProof, mockProposalPublicSignals1, proposalContextKey, groupKey);
        
         // set vote verifier to the mock verifier and verify the first vote on the proposal
-        await setVoteVerifierAndVerifyVote(governor, mockVoteVerifier.target, mockProof, mockVotePublicSignals1, voteContextKey, groupKey, rootHash1);
+        await setVoteVerifierAndVerifyVote(governor, mockVoteVerifier.target, mockProof, mockVotePublicSignals1, voteContextKey, groupKey);
         
         // verify a second vote on the same context with a different choice
         await expect(voteManager.connect(governor).verifyVote(
             mockProof,
             mockVotePublicSignals2,
             voteContextKey,
-            groupKey,
-            rootHash1,
-            true // isProposalSubmitted
+            groupKey
         )).to.be.revertedWithCustomError(voteManager, "TallyingInconsistent");
     });
 
@@ -595,10 +585,10 @@ describe("Vote Manager Unit Tests:", function () {
         await voteManager.connect(governor).setMemberCount(groupKey, 4);
 
         // set the proposal submission verifier to the mock verifier and verify the first proposal
-        await setSubmissionVerifierAndVerifyProposal(governor, mockProposalVerifier.target, mockProof, mockProposalPublicSignals1, proposalContextKey, rootHash1);
+        await setSubmissionVerifierAndVerifyProposal(governor, mockProposalVerifier.target, mockProof, mockProposalPublicSignals1, proposalContextKey, groupKey);
 
         // set the vote verifier to the mock verifier and verify a vote on the first proposal
-        await setVoteVerifierAndVerifyVote(governor, mockVoteVerifier.target, mockProof, mockVotePublicSignals1, voteContextKey, groupKey, rootHash1);
+        await setVoteVerifierAndVerifyVote(governor, mockVoteVerifier.target, mockProof, mockVotePublicSignals1, voteContextKey, groupKey);
 
         const proposalResult = await voteManager.getProposalResult(voteContextKey);
         expect(proposalResult.tally).to.deep.equal([1, 0, 0]);
@@ -610,9 +600,7 @@ describe("Vote Manager Unit Tests:", function () {
             mockProof,
             mockVotePublicSignals2,
             voteContextKey,
-            groupKey,
-            rootHash1,
-            true // isProposalSubmitted
+            groupKey
         );
 
         const proposalResult2 = await voteManager.getProposalResult(voteContextKey);
@@ -625,9 +613,7 @@ describe("Vote Manager Unit Tests:", function () {
             mockProof,
             mockVotePublicSignals3,
             voteContextKey, 
-            groupKey,
-            rootHash1,
-            true // isProposalSubmitted
+            groupKey
         );
 
         const proposalResult3 = await voteManager.getProposalResult(voteContextKey);
@@ -640,9 +626,7 @@ describe("Vote Manager Unit Tests:", function () {
             mockProof,
             mockVotePublicSignals4,
             voteContextKey, 
-            groupKey,
-            rootHash1,
-            true // isProposalSubmitted
+            groupKey
         );
 
         const proposalResult4 = await voteManager.getProposalResult(voteContextKey);
@@ -663,7 +647,7 @@ describe("Vote Manager Unit Tests:", function () {
         await voteManager.connect(governor).setMemberCount(groupKey, 4);
 
         // set the proposal submission verifier to the mock verifier and verify the first proposal
-        await setSubmissionVerifierAndVerifyProposal(governor, mockProposalVerifier.target, mockProof, mockProposalPublicSignals1, proposalContextKey, rootHash1);
+        await setSubmissionVerifierAndVerifyProposal(governor, mockProposalVerifier.target, mockProof, mockProposalPublicSignals1, proposalContextKey, groupKey);
 
         // set the vote verifier to the mock verifier and verify a vote on the first proposal
         await setVoteVerifierAndVerifyVote(governor, mockVoteVerifier.target, mockProof, mockVotePublicSignals2, voteContextKey, groupKey, rootHash1);
@@ -685,19 +669,17 @@ describe("Vote Manager Unit Tests:", function () {
         await voteManager.connect(governor).setMemberCount(groupKey, 4);
 
         // set the proposal submission verifier to the mock verifier and verify the first proposal
-        await setSubmissionVerifierAndVerifyProposal(governor, mockProposalVerifier.target, mockProof, mockProposalPublicSignals1, proposalContextKey, rootHash1);
+        await setSubmissionVerifierAndVerifyProposal(governor, mockProposalVerifier.target, mockProof, mockProposalPublicSignals1, proposalContextKey, groupKey);
 
         // set the vote verifier to the mock verifier and verify a vote on the first proposal
-        await setVoteVerifierAndVerifyVote(governor, mockVoteVerifier.target, mockProof, mockVotePublicSignals1, voteContextKey, groupKey, rootHash1);
+        await setVoteVerifierAndVerifyVote(governor, mockVoteVerifier.target, mockProof, mockVotePublicSignals1, voteContextKey, groupKey);
 
         // verify a second vote and check the emitted event
         const tx = await voteManager.connect(governor).verifyVote(
             mockProof,
             mockVotePublicSignals2,
             voteContextKey,
-            groupKey,
-            rootHash1,
-            true // isProposalSubmitted
+            groupKey
         );
         const receipt = await tx.wait();
 
@@ -740,15 +722,16 @@ describe("Vote Manager Unit Tests:", function () {
             mockProof,
             mockVotePublicSignals1,
             voteContextKey,
-            groupKey,
-            ethers.ZeroHash,
-            true // isProposalSubmitted
+            groupKey
         )).to.be.revertedWithCustomError(voteManager, "RootNotYetInitialized");
     })
 
     it(`FUNCTION: verifyVote
         TESTING: custom error: InvalidMerkleRoot
         EXPECTED: should not allow the governor to verify a vote if the merkle root is not valid`, async function () {
+        // Deploy Group NFT and set root
+        await deployGroupNftAndSetRoot(governor, groupKey, nftName, nftSymbol, rootHash2);
+
         // set the member count to 2 (ie., only two members can vote)
         await voteManager.connect(governor).setMemberCount(groupKey, 2);
 
@@ -759,21 +742,24 @@ describe("Vote Manager Unit Tests:", function () {
             mockProof,
             mockVotePublicSignals1,
             voteContextKey,
-            groupKey,
-            rootHash2,
-            true // isProposalSubmitted
+            groupKey
         )).to.be.revertedWithCustomError(voteManager, "InvalidMerkleRoot");
     })
 
     it(`FUNCTION: verifyVote
         TESTING: custom error: VoteNullifierAlreadyUsed
         EXPECTED: should not allow the governor to verify a vote if the vote nullifier has already been used`, async function () {
-
+        // Deploy Group NFT and set root
+        await deployGroupNftAndSetRoot(governor, groupKey, nftName, nftSymbol, rootHash1);
+        
         // set the member count to 2 (ie., only two members can vote)
         await voteManager.connect(governor).setMemberCount(groupKey, 2);
 
+        // set the proposal submission verifier to the mock verifier and verify the first proposal
+        await setSubmissionVerifierAndVerifyProposal(governor, mockProposalVerifier.target, mockProof, mockProposalPublicSignals1, proposalContextKey, groupKey);
+
         // set the vote verifier to the mock verifier
-        await setVoteVerifierAndVerifyVote(governor, mockVoteVerifier.target, mockProof, mockVotePublicSignals1, voteContextKey, groupKey, rootHash1);
+        await setVoteVerifierAndVerifyVote(governor, mockVoteVerifier.target, mockProof, mockVotePublicSignals1, voteContextKey, groupKey);
 
         await expect(voteManager.voteNullifiers(voteNullifier1))
             .to.eventually.equal(true, "Vote nullifier should be stored after first verification");
@@ -783,9 +769,7 @@ describe("Vote Manager Unit Tests:", function () {
             mockProof,
             mockVotePublicSignals1,
             voteContextKey,
-            groupKey,
-            rootHash1,
-            true // isProposalSubmitted
+            groupKey
         )).to.be.revertedWithCustomError(voteManager, "VoteNullifierAlreadyUsed");
 
         // verify another vote with a different nullifier
@@ -793,9 +777,7 @@ describe("Vote Manager Unit Tests:", function () {
             mockProof,
             mockVotePublicSignals2,
             voteContextKey,
-            groupKey,
-            rootHash1,
-            true // isProposalSubmitted
+            groupKey
         )).to.emit(voteManager, "VoteVerified").withArgs(
             voteContextKey,
             voteNullifier2);
@@ -812,19 +794,22 @@ describe("Vote Manager Unit Tests:", function () {
             mockProof,
             mockVotePublicSignals2,
             voteContextKey,
-            groupKey,
-            rootHash1,
-            true // isProposalSubmitted
+            groupKey
         )).to.be.revertedWithCustomError(voteManager, "VoteNullifierAlreadyUsed");
-
-    })
+    });
 
     it(`FUNCTION: verifyVote
         TESTING: custom error: InvalidContextHash
         EXPECTED: should not allow the governor to verify a vote if the context hash is invalid`, async function () {
-
+        
+        // Deploy Group NFT and set root
+        await deployGroupNftAndSetRoot(governor, groupKey, nftName, nftSymbol, rootHash1);
+        
         // set the member count to 2 (ie., only two members can vote)
         await voteManager.connect(governor).setMemberCount(groupKey, 2);
+
+        // set the proposal submission verifier to the mock verifier and verify the first proposal
+        await setSubmissionVerifierAndVerifyProposal(governor, mockProposalVerifier.target, mockProof, mockProposalPublicSignals1, proposalContextKey, groupKey);
 
         // set the vote verifier to the mock verifier
         await voteManager.connect(governor).setVoteVerifier(mockVoteVerifier.target);
@@ -835,9 +820,7 @@ describe("Vote Manager Unit Tests:", function () {
             mockProof,
             mockVotePublicSignals1,
             invalidContextHash,
-            groupKey,
-            rootHash1,
-            true // isProposalSubmitted
+            groupKey
         )).to.be.revertedWithCustomError(voteManager, "InvalidContextHash");
 
     })
@@ -846,8 +829,14 @@ describe("Vote Manager Unit Tests:", function () {
         TESTING: custom error: InvalidVoteChoice
         EXPECTED: should not allow the governor to verify a vote if the vote choice is invalid`, async function () {
 
+        // Deploy Group NFT and set root
+        await deployGroupNftAndSetRoot(governor, groupKey, nftName, nftSymbol, rootHash1);
+
         // set the member count to 2 (ie., only two members can vote)
         await voteManager.connect(governor).setMemberCount(groupKey, 2);
+
+        // set the proposal submission verifier to the mock verifier and verify the first proposal
+        await setSubmissionVerifierAndVerifyProposal(governor, mockProposalVerifier.target, mockProof, mockProposalPublicSignals1, proposalContextKey, groupKey);
 
         // set the vote verifier to the mock verifier
         await voteManager.connect(governor).setVoteVerifier(mockVoteVerifier.target);
@@ -864,9 +853,7 @@ describe("Vote Manager Unit Tests:", function () {
             mockProof,
             invalidPublicSignals,
             voteContextKey,
-            groupKey,
-            rootHash1,
-            true // isProposalSubmitted
+            groupKey
         )).to.be.revertedWithCustomError(voteManager, "InvalidVoteChoice");
 
     })
@@ -874,27 +861,35 @@ describe("Vote Manager Unit Tests:", function () {
     it(`FUNCTION: verifyVote (with real verifier and invalid proof)
         TESTING: custom error: InvalidVoteProof
         EXPECTED: should not allow the governor to verify a vote if the vote proof is invalid`, async function () {
-
+        // Deploy Group NFT and set root
+        await deployGroupNftAndSetRoot(governor, realGroupKey, nftName, nftSymbol, realRoot);
+        
         // set the member count to 2 (ie., only two members can vote)
-        await voteManager.connect(governor).setMemberCount(groupKey, 2);
+        await voteManager.connect(governor).setMemberCount(realGroupKey, 2);
+
+        // set the proposal submission verifier to the mock verifier and verify the first proposal
+        await setSubmissionVerifierAndVerifyProposal(governor, proposalVerifier.target, realProposalProof, realProposalPublicSignals, realProposalContextKey, realGroupKey);
 
         await expect(voteManager.connect(governor).verifyVote(
             mockProof,
             realVotePublicSignals,
             realVoteContextKey,
-            realGroupKey,
-            realRoot,
-            true // isProposalSubmitted
+            realGroupKey
         )).to.be.revertedWithCustomError(voteManager, "InvalidVoteProof");
 
     });
 
     it(`FUNCTION: verifyVote (with real verifier)
-        TESTING: custom error: InvalidVoteProof
+        TESTING: custom error: InvalidVoteProof (via invalid vote choice)
         EXPECTED: should not allow the governor to verify a vote if the vote choice is invalid`, async function () {
-
+        // Deploy Group NFT and set root
+        await deployGroupNftAndSetRoot(governor, realGroupKey, nftName, nftSymbol, realRoot);
+        
         // set the member count to 2 (ie., only two members can vote)
-        await voteManager.connect(governor).setMemberCount(groupKey, 2);
+        await voteManager.connect(governor).setMemberCount(realGroupKey, 2);
+
+        // set the proposal submission verifier to the mock verifier and verify the first proposal
+        await setSubmissionVerifierAndVerifyProposal(governor, proposalVerifier.target, realProposalProof, realProposalPublicSignals, realProposalContextKey, realGroupKey);
         
         // make a copy of the valid public signals
         const invalidPublicSignals = [...realVotePublicSignals];
@@ -908,9 +903,7 @@ describe("Vote Manager Unit Tests:", function () {
                 realVoteProof,
                 invalidPublicSignals,
                 realVoteContextKey,
-                realGroupKey,
-                realRoot,
-                true // isProposalSubmitted
+                realGroupKey
             )
         ).to.be.revertedWithCustomError(voteManager, "InvalidVoteProof");
 
@@ -919,10 +912,15 @@ describe("Vote Manager Unit Tests:", function () {
     it(`FUNCTION: verifyVote (with real verifier)
         TESTING: custom error: InvalidContextHash
         EXPECTED: should not allow the governor to verify a vote if the context hash is invalid`, async function () {
-
-        // set the member count to 2 (ie., only two members can vote)
-        await voteManager.connect(governor).setMemberCount(groupKey, 2);
+        // Deploy Group NFT and set root
+        await deployGroupNftAndSetRoot(governor, realGroupKey, nftName, nftSymbol, realRoot);
         
+        // set the member count to 2 (ie., only two members can vote)
+        await voteManager.connect(governor).setMemberCount(realGroupKey, 2);
+
+        // set the proposal submission verifier to the mock verifier and verify the first proposal
+        await setSubmissionVerifierAndVerifyProposal(governor, proposalVerifier.target, realProposalProof, realProposalPublicSignals, realProposalContextKey, realGroupKey);
+
         // make a copy of the valid public signals
         const invalidPublicSignals = [...realVotePublicSignals];
 
@@ -933,9 +931,7 @@ describe("Vote Manager Unit Tests:", function () {
             realVoteProof,
             invalidPublicSignals,
             realVoteContextKey,
-            realGroupKey,
-            realRoot,
-            true // isProposalSubmitted
+            realGroupKey
         )).to.be.revertedWithCustomError(voteManager, "InvalidContextHash");
 
     });
@@ -943,10 +939,15 @@ describe("Vote Manager Unit Tests:", function () {
     it(`FUNCTION: verifyVote (with real verifier)
         TESTING: custom error: InvalidMerkleRoot
         EXPECTED: should not allow the governor to verify a vote if the Merkle root is invalid`, async function () {
-
-        // set the member count to 2 (ie., only two members can vote)
-        await voteManager.connect(governor).setMemberCount(groupKey, 2);
+        // Deploy Group NFT and set root
+        await deployGroupNftAndSetRoot(governor, realGroupKey, nftName, nftSymbol, realRoot);
         
+        // set the member count to 2 (ie., only two members can vote)
+        await voteManager.connect(governor).setMemberCount(realGroupKey, 2);
+
+        // set the proposal submission verifier to the mock verifier and verify the first proposal
+        await setSubmissionVerifierAndVerifyProposal(governor, proposalVerifier.target, realProposalProof, realProposalPublicSignals, realProposalContextKey, realGroupKey);
+
         // make a copy of the valid public signals
         const invalidPublicSignals = [...realVotePublicSignals];
 
@@ -957,9 +958,7 @@ describe("Vote Manager Unit Tests:", function () {
             realVoteProof,
             invalidPublicSignals,
             realVoteContextKey,
-            realGroupKey,
-            realRoot,
-            true // isProposalSubmitted
+            realGroupKey
         )).to.be.revertedWithCustomError(voteManager, "InvalidMerkleRoot");
 
     });
@@ -967,17 +966,20 @@ describe("Vote Manager Unit Tests:", function () {
     it(`FUNCTION: verifyVote (with real verifier)
         TESTING: custom error: VoteNullifierAlreadyUsed
         EXPECTED: should not allow the governor to verify a vote if the vote nullifier is already used`, async function () {
-
+        // Deploy Group NFT and set root
+        await deployGroupNftAndSetRoot(governor, realGroupKey, nftName, nftSymbol, realRoot);
+        
         // set the member count to 2 (ie., only two members can vote)
         await voteManager.connect(governor).setMemberCount(realGroupKey, 2);
+
+        // set the proposal submission verifier to the mock verifier and verify the first proposal
+        await setSubmissionVerifierAndVerifyProposal(governor, proposalVerifier.target, realProposalProof, realProposalPublicSignals, realProposalContextKey, realGroupKey);
 
         await expect(voteManager.connect(governor).verifyVote(
             realVoteProof,
             realVotePublicSignals,
             realVoteContextKey,
-            realGroupKey,
-            realRoot,
-            true // isProposalSubmitted
+            realGroupKey
         )).to.emit(voteManager, "VoteVerified");
 
         const nullifier = ethers.toBeHex(realVotePublicSignals[1], 32);
@@ -988,44 +990,46 @@ describe("Vote Manager Unit Tests:", function () {
             realVoteProof,
             realVotePublicSignals,
             realVoteContextKey,
-            realGroupKey,
-            realRoot,
-            true // isProposalSubmitted
+            realGroupKey
         )).to.revertedWithCustomError(voteManager, "VoteNullifierAlreadyUsed");
     });
 
     it(`FUNCTION: verifyVote (with real verifier)
         TESTING: custom error: ProposalHasNotBeenSubmitted
         EXPECTED: should not allow the governor to verify a vote if the proposal has not been submitted`, async function () {
-
+        
+        // Deploy Group NFT and set root
+        await deployGroupNftAndSetRoot(governor, realGroupKey, nftName, nftSymbol, realRoot);
+        
         // set the member count to 2 (ie., only two members can vote)
-        await voteManager.connect(governor).setMemberCount(groupKey, 2);
+        await voteManager.connect(governor).setMemberCount(realGroupKey, 2);
 
         await expect(voteManager.connect(governor).verifyVote(
             realVoteProof,
             realVotePublicSignals,
             realVoteContextKey,
-            realGroupKey,
-            realRoot,
-            false // isProposalSubmitted
+            realGroupKey
         )).to.be.revertedWithCustomError(voteManager, "ProposalHasNotBeenSubmitted");
 
     });
 
     it(`FUNCTION: verifyVote (with real verifier)
         TESTING: stored data: proposalResult
-        EXPECTED: should not allow the governor to verify a vote if the context hash is invalid`, async function () {
+        EXPECTED: should store the correct tally, passed status and submission nullifier`, async function () {
+        // Deploy Group NFT and set root
+        await deployGroupNftAndSetRoot(governor, realGroupKey, nftName, nftSymbol, realRoot);
         
         // set the member count to 2 (ie., only two members can vote)
         await voteManager.connect(governor).setMemberCount(realGroupKey, 2);
+
+        // set the proposal submission verifier to the mock verifier and verify the first proposal
+        await setSubmissionVerifierAndVerifyProposal(governor, proposalVerifier.target, realProposalProof, realProposalPublicSignals, realProposalContextKey, realGroupKey);
 
         await voteManager.connect(governor).verifyVote(
             realVoteProof,
             realVotePublicSignals,
             realVoteContextKey,
-            realGroupKey,
-            realRoot,
-            true // isProposalSubmitted
+            realGroupKey
         );
 
         const proposalResult = await voteManager.getProposalResult(realVoteContextKey);

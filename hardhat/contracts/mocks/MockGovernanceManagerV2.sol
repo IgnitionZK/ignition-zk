@@ -330,7 +330,6 @@ contract MockGovernanceManagerV2 is Initializable, UUPSUpgradeable, OwnableUpgra
         external 
         onlyOwner
     {   
-        //if (_module == address(0)) revert AddressCannotBeZero();
         if (activeModuleRegistry[_fundingType] != _module) revert ModuleMismatch();
         delete activeModuleRegistry[_fundingType];
         emit FundingModuleRemoved(_fundingType, _module);
@@ -539,6 +538,7 @@ contract MockGovernanceManagerV2 is Initializable, UUPSUpgradeable, OwnableUpgra
      * @dev Only callable by the relayer.
      * @param proof The zk-SNARK proof to verify.
      * @param pubSignals The public signals associated with the proof.
+     * @param groupKey The unique identifier for the group.
      * @param contextKey The pre-computed context hash (group, epoch).
      */
     function delegateVerifyProposal(
@@ -547,8 +547,7 @@ contract MockGovernanceManagerV2 is Initializable, UUPSUpgradeable, OwnableUpgra
         bytes32 groupKey,
         bytes32 contextKey
     ) external onlyRelayer {
-        bytes32 currentRoot = _getCurrentRoot(groupKey);
-        proposalManager.verifyProposal(proof, pubSignals, contextKey, currentRoot);
+        proposalManager.verifyProposal(proof, pubSignals, contextKey, groupKey);
     }
 
     /**
@@ -593,17 +592,7 @@ contract MockGovernanceManagerV2 is Initializable, UUPSUpgradeable, OwnableUpgra
         bytes32 groupKey,
         bytes32 contextKey
     ) external onlyRelayer {
-        bytes32 proofSubmissionNullifier = bytes32(publicSignals[4]);
-        bool isProposalSubmitted = _getProposalSubmissionNullifierStatus(proofSubmissionNullifier);
-        bytes32 currentRoot = _getCurrentRoot(groupKey);
-        voteManager.verifyVote(
-            proof, 
-            publicSignals, 
-            contextKey, 
-            groupKey, 
-            currentRoot, 
-            isProposalSubmitted
-        );
+        voteManager.verifyVote(proof, publicSignals, contextKey, groupKey);
     }
 
     /**
@@ -644,8 +633,7 @@ contract MockGovernanceManagerV2 is Initializable, UUPSUpgradeable, OwnableUpgra
      */
     function delegateDeployTreasury(bytes32 groupKey, address treasuryMultiSig, address treasuryRecovery) external onlyRelayer {
         if (address(treasuryFactory) == address(0)) revert TreasuryFactoryAddressNotSet();
-        bool hasDeployedNft = _getGroupNftAddress(groupKey) != address(0);
-        treasuryFactory.deployTreasury(groupKey, hasDeployedNft, treasuryMultiSig, treasuryRecovery);
+        treasuryFactory.deployTreasury(groupKey, treasuryMultiSig, treasuryRecovery);
     }
 
     // ================================================================================================================
@@ -808,33 +796,6 @@ contract MockGovernanceManagerV2 is Initializable, UUPSUpgradeable, OwnableUpgra
 // ====================================================================================================================
 //                                       PRIVATE HELPER FUNCTIONS
 // ====================================================================================================================
-
-    /**
-     * @dev Gets the current Merkle root for a specific group.
-     * @param groupKey The unique identifier for the group.
-     * @return The current Merkle root for the specified group.
-     */
-    function _getCurrentRoot(bytes32 groupKey) private view returns(bytes32) {
-        return membershipManager.groupRoots(groupKey);
-    }
-
-    /**
-     * @dev Checks if a proposal submission nullifier has been used.
-     * @param nullifier The submission nullifier to check.
-     * @return bool indicating whether the submission nullifier has been used.
-     */
-    function _getProposalSubmissionNullifierStatus(bytes32 nullifier) private view returns (bool) {
-        return proposalManager.submissionNullifiers(nullifier);
-    }
-
-    /**
-     * @dev Gets the address of the NFT contract for a specific group.
-     * @param groupKey The unique identifier for the group.
-     * @return The NFT contract address.
-     */
-    function _getGroupNftAddress(bytes32 groupKey) private view returns (address) {
-        return membershipManager.groupNftAddresses(groupKey);
-    }
 
     /**
      * @dev Gets the address of the group treasury for a specific group.

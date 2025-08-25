@@ -65,7 +65,8 @@ describe("Governance Manager Unit Tests:", function () {
         // Deploy TreasuryFactory with the BeaconManager address
         treasuryFactory = await TreasuryFactory.deploy(
             beaconManager.target,
-            governanceManager.target
+            governanceManager.target,
+            membershipManager.target
         );
         await treasuryFactory.waitForDeployment();
 
@@ -254,7 +255,7 @@ describe("Governance Manager Unit Tests:", function () {
         const upgradedGovernanceManager = await upgradeGovernanceManager();
 
         // Get new membership manager address after upgrade
-        const newMembershipManager = await upgradedGovernanceManager.connect(deployer).getMembershipManager();
+        const newMembershipManager = await upgradedGovernanceManager.membershipManager();
         
         // Check that the membership manager address is still the same after upgrade
         expect(newMembershipManager).to.equal(membershipManagerAddress, "Membership manager address should remain the same after upgrade");

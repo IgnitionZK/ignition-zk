@@ -16,7 +16,7 @@ describe("Proposal Manager Unit Tests:", function () {
             governor, user1, deployer, relayer,
 
             // Test constants
-            groupKey, epochKey, proposalKey, 
+            groupKey, groupKey2, epochKey, proposalKey, 
             voteContextKey, proposalContextKey,
             rootHash1, rootHash2,
             voteNullifier1, voteNullifier2, voteNullifier3, voteNullifier4,
@@ -47,7 +47,6 @@ describe("Proposal Manager Unit Tests:", function () {
             mockMembershipVerifier, mockProposalVerifier, mockProposalClaimVerifier, mockVoteVerifier
         } = deployedFixtures);
     });
-
     
     async function deployGroupNftAndSetRoot(signer, group, nftName, nftSymbol, root) {
         // Deploy group NFT and initialize group root
@@ -55,7 +54,7 @@ describe("Proposal Manager Unit Tests:", function () {
         await membershipManager.connect(signer).setRoot(root, group);
     }
 
-    async function setSubmissionVerifierAndVerifyProposal(signer, verifier, proof, publicSignals, contextKey, root) {
+    async function setSubmissionVerifierAndVerifyProposal(signer, verifier, proof, publicSignals, contextKey, groupKey) {
         // Set the proposal submission verifier
         await proposalManager.connect(signer).setProposalSubmissionVerifier(verifier);
         // Verify the proposal
@@ -63,11 +62,11 @@ describe("Proposal Manager Unit Tests:", function () {
             proof,
             publicSignals,
             contextKey,
-            root
+            groupKey
         );
     }
 
-    async function setClaimVerifierAndVerifyClaim(signer, verifier, proof, publicSignals, contextKey, root) {
+    async function setClaimVerifierAndVerifyClaim(signer, verifier, proof, publicSignals) {
         // Set the proposal claim verifier
         await proposalManager.connect(signer).setProposalClaimVerifier(verifier);
         // Verify the claim
@@ -165,7 +164,7 @@ describe("Proposal Manager Unit Tests:", function () {
         await deployGroupNftAndSetRoot(governor, groupKey, nftName, nftSymbol, rootHash1);
 
         // set the proposal submission verifier to the mock verifier and verify the first proposal
-        await setSubmissionVerifierAndVerifyProposal(governor, mockProposalVerifier.target, mockProof, mockProposalPublicSignals1, proposalContextKey, rootHash1);
+        await setSubmissionVerifierAndVerifyProposal(governor, mockProposalVerifier.target, mockProof, mockProposalPublicSignals1, proposalContextKey, groupKey);
 
         // check that the submission nullifier is stored correctly
         expect(await proposalManager.submissionNullifiers(submissionNullifier1)).to.equal(true);
@@ -256,7 +255,7 @@ describe("Proposal Manager Unit Tests:", function () {
         await deployGroupNftAndSetRoot(governor, groupKey, nftName, nftSymbol, rootHash1);
 
         // set the proposal submission verifier to the mock verifier and verify the first proposal
-        const tx = await setSubmissionVerifierAndVerifyProposal(governor, mockProposalVerifier.target, mockProof, mockProposalPublicSignals1, proposalContextKey, rootHash1);
+        const tx = await setSubmissionVerifierAndVerifyProposal(governor, mockProposalVerifier.target, mockProof, mockProposalPublicSignals1, proposalContextKey, groupKey);
 
         // expect the event to be emitted with the correct arguments
         await expect(tx).to.emit(proposalManager, "SubmissionVerified").withArgs(proposalContextKey, submissionNullifier1, claimNullifier1, contentHash1);
@@ -272,7 +271,7 @@ describe("Proposal Manager Unit Tests:", function () {
             mockProof,
             mockProposalPublicSignals2,
             proposalContextKey,
-            rootHash2
+            groupKey
         );
 
         // expect the event to be emitted with the correct arguments
@@ -293,14 +292,14 @@ describe("Proposal Manager Unit Tests:", function () {
         await deployGroupNftAndSetRoot(governor, groupKey, nftName, nftSymbol, rootHash1);
 
         // set the proposal submission verifier to the mock verifier and verify the first proposal
-        await setSubmissionVerifierAndVerifyProposal(governor, mockProposalVerifier.target, mockProof, mockProposalPublicSignals1, proposalContextKey, rootHash1);
+        await setSubmissionVerifierAndVerifyProposal(governor, mockProposalVerifier.target, mockProof, mockProposalPublicSignals1, proposalContextKey, groupKey);
 
         // try to verify the same proposal again with the same submission nullifier
         await expect(proposalManager.connect(governor).verifyProposal(
             mockProof,
             mockProposalPublicSignals1,
             proposalContextKey,
-            rootHash1
+            groupKey
         )).to.be.revertedWithCustomError(proposalManager, "SubmissionNullifierAlreadyUsed");
     });
 
@@ -318,7 +317,7 @@ describe("Proposal Manager Unit Tests:", function () {
             mockProof,
             mockProposalPublicSignals1,
             Conversions.stringToBytes32("invalidContextKey"), 
-            rootHash1
+            groupKey
         )).to.be.revertedWithCustomError(proposalManager, "InvalidContextHash");
     });
 
@@ -328,7 +327,8 @@ describe("Proposal Manager Unit Tests:", function () {
         
         // deploy group NFT and initialize group root
         await deployGroupNftAndSetRoot(governor, groupKey, nftName, nftSymbol, rootHash1);
-        
+        await deployGroupNftAndSetRoot(governor, groupKey2, nftName2, nftSymbol2, rootHash2);
+
         // set the proposal submission verifier to the mock verifier
         await proposalManager.connect(governor).setProposalSubmissionVerifier(mockProposalVerifier.target);
         
@@ -336,7 +336,7 @@ describe("Proposal Manager Unit Tests:", function () {
             mockProof,
             mockProposalPublicSignals1,
             proposalContextKey,
-            rootHash2
+            groupKey2
         )).to.be.revertedWithCustomError(proposalManager, "InvalidMerkleRoot");
     });
 
@@ -393,7 +393,7 @@ describe("Proposal Manager Unit Tests:", function () {
             mockProof,
             mockProposalPublicSignals1,
             proposalContextKey,
-            rootHash1
+            groupKey
         )).to.be.revertedWithCustomError(proposalManager, "InvalidSubmissionProof").withArgs(proposalContextKey, submissionNullifier1);
     });
 
@@ -405,7 +405,7 @@ describe("Proposal Manager Unit Tests:", function () {
         await deployGroupNftAndSetRoot(governor, groupKey, nftName, nftSymbol, rootHash1);
 
         // set the proposal submission verifier to the mock verifier and verify the first proposal
-        await setSubmissionVerifierAndVerifyProposal(governor, mockProposalVerifier.target, mockProof, mockProposalPublicSignals1, proposalContextKey, rootHash1);
+        await setSubmissionVerifierAndVerifyProposal(governor, mockProposalVerifier.target, mockProof, mockProposalPublicSignals1, proposalContextKey, groupKey);
 
         const publicSignals = [
             Conversions.stringToBytes32("contextKey2"),
@@ -420,7 +420,7 @@ describe("Proposal Manager Unit Tests:", function () {
             mockProof,
             publicSignals,
             Conversions.stringToBytes32("contextKey2"),
-            rootHash1
+            groupKey
         )).to.be.revertedWithCustomError(proposalManager, "SubmissionNullifierAlreadyUsed");
     });
 
@@ -436,7 +436,7 @@ describe("Proposal Manager Unit Tests:", function () {
             zeroProof,
             mockProposalPublicSignals1,
             proposalContextKey,
-            rootHash1
+            groupKey
         )).to.be.revertedWithCustomError(proposalManager, "InvalidSubmissionProof").withArgs(proposalContextKey, submissionNullifier1);
     });
 
@@ -448,7 +448,7 @@ describe("Proposal Manager Unit Tests:", function () {
             realProposalProof,
             realProposalPublicSignals,
             realProposalContextKey,
-            realRoot
+            realGroupKey
         )).to.emit(proposalManager, "SubmissionVerified").withArgs(
             proposalProofContextHash,
             proposalProofSubmissionNullifier,
@@ -475,7 +475,7 @@ describe("Proposal Manager Unit Tests:", function () {
             realProposalProof,
             invalidPublicSignals,
             realProposalContextKey,
-            realRoot
+            realGroupKey
         )).to.be.revertedWithCustomError(proposalManager, "InvalidContextHash");
     });
 
@@ -494,7 +494,7 @@ describe("Proposal Manager Unit Tests:", function () {
             realProposalProof,
             invalidPublicSignals,
             realProposalContextKey,
-            realRoot
+            realGroupKey
         )).to.be.revertedWithCustomError(proposalManager, "InvalidSubmissionProof").withArgs(
             realProposalContextKey,
             invalidPublicSignals[1]
@@ -516,7 +516,7 @@ describe("Proposal Manager Unit Tests:", function () {
             realProposalProof,
             invalidPublicSignals,
             realProposalContextKey,
-            realRoot
+            realGroupKey
         )).to.be.revertedWithCustomError(proposalManager, "InvalidSubmissionProof").withArgs(
             realProposalContextKey,
             invalidPublicSignals[1]
@@ -538,7 +538,7 @@ describe("Proposal Manager Unit Tests:", function () {
             realProposalProof,
             invalidPublicSignals,
             realProposalContextKey,
-            realRoot
+            realGroupKey
         )).to.be.revertedWithCustomError(proposalManager, "InvalidMerkleRoot");
     });
 
@@ -557,7 +557,7 @@ describe("Proposal Manager Unit Tests:", function () {
             realProposalProof,
             invalidPublicSignals,
             realProposalContextKey,
-            realRoot
+            realGroupKey
         )).to.be.revertedWithCustomError(proposalManager, "InvalidSubmissionProof").withArgs(
             realProposalContextKey,
             invalidPublicSignals[1]
@@ -591,7 +591,7 @@ describe("Proposal Manager Unit Tests:", function () {
         await deployGroupNftAndSetRoot(governor, groupKey, nftName, nftSymbol, rootHash1);
         
         // set the proposal submission verifier to the mock verifier and verify the first proposal
-        await setSubmissionVerifierAndVerifyProposal(governor, mockProposalVerifier.target, mockProof, mockProposalPublicSignals1, proposalContextKey, rootHash1);
+        await setSubmissionVerifierAndVerifyProposal(governor, mockProposalVerifier.target, mockProof, mockProposalPublicSignals1, proposalContextKey, groupKey);
 
         // set the proposal claim verifier to the mock verifier
         await proposalManager.connect(governor).setProposalClaimVerifier(mockProposalClaimVerifier.target);
@@ -613,7 +613,7 @@ describe("Proposal Manager Unit Tests:", function () {
         await deployGroupNftAndSetRoot(governor, groupKey, nftName, nftSymbol, rootHash1);
         
         // set the proposal submission verifier to the mock verifier and verify the first proposal
-        await setSubmissionVerifierAndVerifyProposal(governor, mockProposalVerifier.target, mockProof, mockProposalPublicSignals1, proposalContextKey, rootHash1);
+        await setSubmissionVerifierAndVerifyProposal(governor, mockProposalVerifier.target, mockProof, mockProposalPublicSignals1, proposalContextKey, groupKey);
 
         // set the proposal claim verifier to the mock verifier
         await proposalManager.connect(governor).setProposalClaimVerifier(mockProposalClaimVerifier.target);
@@ -641,7 +641,7 @@ describe("Proposal Manager Unit Tests:", function () {
         await deployGroupNftAndSetRoot(governor, groupKey, nftName, nftSymbol, rootHash1);
 
         // set the proposal submission verifier to the mock verifier and verify the first proposal
-        await setSubmissionVerifierAndVerifyProposal(governor, mockProposalVerifier.target, mockProof, mockProposalPublicSignals1, proposalContextKey, rootHash1);
+        await setSubmissionVerifierAndVerifyProposal(governor, mockProposalVerifier.target, mockProof, mockProposalPublicSignals1, proposalContextKey, groupKey);
 
         // set the proposal claim verifier to the mock verifier
         await proposalManager.connect(governor).setProposalClaimVerifier(mockProposalClaimVerifier.target);
@@ -673,7 +673,7 @@ describe("Proposal Manager Unit Tests:", function () {
         await deployGroupNftAndSetRoot(governor, groupKey, nftName, nftSymbol, rootHash1);
         
         // set the proposal submission verifier to the mock verifier and verify the first proposal
-        await setSubmissionVerifierAndVerifyProposal(governor, mockProposalVerifier.target, mockProof, mockProposalPublicSignals1, proposalContextKey, rootHash1);
+        await setSubmissionVerifierAndVerifyProposal(governor, mockProposalVerifier.target, mockProof, mockProposalPublicSignals1, proposalContextKey, groupKey);
 
         // set the proposal claim verifier to the mock verifier
         await proposalManager.connect(governor).setProposalClaimVerifier(mockProposalClaimVerifier.target); 
@@ -693,7 +693,7 @@ describe("Proposal Manager Unit Tests:", function () {
         await deployGroupNftAndSetRoot(governor, groupKey, nftName, nftSymbol, rootHash1);
 
         // set the proposal submission verifier to the mock verifier and verify the first proposal
-        await setSubmissionVerifierAndVerifyProposal(governor, mockProposalVerifier.target, mockProof, mockProposalPublicSignals1, proposalContextKey, rootHash1);
+        await setSubmissionVerifierAndVerifyProposal(governor, mockProposalVerifier.target, mockProof, mockProposalPublicSignals1, proposalContextKey, groupKey);
 
         // set the proposal claim verifier to the mock verifier
         await proposalManager.connect(governor).setProposalClaimVerifier(mockProposalClaimVerifier.target);
@@ -717,7 +717,7 @@ describe("Proposal Manager Unit Tests:", function () {
             realProposalProof,
             realProposalPublicSignals,
             realProposalContextKey,
-            realRoot
+            realGroupKey
         );
 
         const submissionNullifierStatus = await proposalManager.submissionNullifiers(proposalProofSubmissionNullifier);
@@ -745,7 +745,7 @@ describe("Proposal Manager Unit Tests:", function () {
             realProposalProof,
             realProposalPublicSignals,
             realProposalContextKey,
-            realRoot
+            realGroupKey
         );
 
         const invalidClaimPublicSignals = [...realClaimPublicSignals];
@@ -771,7 +771,7 @@ describe("Proposal Manager Unit Tests:", function () {
             realProposalProof,
             realProposalPublicSignals,
             realProposalContextKey,
-            realRoot
+            realGroupKey
         );
 
         // increment the 2nd public signal (submission nullifier) to make it invalid
@@ -797,7 +797,7 @@ describe("Proposal Manager Unit Tests:", function () {
             realProposalProof,
             realProposalPublicSignals,
             realProposalContextKey,
-            realRoot
+            realGroupKey
         );
 
         // increment the 3rd public signal (context hash) to make it invalid
@@ -818,10 +818,10 @@ describe("Proposal Manager Unit Tests:", function () {
         await deployGroupNftAndSetRoot(governor, groupKey, nftName, nftSymbol, rootHash1);
 
         // set the proposal submission verifier to the mock verifier and verify the first proposal
-        await setSubmissionVerifierAndVerifyProposal(governor, mockProposalVerifier.target, mockProof, mockProposalPublicSignals1, proposalContextKey, rootHash1);
+        await setSubmissionVerifierAndVerifyProposal(governor, mockProposalVerifier.target, mockProof, mockProposalPublicSignals1, proposalContextKey, groupKey);
 
         // set the proposal claim verifier to the mock verifier and verify the first proposal claim
-        await setClaimVerifierAndVerifyClaim(governor, mockProposalClaimVerifier.target, mockProof, mockClaimPublicSignals1, proposalContextKey, rootHash1);
+        await setClaimVerifierAndVerifyClaim(governor, mockProposalClaimVerifier.target, mockProof, mockClaimPublicSignals1);
 
         // check if the claim nullifier status is stored correctly
         expect(await proposalManager.claimNullifiers(claimNullifier1)).to.equal(true);
@@ -834,7 +834,7 @@ describe("Proposal Manager Unit Tests:", function () {
             mockProof,
             mockProposalPublicSignals2,
             proposalContextKey,
-            rootHash2
+            groupKey
         );
 
         // verify the second proposal claim

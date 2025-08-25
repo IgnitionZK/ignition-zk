@@ -10,6 +10,7 @@ import { ERC165 } from "@openzeppelin/contracts/utils/introspection/ERC165.sol";
 import { ITreasuryManager } from "../interfaces/treasury/ITreasuryManager.sol";
 import { ITreasuryFactory } from "../interfaces/treasury/ITreasuryFactory.sol";
 import { IERC165 } from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
+import { IMembershipManager } from "../interfaces/managers/IMembershipManager.sol";
 
 /**
  * @title TreasuryFactory
@@ -64,6 +65,9 @@ contract TreasuryFactory is Ownable, ERC165, ITreasuryFactory {
     /// @dev Address of the GovernanceManager.
     address public immutable governanceManager;
 
+    /// @dev Address of the MembershipManager.
+    IMembershipManager public membershipManager;
+
 // ====================================================================================================================
 //                                                  MODIFIERS
 // ====================================================================================================================
@@ -94,17 +98,21 @@ contract TreasuryFactory is Ownable, ERC165, ITreasuryFactory {
      * @dev Constructor for the TreasuryFactory contract.
      * @param _beaconManager The address of the beacon contract.
      * @param _governanceManager The address of the governance manager contract.
+     * @param _membershipManager The address of the membership manager contract.
      */
     constructor(
         address _beaconManager,
-        address _governanceManager
+        address _governanceManager,
+        address _membershipManager
     ) 
         Ownable(_governanceManager)
         nonZeroAddress(_beaconManager)
         nonZeroAddress(_governanceManager)
+        nonZeroAddress(_membershipManager)
     {
         beaconManager = _beaconManager;
         governanceManager = _governanceManager;
+        membershipManager = IMembershipManager(_membershipManager);
         emit TreasuryFactoryDeployed(beaconManager, governanceManager);
     }
 
@@ -116,11 +124,11 @@ contract TreasuryFactory is Ownable, ERC165, ITreasuryFactory {
      * @notice Deploys new treasury instances for the DAO groups.
      * @dev only callable by the owner (GovernanceManager)
      * @param groupKey The unique group (DAO) identifier.
-     * @param hasDeployedNft boolean indicating whether a group NFT exists.
+     * @param treasuryMultiSig The address of the treasury multi-signature wallet.
+     * @param treasuryRecovery The address of the treasury recovery wallet.
      */
     function deployTreasury(
         bytes32 groupKey, 
-        bool hasDeployedNft,
         address treasuryMultiSig,
         address treasuryRecovery
     ) 
@@ -132,7 +140,7 @@ contract TreasuryFactory is Ownable, ERC165, ITreasuryFactory {
     {
 
         if (groupTreasuryAddresses[groupKey] != address(0)) revert GroupTreasuryAlreadyExists();
-        if (!hasDeployedNft) revert GroupNftNotSet();
+        if (membershipManager.groupNftAddresses(groupKey) == address(0)) revert GroupNftNotSet();
 
         bytes memory initData = abi.encodeWithSelector(
             ITreasuryManager.initialize.selector,

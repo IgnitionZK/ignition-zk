@@ -32,13 +32,14 @@ interface IProposalManager {
      * @param proof The zk-SNARK proof to verify.
      * @param publicSignals The public signals associated with the proof.
      * @param contextKey The pre-computed context hash (group, epoch).
-     * @param currentRoot The current Merkle root from the MembershipManager contract.
+     * @param groupKey The identifier of the group.
      */
     function verifyProposal(
         uint256[24] calldata proof,
         uint256[5] calldata publicSignals,
         bytes32 contextKey, 
-        bytes32 currentRoot
+        //bytes32 currentRoot
+        bytes32 groupKey
     ) external;
 
     /**

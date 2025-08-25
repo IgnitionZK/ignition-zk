@@ -25,17 +25,15 @@ interface IVoteManager {
      * @param proof The zk-SNARK proof to verify.
      * @param publicSignals The public signals associated with the proof.
      * @param contextKey The pre-computed context hash (group, epoch).
-     * @param groupKey The unique identifier for the voting group.
-     * @param currentRoot The current Merkle root from the MembershipManager contract.
-    * @param isProposalSubmitted A boolean indicating whether the proposal has been submitted and verified.
+     * @param groupKey The identifier of the group.
      */
     function verifyVote(
         uint256[24] calldata proof,
         uint256[5] calldata publicSignals,
         bytes32 contextKey,
-        bytes32 groupKey,
-        bytes32 currentRoot,
-        bool isProposalSubmitted
+        bytes32 groupKey
+        //bytes32 currentRoot,
+        //bool isProposalSubmitted
     ) external;
 
     /**
