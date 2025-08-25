@@ -196,3 +196,50 @@ export async function getProposalSubmissionNullifier(proposalId) {
 
   return data?.nullifier_hash || null;
 }
+
+/**
+ * Retrieves proofs by group IDs and group member IDs using the Supabase RPC function get_proofs_by_group_ids.
+ * @param {string[]} groupIds - Array of group IDs
+ * @param {string[]} groupMemberIds - Array of group member IDs (one-to-one mapping with groupIds)
+ * @returns {Promise<Array<Object>>} An array of proof records with database fields
+ * @throws {Error} If groupIds or groupMemberIds are not provided, arrays don't match, or if the RPC operation fails
+ */
+export async function getProofsByGroupIds(groupIds, groupMemberIds) {
+  if (!groupIds || !Array.isArray(groupIds)) {
+    throw new Error("groupIds must be an array");
+  }
+
+  if (!groupMemberIds || !Array.isArray(groupMemberIds)) {
+    throw new Error("groupMemberIds must be an array");
+  }
+
+  if (groupIds.length === 0) {
+    throw new Error("At least one group ID must be provided");
+  }
+
+  if (groupIds.length !== groupMemberIds.length) {
+    throw new Error(
+      "groupIds and groupMemberIds arrays must have the same length for one-to-one mapping"
+    );
+  }
+
+  console.log(
+    "🔍 getProofsByGroupIds called with group IDs:",
+    groupIds,
+    "and group member IDs:",
+    groupMemberIds
+  );
+
+  const { data, error } = await supabase.rpc("get_proofs_by_group_ids", {
+    group_ids: groupIds,
+    group_member_ids: groupMemberIds,
+  });
+
+  if (error) {
+    console.error("getProofsByGroupIds - RPC error:", error);
+    throw new Error(error.message);
+  }
+
+  console.log("getProofsByGroupIds - Successfully retrieved proofs:", data);
+  return data || [];
+}

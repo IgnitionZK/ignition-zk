@@ -250,39 +250,3 @@ export async function getProposalByIdentifiers({
 
   return data;
 }
-
-/**
- * Retrieves pending inbox proposals for a list of group IDs
- * These are proposals that are active AND the current user has not voted on yet
- * @param {Object} params - The parameters object
- * @param {string|string[]} params.groupId - Single group ID or array of group IDs to fetch proposals for
- * @param {string} params.groupMemberId - The current user's group member ID to check for existing votes
- * @returns {Promise<Array<Object>|null>} Array of pending proposal objects, or null if no proposals found
- * @throws {Error} If groupId or groupMemberId is not provided or if there's a database error
- */
-export async function getPendingInboxProposals({ groupId, groupMemberId }) {
-  if (!groupId) {
-    throw new Error("groupId is required");
-  }
-  if (!groupMemberId) {
-    throw new Error("groupMemberId is required");
-  }
-
-  const groupIds = Array.isArray(groupId) ? groupId : [groupId];
-
-  const { data, error } = await supabase
-    .schema("ignitionzk")
-    .rpc("get_pending_inbox_proposals", {
-      p_group_ids: groupIds,
-      p_group_member_id: groupMemberId,
-    });
-
-  if (error) {
-    if (error.code === "PGRST116") {
-      return null;
-    }
-    throw new Error(error.message);
-  }
-
-  return data;
-}
