@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.28;
 
-import "../../libraries/VoteTypes.sol";
+import { VoteTypes } from "../../libraries/VoteTypes.sol";
+import { IVoteVerifier } from "../verifiers/IVoteVerifier.sol";
 
 /**
  * @title IVoteManager
@@ -24,17 +25,15 @@ interface IVoteManager {
      * @param proof The zk-SNARK proof to verify.
      * @param publicSignals The public signals associated with the proof.
      * @param contextKey The pre-computed context hash (group, epoch).
-     * @param groupKey The unique identifier for the voting group.
-     * @param currentRoot The current Merkle root from the MembershipManager contract.
-    * @param isProposalSubmitted A boolean indicating whether the proposal has been submitted and verified.
+     * @param groupKey The identifier of the group.
      */
     function verifyVote(
         uint256[24] calldata proof,
         uint256[5] calldata publicSignals,
         bytes32 contextKey,
-        bytes32 groupKey,
-        bytes32 currentRoot,
-        bool isProposalSubmitted
+        bytes32 groupKey
+        //bytes32 currentRoot,
+        //bool isProposalSubmitted
     ) external;
 
     /**
@@ -66,34 +65,34 @@ interface IVoteManager {
      * @notice Gets the address of the vote verifier contract.
      * @return The address of the vote verifier contract.
      */
-    function getVoteVerifier() external view returns (address);
+    function voteVerifier() external view returns (IVoteVerifier);
 
     /**
      * @notice Gets the vote nullifier status.
      * @param nullifier The vote nullifier to check.
      * @return The status of the vote nullifier (true if used, false if not).
      */
-    function getVoteNullifierStatus(bytes32 nullifier) external view returns (bool);
+    function voteNullifiers(bytes32 nullifier) external view returns (bool);
 
     /**
      * @notice Gets the group parameters for a voting group.
      * @param groupKey The unique identifier for the voting group.
      * @return params The group parameters including member count and quorum settings.
      */
-    function getGroupParams(bytes32 groupKey) external view returns (VoteTypes.GroupParams memory params);
+    function getGroupParams(bytes32 groupKey) external view returns (VoteTypes.GroupParams memory);
 
     /**
      * @notice Gets the proposal result for a given context key.
      * @param contextKey The pre-computed context hash (group, epoch, proposal).
      * @return result The proposal result including the vote tally and proposal passed status.
      */
-    function getProposalResult(bytes32 contextKey) external view returns (VoteTypes.ProposalResult memory result);
+    function getProposalResult(bytes32 contextKey) external view returns (VoteTypes.ProposalResult memory);
 
     /**
      * @notice Gets the quorum parameters for the voting system.
      * @return params The quorum parameters including minimum and maximum quorum percentages and group size thresholds.
      */
-    function getQuorumParams() external view returns (VoteTypes.QuorumParams memory params);
+    function getQuorumParams() external view returns (VoteTypes.QuorumParams memory);
 
     /**
      * @notice Retrieves the current version of the VoteManager contract.

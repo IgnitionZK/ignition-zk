@@ -103,7 +103,8 @@ describe("Treasury Manager Unit Tests:", function () {
         // Deploy TreasuryFactory with the BeaconManager address
         treasuryFactory = await TreasuryFactory.deploy(
             beaconManager.target,
-            await governor.getAddress() // use test EOA account to simplify testing
+            await governor.getAddress(), // use test EOA account to simplify testing
+            membershipManager.target
         );
         await treasuryFactory.waitForDeployment();
 
@@ -115,7 +116,8 @@ describe("Treasury Manager Unit Tests:", function () {
         // Deploy TreasuryFactory with the BeaconManager address
         treasuryFactory = await TreasuryFactory.deploy(
             mockBeaconManager.target,
-            mockGovernanceManager.target // use GM contract as Owner
+            mockGovernanceManager.target, // use GM contract as Owner
+            membershipManager.target
         );
         await treasuryFactory.waitForDeployment();
 
@@ -182,22 +184,28 @@ describe("Treasury Manager Unit Tests:", function () {
         // Deploy treasury instance
         await treasuryFactory.connect(treasuryFactorySigner).deployTreasury(
             groupKey, 
-            true, // hasDeployedNft
             treasuryMultisig,
             treasuryRecovery 
         );
 
         // Get address of deployed instance
-        const treasuryAddr = await treasuryFactory.connect(treasuryFactorySigner).getTreasuryAddress(groupKey);
+        const treasuryAddr = await treasuryFactory.groupTreasuryAddresses(groupKey);
         const treasuryInstance = await ethers.getContractAt("TreasuryManager", treasuryAddr);
         return treasuryInstance;
     }
 
+    async function deployGroupNftAndSetRoot(signer, group, nftName, nftSymbol, root) {
+        // Deploy group NFT and initialize group root
+        await membershipManager.connect(signer).deployGroupNft(group, nftName, nftSymbol);
+        await membershipManager.connect(signer).setRoot(root, group);
+    }
 
     it(`FUNCTION: transferAdminRole
         TESTING: event: AdminRoleTransferred
         EXPECTED: should let treasury admin transfer the default admin role and emit event`, async function () {
-        
+        // deploy group NFT and initialize group root
+        await deployGroupNftAndSetRoot(governor, groupKey, nftName, nftSymbol, rootHash1);
+
         // Use EOA test signer as treasury factory owner
         await deployTreasuryFactoryWithEOAOwner();
 
@@ -224,6 +232,9 @@ describe("Treasury Manager Unit Tests:", function () {
         TESTING: authorization (failure)
         EXPECTED: should not let a non-admin transfer the default admin role`, async function () {
         
+        // deploy group NFT and initialize group root
+        await deployGroupNftAndSetRoot(governor, groupKey, nftName, nftSymbol, rootHash1);
+        
         // Use EOA test signer as treasury factory owner
         await deployTreasuryFactoryWithEOAOwner();
 
@@ -238,6 +249,9 @@ describe("Treasury Manager Unit Tests:", function () {
     it(`FUNCTION: transferAdminRole
         TESTING: custom error: AlreadyHasRole
         EXPECTED: should revert if new admin already has role`, async function () {
+        // deploy group NFT and initialize group root
+        await deployGroupNftAndSetRoot(governor, groupKey, nftName, nftSymbol, rootHash1);
+        
         // Use EOA test signer as treasury factory owner
         await deployTreasuryFactoryWithEOAOwner();
         
@@ -254,6 +268,9 @@ describe("Treasury Manager Unit Tests:", function () {
     it(`FUNCTION: emergencyAccessControl
         TESTING: event: EmergencyAccessGranted
         EXPECTED: should let the emergency recovery role holder grant admin rights to a new admin`, async function () {
+        // deploy group NFT and initialize group root
+        await deployGroupNftAndSetRoot(governor, groupKey, nftName, nftSymbol, rootHash1);
+        
         // Use EOA test signer as treasury factory owner
         await deployTreasuryFactoryWithEOAOwner();
 
@@ -279,6 +296,9 @@ describe("Treasury Manager Unit Tests:", function () {
     it(`FUNCTION: emergencyAccessControl
         TESTING: authorization (failure)
         EXPECTED: should not let a non emergency recovery role holder grant admin rights to a new admin`, async function () {
+        // deploy group NFT and initialize group root
+        await deployGroupNftAndSetRoot(governor, groupKey, nftName, nftSymbol, rootHash1);
+        
         // Use EOA test signer as treasury factory owner
         await deployTreasuryFactoryWithEOAOwner();
 
@@ -292,6 +312,9 @@ describe("Treasury Manager Unit Tests:", function () {
     it(`FUNCTION: emergencyAccessControl
         TESTING: custom error: AlreadyHasRole
         EXPECTED: should revert if new admin already has role`, async function () {
+        // deploy group NFT and initialize group root
+        await deployGroupNftAndSetRoot(governor, groupKey, nftName, nftSymbol, rootHash1);
+        
         // Use EOA test signer as treasury factory owner
         await deployTreasuryFactoryWithEOAOwner();
 
@@ -305,23 +328,26 @@ describe("Treasury Manager Unit Tests:", function () {
     it(`FUNCTION: requestTransfer
         TESTING: event: TransferRequested
         EXPECTED: should allow the authorized funding module to request a transfer and emit event`, async function () {
-
         ({ mockGovernanceManager, mockTreasuryManager, mockBeaconManager } = await deployMock_GovernanceManager_TreasuryManager_BeaconManager());
+        
+        // deploy group NFT and initialize group root
+        await deployGroupNftAndSetRoot(governor, groupKey, nftName, nftSymbol, rootHash1);
+        
         await deployTreasuryFactoryWithContractOwner();
         await deployMockGrantModule();
         
         // Get governance manager signer
         const governanceManagerSigner = await setContractAsSignerAndFund(mockGovernanceManager);
-
+       
         // Deploy treasury instance: deployTreasuryInstanceWithEOAOwner(treasuryFactorySigner, treasuryMultisig, treasuryRecovery)
         const treasuryInstance = await deployTreasuryInstanceWithEOAOwner(governanceManagerSigner, await governor.getAddress(), await governor.getAddress());
-
+       
         // Stop contract as signer
         await stopContractAsSigner(mockGovernanceManager);
-
+        
         // Get mock grant module contract as signer with funds for gas
         const mockGrantModuleSigner = await setContractAsSignerAndFund(mockGrantModule);
-       
+        
         // Request transfer
         const grantType = ethers.id("grant");
         await expect(treasuryInstance.connect(mockGrantModuleSigner).requestTransfer(
@@ -336,15 +362,16 @@ describe("Treasury Manager Unit Tests:", function () {
             await user1.getAddress(), 
             2
         );
-
         await stopContractAsSigner(mockGrantModule);
     });
 
     it(`FUNCTION: requestTransfer
         TESTING: custom error: UnknownFundingType
         EXPECTED: should revert if the funding type is not present in the FundingTypes library`, async function () {
-        
         ({ mockGovernanceManager, mockTreasuryManager, mockBeaconManager } = await deployMock_GovernanceManager_TreasuryManager_BeaconManager());
+        
+        // deploy group NFT and initialize group root
+        await deployGroupNftAndSetRoot(governor, groupKey, nftName, nftSymbol, rootHash1);
         await deployTreasuryFactoryWithContractOwner();
         await deployMockGrantModule();
         
@@ -378,6 +405,9 @@ describe("Treasury Manager Unit Tests:", function () {
         EXPECTED: should revert if the transfer amount is zero`, async function () {
         
         ({ mockGovernanceManager, mockTreasuryManager, mockBeaconManager } = await deployMock_GovernanceManager_TreasuryManager_BeaconManager());
+        
+        // deploy group NFT and initialize group root
+        await deployGroupNftAndSetRoot(governor, groupKey, nftName, nftSymbol, rootHash1);
         await deployTreasuryFactoryWithContractOwner();
         await deployMockGrantModule();
         
@@ -411,6 +441,9 @@ describe("Treasury Manager Unit Tests:", function () {
         EXPECTED: should revert the funding request has already been recorded`, async function () {
         
         ({ mockGovernanceManager, mockTreasuryManager, mockBeaconManager } = await deployMock_GovernanceManager_TreasuryManager_BeaconManager());
+        
+        // deploy group NFT and initialize group root
+        await deployGroupNftAndSetRoot(governor, groupKey, nftName, nftSymbol, rootHash1);
         await deployTreasuryFactoryWithContractOwner();
         await deployMockGrantModule();
         
@@ -450,6 +483,9 @@ describe("Treasury Manager Unit Tests:", function () {
         TESTING: custom error: UnauthorizedModule
         EXPECTED: should revert if the call does not originate from an active funding module`, async function () {
         ({ mockGovernanceManager, mockTreasuryManager, mockBeaconManager } = await deployMock_GovernanceManager_TreasuryManager_BeaconManager());
+        
+        // deploy group NFT and initialize group root
+        await deployGroupNftAndSetRoot(governor, groupKey, nftName, nftSymbol, rootHash1);
         await deployTreasuryFactoryWithContractOwner();
         await deployMockGrantModule();
 
@@ -488,6 +524,9 @@ describe("Treasury Manager Unit Tests:", function () {
         TESTING: custom error: ActiveModuleNotSet
         EXPECTED: should revert if the active funding module for the funding type has not been set in the GM`, async function () {
         ({ mockGovernanceManager, mockTreasuryManager, mockBeaconManager } = await deployMock_GovernanceManager_TreasuryManager_BeaconManager());
+        
+        // deploy group NFT and initialize group root
+        await deployGroupNftAndSetRoot(governor, groupKey, nftName, nftSymbol, rootHash1);
         await deployTreasuryFactoryWithContractOwner();
         await deployMockGrantModule();
 
@@ -526,6 +565,9 @@ describe("Treasury Manager Unit Tests:", function () {
         TESTING: mapping: fundingRequests
         EXPECTED: should store the correct funding request details in the mapping`, async function () {
         ({ mockGovernanceManager, mockTreasuryManager, mockBeaconManager } = await deployMock_GovernanceManager_TreasuryManager_BeaconManager());
+        
+        // deploy group NFT and initialize group root
+        await deployGroupNftAndSetRoot(governor, groupKey, nftName, nftSymbol, rootHash1);
         await deployTreasuryFactoryWithContractOwner();
         await deployMockGrantModule();
 
@@ -596,6 +638,9 @@ describe("Treasury Manager Unit Tests:", function () {
         TESTING: event: TransferApproved
         EXPECTED: should allow the treasury instance owner/admin to approve a funding request`, async function () {
         ({ mockGovernanceManager, mockTreasuryManager, mockBeaconManager } = await deployMock_GovernanceManager_TreasuryManager_BeaconManager());
+        
+        // deploy group NFT and initialize group root
+        await deployGroupNftAndSetRoot(governor, groupKey, nftName, nftSymbol, rootHash1);
         await deployTreasuryFactoryWithContractOwner();
         await deployMockGrantModule();
 
@@ -633,6 +678,9 @@ describe("Treasury Manager Unit Tests:", function () {
         TESTING: authorization (failure)
         EXPECTED: should not allow a non-owner/admin to approve a funding request`, async function () {
         ({ mockGovernanceManager, mockTreasuryManager, mockBeaconManager } = await deployMock_GovernanceManager_TreasuryManager_BeaconManager());
+        
+        // deploy group NFT and initialize group root
+        await deployGroupNftAndSetRoot(governor, groupKey, nftName, nftSymbol, rootHash1);
         await deployTreasuryFactoryWithContractOwner();
         await deployMockGrantModule();
 
@@ -670,6 +718,9 @@ describe("Treasury Manager Unit Tests:", function () {
         TESTING: custom error: RequestDoesNotExist
         EXPECTED: should revert if the funding request does not exist`, async function () {
         ({ mockGovernanceManager, mockTreasuryManager, mockBeaconManager } = await deployMock_GovernanceManager_TreasuryManager_BeaconManager());
+        
+        // deploy group NFT and initialize group root
+        await deployGroupNftAndSetRoot(governor, groupKey, nftName, nftSymbol, rootHash1);
         await deployTreasuryFactoryWithContractOwner();
         await deployMockGrantModule();
 
@@ -691,6 +742,9 @@ describe("Treasury Manager Unit Tests:", function () {
         TESTING: custom error: TransferAlreadyApproved
         EXPECTED: should not allow the treasury instance owner/admin to approve an already approved funding request`, async function () {
         ({ mockGovernanceManager, mockTreasuryManager, mockBeaconManager } = await deployMock_GovernanceManager_TreasuryManager_BeaconManager());
+        
+        // deploy group NFT and initialize group root
+        await deployGroupNftAndSetRoot(governor, groupKey, nftName, nftSymbol, rootHash1);
         await deployTreasuryFactoryWithContractOwner();
         await deployMockGrantModule();
 
@@ -730,6 +784,9 @@ describe("Treasury Manager Unit Tests:", function () {
         TESTING: custom error: TransferAlreadyApproved
         EXPECTED: should not allow the treasury instance owner/admin to approve an already executed funding request`, async function () {
         ({ mockGovernanceManager, mockTreasuryManager, mockBeaconManager } = await deployMock_GovernanceManager_TreasuryManager_BeaconManager());
+        
+        // deploy group NFT and initialize group root
+        await deployGroupNftAndSetRoot(governor, groupKey, nftName, nftSymbol, rootHash1);
         await deployTreasuryFactoryWithContractOwner();
         await deployMockGrantModule();
 
@@ -779,6 +836,9 @@ describe("Treasury Manager Unit Tests:", function () {
         TESTING: custom error: InconsistentFundingModule
         EXPECTED: should not allow the treasury instance owner/admin to approve a transfer when the funding module is inconsistent`, async function () {
         ({ mockGovernanceManager, mockTreasuryManager, mockBeaconManager } = await deployMock_GovernanceManager_TreasuryManager_BeaconManager());
+        
+        // deploy group NFT and initialize group root
+        await deployGroupNftAndSetRoot(governor, groupKey, nftName, nftSymbol, rootHash1);
         await deployTreasuryFactoryWithContractOwner();
         await deployMockGrantModule();
 
@@ -821,6 +881,9 @@ describe("Treasury Manager Unit Tests:", function () {
         TESTING: event: TransferExecuted
         EXPECTED: should allow the treasury instance owner/admin to execute a transfer`, async function () {
         ({ mockGovernanceManager, mockTreasuryManager, mockBeaconManager } = await deployMock_GovernanceManager_TreasuryManager_BeaconManager());
+        
+        // deploy group NFT and initialize group root
+        await deployGroupNftAndSetRoot(governor, groupKey, nftName, nftSymbol, rootHash1);
         await deployTreasuryFactoryWithContractOwner();
         await deployMockGrantModule();
 
@@ -867,6 +930,9 @@ describe("Treasury Manager Unit Tests:", function () {
         TESTING: reentrancy attack
         EXPECTED: should not allow the fund recipient to re-enter`, async function () {
         ({ mockGovernanceManager, mockTreasuryManager, mockBeaconManager } = await deployMock_GovernanceManager_TreasuryManager_BeaconManager());
+        
+        // deploy group NFT and initialize group root
+        await deployGroupNftAndSetRoot(governor, groupKey, nftName, nftSymbol, rootHash1);
         await deployTreasuryFactoryWithContractOwner();
         await deployMockGrantModule();
 
@@ -928,6 +994,9 @@ describe("Treasury Manager Unit Tests:", function () {
         TESTING: custom error: RequestDoesNotExist
         EXPECTED: should not allow the treasury instance owner/admin to execute a transfer for a request that does not exist`, async function () {
         ({ mockGovernanceManager, mockTreasuryManager, mockBeaconManager } = await deployMock_GovernanceManager_TreasuryManager_BeaconManager());
+        
+        // deploy group NFT and initialize group root
+        await deployGroupNftAndSetRoot(governor, groupKey, nftName, nftSymbol, rootHash1);
         await deployTreasuryFactoryWithContractOwner();
         await deployMockGrantModule();
 
@@ -949,6 +1018,9 @@ describe("Treasury Manager Unit Tests:", function () {
         TESTING: custom error: TransferNotApproved
         EXPECTED: should not allow the treasury instance owner/admin to execute a transfer that has not been approved`, async function () {
         ({ mockGovernanceManager, mockTreasuryManager, mockBeaconManager } = await deployMock_GovernanceManager_TreasuryManager_BeaconManager());
+        
+        // deploy group NFT and initialize group root
+        await deployGroupNftAndSetRoot(governor, groupKey, nftName, nftSymbol, rootHash1);
         await deployTreasuryFactoryWithContractOwner();
         await deployMockGrantModule();
 
@@ -991,6 +1063,9 @@ describe("Treasury Manager Unit Tests:", function () {
         TESTING: custom error: TreasuryIsLocked
         EXPECTED: should not allow the treasury instance owner/admin to execute a transfer when the treasury is locked`, async function () {
         ({ mockGovernanceManager, mockTreasuryManager, mockBeaconManager } = await deployMock_GovernanceManager_TreasuryManager_BeaconManager());
+        
+        // deploy group NFT and initialize group root
+        await deployGroupNftAndSetRoot(governor, groupKey, nftName, nftSymbol, rootHash1);
         await deployTreasuryFactoryWithContractOwner();
         await deployMockGrantModule();
 
@@ -1051,6 +1126,9 @@ describe("Treasury Manager Unit Tests:", function () {
         TESTING: event: RequestInTimelock
         EXPECTED: should not allow the treasury instance owner/admin to execute a transfer that is still in the timelock period`, async function () {
         ({ mockGovernanceManager, mockTreasuryManager, mockBeaconManager } = await deployMock_GovernanceManager_TreasuryManager_BeaconManager());
+        
+        // deploy group NFT and initialize group root
+        await deployGroupNftAndSetRoot(governor, groupKey, nftName, nftSymbol, rootHash1);
         await deployTreasuryFactoryWithContractOwner();
         await deployMockGrantModule();
 
@@ -1096,6 +1174,9 @@ describe("Treasury Manager Unit Tests:", function () {
         TESTING: event: InconsistentFundingModule
         EXPECTED: should not allow the treasury instance owner/admin to execute a transfer with an inconsistent funding module`, async function () {
         ({ mockGovernanceManager, mockTreasuryManager, mockBeaconManager } = await deployMock_GovernanceManager_TreasuryManager_BeaconManager());
+        
+        // deploy group NFT and initialize group root
+        await deployGroupNftAndSetRoot(governor, groupKey, nftName, nftSymbol, rootHash1);
         await deployTreasuryFactoryWithContractOwner();
         await deployMockGrantModule();
 
@@ -1147,6 +1228,9 @@ describe("Treasury Manager Unit Tests:", function () {
         TESTING: event: InsufficientBalance
         EXPECTED: should not allow the treasury instance owner/admin to execute a transfer with an insufficient treasury balance`, async function () {
         ({ mockGovernanceManager, mockTreasuryManager, mockBeaconManager } = await deployMock_GovernanceManager_TreasuryManager_BeaconManager());
+        
+        // deploy group NFT and initialize group root
+        await deployGroupNftAndSetRoot(governor, groupKey, nftName, nftSymbol, rootHash1);
         await deployTreasuryFactoryWithContractOwner();
         await deployMockGrantModule();
 
@@ -1192,6 +1276,9 @@ describe("Treasury Manager Unit Tests:", function () {
         TESTING: mapping: fundingRequests, execute status
         EXPECTED: should store the correct funding request details and executed status in the mapping`, async function () {
         ({ mockGovernanceManager, mockTreasuryManager, mockBeaconManager } = await deployMock_GovernanceManager_TreasuryManager_BeaconManager());
+        
+        // deploy group NFT and initialize group root
+        await deployGroupNftAndSetRoot(governor, groupKey, nftName, nftSymbol, rootHash1);
         await deployTreasuryFactoryWithContractOwner();
         await deployMockGrantModule();
 
@@ -1275,6 +1362,9 @@ describe("Treasury Manager Unit Tests:", function () {
         TESTING: custom error: TransferAlreadyExecuted
         EXPECTED: should not allow the treasury instance owner/admin to execute an already executed transfer`, async function () {
         ({ mockGovernanceManager, mockTreasuryManager, mockBeaconManager } = await deployMock_GovernanceManager_TreasuryManager_BeaconManager());
+        
+        // deploy group NFT and initialize group root
+        await deployGroupNftAndSetRoot(governor, groupKey, nftName, nftSymbol, rootHash1);
         await deployTreasuryFactoryWithContractOwner();
         await deployMockGrantModule();
 
@@ -1323,6 +1413,9 @@ describe("Treasury Manager Unit Tests:", function () {
         TESTING: authorization (failure)
         EXPECTED: should not allow a non-owner/admin to execute a transfer`, async function () {
         ({ mockGovernanceManager, mockTreasuryManager, mockBeaconManager } = await deployMock_GovernanceManager_TreasuryManager_BeaconManager());
+        
+        // deploy group NFT and initialize group root
+        await deployGroupNftAndSetRoot(governor, groupKey, nftName, nftSymbol, rootHash1);
         await deployTreasuryFactoryWithContractOwner();
         await deployMockGrantModule();
 
@@ -1368,6 +1461,9 @@ describe("Treasury Manager Unit Tests:", function () {
         TESTING: custom error: TransferFailed
         EXPECTED: should not alter state after a failed transfer`, async function () {
         ({ mockGovernanceManager, mockTreasuryManager, mockBeaconManager } = await deployMock_GovernanceManager_TreasuryManager_BeaconManager());
+        
+        // deploy group NFT and initialize group root
+        await deployGroupNftAndSetRoot(governor, groupKey, nftName, nftSymbol, rootHash1);
         await deployTreasuryFactoryWithContractOwner();
         await deployMockGrantModule();
 
@@ -1419,6 +1515,9 @@ describe("Treasury Manager Unit Tests:", function () {
         TESTING: authorization (failure)
         EXPECTED: should not allow a non-owner/admin to approve and execute a transfer`, async function () {
         ({ mockGovernanceManager, mockTreasuryManager, mockBeaconManager } = await deployMock_GovernanceManager_TreasuryManager_BeaconManager());
+        
+        // deploy group NFT and initialize group root
+        await deployGroupNftAndSetRoot(governor, groupKey, nftName, nftSymbol, rootHash1);
         await deployTreasuryFactoryWithContractOwner();
         await deployMockGrantModule();
 
@@ -1461,6 +1560,9 @@ describe("Treasury Manager Unit Tests:", function () {
         TESTING: authorization (success), events: TransferApproved, TransferExecuted
         EXPECTED: should allow an owner/admin to approve and execute a transfer`, async function () {
         ({ mockGovernanceManager, mockTreasuryManager, mockBeaconManager } = await deployMock_GovernanceManager_TreasuryManager_BeaconManager());
+        
+        // deploy group NFT and initialize group root
+        await deployGroupNftAndSetRoot(governor, groupKey, nftName, nftSymbol, rootHash1);
         await deployTreasuryFactoryWithContractOwner();
         await deployMockGrantModule();
 
@@ -1504,6 +1606,9 @@ describe("Treasury Manager Unit Tests:", function () {
         TESTING: events: TransferExecuted
         EXPECTED: should only execute the transfer and skip approval if it is already approved`, async function () {
         ({ mockGovernanceManager, mockTreasuryManager, mockBeaconManager } = await deployMock_GovernanceManager_TreasuryManager_BeaconManager());
+        
+        // deploy group NFT and initialize group root
+        await deployGroupNftAndSetRoot(governor, groupKey, nftName, nftSymbol, rootHash1);
         await deployTreasuryFactoryWithContractOwner();
         await deployMockGrantModule();
 
@@ -1553,6 +1658,9 @@ describe("Treasury Manager Unit Tests:", function () {
         TESTING: authorization (success), events: TransferCancelled
         EXPECTED: should allow an owner/admin to cancel a requested transfer`, async function () {
         ({ mockGovernanceManager, mockTreasuryManager, mockBeaconManager } = await deployMock_GovernanceManager_TreasuryManager_BeaconManager());
+        
+        // deploy group NFT and initialize group root
+        await deployGroupNftAndSetRoot(governor, groupKey, nftName, nftSymbol, rootHash1);
         await deployTreasuryFactoryWithContractOwner();
         await deployMockGrantModule();
 
@@ -1621,6 +1729,9 @@ describe("Treasury Manager Unit Tests:", function () {
         TESTING: authorization (failure)
         EXPECTED: should not allow a non-owner/admin to cancel a requested transfer`, async function () {
         ({ mockGovernanceManager, mockTreasuryManager, mockBeaconManager } = await deployMock_GovernanceManager_TreasuryManager_BeaconManager());
+        
+        // deploy group NFT and initialize group root
+        await deployGroupNftAndSetRoot(governor, groupKey, nftName, nftSymbol, rootHash1);
         await deployTreasuryFactoryWithContractOwner();
         await deployMockGrantModule();
 
@@ -1660,6 +1771,9 @@ describe("Treasury Manager Unit Tests:", function () {
         TESTING: custom error: RequestDoesNotExist
         EXPECTED: should not allow the owner/admin to cancel a transfer that has never been requested`, async function () {
         ({ mockGovernanceManager, mockTreasuryManager, mockBeaconManager } = await deployMock_GovernanceManager_TreasuryManager_BeaconManager());
+        
+        // deploy group NFT and initialize group root
+        await deployGroupNftAndSetRoot(governor, groupKey, nftName, nftSymbol, rootHash1);
         await deployTreasuryFactoryWithContractOwner();
         await deployMockGrantModule();
 
@@ -1684,6 +1798,9 @@ describe("Treasury Manager Unit Tests:", function () {
         TESTING: custom error: TransferAlreadyExecuted
         EXPECTED: should not allow the owner/admin to cancel a transfer that has already been executed`, async function () {
         ({ mockGovernanceManager, mockTreasuryManager, mockBeaconManager } = await deployMock_GovernanceManager_TreasuryManager_BeaconManager());
+        
+        // deploy group NFT and initialize group root
+        await deployGroupNftAndSetRoot(governor, groupKey, nftName, nftSymbol, rootHash1);
         await deployTreasuryFactoryWithContractOwner();
         await deployMockGrantModule();
 
@@ -1729,6 +1846,9 @@ describe("Treasury Manager Unit Tests:", function () {
         TESTING: custom error: AmountCannotBeZero
         EXPECTED: should not allow to fund the treasury with zero amount`, async function () {
         ({ mockGovernanceManager, mockTreasuryManager, mockBeaconManager } = await deployMock_GovernanceManager_TreasuryManager_BeaconManager());
+        
+        // deploy group NFT and initialize group root
+        await deployGroupNftAndSetRoot(governor, groupKey, nftName, nftSymbol, rootHash1);
         await deployTreasuryFactoryWithContractOwner();
         await deployMockGrantModule();
 
@@ -1749,6 +1869,9 @@ describe("Treasury Manager Unit Tests:", function () {
         TESTING: event: TreasuryLocked, TreasuryUnlocked
         EXPECTED: should emit a TreasuryLocked event when the treasury is locked or unlocked`, async function () {
         ({ mockGovernanceManager, mockTreasuryManager, mockBeaconManager } = await deployMock_GovernanceManager_TreasuryManager_BeaconManager());
+        
+        // deploy group NFT and initialize group root
+        await deployGroupNftAndSetRoot(governor, groupKey, nftName, nftSymbol, rootHash1);
         await deployTreasuryFactoryWithContractOwner();
         await deployMockGrantModule();
 
@@ -1796,6 +1919,9 @@ describe("Treasury Manager Unit Tests:", function () {
         TESTING: authorization (failure)
         EXPECTED: should not allow the non-admin or non-recovery to lock or unlock the treasury`, async function () {
         ({ mockGovernanceManager, mockTreasuryManager, mockBeaconManager } = await deployMock_GovernanceManager_TreasuryManager_BeaconManager());
+        
+        // deploy group NFT and initialize group root
+        await deployGroupNftAndSetRoot(governor, groupKey, nftName, nftSymbol, rootHash1);
         await deployTreasuryFactoryWithContractOwner();
         await deployMockGrantModule();
 

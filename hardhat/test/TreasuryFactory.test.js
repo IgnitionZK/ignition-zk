@@ -21,7 +21,7 @@ describe("Treasury Factory Unit Tests:", function () {
             TreasuryFactory,
             
             // Test constants
-            groupKey, groupKey2,epochKey, proposalKey, 
+            groupKey, groupKey2, epochKey, proposalKey, 
             voteContextKey, proposalContextKey,
             rootHash1, rootHash2,
             voteNullifier1, voteNullifier2, voteNullifier3, voteNullifier4,
@@ -56,15 +56,21 @@ describe("Treasury Factory Unit Tests:", function () {
         // Deploy TreasuryFactory with the BeaconManager address
         treasuryFactory = await TreasuryFactory.deploy(
             beaconManager.target,
-            await governor.getAddress() // use EOA governor signer for testing
+            await governor.getAddress(), // use EOA governor signer for testing
+            membershipManager.target
         );
         await treasuryFactory.waitForDeployment();
 
         // Set TreasuryFactory address in GovernanceManager
         await governanceManager.connect(deployer).setTreasuryFactory(treasuryFactory.target);
         
-
     });
+
+    async function deployGroupNftAndSetRoot(signer, group, nftName, nftSymbol, root) {
+        // Deploy group NFT and initialize group root
+        await membershipManager.connect(signer).deployGroupNft(group, nftName, nftSymbol);
+        await membershipManager.connect(signer).setRoot(root, group);
+    }
 
     it(`SET UP: contract deployment
         TESTING: deployed addresses
@@ -77,14 +83,14 @@ describe("Treasury Factory Unit Tests:", function () {
     it(`SET UP: stored contract addresses
         TESTING: beacon address
         EXPECTED: should store the correct beacon manager address`, async function () {
-        expect(await treasuryFactory.connect(governor).getBeaconManager()).to.equal(beaconManager.target);
+        expect(await treasuryFactory.beaconManager()).to.equal(beaconManager.target);
     });
 
     it(`ACCESS CONTROL: ownership
         TESTING: owner()
         EXPECTED: should set the governor as the owner of the TreasuryFactory`, async function () {
         expect(await treasuryFactory.owner()).to.equal(await governor.getAddress());
-        expect(await treasuryFactory.connect(governor).getGovernanceManager()).to.equal(await governor.getAddress());
+        expect(await treasuryFactory.governanceManager()).to.equal(await governor.getAddress());
     });
 
     it(`ACCESS CONTROL: ownership
@@ -96,17 +102,18 @@ describe("Treasury Factory Unit Tests:", function () {
     it(`SET UP: beacon proxy
         TESTING: EIP‑1967 storage slots (beacon, implementation, admin)
         EXPECTED: should deploy treasuries pointing to the correct beacon and store the correct data in the EIP-1967 slots`, async function () {
-        
+        // Deploy NFT and set root
+        await deployGroupNftAndSetRoot(governor, groupKey, nftName, nftSymbol, rootHash1);
+
         // Deploy treasury instance
         await treasuryFactory.connect(governor).deployTreasury(
             groupKey,
-            true, // hasDeployedNft
             await user1.getAddress(), // treasuryOwner
             await user1.getAddress()
         );
 
         // Get treasury instance address
-        const treasuryAddress = await treasuryFactory.connect(governor).getTreasuryAddress(groupKey);
+        const treasuryAddress = await treasuryFactory.groupTreasuryAddresses(groupKey);
 
         // Get the bytecode length of the deployed treasury instance
         const code = await ethers.provider.getCode(treasuryAddress);
@@ -161,17 +168,18 @@ describe("Treasury Factory Unit Tests:", function () {
     it(`FUNCTIONALITY: upgrades
         TESTING: stored beacon: address
         EXPECTED: deployed treasury should point to the correct beacon after deploying new Treasury Manager implementation`, async function () {
-        
+        // Deploy NFT and set root
+        await deployGroupNftAndSetRoot(governor, groupKey, nftName, nftSymbol, rootHash1);
+
         // Deploy beacon proxy
         await treasuryFactory.connect(governor).deployTreasury(
             groupKey,
-            true, // hasDeployedNft
             await user1.getAddress(), // treasuryOwner
             await user1.getAddress() // treasuryRecovery
         );
 
         // Get proxy address
-        const proxyAddress = await treasuryFactory.connect(governor).getTreasuryAddress(groupKey);
+        const proxyAddress = await treasuryFactory.groupTreasuryAddresses(groupKey);
         
         // Get current beacon from proxy
         const beaconSlot= "0xa3f0ad74e5423aebfd80d3ef4346578335a9a72aeaee59ff6cb3582b35133d50";
@@ -204,17 +212,18 @@ describe("Treasury Factory Unit Tests:", function () {
     it(`FUNCTIONALITY: payable treasury
         TESTING: receiving ETH
         EXPECTED: should allow the treasury instance to receive ETH`, async function () {
-        
+        // Deploy NFT and set root
+        await deployGroupNftAndSetRoot(governor, groupKey, nftName, nftSymbol, rootHash1);
+
         // Deploy treasury instance
         await treasuryFactory.connect(governor).deployTreasury(
             groupKey,
-            true, // hasDeployedNft
-            await user1.getAddress(), // treasuryOwner
+            await user1.getAddress(), // treasuryMultiSig
             await user1.getAddress() // treasuryRecovery
         );
 
         // Get treasury instance address
-        const treasuryAddress = await treasuryFactory.connect(governor).getTreasuryAddress(groupKey);
+        const treasuryAddress = await treasuryFactory.groupTreasuryAddresses(groupKey);
         const treasuryInstance = await ethers.getContractAt("TreasuryManager", treasuryAddress);
 
         // Send 1 ETH to the treasury instance
@@ -232,12 +241,13 @@ describe("Treasury Factory Unit Tests:", function () {
     it(`FUNCTION: deployTreasury
         TESTING: event: TreasuryDeployed
         EXPECTED: should allow the governor to deploy a treasury instance and emit event`, async function () {
-    
+        // Deploy NFT and set root
+        await deployGroupNftAndSetRoot(governor, groupKey, nftName, nftSymbol, rootHash1);
+
         // Deploy Treasury
         await expect(
             treasuryFactory.connect(governor).deployTreasury(
                 groupKey, 
-                true, // hasDeployedNft
                 await governor.getAddress(), // treasuryOwner
                 await governor.getAddress() // treasuryRecovery
             )
@@ -251,11 +261,12 @@ describe("Treasury Factory Unit Tests:", function () {
     it(`FUNCTION: deployTreasury
         TESTING: mapping: groupTreasuryAddresses
         EXPECTED: should correctly store the addresses of the deployed treasury instances`, async function () {
-    
+        // Deploy NFT and set root
+        await deployGroupNftAndSetRoot(governor, groupKey, nftName, nftSymbol, rootHash1);
+
         // Deploy Treasury instance for group with groupKey
         const tx = await treasuryFactory.connect(governor).deployTreasury(
                 groupKey, 
-                true, // hasDeployedNft
                 await governor.getAddress(), // treasuryOwner
                 await governor.getAddress() // treasuryRecovery
         );
@@ -275,15 +286,17 @@ describe("Treasury Factory Unit Tests:", function () {
         const deployedTreasuryAddress = TreasuryDeployedEvent[0].args[1];  
         
         // Get the stored address from the mapping
-        const storedTreasuryAddress = await treasuryFactory.connect(governor).getTreasuryAddress(groupKey);
+        const storedTreasuryAddress = await treasuryFactory.groupTreasuryAddresses(groupKey);
 
         // check that the addresses match
         expect(deployedTreasuryAddress).to.equal(storedTreasuryAddress);
 
+        // Deploy NFT and set root for group2
+        await deployGroupNftAndSetRoot(governor, groupKey2, nftName, nftSymbol, rootHash2);
+
         // Deploy Treasury instance for group with groupKey2
         const tx2 = await treasuryFactory.connect(governor).deployTreasury(
                 groupKey2, 
-                true, // hasDeployedNft
                 await governor.getAddress(), // treasuryOwner
                 await governor.getAddress() // treasuryRecovery
         );
@@ -303,7 +316,7 @@ describe("Treasury Factory Unit Tests:", function () {
         const deployedTreasuryAddress2 = TreasuryDeployedEvent2[0].args[1];
 
         // Get the stored address from the mapping
-        const storedTreasuryAddress2 = await treasuryFactory.connect(governor).getTreasuryAddress(groupKey2);
+        const storedTreasuryAddress2 = await treasuryFactory.groupTreasuryAddresses(groupKey2);
 
         // check that the addresses match
         expect(deployedTreasuryAddress2).to.equal(storedTreasuryAddress2);
@@ -312,7 +325,7 @@ describe("Treasury Factory Unit Tests:", function () {
         expect(storedTreasuryAddress2).to.not.equal(storedTreasuryAddress);
 
         // Check that the first treasury address (groupKey) is still the same
-        expect(storedTreasuryAddress).to.equal(await treasuryFactory.connect(governor).getTreasuryAddress(groupKey));
+        expect(storedTreasuryAddress).to.equal(await treasuryFactory.groupTreasuryAddresses(groupKey));
     });
 
     it(`FUNCTION: deployTreasury
@@ -323,8 +336,7 @@ describe("Treasury Factory Unit Tests:", function () {
         await expect(
             treasuryFactory.connect(user1).deployTreasury(
                 groupKey,
-                true, // hasDeployedNft
-                await governor.getAddress(), // treasuryOwner
+                await governor.getAddress(), // treasuryMultiSig
                 await governor.getAddress() // treasuryRecovery
             )
         ).to.be.revertedWithCustomError(
@@ -336,11 +348,14 @@ describe("Treasury Factory Unit Tests:", function () {
     it(`FUNCTION: deployTreasury
         TESTING: custom error: GroupTreasuryAlreadyExists
         EXPECTED: should not let the owner to deploy a treasury instance for a group with an existing treasury`, async function () {
+        // Deploy NFT and set root
+        await deployGroupNftAndSetRoot(governor, groupKey, nftName, nftSymbol, rootHash1);
+
         // Deploy first treasury instance
-        await treasuryFactory.connect(governor).deployTreasury(groupKey, true, await governor.getAddress(), await governor.getAddress()); 
+        await treasuryFactory.connect(governor).deployTreasury(groupKey, await governor.getAddress(), await governor.getAddress()); 
         // Attempt to deploy a second treasury instance for the same group
         await expect(
-            treasuryFactory.connect(governor).deployTreasury(groupKey, true, await governor.getAddress(), await governor.getAddress())
+            treasuryFactory.connect(governor).deployTreasury(groupKey, await governor.getAddress(), await governor.getAddress())
         ).to.be.revertedWithCustomError(
             treasuryFactory,
             "GroupTreasuryAlreadyExists"
@@ -353,7 +368,6 @@ describe("Treasury Factory Unit Tests:", function () {
         await expect(
             treasuryFactory.connect(governor).deployTreasury(
                 groupKey, 
-                false, // hasDeployedNft
                 await governor.getAddress(), // treasuryOwner
                 await governor.getAddress() // treasuryRecovery
             )
@@ -370,7 +384,6 @@ describe("Treasury Factory Unit Tests:", function () {
         await expect(
             treasuryFactory.connect(governor).deployTreasury(
                 groupKey, 
-                true, // hasDeployedNft
                 ethers.ZeroAddress, // treasuryOwner
                 await governor.getAddress() // treasuryRecovery
             )
@@ -387,7 +400,6 @@ describe("Treasury Factory Unit Tests:", function () {
         await expect(
             treasuryFactory.connect(governor).deployTreasury(
                 ethers.ZeroHash, 
-                true, // hasDeployedNft
                 await user1.getAddress(), // treasuryOwner
                 await user1.getAddress() // treasuryRecovery
             )
@@ -400,17 +412,18 @@ describe("Treasury Factory Unit Tests:", function () {
     it(`FUNCTION: deployTreasury
         TESTING: DEFAULT_ADMIN_ROLE
         EXPECTED: should set the correct DEFAULT_ADMIN_ROLE in two different deployed instances`, async function () {
-        
+        // Deploy NFT and set root
+        await deployGroupNftAndSetRoot(governor, groupKey, nftName, nftSymbol, rootHash1);
+
         // Deploy treasury instance with governor as DEFAULT_ADMIN
         await treasuryFactory.connect(governor).deployTreasury(
             groupKey,
-            true, // hasDeployedNft
             await governor.getAddress(), // treasuryOwner
             await governor.getAddress() // treasuryRecovery
         );
 
         // Get Address of deployed treasury
-        const treasuryAddress1 = await treasuryFactory.connect(governor).getTreasuryAddress(groupKey);
+        const treasuryAddress1 = await treasuryFactory.groupTreasuryAddresses(groupKey);
 
         // Get instance of deployed treasury
         const treasuryInstance1 = await ethers.getContractAt("TreasuryManager", treasuryAddress1);
@@ -422,15 +435,17 @@ describe("Treasury Factory Unit Tests:", function () {
         const isAdmin1 = await treasuryInstance1.hasRole(adminRole, await governor.getAddress());
         expect(isAdmin1).to.be.true;
 
+        // Deploy NFT and set root for group2
+        await deployGroupNftAndSetRoot(governor, groupKey2, nftName, nftSymbol, rootHash2);
+
         // Deploy treasury instance with user1 as DEFAULT_ADMIN
         await treasuryFactory.connect(governor).deployTreasury(
             groupKey2,
-            true, // hasDeployedNft
             await user1.getAddress(), // treasuryOwner
             await user1.getAddress() // treasuryRecovery
         );
 
-        const treasuryAddress2 = await treasuryFactory.connect(governor).getTreasuryAddress(groupKey2);
+        const treasuryAddress2 = await treasuryFactory.groupTreasuryAddresses(groupKey2);
         const treasuryInstance2 = await ethers.getContractAt("TreasuryManager", treasuryAddress2);
         const adminRole2 = await treasuryInstance2.DEFAULT_ADMIN_ROLE();
         const isAdmin2 = await treasuryInstance2.hasRole(adminRole2, await user1.getAddress());
@@ -440,17 +455,18 @@ describe("Treasury Factory Unit Tests:", function () {
     it(`FUNCTION: deployTreasury
         TESTING: GOVERNANCE_MANAGER_ROLE, FUNDING_MODULE_ROLE, EMERGENCY_RECOVERY_ROLE
         EXPECTED: should set the correct access roles for the deployed instances`, async function () {
-        
+        // Deploy NFT and set root
+        await deployGroupNftAndSetRoot(governor, groupKey, nftName, nftSymbol, rootHash1);
+
         // Deploy treasury instance with governor as DEFAULT_ADMIN
         await treasuryFactory.connect(governor).deployTreasury(
             groupKey,
-            true, // hasDeployedNft
             await governor.getAddress(), // treasuryOwner
             await user1.getAddress() // treasuryRecovery
         );
 
         // Get Address of deployed treasury
-        const treasuryAddress = await treasuryFactory.connect(governor).getTreasuryAddress(groupKey);
+        const treasuryAddress = await treasuryFactory.groupTreasuryAddresses(groupKey);
 
         // Get instance of deployed treasury
         const treasuryInstance = await ethers.getContractAt("TreasuryManager", treasuryAddress);
@@ -466,47 +482,6 @@ describe("Treasury Factory Unit Tests:", function () {
         // Check if the beaconManager contract has emergency recovery role
         const hasEmergencyRecoveryRole = await treasuryInstance.hasRole(EMERGENCY_RECOVERY_ROLE, await user1.getAddress());
         expect(hasEmergencyRecoveryRole).to.be.true;
-    });
-    
-   
-    it(`FUNCTION: getBeaconManager
-        TESTING: authorization (failure)
-        EXPECTED: should not let a non-owner view the beacon manager`, async function () {
-
-        // Attempt to get beacon manager as non-owner
-        await expect(treasuryFactory.connect(user1).getBeaconManager()).to.be.revertedWithCustomError(
-            treasuryFactory,
-            "OwnableUnauthorizedAccount"
-        );
-    });
-
-    it(`FUNCTION: getGovernanceManager
-        TESTING: authorization (failure)
-        EXPECTED: should not let a non-owner view the governance manager`, async function () {
-
-        // Attempt to get governance manager as non-owner
-        await expect(treasuryFactory.connect(user1).getGovernanceManager()).to.be.revertedWithCustomError(
-            treasuryFactory,
-            "OwnableUnauthorizedAccount"
-        );
-    });
-
-    it(`FUNCTION: getTreasuryAddress
-        TESTING: authorization (failure)
-        EXPECTED: should not let a non-owner view the treasury address mapping`, async function () {
-        
-        // Deploy treasury instance
-        await treasuryFactory.connect(governor).deployTreasury(
-            groupKey,
-            true, // hasDeployedNft
-            await user1.getAddress(), // treasuryOwner
-            await user1.getAddress(), // treasuryRecovery
-        );
-        // Attempt to get treasury instance address as non-owner
-        await expect(treasuryFactory.connect(deployer).getTreasuryAddress(groupKey)).to.be.revertedWithCustomError(
-            treasuryFactory,
-            "OwnableUnauthorizedAccount"
-        );
     });
 
 });

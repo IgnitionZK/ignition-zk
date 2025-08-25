@@ -1,8 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.28;
 
-
-// UUPS imports:
+// OZ imports:
 import { UUPSUpgradeable } from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import { Initializable } from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import { OwnableUpgradeable } from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
@@ -12,12 +11,18 @@ import { ERC165Upgradeable } from "@openzeppelin/contracts-upgradeable/utils/int
 import { IVoteVerifier } from "../interfaces/verifiers/IVoteVerifier.sol";
 import { IVoteManager } from "../interfaces/managers/IVoteManager.sol";
 import { IVersioned } from "../interfaces/IVersioned.sol";
+import { IMembershipManager } from "../interfaces/managers/IMembershipManager.sol";
+import { IProposalManager } from "../interfaces/managers/IProposalManager.sol";
 
-// Complex Types:
+// Libraries:
 import { VoteTypes } from "../libraries/VoteTypes.sol";
 
+/**
+ * @title VoteManager
+ * @notice This contract manages the voting process for proposals.
+ * It ensures that votes are cast, verified, and tallied in a secure and efficient manner using zk-SNARKs.
+ */
 contract MockVoteManagerV2 is Initializable, OwnableUpgradeable, UUPSUpgradeable, IVoteManager, ERC165Upgradeable, IVersioned {
-
 // ====================================================================================================================
 //                                                  CUSTOM ERRORS
 // ====================================================================================================================
@@ -55,6 +60,9 @@ contract MockVoteManagerV2 is Initializable, OwnableUpgradeable, UUPSUpgradeable
 
     /// @notice Thrown if the tallying of votes is inconsistent, e.g., total votes exceed member count.
     error TallyingInconsistent();
+
+    /// @notice Thrown if the submission nullifier does not match the expected value.
+    error SubmissionNullifierMismatch();
 
     // ====================================================================================================
     // GROUP PARAM ERRORS (memberCount, Quorum)
@@ -106,6 +114,18 @@ contract MockVoteManagerV2 is Initializable, OwnableUpgradeable, UUPSUpgradeable
      * @param voteVerifier The address of the vote verifier contract.
      */
     event VoteVerifierAddressSet(address indexed voteVerifier);
+
+    /**
+     * @notice Emitted when the membership manager address is set.
+     * @param membershipManager The address of the membership manager contract.
+     */
+    event MembershipManagerAddressSet(address indexed membershipManager);
+
+    /**
+     * @notice Emitted when the proposal manager address is set.
+     * @param proposalManager The address of the proposal manager contract.
+     */
+    event ProposalManagerAddressSet(address indexed proposalManager);
 
     /**
      * @notice Emitted when a vote is verified.
@@ -175,20 +195,26 @@ contract MockVoteManagerV2 is Initializable, OwnableUpgradeable, UUPSUpgradeable
     // ====================================================================================================
 
     /// @dev The mapping of context keys to proposal results (vote tally and passed status). Key: contextKey (bytes32) => ProposalResult 
-    mapping(bytes32 => VoteTypes.ProposalResult) private proposalResults; 
+    mapping(bytes32 => VoteTypes.ProposalResult) public proposalResults; 
 
     /// @dev The mapping of vote nullifiers. Key: voteNullifier (bytes32) => (bool) true if the vote nullifier has been used
-    mapping(bytes32 => bool) private voteNullifiers;  
+    mapping(bytes32 => bool) public voteNullifiers;  
 
     /// @dev The mapping of group governance parameters. Key: groupKey (bytes32) => GroupParams
-    mapping(bytes32 => VoteTypes.GroupParams) private groupParams; // groupKey => GroupParams
+    mapping(bytes32 => VoteTypes.GroupParams) public groupParams; // groupKey => GroupParams
 
     // ====================================================================================================
     // ADDRESSES
     // ====================================================================================================
 
     /// @dev The interface of the vote verifier contract.
-    IVoteVerifier private voteVerifier;
+    IVoteVerifier public voteVerifier;
+
+    /// @dev The interface of the membership manager contract.
+    IMembershipManager public membershipManager;
+
+    /// @dev The interface of the proposal manager contract.
+    IProposalManager public proposalManager;
 
     // ====================================================================================================
     // STATE VARIABLES
@@ -196,16 +222,16 @@ contract MockVoteManagerV2 is Initializable, OwnableUpgradeable, UUPSUpgradeable
 
     /// @dev The quorum parameters, which include the minimum and maximum thresholds and group size parameters.
     /// These parameters are used to determine the quorum for proposals based on the group size.
-    VoteTypes.QuorumParams private quorumParams;
+    VoteTypes.QuorumParams public quorumParams;
 
     // ====================================================================================================
     // CONSTANTS
     // ====================================================================================================
 
     /// @dev The values corresponding to the Poseidon hash of the Abstain (0), Yes (1) and No (2) votes.
-    uint256 private constant POSEIDON_HASH_NO = 19014214495641488759237505126948346942972912379615652741039992445865937985820;
-    uint256 private constant POSEIDON_HASH_YES = 18586133768512220936620570745912940619677854269274689475585506675881198879027;
-    uint256 private constant POSEIDON_HASH_ABSTAIN = 8645981980787649023086883978738420856660271013038108762834452721572614684349;
+    uint256 public constant POSEIDON_HASH_NO = 19014214495641488759237505126948346942972912379615652741039992445865937985820;
+    uint256 public constant POSEIDON_HASH_YES = 18586133768512220936620570745912940619677854269274689475585506675881198879027;
+    uint256 public constant POSEIDON_HASH_ABSTAIN = 8645981980787649023086883978738420856660271013038108762834452721572614684349;
 
     // ====================================================================================================================
     //                                                  MODIFIERS
@@ -247,26 +273,37 @@ contract MockVoteManagerV2 is Initializable, OwnableUpgradeable, UUPSUpgradeable
     /**
      * @notice Initializes the VoteManager contract.
      * @dev This function replaces the constructor for upgradeable contracts and is called once
-     * after the proxy is deployed. It sets the initial verifier and governor.
-     * @param _governor The address of the governor (DAO) contract.
+     * after the proxy is deployed. It sets the initial owner, vote verifier, membership manager,
+     * and proposal manager.
+     * @param _initialOwner The address of the owner.
      * @param _voteVerifier The address of the vote verifier contract. 
+     * @param _membershipManager The address of the membership manager contract.
+     * @param _proposalManager The address of the proposal manager contract.
      * @custom:error AddressCannotBeZero If the provided verifier or governor address is zero.
      */
     function initialize(
-        address _governor,
-        address _voteVerifier
+        address _initialOwner,
+        address _voteVerifier,
+        address _membershipManager,
+        address _proposalManager
     ) 
         external 
         initializer 
-        nonZeroAddress(_governor) 
+        nonZeroAddress(_initialOwner) 
         nonZeroAddress(_voteVerifier)
+        nonZeroAddress(_membershipManager)
+        nonZeroAddress(_proposalManager)
     {
-        __Ownable_init(_governor);
+        __Ownable_init(_initialOwner);
         __UUPSUpgradeable_init();
         __ERC165_init();
 
         voteVerifier = IVoteVerifier(_voteVerifier);
+        membershipManager = IMembershipManager(_membershipManager);
+        proposalManager = IProposalManager(_proposalManager);
         emit VoteVerifierAddressSet(_voteVerifier);
+        emit MembershipManagerAddressSet(_membershipManager);
+        emit ProposalManagerAddressSet(_proposalManager);
 
         quorumParams = VoteTypes.QuorumParams({
             minQuorumPercent: 25,
@@ -309,9 +346,9 @@ contract MockVoteManagerV2 is Initializable, OwnableUpgradeable, UUPSUpgradeable
         uint256[24] calldata proof,
         uint256[5] calldata publicSignals,
         bytes32 contextKey,
-        bytes32 groupKey,
-        bytes32 currentRoot,
-        bool isProposalSubmitted
+        bytes32 groupKey
+        //bytes32 currentRoot,
+        //bool isProposalSubmitted
     ) 
         external 
         onlyOwner
@@ -323,13 +360,15 @@ contract MockVoteManagerV2 is Initializable, OwnableUpgradeable, UUPSUpgradeable
         bytes32 proofVoteNullifier = bytes32(publicSignals[1]);
         uint256 proofVoteChoiceHash = publicSignals[2];
         bytes32 proofRoot = bytes32(publicSignals[3]);
-        //bytes32 proofSubmissionNullifier = bytes32(publicSignals[4]);
+        bytes32 proofSubmissionNullifier = bytes32(publicSignals[4]);
 
         // check root
+        bytes32 currentRoot = membershipManager.groupRoots(groupKey);
         if (currentRoot == bytes32(0)) revert RootNotYetInitialized();
         if (proofRoot != currentRoot) revert InvalidMerkleRoot();
 
         // check that proposal has been submitted and verified
+        bool isProposalSubmitted = proposalManager.submissionNullifiers(proofSubmissionNullifier);
         if (!isProposalSubmitted) revert ProposalHasNotBeenSubmitted();
 
         // check that vote nullifier has not been used
@@ -362,19 +401,31 @@ contract MockVoteManagerV2 is Initializable, OwnableUpgradeable, UUPSUpgradeable
         }
 
         // Update vote tally for proposal
-        VoteTypes.VoteTally storage tally = proposalResults[contextKey].tally;
+        VoteTypes.ProposalResult storage result = proposalResults[contextKey];
+        //VoteTypes.VoteTally storage tally = proposalResults[contextKey].tally;
 
         if ( inferredChoice == VoteTypes.VoteChoice.No) {
-            tally.no++;
+            result.tally.no++;
         } else if ( inferredChoice == VoteTypes.VoteChoice.Yes) {
-            tally.yes++;
+            result.tally.yes++;
         } else if ( inferredChoice == VoteTypes.VoteChoice.Abstain) {
-            tally.abstain++;
+            result.tally.abstain++;
         }
-        emit VoteTallyUpdated(contextKey, [tally.no, tally.yes, tally.abstain]);
+        emit VoteTallyUpdated(contextKey, [
+            result.tally.no, 
+            result.tally.yes, 
+            result.tally.abstain
+            ]);
         
         // Update the proposal's Passed status
         _updateProposalStatus(contextKey, groupKey);
+
+        // register the proposal submission nullifier in the proposal record
+        if (result.submissionNullifier == bytes32(0)) {
+            result.submissionNullifier = proofSubmissionNullifier;
+        } else {
+            if (result.submissionNullifier != proofSubmissionNullifier) revert SubmissionNullifierMismatch();
+        }
     }
 
     
@@ -448,37 +499,23 @@ contract MockVoteManagerV2 is Initializable, OwnableUpgradeable, UUPSUpgradeable
 // ====================================================================================================================
 
     /**
-     * @dev Only callable by the owner (governor).
+     * @dev Returns the group parameters for a given group key.
      */
-    function getVoteVerifier() external view onlyOwner returns (address) {
-        return address(voteVerifier);
-    }
-
-    /**
-     * @dev Only callable by the owner (governor).
-     */
-    function getVoteNullifierStatus(bytes32 nullifier) external view onlyOwner returns (bool) {
-        return voteNullifiers[nullifier];
-    }
-
-    /**
-     * @dev Only callable by the owner (governor).
-     */
-    function getGroupParams(bytes32 groupKey) external view onlyOwner returns (VoteTypes.GroupParams memory params) {
+    function getGroupParams(bytes32 groupKey) external view returns (VoteTypes.GroupParams memory params) {
         return groupParams[groupKey];
     }
 
     /**
-     * @dev Only callable by the owner (governor).
+     * @dev Returns the proposal result for a given context key.
      */
-    function getProposalResult(bytes32 contextKey) external view onlyOwner returns (VoteTypes.ProposalResult memory result) {
+    function getProposalResult(bytes32 contextKey) external view returns (VoteTypes.ProposalResult memory result) {
         return proposalResults[contextKey];
     }
 
     /**
-     * @dev Only callable by the owner (governor).
+     * @dev Returns the quorum parameters for the voting system.
      */
-    function getQuorumParams() external view onlyOwner returns (VoteTypes.QuorumParams memory params) {
+    function getQuorumParams() external view returns (VoteTypes.QuorumParams memory params) {
         return quorumParams;
     }
 
@@ -486,7 +523,7 @@ contract MockVoteManagerV2 is Initializable, OwnableUpgradeable, UUPSUpgradeable
      * @dev Returns the version of the contract.
      * @return string The version of the contract.
      */
-    function getContractVersion() external view override(IVersioned, IVoteManager) onlyOwner returns (string memory) {
+    function getContractVersion() external view override(IVersioned, IVoteManager) returns (string memory) {
         return "VoteManager v1.0.0"; 
     }
 
@@ -592,8 +629,8 @@ contract MockVoteManagerV2 is Initializable, OwnableUpgradeable, UUPSUpgradeable
         return (a + b - 1) / b;
     }
 
-    function dummy() external pure returns (string memory) {
-        return "This is a dummy function";
+    function dummy() external pure returns (uint256) {
+        return 42;
     }
 
 }

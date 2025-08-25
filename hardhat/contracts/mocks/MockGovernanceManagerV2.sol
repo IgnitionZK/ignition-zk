@@ -158,22 +158,22 @@ contract MockGovernanceManagerV2 is Initializable, UUPSUpgradeable, OwnableUpgra
     /// @dev Mapping of active funding modules.
     /// @dev The key is the unique identifier for the funding type, and the value is the address of the active funding module for that type.
     /// @dev This mapping is used to check which module is currently active for a specific funding type.
-    mapping(bytes32 => address) private activeModuleRegistry;
+    mapping(bytes32 => address) public activeModuleRegistry;
     
     /// @dev The address of the designated relayer, authorized to update roots and verify proofs.
-    address private relayer;
+    address public relayer;
     
     /// @dev The interface of the membership manager contract
-    IMembershipManager private membershipManager;
+    IMembershipManager public membershipManager;
 
     /// @dev The interface of the proposal manager contract
-    IProposalManager private proposalManager;
+    IProposalManager public proposalManager;
 
     /// @dev The interface of the vote manager contract
-    IVoteManager private voteManager;
+    IVoteManager public voteManager;
 
     /// @dev The interface of the treasury factory contract
-    ITreasuryFactory private treasuryFactory;
+    ITreasuryFactory public treasuryFactory;
 
 // ====================================================================================================================
 //                                                  MODIFIERS
@@ -304,8 +304,8 @@ contract MockGovernanceManagerV2 is Initializable, UUPSUpgradeable, OwnableUpgra
         onlyOwner
     {   
         if (!FundingTypes.isKnownType(_fundingType)) revert UnknownFundingType();
-        //if (_module.code.length == 0) revert AddressIsNotAContract();
         if (_module == address(0)) revert AddressCannotBeZero();
+        if (_module.code.length == 0) revert AddressIsNotAContract();
 
         address currentModule = activeModuleRegistry[_fundingType];
         activeModuleRegistry[_fundingType] = _module;
@@ -330,7 +330,6 @@ contract MockGovernanceManagerV2 is Initializable, UUPSUpgradeable, OwnableUpgra
         external 
         onlyOwner
     {   
-        if (_module == address(0)) revert AddressCannotBeZero();
         if (activeModuleRegistry[_fundingType] != _module) revert ModuleMismatch();
         delete activeModuleRegistry[_fundingType];
         emit FundingModuleRemoved(_fundingType, _module);
@@ -539,6 +538,7 @@ contract MockGovernanceManagerV2 is Initializable, UUPSUpgradeable, OwnableUpgra
      * @dev Only callable by the relayer.
      * @param proof The zk-SNARK proof to verify.
      * @param pubSignals The public signals associated with the proof.
+     * @param groupKey The unique identifier for the group.
      * @param contextKey The pre-computed context hash (group, epoch).
      */
     function delegateVerifyProposal(
@@ -547,8 +547,7 @@ contract MockGovernanceManagerV2 is Initializable, UUPSUpgradeable, OwnableUpgra
         bytes32 groupKey,
         bytes32 contextKey
     ) external onlyRelayer {
-        bytes32 currentRoot = _getCurrentRoot(groupKey);
-        proposalManager.verifyProposal(proof, pubSignals, contextKey, currentRoot);
+        proposalManager.verifyProposal(proof, pubSignals, contextKey, groupKey);
     }
 
     /**
@@ -593,17 +592,7 @@ contract MockGovernanceManagerV2 is Initializable, UUPSUpgradeable, OwnableUpgra
         bytes32 groupKey,
         bytes32 contextKey
     ) external onlyRelayer {
-        bytes32 proofSubmissionNullifier = bytes32(publicSignals[4]);
-        bool isProposalSubmitted = _getProposalSubmissionNullifierStatus(proofSubmissionNullifier);
-        bytes32 currentRoot = _getCurrentRoot(groupKey);
-        voteManager.verifyVote(
-            proof, 
-            publicSignals, 
-            contextKey, 
-            groupKey, 
-            currentRoot, 
-            isProposalSubmitted
-        );
+        voteManager.verifyVote(proof, publicSignals, contextKey, groupKey);
     }
 
     /**
@@ -644,99 +633,16 @@ contract MockGovernanceManagerV2 is Initializable, UUPSUpgradeable, OwnableUpgra
      */
     function delegateDeployTreasury(bytes32 groupKey, address treasuryMultiSig, address treasuryRecovery) external onlyRelayer {
         if (address(treasuryFactory) == address(0)) revert TreasuryFactoryAddressNotSet();
-        bool hasDeployedNft = _getGroupNftAddress(groupKey) != address(0);
-        treasuryFactory.deployTreasury(groupKey, hasDeployedNft, treasuryMultiSig, treasuryRecovery);
+        treasuryFactory.deployTreasury(groupKey, treasuryMultiSig, treasuryRecovery);
     }
 
     // ================================================================================================================
     // 5. TreasuryManager Delegation Functions
     // ================================================================================================================
-    
-    // Note!!!
-    // The GM can call the following functions only while it is still has DEFAULT_ADMIN_ROLE of the DAO treasury instance.
-    // Once DEFAULT_ADMIN_ROLE is transferred to the DAO multiSig the GM will no longer have access to these functions.
-    
-    /**
-     * @notice Delegates the transfer of the admin role to a new address.
-     * @dev Only callable by the relayer.
-     * @param groupKey The unique identifier for the voting group.
-     * @param newAdmin The address of the new admin.
-     */
-    function delegateTransferAdminRole(bytes32 groupKey, address newAdmin) external onlyRelayer {
-        address groupTreasury = _getGroupTreasuryAddress(groupKey);
-        ITreasuryManager(groupTreasury).transferAdminRole(newAdmin);
-    }
-
-    /**
-     * @notice Delegates the approval of a transfer within the group treasury.
-     * @dev Only callable by the relayer.
-     * @param groupKey The unique identifier for the voting group.
-     * @param contextKey The pre-computed context hash (group, epoch, proposal).
-     */
-    function delegateApproveTransfer(bytes32 groupKey, bytes32 contextKey) external onlyRelayer {
-        address groupTreasury = _getGroupTreasuryAddress(groupKey);
-        ITreasuryManager(groupTreasury).approveTransfer(contextKey);
-    }
-
-    /**
-     * @notice Delegates the execution of a transfer within the group treasury.
-     * @dev Only callable by the relayer.
-     * @param groupKey The unique identifier for the voting group.
-     * @param contextKey The pre-computed context hash (group, epoch, proposal).
-     */
-    function delegateExecuteTransfer(bytes32 groupKey, bytes32 contextKey) external onlyRelayer {
-        address groupTreasury = _getGroupTreasuryAddress(groupKey);
-        ITreasuryManager(groupTreasury).executeTransfer(contextKey);
-    }
-
-    /**
-     * @notice Delegates the approval and execution of a transfer within the group treasury.
-     * @dev Only callable by the relayer.
-     * @param groupKey The unique identifier for the voting group.
-     * @param contextKey The pre-computed context hash (group, epoch, proposal).
-     */
-    function delegateApproveAndExecuteTransfer(bytes32 groupKey, bytes32 contextKey) external onlyRelayer {
-        address groupTreasury = _getGroupTreasuryAddress(groupKey);
-        ITreasuryManager(groupTreasury).approveAndExecuteTransfer(contextKey);
-    }
 
     // ================================================================================================================
     // 6. Funding Modules Delegation Functions
     // ================================================================================================================
-
-    /**
-     * @notice Delegates the distribution of a grant to the grant module.
-     * @dev Only callable by the relayer.
-     * @param groupKey The unique identifier for the voting group.
-     * @param contextKey The pre-computed context hash (group, epoch, proposal).
-     * @param to The address to send the grant to.
-     * @param amount The amount of the grant.
-     */
-    /*
-    function delegateDistributeGrant(
-        bytes32 groupKey, 
-        bytes32 contextKey, 
-        address to, 
-        uint256 amount, 
-        bytes32 expectedProposalNullifier
-    ) external onlyRelayer {
-        address groupTreasury = _getGroupTreasuryAddress(groupKey);
-        if (groupTreasury == address(0)) revert TreasuryAddressNotFound();
-        
-        // checks that the proposal with the given contextKey exists and that its passed status it set to true
-        VoteTypes.ProposalResult memory proposalResult = _getProposalResult(contextKey);
-        if (proposalResult.passed == false) revert ProposalNotPassed();
-
-        // checks that the expected proposal submission nullifier matches the stored nullifier
-        if (proposalResult.submissionNullifier != expectedProposalNullifier) revert InvalidNullifier();
-
-        // Get the active address of the grant module
-        address grantModule = activeModuleRegistry[FundingTypes.GRANT_TYPE];
-        if (grantModule == address(0)) revert FundingModuleNotFound();
-
-        IGrantModule(grantModule).distributeGrant(groupTreasury, contextKey, to, amount);
-    }
-    */
 
     /**
      * @notice Executes a proposal by distributing funds from the group treasury.
@@ -761,7 +667,7 @@ contract MockGovernanceManagerV2 is Initializable, UUPSUpgradeable, OwnableUpgra
         bytes32 fundingType,
         bytes32 expectedProposalNullifier
     ) external onlyRelayer {
-        if (address(treasuryFactory) == address(0)) revert TreasuryFactoryAddressNotSet();
+        // Check that the treasury instance has been deployed
         address groupTreasury = _getGroupTreasuryAddress(groupKey);
         if (groupTreasury == address(0)) revert TreasuryAddressNotFound();
 
@@ -795,145 +701,21 @@ contract MockGovernanceManagerV2 is Initializable, UUPSUpgradeable, OwnableUpgra
     // 1. MembershipManager Delegation Functions
     // ================================================================================================================
 
-    /**
-     * @notice Delegates the getRoot call to the membership manager.
-     * @dev Only callable by the relayer.
-     * @param groupKey The unique identifier for the group.
-     * @return The current Merkle root for the specified group.
-     */
-    function delegateGetRoot(bytes32 groupKey) external view onlyRelayer returns (bytes32) {
-        return membershipManager.getRoot(groupKey);
-    }
-
-    /**
-     * @notice Delegates the getNftImplementation call to the membership manager.
-     * @dev Only callable by the relayer.
-     * @return The address of the NFT implementation contract.
-     */
-    function delegateGetNftImplementation() external view onlyRelayer returns (address) {
-        return membershipManager.getNftImplementation();
-    }
-
-    /**
-     * @notice Delegates the getMaxMembersBatch call to the membership manager.
-     * @dev Only callable by the relayer.
-     * @return The maximum batch size for member additions.
-     */
-    function delegateGetMaxMembersBatch() external view onlyRelayer returns (uint256) {
-        return membershipManager.getMaxMembersBatch();
-    }
-
-    /**
-     * @notice Delegates the getGroupNftAddress call to the membership manager.
-     * @dev Only callable by the relayer.
-     * @param groupKey The unique identifier for the group.
-     * @return The address of the ERC721 NFT contract associated with the specified group key.
-     */
-    function delegateGetGroupNftAddress(bytes32 groupKey) external view onlyRelayer returns (address) {
-        return membershipManager.getGroupNftAddress(groupKey);
-    }
-
     // ================================================================================================================
     // 2. ProposalManager Delegation Functions
     // ================================================================================================================
-
-    /**
-     * @notice Delegates the getProposalSubmissionVerifier call to the proposal manager.
-     * @dev Only callable by the relayer.
-     * @return The address of the proposal submission verifier contract.
-     */
-    function delegateGetProposalSubmissionVerifier() external view onlyRelayer returns (address) {
-        return proposalManager.getProposalSubmissionVerifier();
-    }
-
-    /**
-     * @notice Delegates the getProposalClaimVerifier call to the proposal manager.
-     * @dev Only callable by the relayer.
-     * @return The address of the proposal claim verifier contract.
-     */
-    function delegateGetProposalClaimVerifier() external view onlyRelayer returns (address) {
-        return proposalManager.getProposalClaimVerifier();
-    }
-
-    /**
-     * @notice Delegates the getSubmissionNullifierStatus call to the proposal manager.
-     * @dev Only callable by the relayer.
-     * @param nullifier The submission nullifier to check.
-     * @return bool indicating whether the submission nullifier has been used.
-     */
-    function delegateGetSubmissionNullifierStatus(bytes32 nullifier) external view onlyRelayer returns (bool) {
-        return proposalManager.getSubmissionNullifierStatus(nullifier);
-    }
-
-    /**
-     * @notice Delegates the getClaimNullifierStatus call to the proposal manager.
-     * @dev Only callable by the relayer.
-     * @param nullifier The claim nullifier to check.
-     * @return bool indicating whether the claim nullifier has been used.
-     */
-    function delegateGetClaimNullifierStatus(bytes32 nullifier) external view onlyRelayer returns (bool) {
-        return proposalManager.getClaimNullifierStatus(nullifier);
-    }   
 
     // ================================================================================================================
     // 3. VoteManager Delegation Functions
     // ================================================================================================================
 
-    /**
-     * @notice Delegates the getVoteVerifier call to the vote manager.
-     * @dev Only callable by the relayer.
-     * @return The address of the vote verifier contract.
-     */
-    function delegateGetVoteVerifier() external view onlyRelayer returns (address) {
-        return voteManager.getVoteVerifier();
-    }
-
-    /**
-     * @notice Delegates the getVoteNullifierStatus call to the vote manager.
-     * @dev Only callable by the relayer.
-     * @param nullifier The vote nullifier to check.
-     * @return The status of the vote nullifier (true if used, false if not).
-     */
-    function delegateGetVoteNullifierStatus(bytes32 nullifier) external view onlyRelayer returns (bool) {
-        return voteManager.getVoteNullifierStatus(nullifier);
-    }
-
-    /**
-     * @notice Delegates the getGroupParams call to the vote manager.
-     * @dev Only callable by the relayer.
-     * @param groupKey The unique identifier for the voting group.
-     * @return params The group parameters including member count and quorum settings.
-     */
-    function delegateGetGroupParams(bytes32 groupKey) external view onlyRelayer returns (VoteTypes.GroupParams memory params) {
-        return voteManager.getGroupParams(groupKey);
-    }
-
-    /**
-     * @notice Delegates the getProposalResult call to the vote manager.
-     * @dev Only callable by the relayer.
-     * @param contextKey The pre-computed context hash (group, epoch, proposal).
-     * @return result The proposal result including the vote tally and proposal passed status.
-     */
-    function delegateGetProposalResult(bytes32 contextKey) external view onlyRelayer returns (VoteTypes.ProposalResult memory result) {
-        return voteManager.getProposalResult(contextKey);
-    }
-
-    /**
-     * @notice Delegates the getQuorumParams call to the vote manager.
-     * @dev Only callable by the relayer.
-     * @return params The quorum parameters including minimum and maximum quorum percentages and group size thresholds.
-     */
-    function delegateGetQuorumParams() external view onlyRelayer returns (VoteTypes.QuorumParams memory params) {
-        return voteManager.getQuorumParams();
-    }
-
     // ================================================================================================================
     // 4. TreasuryFactory Delegation Functions
     // ================================================================================================================
 
-    function delegateGetTreasuryAddress(bytes32 groupKey) external view onlyRelayer returns (address) {
+    function delegateGetTreasuryAddress(bytes32 groupKey) external view returns (address) {
         if (address(treasuryFactory) == address(0)) revert TreasuryFactoryAddressNotSet();
-        return treasuryFactory.getTreasuryAddress(groupKey);
+        return treasuryFactory.groupTreasuryAddresses(groupKey);
     }
 
     // ================================================================================================================
@@ -1004,51 +786,10 @@ contract MockGovernanceManagerV2 is Initializable, UUPSUpgradeable, OwnableUpgra
 // ====================================================================================================================
 
     /**
-     * @notice Gets the address of the relayer.
-     * @return address of the relayer.
-     */
-    function getRelayer() external view onlyOwner returns (address) {
-        return relayer;
-    }
-
-    /**
-     * @notice Gets the address of the membership manager.
-     * @return address of the membership manager.
-     */
-    function getMembershipManager() external view onlyOwner returns (address) {
-        return address(membershipManager);
-    }
-
-    /**
-     * @notice Gets the address of the proposal manager.
-     * @return address of the proposal manager.
-     */
-    function getProposalManager() external view onlyOwner returns (address) {
-        return address(proposalManager);
-    }
-
-    /**
-     * @notice Gets the address of the vote manager.
-     * @return address of the vote manager.
-     */
-    function getVoteManager() external view onlyOwner returns (address) {
-        return address(voteManager);
-    }
-
-    /**
-     * @notice Gets the address of the active funding module for a specific funding type.
-     * @param fundingType The unique identifier for the funding type.
-     * @return address of the active funding module.
-     */
-    function getActiveModule(bytes32 fundingType) external view returns (address) {
-        return activeModuleRegistry[fundingType];
-    }
-
-    /**
      * @dev Returns the version of the contract.
      * @return string The version of the contract.
      */
-    function getContractVersion() external view onlyRelayer() returns (string memory) {
+    function getContractVersion() external view returns (string memory) {
         return "GovernanceManager v1.0.0"; 
     }
 
@@ -1057,40 +798,13 @@ contract MockGovernanceManagerV2 is Initializable, UUPSUpgradeable, OwnableUpgra
 // ====================================================================================================================
 
     /**
-     * @dev Gets the current Merkle root for a specific group.
-     * @param groupKey The unique identifier for the group.
-     * @return The current Merkle root for the specified group.
-     */
-    function _getCurrentRoot(bytes32 groupKey) private view returns(bytes32) {
-        return membershipManager.getRoot(groupKey);
-    }
-
-    /**
-     * @dev Checks if a proposal submission nullifier has been used.
-     * @param nullifier The submission nullifier to check.
-     * @return bool indicating whether the submission nullifier has been used.
-     */
-    function _getProposalSubmissionNullifierStatus(bytes32 nullifier) private view returns (bool) {
-        return proposalManager.getSubmissionNullifierStatus(nullifier);
-    }
-
-    /**
-     * @dev Gets the address of the NFT contract for a specific group.
-     * @param groupKey The unique identifier for the group.
-     * @return The NFT contract address.
-     */
-    function _getGroupNftAddress(bytes32 groupKey) private view returns (address) {
-        return membershipManager.getGroupNftAddress(groupKey);
-    }
-
-    /**
      * @dev Gets the address of the group treasury for a specific group.
      * @param groupKey The unique identifier for the group.
      * @return The group treasury address.
      */
     function _getGroupTreasuryAddress(bytes32 groupKey) private view returns (address) {
         if (address(treasuryFactory) == address(0)) revert TreasuryFactoryAddressNotSet();
-        return treasuryFactory.getTreasuryAddress(groupKey);
+        return treasuryFactory.groupTreasuryAddresses(groupKey);
     }
 
     /**

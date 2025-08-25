@@ -56,8 +56,8 @@ describe("Grant Module Unit Tests:", function () {
         // Deploy TreasuryFactory with the BeaconManager address
         treasuryFactory = await TreasuryFactory.deploy(
             beaconManager.target,
-            await governor.getAddress()
-            //governanceManager.target
+            await governor.getAddress(),
+            membershipManager.target
         );
         await treasuryFactory.waitForDeployment();
 
@@ -92,13 +92,12 @@ describe("Grant Module Unit Tests:", function () {
         // Deploy treasury instance
         await treasuryFactory.connect(treasuryFactorySigner).deployTreasury(
             groupKey, 
-            true, // hasDeployedNft
             treasuryMultisig,
             treasuryRecovery 
         );
 
         // Get address of deployed instance
-        const treasuryAddr = await treasuryFactory.connect(treasuryFactorySigner).getTreasuryAddress(groupKey);
+        const treasuryAddr = await treasuryFactory.groupTreasuryAddresses(groupKey);
         const treasuryInstance = await ethers.getContractAt("TreasuryManager", treasuryAddr);
         return { treasuryAddr, treasuryInstance };
     }
@@ -151,7 +150,8 @@ describe("Grant Module Unit Tests:", function () {
         // Deploy TreasuryFactory with the BeaconManager address
         treasuryFactory = await TreasuryFactory.deploy(
             mockBeaconManager.target,
-            mockGovernanceManager.target // use GM contract as Owner
+            mockGovernanceManager.target, // use GM contract as Owner
+            membershipManager.target
         );
         await treasuryFactory.waitForDeployment();
 
@@ -213,6 +213,11 @@ describe("Grant Module Unit Tests:", function () {
         });
     }
 
+    async function deployGroupNftAndSetRoot(signer, group, nftName, nftSymbol, root) {
+        // Deploy group NFT and initialize group root
+        await membershipManager.connect(signer).deployGroupNft(group, nftName, nftSymbol);
+        await membershipManager.connect(signer).setRoot(root, group);
+    }
 
     it(`SET UP: contract deployment
         TESTING: deployed addresses
@@ -291,8 +296,10 @@ describe("Grant Module Unit Tests:", function () {
     it(`FUNCTION: distributeGrant 
         TESTING: authorization (success), event: GrantRequested
         EXPECTED: should allow the owner to request a grant from the treasury and emit event`, async function () {
-        
         ({ mockGovernanceManager, mockTreasuryManager, mockBeaconManager } = await deployMock_GovernanceManager_TreasuryManager_BeaconManager());
+        
+        // deploy group NFT and initialize group root
+        await deployGroupNftAndSetRoot(governor, groupKey, nftName, nftSymbol, rootHash1);
         await deployTreasuryFactory();
         await deployMockGrantModule();
         expect(await mockGrantModule.owner()).to.equal(mockGovernanceManager.target);
@@ -324,6 +331,9 @@ describe("Grant Module Unit Tests:", function () {
         EXPECTED: should not allow a non-owner to request a grant from the treasury`, async function () {
         
         ({ mockGovernanceManager, mockTreasuryManager, mockBeaconManager } = await deployMock_GovernanceManager_TreasuryManager_BeaconManager());
+        
+        // deploy group NFT and initialize group root
+        await deployGroupNftAndSetRoot(governor, groupKey, nftName, nftSymbol, rootHash1);
         await deployTreasuryFactory();
         await deployMockGrantModule();
         expect(await mockGrantModule.owner()).to.equal(mockGovernanceManager.target);
@@ -350,6 +360,9 @@ describe("Grant Module Unit Tests:", function () {
         EXPECTED: should not allow the owner to request a grant to be sent to the zero address`, async function () {
         
         ({ mockGovernanceManager, mockTreasuryManager, mockBeaconManager } = await deployMock_GovernanceManager_TreasuryManager_BeaconManager());
+        
+        // deploy group NFT and initialize group root
+        await deployGroupNftAndSetRoot(governor, groupKey, nftName, nftSymbol, rootHash1);
         await deployTreasuryFactory();
         await deployMockGrantModule();
         expect(await mockGrantModule.owner()).to.equal(mockGovernanceManager.target);
@@ -376,6 +389,9 @@ describe("Grant Module Unit Tests:", function () {
         EXPECTED: should not allow the owner to request a grant with a zero key`, async function () {
 
         ({ mockGovernanceManager, mockTreasuryManager, mockBeaconManager } = await deployMock_GovernanceManager_TreasuryManager_BeaconManager());
+        
+        // deploy group NFT and initialize group root
+        await deployGroupNftAndSetRoot(governor, groupKey, nftName, nftSymbol, rootHash1);
         await deployTreasuryFactory();
         await deployMockGrantModule();
         expect(await mockGrantModule.owner()).to.equal(mockGovernanceManager.target);

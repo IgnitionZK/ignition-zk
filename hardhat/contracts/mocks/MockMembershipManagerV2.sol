@@ -1,6 +1,14 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.28;
 
+// OZ imports:
+import { UUPSUpgradeable } from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
+import { Initializable } from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
+import { OwnableUpgradeable } from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+import { ERC165Upgradeable } from "@openzeppelin/contracts-upgradeable/utils/introspection/ERC165Upgradeable.sol";
+// import Clones for NFT factory pattern:
+import { Clones } from "@openzeppelin/contracts/proxy/Clones.sol";
+
 // Interfaces:
 import { IERC721IgnitionZK } from "../interfaces/IERC721IgnitionZK.sol";
 import { IERC165 } from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
@@ -8,15 +16,6 @@ import { IERC721 } from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import { IMembershipManager } from "../interfaces/managers/IMembershipManager.sol";
 import { IMembershipVerifier } from "../interfaces/verifiers/IMembershipVerifier.sol";
 import { IVersioned } from "../interfaces/IVersioned.sol";
-
-// UUPS imports:
-import { UUPSUpgradeable } from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
-import { Initializable } from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
-import { OwnableUpgradeable } from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
-import { ERC165Upgradeable } from "@openzeppelin/contracts-upgradeable/utils/introspection/ERC165Upgradeable.sol";
-
-// import Clones for NFT factory pattern:
-import { Clones } from "@openzeppelin/contracts/proxy/Clones.sol";
 
 /**
  * @title MembershipManager
@@ -28,7 +27,6 @@ import { Clones } from "@openzeppelin/contracts/proxy/Clones.sol";
  * and adding/removing members. This contract acts as a factory for ERC721IgnitionZK NFT contracts.
  */
 contract MockMembershipManagerV2 is Initializable, UUPSUpgradeable, OwnableUpgradeable, IMembershipManager, ERC165Upgradeable, IVersioned {
-
 // ====================================================================================================================
 //                                                  CUSTOM ERRORS
 // ====================================================================================================================
@@ -115,7 +113,7 @@ contract MockMembershipManagerV2 is Initializable, UUPSUpgradeable, OwnableUpgra
 
     /// @notice Thrown if the provided address does not support the required interface.
     /// @dev This is used to check if the address supports the `verifyProof` function
-    error AddressDoesNotSupportInterface();
+    //error AddressDoesNotSupportInterface();
     
 // ====================================================================================================================
 //                                                  EVENTS
@@ -205,27 +203,27 @@ contract MockMembershipManagerV2 is Initializable, UUPSUpgradeable, OwnableUpgra
     // ====================================================================================================
 
     /// @dev Maps a unique group key to its current Merkle root.
-    mapping(bytes32 => bytes32) private groupRoots; 
+    mapping(bytes32 => bytes32) public groupRoots; 
     
     /// @dev Maps a group key to the address of its associated ERC721 NFT contract.
-    mapping(bytes32 => address) private groupNftAddresses; 
+    mapping(bytes32 => address) public groupNftAddresses; 
 
     // ====================================================================================================
     // ADDRESSES
     // ====================================================================================================
     
     /// @dev The address of the NFT implementation contract used for creating new group NFTs.
-    address private nftImplementation;
+    address public nftImplementation;
 
     /// @dev The interface of the membership verifier contract.
-    IMembershipVerifier private membershipVerifier;
+    IMembershipVerifier public membershipVerifier;
 
     // ====================================================================================================
     // CONSTANTS
     // ====================================================================================================
 
     /// @dev The maximum number of members that can be added in a single batch transaction.
-    uint256 private constant MAX_MEMBERS_BATCH = 30;
+    uint256 public constant MAX_MEMBERS_BATCH = 30;
 
 // ====================================================================================================================
 //                                                  MODIFIERS
@@ -306,11 +304,10 @@ contract MockMembershipManagerV2 is Initializable, UUPSUpgradeable, OwnableUpgra
      * @dev This function can only be called by the contract owner (governor).
      * @custom:error AddressCannotBeZero If the provided verifier address is zero.
      * @custom:error AddressIsNotAContract If the provided address is not a contract.
-     * @custom:error AddressDoesNotSupportInterface If the provided address does not support the `verifyProof` function.
      */
     function setMembershipVerifier(address _membershipVerifier) external onlyOwner nonZeroAddress(_membershipVerifier) {
         if(_membershipVerifier.code.length == 0) revert AddressIsNotAContract();
-        if(!_supportsIMembershipInterface(_membershipVerifier)) revert AddressDoesNotSupportInterface();
+        //if(!_supportsIMembershipInterface(_membershipVerifier)) revert AddressDoesNotSupportInterface();
 
         membershipVerifier = IMembershipVerifier(_membershipVerifier);
         emit MembershipVerifierSet(_membershipVerifier);
@@ -510,48 +507,6 @@ contract MockMembershipManagerV2 is Initializable, UUPSUpgradeable, OwnableUpgra
 // ====================================================================================================================
 
     /**
-     * @dev Only callable by the owner (governor). Returns the stored root for the given group key.
-     */
-    function getRoot(bytes32 groupKey) 
-        external 
-        view 
-        onlyOwner
-        returns (bytes32)
-    {
-        return groupRoots[groupKey];
-    }
-
-    /**
-     * @dev Only callable by the owner (governor). Returns the NFT contract address for the given group key.
-     * @custom:error KeyCannotBeZero If the provided group key is zero.
-     */
-    function getGroupNftAddress(bytes32 groupKey) external view onlyOwner nonZeroKey(groupKey) returns (address) {
-        return groupNftAddresses[groupKey];
-    }
-
-    
-    /**
-     * @dev Only callable by the owner (governor).
-     */
-    function getMembershipVerifier() external view onlyOwner returns (address) {
-        return address(membershipVerifier);
-    }
-
-    /**
-     * @dev Only callable by the owner (governor).
-     */
-    function getNftImplementation() external view onlyOwner returns (address) {
-        return nftImplementation;
-    }
-
-    /**
-     * @dev Only callable by the owner (governor).
-     */
-    function getMaxMembersBatch() external view onlyOwner returns (uint256) {
-        return MAX_MEMBERS_BATCH;
-    }
-
-    /**
      * @dev Checks if the contract supports a specific interface.
      * @param interfaceId The interface identifier to check.
      * @return bool True if the interface is supported, false otherwise.
@@ -643,24 +598,9 @@ contract MockMembershipManagerV2 is Initializable, UUPSUpgradeable, OwnableUpgra
         return nftAddress;
     }
 
-    /**
-     * @dev Checks if the provided address supports the `verifyProof` function for membership verification.
-     * @param _address The address to check.
-     * @return bool True if the address supports the IMembershipVerifier interface, false otherwise.
-     */
-    function _supportsIMembershipInterface(address _address) private view returns (bool) {
-        uint256[24] memory dummyProof = [uint256(1), 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24];
-        uint256[2] memory dummyPublicSignals = [uint256(1), 2];
-
-        try IMembershipVerifier(_address).verifyProof(dummyProof, dummyPublicSignals) returns (bool) {
-            return true;
-        } catch {
-            return false;
-        }
-    }
-
     function dummy() external pure returns (string memory) {
-        return "This is a dummy function";
+        return "dummy";
     }
+
 
 }
