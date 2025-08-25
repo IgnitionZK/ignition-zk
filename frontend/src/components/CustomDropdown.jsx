@@ -11,12 +11,13 @@ const DropdownContainer = styled.div`
 `;
 
 const DropdownButton = styled.button`
-  background: #3a4353;
-  color: var(--color-grey-100);
+  background: ${(props) => (props.$disabled ? "#2a2f3a" : "#3a4353")};
+  color: ${(props) =>
+    props.$disabled ? "var(--color-grey-400)" : "var(--color-grey-100)"};
   padding: 8px 16px;
-  border: 1px solid #4a5568;
+  border: 1px solid ${(props) => (props.$disabled ? "#3a4353" : "#4a5568")};
   border-radius: 8px;
-  cursor: pointer;
+  cursor: ${(props) => (props.$disabled ? "not-allowed" : "pointer")};
   font-size: 1.4rem;
   display: flex;
   align-items: center;
@@ -24,9 +25,10 @@ const DropdownButton = styled.button`
   min-width: ${(props) => (props.$fullWidth ? "auto" : "160px")};
   width: ${(props) => (props.$fullWidth ? "100%" : "auto")};
   justify-content: space-between;
+  opacity: ${(props) => (props.$disabled ? 0.6 : 1)};
 
   &:hover {
-    background: #444b5e;
+    background: ${(props) => (props.$disabled ? "#2a2f3a" : "#444b5e")};
   }
 `;
 
@@ -91,6 +93,23 @@ const ItemStatus = styled.span`
   font-weight: 500;
 `;
 
+const DisabledMessage = styled.div`
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: var(--color-grey-800);
+  color: var(--color-grey-300);
+  padding: 8px 12px;
+  border-radius: 6px;
+  margin-top: 4px;
+  font-size: 1.2rem;
+  text-align: center;
+  z-index: 1000;
+  border: 1px solid var(--color-grey-600);
+  white-space: nowrap;
+`;
+
 /**
  * A customizable dropdown component that supports both simple string options and complex objects with status information.
  * Features include click-outside-to-close functionality, full-width support, and conditional selection based on proposal phase status.
@@ -102,14 +121,18 @@ const CustomDropdown = ({
   placeholder = "Select group",
   fullWidth = false,
   showStatus = false,
+  disabled = false,
+  disabledMessage = "Dropdown is disabled",
 }) => {
   const [isOpen, setIsOpen] = useState(false);
+  const [showDisabledMessage, setShowDisabledMessage] = useState(false);
   const dropdownRef = useRef(null);
 
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
         setIsOpen(false);
+        setShowDisabledMessage(false);
       }
     };
 
@@ -132,13 +155,30 @@ const CustomDropdown = ({
     return optionValue === selectedOption;
   };
 
+  const handleButtonClick = () => {
+    if (disabled) {
+      setShowDisabledMessage(!showDisabledMessage);
+      return;
+    }
+    setIsOpen(!isOpen);
+  };
+
   return (
     <DropdownContainer ref={dropdownRef} $fullWidth={fullWidth}>
-      <DropdownButton onClick={() => setIsOpen(!isOpen)} $fullWidth={fullWidth}>
+      <DropdownButton
+        onClick={handleButtonClick}
+        $fullWidth={fullWidth}
+        $disabled={disabled}
+      >
         {selectedOption || placeholder}
         <span>▼</span>
       </DropdownButton>
-      {isOpen && (
+
+      {disabled && showDisabledMessage && (
+        <DisabledMessage>{disabledMessage}</DisabledMessage>
+      )}
+
+      {isOpen && !disabled && (
         <DropdownList $fullWidth={fullWidth}>
           {options.map((option) => (
             <DropdownItem

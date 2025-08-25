@@ -16,9 +16,8 @@ import { useInsertProof } from "../hooks/queries/proofs/useInsertProof";
 import { useGetUserGroups } from "../hooks/queries/groupMembers/useGetUserGroups";
 import { useGetProposalSubmissionNullifier } from "../hooks/queries/proofs/useGetProposalSubmissionNullifier";
 
-// Utilities
+// Utils
 import { calculateEpochPhases } from "../scripts/utils/epochPhaseCalculator";
-import { ZKProofGenerator } from "../scripts/generateZKProof";
 
 const InboxItemContainer = styled.li`
   background-color: rgba(165, 180, 252, 0.1);
@@ -105,41 +104,46 @@ const LoadingText = styled.p`
 `;
 
 /**
- * InboxItem component displays a proposal in the user's inbox with options to view details,
- * download documents, and cast votes using zero-knowledge proofs. The component handles
- * the complete voting workflow including ballot selection, mnemonic input, and proof submission.
+ * InboxItem component displays a proposal in the user's inbox with the same styling
+ * as InboxItem and full voting functionality including ballot selection, mnemonic input,
+ * and proof submission using zero-knowledge proofs.
  */
 function InboxItem({
-  proposal = {},
+  proposal,
   showSubmitButton = true,
-  isVerified = false,
   storedMnemonic = null,
   refetchPendingProposals = null,
   refetchProofs = null,
 }) {
+  // State management for voting workflow
   const [showMnemonicInput, setShowMnemonicInput] = useState(false);
   const [hasSubmittedProof, setHasSubmittedProof] = useState(false);
   const [showBallotModal, setShowBallotModal] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedVote, setSelectedVote] = useState(null);
+
+  // Hooks for voting functionality
   const { userGroups } = useGetUserGroups();
 
-  console.log(proposal);
-
+  // Get commitment array for the proposal's group
   const { isLoading: isLoadingCommitments, commitmentArray } =
     useGetCommitmentArray({
       groupId: proposal.group_id,
     });
 
+  // Hook for vote verification
   const { verifyVote, isVerifying } = useVerifyVote();
 
+  // Hook for inserting proofs
   const { insertProof } = useInsertProof();
 
+  // Get proposal submission nullifier from the database (same as InboxItem)
   const {
     isLoading: isLoadingNullifier,
     nullifierHash: proposalSubmissionNullifier,
   } = useGetProposalSubmissionNullifier(proposal.proposal_id);
 
+  // Validate proposal prop
   if (!proposal || typeof proposal !== "object") {
     return (
       <InboxItemContainer>
@@ -211,19 +215,24 @@ function InboxItem({
     }
   };
 
+  // Get the current user's group member ID for this group
   const userGroupMemberId = userGroups?.find(
     (group) => group.group_id === proposal.group_id
   )?.group_member_id;
 
   const handleDownloadDetails = () => {
     try {
-      if (!proposal.metadata || !proposal.metadata.ipfs_cid) {
+      if (
+        !proposal.proposal_metadata?.ipfs_cid &&
+        !proposal.metadata?.ipfs_cid
+      ) {
         console.warn("No IPFS CID found in proposal metadata");
         toast.error("No document available for this proposal.");
         return;
       }
 
-      const ipfsCid = proposal.metadata.ipfs_cid;
+      const ipfsCid =
+        proposal.proposal_metadata?.ipfs_cid || proposal.metadata?.ipfs_cid;
       const ipfsUrl = `https://gateway.pinata.cloud/ipfs/${ipfsCid}`;
       window.open(ipfsUrl, "_blank", "noopener,noreferrer");
     } catch (error) {
@@ -270,6 +279,22 @@ function InboxItem({
         );
       }
 
+      if (!proposal.epoch_id) {
+        throw new Error(
+          "Proposal epoch ID is missing. Cannot proceed with voting."
+        );
+      }
+
+      if (!proposal.group_id) {
+        throw new Error(
+          "Proposal group ID is missing. Cannot proceed with voting."
+        );
+      }
+
+      if (!proposal.proposal_id) {
+        throw new Error("Proposal ID is missing. Cannot proceed with voting.");
+      }
+
       const {
         isValid,
         publicSignals,
@@ -282,11 +307,11 @@ function InboxItem({
         proposal.epoch_id,
         proposal.proposal_id,
         selectedVote === "reject" ? 0 : selectedVote === "approve" ? 1 : 2,
-        proposal.title || "",
-        proposal.description || "",
-        proposal.payload || {},
-        proposal.funding || {},
-        proposal.metadata || {},
+        proposal.proposal_title || proposal.title || "",
+        proposal.proposal_description || proposal.description || "",
+        proposal.proposal_payload || proposal.payload || {},
+        proposal.proposal_funding || proposal.funding || {},
+        proposal.proposal_metadata || proposal.metadata || {},
         proposalSubmissionNullifier
       );
 
@@ -302,13 +327,6 @@ function InboxItem({
           );
         }
 
-        console.log(
-          "[FRONTEND/InboxItem] Using contextKey from verification:",
-          {
-            contextKey: returnedContextKey,
-          }
-        );
-
         await insertProof({
           proposalId: proposal.proposal_id,
           groupId: proposal.group_id,
@@ -320,7 +338,6 @@ function InboxItem({
           contextKey: returnedContextKey,
         });
 
-        console.log("Vote selected:", selectedVote);
         setHasSubmittedProof(true);
         toast.success(`Vote submitted successfully: ${selectedVote}`);
         if (refetchPendingProposals) {
@@ -343,13 +360,17 @@ function InboxItem({
     <>
       <InboxItemContainer>
         <TopRow>
-          <ProposalTitle>{proposal.title || "Untitled Proposal"}</ProposalTitle>
+          <ProposalTitle>
+            {proposal.proposal_title || proposal.title || "Untitled Proposal"}
+          </ProposalTitle>
           <GroupName>{proposal.group_name || "Unknown Group"}</GroupName>
         </TopRow>
 
         <DescriptionSection>
           <InboxDescription>
-            {proposal.description || "No description available"}
+            {proposal.proposal_description ||
+              proposal.description ||
+              "No description available"}
           </InboxDescription>
         </DescriptionSection>
 
@@ -394,7 +415,10 @@ function InboxItem({
                 hasSubmittedProof ||
                 isSubmitting ||
                 !isInVotingPhase() ||
-                !proposalSubmissionNullifier
+                !proposalSubmissionNullifier ||
+                !proposal.epoch_id ||
+                !proposal.group_id ||
+                !proposal.proposal_id
               }
             >
               {isLoadingCommitments || isLoadingNullifier
@@ -405,6 +429,10 @@ function InboxItem({
                 ? "Voting Window Not Open"
                 : !proposalSubmissionNullifier
                 ? "Proposal Not Ready"
+                : !proposal.epoch_id ||
+                  !proposal.group_id ||
+                  !proposal.proposal_id
+                ? "Missing Data"
                 : "Vote"}
             </CustomButton>
           )}
@@ -423,7 +451,9 @@ function InboxItem({
 
       <BallotModal
         isOpen={showBallotModal}
-        proposalTitle={proposal.title || "Untitled Proposal"}
+        proposalTitle={
+          proposal.proposal_title || proposal.title || "Untitled Proposal"
+        }
         onConfirm={handleBallotConfirm}
         onCancel={handleBallotCancel}
       />
