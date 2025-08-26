@@ -92,3 +92,36 @@ export async function insertERC721ContractAddress({
 
   return data;
 }
+
+/**
+ * Updates an existing group's treasury address in the proposals table.
+ * This is typically used after deploying a treasury contract for a specific group.
+ *
+ * @param {Object} params - The update parameters
+ * @param {number|string} params.group_id - The ID of the group to update
+ * @param {string} params.treasury_address - The Ethereum address of the deployed treasury contract
+ * @returns {Promise<Array>} A promise that resolves to an array containing the updated proposal object
+ * @throws {Error} If group_id or treasury_address parameters are missing, or if there's a Supabase error
+ */
+export async function updateTreasuryAddress({ group_id, treasury_address }) {
+  if (!group_id) {
+    throw new Error("group_id is required");
+  }
+
+  if (!treasury_address) {
+    throw new Error("treasury_address is required");
+  }
+
+  const { data, error } = await supabase
+    .schema("ignitionzk")
+    .from("groups")
+    .update({ treasury_address })
+    .eq("group_id", group_id)
+    .select();
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  return data;
+}

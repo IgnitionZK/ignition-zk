@@ -9,44 +9,36 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type",
   "Access-Control-Allow-Methods": "POST, OPTIONS", // Allowed methods
 };
-// GovernanceManager Proxy address. This is the address of your deployed proxy contract.
+// GovernanceManager Proxy address.
 const GOVERNANCE_MANAGER_PROXY_ADDRESS = Deno.env.get(
   "GOVERNOR_CONTRACT_ADDRESS"
 );
-// ABI for the delegateDeployTreasury function and the TreasuryDeployed event.
-// We include the event ABI to parse the transaction receipt and get the deployed treasury address.
+// TreasuryFactory Proxy address.
+const TREASURY_FACTORY_PROXY_ADDRESS = Deno.env.get(
+  "TREASURY_FACTORY_CONTRACT_ADDRESS"
+);
+// ABI for the delegateDeployTreasury function from GovernanceManager.
 const GOVERNANCE_MANAGER_ABI = [
   "function delegateDeployTreasury(bytes32 _groupKey, address _treasuryMultiSig, address _treasuryRecovery) external",
-  "event TreasuryDeployed(bytes32 indexed groupKey, address indexed beaconProxy)",
 ];
-// Declare these variables globally to avoid re-initializing them on every request.
+// CORRECT ABI for the TreasuryFactory, now including the TreasuryDeployed event.
+const TREASURY_FACTORY_ABI = [
+  "event TreasuryDeployed(bytes32 indexed groupKey, address beaconProxy)",
+];
+// Declare global variables.
 let provider;
 let wallet;
-let contract;
-let jwtCryptoKey; // Declare jwtCryptoKey to hold the CryptoKey for JWT verification
-// Initialize Ethers provider, wallet, and contract instance.
-// This block runs once when the Edge Function is loaded.
+let governanceContract;
+let treasuryFactoryIface;
+let jwtCryptoKey;
+// Initialize Ethers provider, wallet, and contract instances.
 try {
   const rpcUrl = Deno.env.get("SEPOLIA_RPC_URL");
   const privateKey = Deno.env.get("RELAYER_PRIVATE_KEY");
-  const jwtSecretString = Deno.env.get("SUPA_JWT_SECRET"); // Get JWT secret as a string
-  // Ensure environment variables are set.
-  if (!rpcUrl) {
-    throw new Error(
-      "SEPOLIA_RPC_URL environment variable is not set. Please configure it in Supabase secrets."
-    );
-  }
-  if (!privateKey) {
-    throw new Error(
-      "RELAYER_PRIVATE_KEY environment variable is not set. Please configure it in Supabase secrets."
-    );
-  }
-  if (!jwtSecretString) {
-    throw new Error(
-      "SUPA_JWT_SECRET environment variable is not set. Please configure it in Supabase secrets."
-    );
-  }
-  // Use Web Crypto API's subtle.importKey directly to create the CryptoKey
+  const jwtSecretString = Deno.env.get("SUPA_JWT_SECRET");
+  if (!rpcUrl) throw new Error("SEPOLIA_RPC_URL is not set.");
+  if (!privateKey) throw new Error("RELAYER_PRIVATE_KEY is not set.");
+  if (!jwtSecretString) throw new Error("SUPA_JWT_SECRET is not set.");
   jwtCryptoKey = await crypto.subtle.importKey(
     "raw",
     new TextEncoder().encode(jwtSecretString),
@@ -56,33 +48,33 @@ try {
     },
     true,
     ["verify"]
-  ); // usages: only for verification
-  // Create a JSON RPC provider using the provided RPC URL.
+  );
   provider = new ethers.JsonRpcProvider(rpcUrl);
-  // Create a wallet instance from the relayer's private key, connected to the provider.
   wallet = new ethers.Wallet(privateKey, provider);
-  // Create a contract instance, connected to the wallet for signing transactions.
-  contract = new ethers.Contract(
+  governanceContract = new ethers.Contract(
     GOVERNANCE_MANAGER_PROXY_ADDRESS,
     GOVERNANCE_MANAGER_ABI,
     wallet
   );
-  console.log(
-    "Ethers provider, wallet, and contract initialized successfully."
-  );
+  treasuryFactoryIface = new ethers.Interface(TREASURY_FACTORY_ABI);
+  console.log("Ethers provider, wallet, and contracts initialized.");
 } catch (error) {
   console.error("Failed to initialize Ethers or JWT key:", error.message);
 }
 // Main handler for the Supabase Edge Function.
 serve(async (req) => {
-  // Handle CORS preflight requests (OPTIONS method)
   if (req.method === "OPTIONS") {
     return new Response("ok", {
-      headers: corsHeaders, // Return success with CORS headers
+      headers: corsHeaders,
     });
   }
-  // Check if Ethers components were successfully initialized.
-  if (!provider || !wallet || !contract || !jwtCryptoKey) {
+  if (
+    !provider ||
+    !wallet ||
+    !governanceContract ||
+    !treasuryFactoryIface ||
+    !jwtCryptoKey
+  ) {
     return new Response(
       JSON.stringify({
         error:
@@ -97,7 +89,6 @@ serve(async (req) => {
       }
     );
   }
-  // Only allow POST requests for the actual logic.
   if (req.method !== "POST") {
     return new Response(
       JSON.stringify({
@@ -113,7 +104,6 @@ serve(async (req) => {
     );
   }
   try {
-    // Enforce JWT verification
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
       return new Response(
@@ -146,14 +136,11 @@ serve(async (req) => {
     }
     let userId;
     try {
-      // Use the pre-created jwtCryptoKey for verification
       const payload = await verify(jwt, jwtCryptoKey, "HS256");
       if (typeof payload.sub !== "string") {
-        throw new Error(
-          "Invalid JWT payload: 'sub' (user ID) is not a string."
-        );
+        throw new Error("Invalid JWT payload: 'sub' is not a string.");
       }
-      userId = payload.sub; // Extract user ID from the payload
+      userId = payload.sub;
       console.log(`JWT verified for user: ${userId}`);
     } catch (e) {
       console.error("JWT verification failed:", e.message);
@@ -170,96 +157,49 @@ serve(async (req) => {
         }
       );
     }
-    // Parse the request body to get group_key, treasury_multisig, and treasury_recovery.
     const { group_key, treasury_multisig, treasury_recovery } =
       await req.json();
-    // LOG: Data received by edge function
-    console.log("[RELAYER/EdgeFunction] Data received:", {
-      group_key,
-      treasury_multisig,
-      treasury_recovery,
-    });
-    // Validate required parameters.
-    if (!group_key || !treasury_multisig || !treasury_recovery) {
-      return new Response(
-        JSON.stringify({
-          error:
-            "Missing required parameters: 'group_key', 'treasury_multisig', or 'treasury_recovery' in request body.",
-        }),
-        {
-          status: 400,
-          headers: {
-            ...corsHeaders,
-            "Content-Type": "application/json",
-          },
-        }
-      );
-    }
-    // Validate address formats
-    if (
-      !ethers.isAddress(treasury_multisig) ||
-      !ethers.isAddress(treasury_recovery)
-    ) {
-      return new Response(
-        JSON.stringify({
-          error:
-            "Invalid address format for 'treasury_multisig' or 'treasury_recovery'.",
-        }),
-        {
-          status: 400,
-          headers: {
-            ...corsHeaders,
-            "Content-Type": "application/json",
-          },
-        }
-      );
-    }
-    // Call the delegateDeployTreasury function on the GovernanceManager contract
-    console.log(`Received request to deploy treasury for group: ${group_key}`);
-    console.log(`   Treasury MultiSig Address: ${treasury_multisig}`);
-    console.log(`   Treasury Recovery Address: ${treasury_recovery}`);
     console.log(`Calling delegateDeployTreasury with:`, {
       group_key,
       treasury_multisig,
       treasury_recovery,
     });
-    const transactionResponse = await contract.delegateDeployTreasury(
+    const transactionResponse = await governanceContract.delegateDeployTreasury(
       group_key,
       treasury_multisig,
       treasury_recovery
     );
-    console.log(
-      "[RELAYER/EdgeFunction] Transaction response:",
-      transactionResponse
-    );
-    console.log(
-      `Transaction sent. Transaction Hash: ${transactionResponse.hash}`
-    );
+    console.log(`Transaction sent. Hash: ${transactionResponse.hash}`);
     const receipt = await transactionResponse.wait();
     if (!receipt) {
-      throw new Error(
-        "Transaction receipt not found. The transaction might not have been mined successfully or timed out."
-      );
+      throw new Error("Transaction receipt not found.");
     }
     console.log(
       `Transaction successfully mined. Block Number: ${receipt.blockNumber}, Gas Used: ${receipt.gasUsed}`
     );
     let deployedTreasuryAddress = null;
-    const iface = new ethers.Interface(GOVERNANCE_MANAGER_ABI);
     for (const log of receipt.logs) {
-      try {
-        const parsedLog = iface.parseLog(log);
-        if (parsedLog && parsedLog.name === "TreasuryDeployed") {
-          deployedTreasuryAddress = parsedLog.args.beaconProxy;
-          console.log(
-            `'TreasuryDeployed' event found. Deployed Treasury Address: ${deployedTreasuryAddress}`
-          );
-          break;
+      // Check if the log is from the TreasuryFactory address
+      if (
+        log.address.toLowerCase() ===
+        TREASURY_FACTORY_PROXY_ADDRESS.toLowerCase()
+      ) {
+        try {
+          const parsedLog = treasuryFactoryIface.parseLog(log);
+          if (parsedLog && parsedLog.name === "TreasuryDeployed") {
+            deployedTreasuryAddress = parsedLog.args.beaconProxy;
+            console.log(
+              `'TreasuryDeployed' event found. Deployed Treasury Address: ${deployedTreasuryAddress}`
+            );
+            break;
+          }
+        } catch (e) {
+          // Log might be for a different event, so we ignore the error and continue.
+          console.log(`Could not parse log from TreasuryFactory: ${e.message}`);
         }
-      } catch (e) {
-        console.warn(
-          `Could not parse log (possibly irrelevant): ${e.message}`,
-          log
+      } else {
+        console.log(
+          `Skipping log from address: ${log.address} (not TreasuryFactory)`
         );
       }
     }
@@ -268,7 +208,6 @@ serve(async (req) => {
         "Could not find the 'TreasuryDeployed' event in the transaction receipt. Treasury address could not be extracted."
       );
     }
-    // Return a success response with the deployed address.
     return new Response(
       JSON.stringify({
         message: "Treasury deployed successfully.",
@@ -286,12 +225,11 @@ serve(async (req) => {
       }
     );
   } catch (error) {
-    // Catch any errors during the process and return an error response.
     console.error("Error in relayer-deploy-treasury Edge Function:", error);
     return new Response(
       JSON.stringify({
         error: error.message || "An unknown internal server error occurred.",
-        stack: error.stack, // Include stack trace for debugging
+        stack: error.stack,
       }),
       {
         status: 500,

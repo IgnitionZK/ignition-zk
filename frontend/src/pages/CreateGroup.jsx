@@ -15,6 +15,8 @@ import ConfirmationModalComponent from "../components/ConfirmationModal";
 import { useInsertNewGroup } from "../hooks/queries/groups/useInsertNewGroup";
 import { useRelayerDeployERC721 } from "../hooks/relayers/useRelayerDeployERC721";
 import { useInsertERC721ContractAddress } from "../hooks/queries/groups/useInsertERC721ContractAddress";
+import { useRelayerDeployTreasury } from "../hooks/relayers/useRelayerDeployTreasury";
+import { useUpdateTreasuryAddress } from "../hooks/queries/groups/useUpdateTreasuryAddress";
 import { useWalletQuery } from "../hooks/wallet/useWalletQuery";
 import { useUser } from "../hooks/queries/authentication/useUser";
 
@@ -226,6 +228,12 @@ export default function CreateGroup({ onCancel }) {
 
   // Hook for inserting ERC721 contract address
   const { insertERC721ContractAddress } = useInsertERC721ContractAddress();
+
+  // Hook for deploying treasury
+  const { deployTreasury } = useRelayerDeployTreasury();
+
+  // Hook for updating treasury address
+  const { updateTreasuryAddress } = useUpdateTreasuryAddress();
 
   // Hook for querying wallet
   const { address: walletAddress } = useWalletQuery();
@@ -505,9 +513,6 @@ export default function CreateGroup({ onCancel }) {
         ownerMultisig,
         recoveryMultisig,
       });
-      // TODO: Implement treasury deployment logic
-      // This would involve deploying a TreasuryManager contract
-      // and storing the treasury configuration in the database
     }
 
     // Insert the new group using the hook
@@ -550,12 +555,92 @@ export default function CreateGroup({ onCancel }) {
                           "Contract address saved to database:",
                           updatedGroup
                         );
-                        // Hide loading overlay, show success message, and return to dashboard
-                        setShowLoadingOverlay(false);
-                        toast.success(
-                          `Group "${groupName}" created successfully!`
-                        );
-                        onCancel(); // Use onCancel to properly reset Dashboard state
+
+                        // If treasury is enabled, deploy it after ERC721 deployment
+                        if (treasuryEnabled) {
+                          deployTreasury(
+                            {
+                              groupKey: data[0].group_id,
+                              treasuryMultiSig: ownerMultisig,
+                              treasuryRecovery: recoveryMultisig,
+                            },
+                            {
+                              onSuccess: (treasuryData) => {
+                                console.log(
+                                  "Treasury deployed successfully:",
+                                  treasuryData
+                                );
+
+                                // Save the treasury address to the database
+                                if (treasuryData.deployedTreasuryAddress) {
+                                  updateTreasuryAddress(
+                                    {
+                                      group_id: data[0].group_id,
+                                      treasury_address:
+                                        treasuryData.deployedTreasuryAddress,
+                                    },
+                                    {
+                                      onSuccess: (treasuryUpdated) => {
+                                        console.log(
+                                          "Treasury address saved to database:",
+                                          treasuryUpdated
+                                        );
+                                        // Hide loading overlay, show success message, and return to dashboard
+                                        setShowLoadingOverlay(false);
+                                        toast.success(
+                                          `Group "${groupName}" with Treasury created successfully!`
+                                        );
+                                        onCancel(); // Use onCancel to properly reset Dashboard state
+                                      },
+                                      onError: (error) => {
+                                        console.error(
+                                          "Failed to save treasury address to database:",
+                                          error
+                                        );
+                                        // Hide loading overlay, show error message, and return to dashboard
+                                        setShowLoadingOverlay(false);
+                                        toast.error(
+                                          "Group and Treasury created but failed to save treasury address. Please contact support."
+                                        );
+                                        onCancel(); // Use onCancel to properly reset Dashboard state
+                                      },
+                                    }
+                                  );
+                                } else {
+                                  console.warn(
+                                    "No deployed treasury address found in response:",
+                                    treasuryData
+                                  );
+                                  // Hide loading overlay, show warning message, and return to dashboard
+                                  setShowLoadingOverlay(false);
+                                  toast.error(
+                                    "Group created but treasury deployment may have failed. Please contact support."
+                                  );
+                                  onCancel(); // Use onCancel to properly reset Dashboard state
+                                }
+                              },
+                              onError: (error) => {
+                                console.error(
+                                  "Failed to deploy treasury:",
+                                  error
+                                );
+                                // Hide loading overlay, show error message, and return to dashboard
+                                setShowLoadingOverlay(false);
+                                toast.error(
+                                  "Failed to deploy treasury. Please try again or contact support."
+                                );
+                                onCancel(); // Use onCancel to properly reset Dashboard state
+                              },
+                            }
+                          );
+                        } else {
+                          // No treasury needed, complete the flow
+                          setShowLoadingOverlay(false);
+                          toast.success(
+                            `Group "${groupName}" created successfully!`
+                          );
+                          onCancel(); // Use onCancel to properly reset Dashboard state
+                        }
                       },
                       onError: (error) => {
                         console.error(
