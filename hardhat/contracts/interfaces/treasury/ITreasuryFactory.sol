@@ -25,4 +25,18 @@ interface ITreasuryFactory {
      * @return The address of the treasury instance.
      */
     function groupTreasuryAddresses(bytes32 groupKey) external view returns (address);
+
+    /**
+     * @notice Emitted when a treasury instance has been deployed.
+     * @param groupKey The unique identifier for the DAO group.
+     * @param beaconProxy The address of the deployed treasury instance.
+     */
+    event TreasuryDeployed(bytes32 indexed groupKey, address beaconProxy);
+
+    /**
+     * @notice Emitted when the treasury factory is deployed.
+     * @param beaconManager The address of the beacon manager contract.
+     * @param governanceManager The address of the governance manager contract.
+     */
+    event TreasuryFactoryDeployed(address indexed beaconManager, address indexed governanceManager);
 }

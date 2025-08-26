@@ -90,7 +90,7 @@ contract MembershipManagerTest is Test {
         );
 
         // verify that the clone was deployed at the expected address
-        address cloneAddress = membershipManager.getGroupNftAddress(groupKey);
+        address cloneAddress = membershipManager.groupNftAddresses(groupKey);
         assertEq(cloneAddress, expectedCloneAddress, "Clone address does not match the expected address");
 
         vm.stopPrank();
@@ -177,7 +177,7 @@ contract MembershipManagerTest is Test {
         // set the new root for the group
         membershipManager.setRoot(mockRootHashNew, groupKey);
 
-        bytes32 actualRoot = membershipManager.getRoot(groupKey);
+        bytes32 actualRoot = membershipManager.groupRoots(groupKey);
         assertEq(actualRoot, mockRootHashNew, "Root does not match the expected value");
 
         vm.stopPrank();
@@ -207,7 +207,7 @@ contract MembershipManagerTest is Test {
         // set the new root for the group
         membershipManager.setRoot(newRoot, mockGroupKey);
 
-        bytes32 actualRoot = membershipManager.getRoot(mockGroupKey);
+        bytes32 actualRoot = membershipManager.groupRoots(mockGroupKey);
         assertEq(actualRoot, newRoot, "Root does not match the expected value");
 
         vm.stopPrank();
