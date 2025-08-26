@@ -62,6 +62,22 @@ The Ignition ZK protocol enables privacy-preserving governance through zero-know
   - Controls access to administrative functions
 - **Design Principles**: UUPS Upgradeable architecture, role-based access control
 
+### 6. Treasury and Fund Distribution Layer
+
+**TreasuryManager & TreasuryFactory Contracts**
+- **Purpose**: Securely manage DAO funds and execute approved disbursements
+- **Key Functions**:
+  - `TreasuryFactory`: Deploys isolated treasury instances for each DAO or group, ensuring fund segregation and upgradability
+  - `TreasuryManager`: Receives and tracks funding requests, approves and executes transfers
+  - Stores and enforces timelocks on all outgoing transfers to allow for review and cancellation
+  - Allows treasury admins (typically a multisig) to approve, execute, or cancel funding requests
+  - Supports emergency locking to halt all transfers if needed
+- **Interactions**:
+  - Funding modules (e.g., GrantModule) relay approved funding requests to the correct TreasuryManager instance
+  - The `GovernanceManager` coordinates fund distribution by delegating calls (e.g., `delegateDistributeGrant`) to the appropriate funding module, which then interacts with the treasury
+- **Security Features**: Timelock on transfers, admin-only execution, event logging for all actions, and emergency lock mechanism
+- **Design Principles**: Treasuries deployed as upgradeable beacon proxies, role-based access control
+
 ## Cross-Component Interaction
 
 1. **ZK Credential Generation Flow**:
