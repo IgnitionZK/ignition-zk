@@ -96,6 +96,7 @@ async function main() {
         GOVERNOR_PLACEHOLDER,
         PROPOSAL_VERIFIER_ADDRESS,
         PROPOSAL_CLAIM_VERIFIER_ADDRESS,
+        membershipManagerAddress
       ],
       {
         initializer: "initialize",
@@ -135,6 +136,8 @@ async function main() {
       [
         GOVERNOR_PLACEHOLDER,
         VOTE_VERIFIER_ADDRESS,
+        membershipManagerAddress,
+        proposalManagerAddress
       ],
       {
         initializer: "initialize",

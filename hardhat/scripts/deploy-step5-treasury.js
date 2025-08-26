@@ -3,6 +3,7 @@ const { ethers, upgrades } = require("hardhat");
 async function main() {
   console.log("🚀 Step 5: Treasury Contracts...\n");
 
+  const MEMBERSHIP_MANAGER_ADDRESS = "0x8370E9d59a97Ad443F9a1E1e628f9932639fD3fb"; // From Step 2
   const GOVERNOR_ADDRESS = "0x7ab21Db27Cb94944C5316aE93dA4AA796d673c8a"; // From Step 3
   const OWNER_RELAYER = "0x5F909fd25A9F5e4f5a219318FdeD6C8124F6c1F1";
   
@@ -54,7 +55,8 @@ async function main() {
 
     const treasuryFactory = await TreasuryFactory.deploy(
         beaconManager.target,
-        GOVERNOR_ADDRESS // GovernanceManager address
+        GOVERNOR_ADDRESS, // GovernanceManager address
+        MEMBERSHIP_MANAGER_ADDRESS
     );
     console.log("⏳ Waiting for TreasuryFactory deployment...");
     await treasuryFactory.waitForDeployment();

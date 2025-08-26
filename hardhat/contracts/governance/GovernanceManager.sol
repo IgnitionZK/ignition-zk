@@ -683,6 +683,7 @@ contract GovernanceManager is Initializable, UUPSUpgradeable, OwnableUpgradeable
         address module = activeModuleRegistry[fundingType];
         if (module == address(0)) revert FundingModuleNotFound();
 
+        // If all checks pass, trigger the corresponding funding module
         if (fundingType == FundingTypes.GRANT_TYPE) {
             IGrantModule(module).distributeGrant(groupTreasury, contextKey, to, amount);
             emit GrantDistributionDelegated(groupTreasury, contextKey, to, amount);
