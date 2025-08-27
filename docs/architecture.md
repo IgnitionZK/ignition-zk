@@ -107,9 +107,7 @@ The Ignition ZK protocol enables privacy-preserving governance through zero-know
 
 ## Security Model
 
-- **Privacy Protection**: User identities remain private through ZK proofs
-- **Sybil Resistance**: NFT-based membership prevents identity fraud
-- **Double-Action Prevention**: Nullifier tracking prevents duplicate actions
-- **Integrity Assurance**: Verifier contracts validate all proofs before state changes
-
-This architecture balances privacy, security, and decentralization while enabling complex governance operations with cryptographic guarantees.
+- User identities remain private through ZK proofs
+- NFT-based membership prevents identity fraud
+- Nullifier tracking prevents duplicate actions
+- Verifier contracts validate all proofs before state changes

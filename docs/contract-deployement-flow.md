@@ -1,6 +1,6 @@
 # Ignition ZK Deployment Flow
 
-## 1. Core Protocol Deployment
+## 1. Core Contracts
 
 **Step 1: Deploy Base Infrastructure**
 - Deploy all ZK Verifier contracts: MembershipVerifier, ProposalVerifier, VoteVerifier, ProposalClaimVerifier.
@@ -19,9 +19,7 @@
   - ProposalManager → GovernanceManager
   - VoteManager → GovernanceManager
 
----
-
-## 2. Treasury System Deployment
+## 2. Treasury System
 
 **Step 4: Deploy Treasury Infrastructure**
 - Deploy TreasuryManager implementation (do not initialize).
@@ -32,16 +30,14 @@
 - Deploy GrantModule (and any other funding modules).
 - Set ownership to GovernanceManager.
 
----
-
-## 3. System Configuration
+## 3. Configuration
 
 **Step 6: Connect Components**
 - Register TreasuryFactory in GovernanceManager via `setTreasuryFactory()`.
 - Register funding modules in GovernanceManager via `addFundingModule()`.
 
-**Step 7: Production Readiness**
+**Step 7: IgnitionZK MultiSig**
 - Transfer temporary ownership to permanent multisig wallets.
 - Verify all contracts on a block explorer.
 
-> **Note:** All deployments with "temporary ownership" should use the relayer during development or the IgnitionZK multisig for production.
+All deployments with "temporary ownership" use the relayer during development and the IgnitionZK multisig for production.
