@@ -26,7 +26,7 @@
 
 ## Table of Contents
 
-* [Key Features & Capabilities](#key-features--capabilities)
+* [Key Features](#key-features)
 * [IngitionZK Components](#ignitionzk-components)
     * [Layer A: ZK Engine](#layer-a-zk-engine)
     * [Layer B: On-Chain Infrastructure](#layer-b-on-chain-infrastructure)
@@ -37,15 +37,59 @@
     * [Phase 4: Claiming Proposal Awards](#phase-4-claiming-proposal-awards)
     * [Phase 5: Proposal Execution](#phase-5-proposal-execution)
 
-## Key Features & Capabilities
+## Key Features 
 
-* **Private operations:** Private identity, proposal submission and voting using Zero-Knowledge Proofs
-* **Verifiable membership:** Publicly verifiable NFT-gated access ensuring only eligible members with real-world credentials can join.
-* **Flexible member management:** Dynamic DAO member handling via NFT mint/burn
-* **Flexible funds management:** Flexible treasury logic via pluggable funding modules
-* **Streamlined creation:** Intuitive UI for DAO and ERC721 deployment.
-* **Delegated control:** Granular role delegation via a Governance Manager.
-* **Enhanced engagement:** Fostering high participation and accountability via smaller publicly-verified"expert" groups leading to higher individual stakes and more focused contributions.
+IgnitionZK delivers a privacy-preserving, modular, and upgradeable governance framework for expert DAOs. Its architecture and lifecycle enable secure, anonymous participation while maintaining transparency and robust fund management.
+
+
+### 1. **Privacy-Preserving Governance**
+
+- **Anonymous Proposals & Voting:**  
+  Members submit proposals and cast votes without revealing their identities, using zero-knowledge proofs (ZKPs).
+- **ZK Credential System:**  
+  Each member generates a private ZK identity, enabling verifiable yet anonymous participation.
+
+### 2. **Verifiable Membership**
+
+- **NFT-Gated Access:**  
+  DAO membership is managed via non-transferable ERC721 NFTs, ensuring only eligible, real-world-verified members can participate.
+- **Dynamic Member Management:**  
+  Members can be added or removed by minting or burning NFTs.
+
+### 3. **Modular, Upgradeable Smart Contracts**
+
+- **UUPS-Upgradeable Contracts:**  
+  Upgradeable controllers for membership, proposals, voting, governance and funding modules built on OpenZeppelin’s UUPS proxy pattern for future-proofing and security.
+- **Pluggable Funding Modules:**  
+  Funding modules (such as grants or bounties) are designed as plug-and-play components, managed and deployed by IgnitionZK. 
+
+### 4. **Secure Treasury Management**
+
+- **Isolated Beacon Proxy Treasuries:**  
+  Each group has its own upgradeable beacon proxy treasury, deployed via a factory for fund segregation and risk mitigation.
+- **Timelocked Disbursements:**  
+  All outgoing transfers are subject to a mandatory timelock, giving admins time to review or halt suspicious activity.
+- **Admin Controls & Emergency Lock:**  
+  Only authorized multisig admins can approve, execute, or cancel fund transfers, with the ability to lock the treasury in emergencies.
+
+### 5. **Transparent Lifecycle**
+
+- **Deanonymized Event Logging:**  
+  All critical actions (proposals, votes, claims) emit thorough de-anonymized on-chain events for full auditability.
+- **Lifecycle Phases:**  
+  The governance process is structured into clear phases: Membership, Proposal Submission, Voting, Claiming, and Execution.
+
+
+### 6. **User-Centric Experience**
+
+- **Intuitive UI:**  
+  Guided workflows for DAO creation, proposal submission, voting, and claims, lowering the barrier for expert groups to launch and operate.
+- **Customizable Campaigns:**  
+  DAOs can define governance campaign durations and proposal templates to fit their unique needs.
+
+---
+
+[➡️ Explore the Architecture](./docs/architecture.md) 
 
 ## IgnitionZK Layers
 
@@ -81,7 +125,7 @@ This layer provides the smart contract architecture built on OpenZeppelin's UUPS
 * **Governance Manager**: Central coordinator for protocol upgrades and management
 * **Treasury System**: Flexible funding modules for resource allocation
 
-[➡️ Detailed Smart Contract Documentation](./docs/layerB-smart-contracts.md) | [Explore Architecture Details](./docs/architecture.md)
+[➡️ Detailed Smart Contract Documentation](./docs/layerB-smart-contracts.md) | [ Architecture Details](./docs/architecture.md)
 
 ## IgnitionZK Lifecycle
 
