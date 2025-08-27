@@ -3,7 +3,7 @@ const { ethers, upgrades } = require("hardhat");
 async function main() {
   console.log("🚀 Step 6: Deploying the FundingModules...\n");
 
-  const GOVERNOR_ADDRESS = "0x7ab21Db27Cb94944C5316aE93dA4AA796d673c8a"; // From Step 3
+  const GOVERNOR_ADDRESS = "0x66132e41BCEACb279c66525835602fD76900B417"; // From Step 3
   const OWNER_RELAYER = "0x5F909fd25A9F5e4f5a219318FdeD6C8124F6c1F1";
   
   console.log("📋 Configuration:");
