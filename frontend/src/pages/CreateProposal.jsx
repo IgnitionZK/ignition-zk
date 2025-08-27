@@ -387,7 +387,7 @@ export default function CreateProposal({ onSuccess, onCancel }) {
   const [description, setDescription] = useState("");
   const [proposalType, setProposalType] = useState("Funding Request");
   const [amount, setAmount] = useState("");
-  const [currencyType, setCurrencyType] = useState("USDC");
+  const [currencyType, setCurrencyType] = useState("ETH");
   const [fundingType, setFundingType] = useState("Lump sum payment");
 
   // File upload state
@@ -514,7 +514,7 @@ export default function CreateProposal({ onSuccess, onCancel }) {
   ];
 
   // Currency type options
-  const currencyTypeOptions = ["ETH", "USDC", "BTC"];
+  const currencyTypeOptions = ["ETH"];
 
   // Funding type options
   const fundingTypeOptions = ["Lump sum payment"];

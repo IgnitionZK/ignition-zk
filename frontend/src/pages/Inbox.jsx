@@ -3,22 +3,21 @@ import styled from "styled-components";
 
 // Components
 import PageHeader from "../components/PageHeader";
-import InboxItem from "../components/InboxItem";
 import CustomDropdown from "../components/CustomDropdown";
 import MnemonicInput from "../components/MnemonicInput";
 import Spinner from "../components/Spinner";
+import InboxItem from "../components/InboxItem";
 
 // Hooks
-import { useGetProposalsByGroupId } from "../hooks/queries/proposals/useGetActiveProposalsByGroupId";
-import { useGetPendingInboxProposals } from "../hooks/queries/proposals/useGetPendingInboxProposals";
 import { useGetUserGroups } from "../hooks/queries/groupMembers/useGetUserGroups";
-import { useGetProofsByGroupMemberId } from "../hooks/queries/proofs/useGetProofsByGroupMemberId";
+
+// hooks for verify membership toggle functionality
 import { useVerifyMembership } from "../hooks/queries/proofs/useVerifyMembership";
 import { useGetCommitmentArray } from "../hooks/queries/merkleTreeLeaves/useGetCommitmentArray";
 import { useValidateGroupCredentials } from "../hooks/queries/groups/useValidateGroupCredentials";
 
-// Icons
-import { IoIosInformationCircle } from "react-icons/io";
+// hook for getting proofs by group IDs
+import { useGetProofsByGroupIds } from "../hooks/queries/proofs/useGetProofsByGroupIds";
 
 const PageContainer = styled.div`
   display: flex;
@@ -144,20 +143,10 @@ const ActivityList = styled.ul`
   gap: 1.2rem;
 `;
 
-const InfoIcon = styled(IoIosInformationCircle)`
-  color: #a5b4fc;
-  font-size: 1.7rem;
-  vertical-align: middle;
-`;
-
 const InfoIconWrapper = styled.span`
   position: relative;
   display: inline-flex;
   align-items: center;
-  &:hover > div {
-    opacity: 1;
-    visibility: visible;
-  }
 `;
 
 const Tooltip = styled.div`
@@ -189,30 +178,6 @@ const Tooltip = styled.div`
   }
 `;
 
-const CurrentGroupDisplay = styled.div`
-  background: var(--color-grey-700);
-  color: var(--color-grey-100);
-  padding: 0.8rem 1.6rem;
-  border: 1px solid var(--color-grey-600);
-  border-radius: 0.8rem;
-  font-size: 1.4rem;
-  display: flex;
-  align-items: center;
-  gap: 0.8rem;
-  min-width: 16rem;
-  justify-content: space-between;
-`;
-
-const GroupName = styled.span`
-  font-weight: 500;
-`;
-
-const LockIcon = styled.span`
-  color: #22c55e;
-  font-size: 1.2rem;
-`;
-
-// Loading Overlay Styles
 const LoadingOverlay = styled.div`
   position: fixed;
   top: 0;
@@ -235,30 +200,35 @@ const LoadingText = styled.p`
 `;
 
 /**
- * Proofs component displays a list of pending and verified proposals for the user's groups.
+ * Inbox component displays a list of pending and verified proposals for the user's groups.
  * It allows filtering proposals by group and shows different sections for pending and verified items.
  * Includes a toggle to show/hide the inbox content.
  *
  * @component
  */
-export default function Proofs() {
+export default function Inbox() {
+  const isDevelopmentMode = false; // Set to false when deploying
+
+  // Circuit IDs for different proof types
+  const PROPOSAL_CIRCUIT_ID = "a1a0a504-e3aa-4e5d-bb9f-bbd98aefbd52";
+  const VOTING_CIRCUIT_ID = "4cf28644-3d5c-4a09-b96d-d3138503ee7d";
+
   const { userGroups, isLoading: isLoadingGroups } = useGetUserGroups();
-  const { isLoading, proposals, error } = useGetProposalsByGroupId(userGroups);
-  const {
-    isLoading: isLoadingPending,
-    proposals: pendingProposals,
-    error: pendingError,
-    refetch: refetchPendingProposals,
-  } = useGetPendingInboxProposals(userGroups);
-  const groupMemberIds =
-    userGroups?.map((group) => group.group_member_id) || [];
-  const { proofs, refetch: refetchProofs } =
-    useGetProofsByGroupMemberId(groupMemberIds);
+
   const {
     verifyMembership,
     isVerifying,
     error: verificationError,
   } = useVerifyMembership();
+
+  const groupIds = userGroups?.map((group) => group.group_id) || [];
+  const groupMemberIds =
+    userGroups?.map((group) => group.group_member_id) || [];
+  const {
+    proofs,
+    isLoading: isLoadingProofs,
+    error: proofsError,
+  } = useGetProofsByGroupIds(groupIds, groupMemberIds);
 
   const [selectedGroup, setSelectedGroup] = useState("");
   const [isInboxVisible, setIsInboxVisible] = useState(false);
@@ -273,6 +243,72 @@ export default function Proofs() {
   const selectedGroupData = userGroups?.find(
     (group) => group.name === selectedGroup
   );
+
+  const selectedGroupProofs =
+    proofs?.filter((proof) => proof.group_id === selectedGroupData?.group_id) ||
+    [];
+
+  const currentUserGroupMemberId = selectedGroupData?.group_member_id;
+
+  const proposalProofs = selectedGroupProofs.filter(
+    (proof) => proof.circuit_id === PROPOSAL_CIRCUIT_ID
+  );
+
+  const votingProofs = selectedGroupProofs.filter(
+    (proof) => proof.circuit_id === VOTING_CIRCUIT_ID
+  );
+
+  const pendingProposals = proposalProofs.filter((proposalProof) => {
+    const hasUserVoted = votingProofs.some(
+      (votingProof) =>
+        votingProof.proposal_id === proposalProof.proposal_id &&
+        votingProof.group_member_id === currentUserGroupMemberId
+    );
+
+    return !hasUserVoted;
+  });
+
+  const verifiedProposals = proposalProofs.filter((proposalProof) => {
+    const userVotingProof = votingProofs.find(
+      (votingProof) =>
+        votingProof.proposal_id === proposalProof.proposal_id &&
+        votingProof.group_member_id === currentUserGroupMemberId
+    );
+
+    return userVotingProof && userVotingProof.is_verified;
+  });
+
+  const verifiedVotingOnlyProposals = votingProofs
+    .filter((votingProof) => {
+      return (
+        votingProof.group_member_id === currentUserGroupMemberId &&
+        votingProof.is_verified
+      );
+    })
+    .filter((votingProof) => {
+      return !proposalProofs.some(
+        (proposalProof) => proposalProof.proposal_id === votingProof.proposal_id
+      );
+    })
+    .map((votingProof) => {
+      return {
+        proof_id: votingProof.proof_id,
+        proposal_id: votingProof.proposal_id,
+        title: votingProof.proposal_title || "Proposal Title Unavailable",
+        group_name: votingProof.group_name || "Unknown Group",
+        description:
+          votingProof.proposal_description ||
+          "Proposal description unavailable",
+        epoch_start_time: votingProof.epoch_start_time,
+        epoch_duration: votingProof.epoch_duration,
+        is_voting_only: true,
+      };
+    });
+
+  const allVerifiedProposals = [
+    ...verifiedProposals,
+    ...verifiedVotingOnlyProposals,
+  ];
 
   const { commitmentArray, isLoading: isLoadingCommitments } =
     useGetCommitmentArray({ groupId: selectedGroupData?.group_id });
@@ -289,14 +325,11 @@ export default function Proofs() {
     !!selectedGroupData
   );
 
-  // Cleanup effect to clear mnemonic when component unmounts or user navigates away
   useEffect(() => {
     const handleBeforeUnload = () => {
       setStoredMnemonic(null);
     };
 
-    // Only clear mnemonic on beforeunload, not on visibility change
-    // This allows users to switch tabs without losing their mnemonic
     window.addEventListener("beforeunload", handleBeforeUnload);
 
     return () => {
@@ -305,55 +338,21 @@ export default function Proofs() {
     };
   }, []);
 
-  // Filter pending proposals by selected group
-  const filteredProposals = pendingProposals?.filter((proposal) =>
-    selectedGroup === "" ? false : proposal.group_name === selectedGroup
-  );
-
-  // Filter verified proposals for activity history
-  const verifiedProposals = proposals
-    ?.filter((proposal) => {
-      // Check if the user has a verified voting proof for this proposal
-      const userVotingProof = proofs?.find(
-        (proof) =>
-          proof.proposal_id === proposal.proposal_id &&
-          proof.circuit_id === "4cf28644-3d5c-4a09-b96d-d3138503ee7d" && // voting circuit
-          proof.is_verified === true &&
-          proof.group_member_id ===
-            userGroups?.find((group) => group.group_id === proposal.group_id)
-              ?.group_member_id // match the user's group member ID for this group
-      );
-
-      return !!userVotingProof; // only include if user has a verified voting proof
-    })
-    .filter((proposal) =>
-      selectedGroup === "" ? false : proposal.group_name === selectedGroup
-    )
-    // Get unique proposals, ensuring we get the proposal circuit row for each
-    .reduce((acc, proposal) => {
-      const existingIndex = acc.findIndex(
-        (p) => p.proposal_id === proposal.proposal_id
-      );
-
-      if (existingIndex === -1) {
-        if (proposal.circuit_id === "a1a0a504-e3aa-4e5d-bb9f-bbd98aefbd52") {
-          acc.push(proposal);
-        }
-      } else {
-        if (proposal.circuit_id === "a1a0a504-e3aa-4e5d-bb9f-bbd98aefbd52") {
-          acc[existingIndex] = proposal;
-        }
-      }
-
-      return acc;
-    }, [])
-    .map((proposal) => ({
-      ...proposal,
-      is_verified: true,
-    }));
+  const handleGroupSelect = (groupName) => {
+    setSelectedGroup(groupName);
+  };
 
   const handleToggleChange = () => {
     if (selectedGroup === "") return;
+
+    if (isDevelopmentMode) {
+      setIsInboxVisible(!isInboxVisible);
+      if (!isInboxVisible) {
+        setUnlockedGroups(new Set([selectedGroup]));
+        setStoredMnemonic("");
+      }
+      return;
+    }
 
     if (selectedGroupData && !areCredentialsValid && !isValidatingCredentials) {
       setLocalVerificationError(
@@ -368,16 +367,14 @@ export default function Proofs() {
       const newInboxVisible = !isInboxVisible;
 
       if (newInboxVisible) {
-        // If showing the inbox, require mnemonic re-entry even for unlocked groups
         setShowMnemonicInput(true);
       } else {
-        // If hiding the inbox, reset the selected group and remove from unlocked groups
         setIsInboxVisible(false);
         setSelectedGroup("");
-        setLocalVerificationError(null); // Clear any verification errors
-        // Clear all unlocked groups so they need to re-enter mnemonic
+        setLocalVerificationError(null);
+
         setUnlockedGroups(new Set());
-        // Clear stored mnemonic for security
+
         setStoredMnemonic(null);
       }
     }
@@ -397,12 +394,6 @@ export default function Proofs() {
         throw new Error("Selected group data not found");
       }
 
-      console.log(
-        "Verifying membership for group:",
-        selectedGroupData.group_id
-      );
-
-      // Verify membership using the ZK proof
       const { isValid, publicSignals } = await verifyMembership(
         commitmentArray,
         mnemonic,
@@ -410,21 +401,11 @@ export default function Proofs() {
       );
 
       if (isValid) {
-        console.log(
-          "Membership verified successfully for group:",
-          selectedGroup
-        );
-
-        // Only store the mnemonic after successful verification
         setStoredMnemonic(mnemonic);
 
-        // Add the group to unlocked groups (only one group can be unlocked at a time)
         setUnlockedGroups(new Set([selectedGroup]));
 
-        // Show the inbox
         setIsInboxVisible(true);
-
-        console.log("Inbox unlocked for group:", selectedGroup);
       } else {
         throw new Error("Membership verification failed");
       }
@@ -432,9 +413,8 @@ export default function Proofs() {
       console.error("Membership verification error:", error);
       setLocalVerificationError(error.message || "Failed to verify membership");
 
-      // Don't unlock the inbox if verification fails
       setIsInboxVisible(false);
-      // Ensure mnemonic is not stored if verification fails
+
       setStoredMnemonic(null);
     } finally {
       setShowLoadingOverlay(false);
@@ -443,18 +423,6 @@ export default function Proofs() {
 
   const handleMnemonicClose = () => {
     setShowMnemonicInput(false);
-  };
-
-  // Check if inbox is visible and group is unlocked (this means dropdown should be hidden)
-  const shouldHideDropdown =
-    isInboxVisible && unlockedGroups.has(selectedGroup);
-
-  // Handle group selection - only allow if inbox is not visible or group is not unlocked
-  const handleGroupSelection = (groupName) => {
-    if (shouldHideDropdown) {
-      return; // Prevent group switching when inbox is unlocked
-    }
-    setSelectedGroup(groupName);
   };
 
   return (
@@ -487,28 +455,22 @@ export default function Proofs() {
                 <ToggleSlider $isOn={isInboxVisible} />
               </ToggleSwitch>
               <InfoIconWrapper>
-                <InfoIcon />
                 <Tooltip>
-                  {shouldHideDropdown
-                    ? "Group is locked. Toggle off to switch groups or refresh the page."
-                    : "Select a group first, then use toggle to unlock inbox content. Re-entry of mnemonic required each time."}
+                  Select a group first, then use toggle to unlock inbox content.
+                  Re-entry of mnemonic required each time. Once unlocked, the
+                  group dropdown will be disabled until you lock the inbox.
                 </Tooltip>
               </InfoIconWrapper>
             </ToggleContainer>
           </LeftSection>
-          {!shouldHideDropdown ? (
-            <CustomDropdown
-              options={groupNames}
-              selectedOption={selectedGroup}
-              onSelect={handleGroupSelection}
-              placeholder="Please select group"
-            />
-          ) : (
-            <CurrentGroupDisplay>
-              <GroupName>{selectedGroup}</GroupName>
-              <LockIcon>🔒</LockIcon>
-            </CurrentGroupDisplay>
-          )}
+          <CustomDropdown
+            options={groupNames}
+            selectedOption={selectedGroup}
+            onSelect={handleGroupSelect}
+            placeholder="Please select group"
+            disabled={isInboxVisible}
+            disabledMessage="Lock inbox to switch groups"
+          />
         </ControlsRow>
       </PageHeaderContainer>
 
@@ -516,45 +478,18 @@ export default function Proofs() {
         <HiddenMessage>
           <HiddenTitle>Inbox hidden</HiddenTitle>
           <HiddenSubtitle>
-            {shouldHideDropdown
-              ? "Group is locked. Toggle off to switch groups or refresh the page to unlock a different group."
-              : "Select a group using the dropdown and use toggle button to reveal inbox items. Mnemonic re-entry required each time."}
+            Select a group using the dropdown and use toggle button to reveal
+            inbox items. Mnemonic re-entry required each time. Once unlocked,
+            you must lock the inbox before switching to another group.
           </HiddenSubtitle>
-
-          {isValidatingCredentials && (
-            <div
-              style={{
-                color: "var(--color-grey-300)",
-                fontSize: "1.4rem",
-                marginTop: "1.6rem",
-                textAlign: "center",
-              }}
-            >
-              Validating group credentials...
-            </div>
-          )}
-          {selectedGroupData &&
-            !isValidatingCredentials &&
-            !areCredentialsValid && (
-              <div
-                style={{
-                  color: "var(--color-red-400)",
-                  fontSize: "1.4rem",
-                  marginTop: "1.6rem",
-                  textAlign: "center",
-                }}
-              >
-                {credentialsMessage ||
-                  "All group members must generate credentials before unlocking the inbox."}
-              </div>
-            )}
           {localVerificationError && (
             <div
               style={{
-                color: "var(--color-red-400)",
+                color: "var(--color-red-500)",
                 fontSize: "1.4rem",
                 marginTop: "1.6rem",
                 textAlign: "center",
+                maxWidth: "40rem",
               }}
             >
               Error: {localVerificationError}
@@ -579,20 +514,46 @@ export default function Proofs() {
             <ProofHeader>
               <SectionTitle>Pending</SectionTitle>
             </ProofHeader>
-            {isLoadingPending || isLoadingGroups ? (
+            {isLoadingProofs || isLoadingGroups ? (
               <div>Loading...</div>
-            ) : pendingError ? (
-              <div>Error: {pendingError.message}</div>
+            ) : proofsError ? (
+              <div>Error: {proofsError.message}</div>
+            ) : pendingProposals.length === 0 ? (
+              <div
+                style={{
+                  color: "var(--color-grey-400)",
+                  textAlign: "center",
+                  padding: "2rem",
+                }}
+              >
+                No pending proposals
+              </div>
             ) : (
               <ActivityList>
-                {filteredProposals?.map((proposal) => (
+                {pendingProposals.map((proposalProof) => (
                   <InboxItem
-                    key={proposal.proposal_id}
-                    proposal={proposal}
-                    isVerified={false}
+                    key={proposalProof.proof_id}
+                    proposal={{
+                      title: proposalProof.proposal_title,
+                      group_name: proposalProof.group_name,
+                      description: proposalProof.proposal_description,
+                      epoch_start_time: proposalProof.epoch_start_time,
+                      epoch_duration: proposalProof.epoch_duration,
+                      group_id: proposalProof.group_id,
+                      proposal_id: proposalProof.proposal_id,
+                      epoch_id: proposalProof.epoch_id,
+                      payload: proposalProof.proposal_payload || {},
+                      funding: proposalProof.proposal_funding || {},
+                      metadata: proposalProof.proposal_metadata || {},
+                    }}
+                    showSubmitButton={true}
                     storedMnemonic={storedMnemonic}
-                    refetchPendingProposals={refetchPendingProposals}
-                    refetchProofs={refetchProofs}
+                    refetchPendingProposals={() => {
+                      console.log("Refetching pending proposals...");
+                    }}
+                    refetchProofs={() => {
+                      console.log("Refetching proofs...");
+                    }}
                   />
                 ))}
               </ActivityList>
@@ -600,20 +561,46 @@ export default function Proofs() {
           </Section>
           <Section>
             <SectionTitle>Verified</SectionTitle>
-            {isLoading || isLoadingGroups ? (
+            {isLoadingProofs || isLoadingGroups ? (
               <div>Loading...</div>
-            ) : error ? (
-              <div>Error: {error.message}</div>
+            ) : proofsError ? (
+              <div>Error: {proofsError.message}</div>
+            ) : allVerifiedProposals.length === 0 ? (
+              <div
+                style={{
+                  color: "var(--color-grey-400)",
+                  textAlign: "center",
+                  padding: "2rem",
+                }}
+              >
+                No verified proposals
+              </div>
             ) : (
               <ActivityList>
-                {verifiedProposals?.map((proposal) => (
+                {allVerifiedProposals.map((proposalProof) => (
                   <InboxItem
-                    key={proposal.proposal_id}
-                    proposal={proposal}
+                    key={proposalProof.proof_id}
+                    proposal={{
+                      title: proposalProof.proposal_title,
+                      group_name: proposalProof.group_name,
+                      description: proposalProof.proposal_description,
+                      epoch_start_time: proposalProof.epoch_start_time,
+                      epoch_duration: proposalProof.epoch_duration,
+                      group_id: proposalProof.group_id,
+                      proposal_id: proposalProof.proposal_id,
+                      epoch_id: proposalProof.epoch_id,
+                      payload: proposalProof.proposal_payload || {},
+                      funding: proposalProof.proposal_funding || {},
+                      metadata: proposalProof.proposal_metadata || {},
+                    }}
                     showSubmitButton={false}
-                    isVerified={proposal.is_verified}
                     storedMnemonic={storedMnemonic}
-                    refetchProofs={refetchProofs}
+                    refetchPendingProposals={() => {
+                      console.log("Refetching pending proposals...");
+                    }}
+                    refetchProofs={() => {
+                      console.log("Refetching proofs...");
+                    }}
                   />
                 ))}
               </ActivityList>
@@ -621,6 +608,7 @@ export default function Proofs() {
           </Section>
         </>
       )}
+
       {showMnemonicInput && (
         <MnemonicInput
           title="Unlock Inbox"
