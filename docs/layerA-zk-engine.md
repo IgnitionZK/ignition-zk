@@ -4,44 +4,48 @@
 This layer forms the cryptographic core of IgnitionZK, enabling privacy-preserving and verifiable interactions through Zero-Knowledge Proofs (ZKPs) and associated off-chain tooling. It's designed to ensure confidential operations while maintaining trustless integrity within the DAO.
 
 ### Key Features:
-* **ZKP Protocol:** Leverages `circom` for off-chain proof generation using the `PLONK` ZKP Protocol, benefiting from a universal trusted setup.
-* **On-Chain Verification:** Dedicated verifiers are deployed on-chain to efficiently check the validity of generated proofs.
-* **Comprehensive Off-Chain Tooling:** Provides essential utilities for ZK identity management, Merkle root generation and storage, and the generation of ZKP circuit proofs.
-* **Secure Identity Management:** ZK identities are managed via mnemonic seeds, HKDF, Poseidon hashing, and Merkle Trees, ensuring robust and private member authentication.
+- **PLONK-Based ZKP Protocol:**  
+  IgnitionZK uses `circom` and the PLONK protocol for efficient, universal-trusted-setup ZK proof generation.
+- **On-Chain Verifiers:**  
+  Each ZK circuit has a dedicated verifier contract deployed on-chain, ensuring that only valid proofs are accepted by the DAO’s smart contracts.
+- **Off-Chain Tooling:** 
+  Scripts and utilities handle ZK identity creation, Merkle tree management, and proof generation, making it easy for members to interact privately with the DAO.
+- **Secure Identity Management:**  
+  Members’ ZK identities are derived from mnemonic seeds, using HKDF and Poseidon hashing, and are organized in Merkle trees for efficient membership verification.
 
-### ZK Circuit Components
+### ZK Circuits
 
 The Circom circuits are the mathematical backbone of IgnitionZK's privacy logic. They empower DAO members to submit and vote on proposals confidentially, ensuring uniqueness and integrity through cryptographic commitments and nullifiers without revealing sensitive details.
 
-**ZK Circuit Documentation**:  
+**Documentation**:  
 [Membership](./zk/circuits/membership/docs-membership_circuit.md) |
 [Proposal](./zk/circuits/proposal/docs-proposal_circuit.md) |
 [Vote](./zk/circuits/vote/docs-vote_circuit.md) |
 [Claim](./zk/circuits/proposal-claim/docs-proposal_claim_circuit.md)
 
-### ZK Circuit Components & Responsibilities
+### Circuit Overview
 
 <div style="overflow-x: auto;">
 
-| Circuit | Summary | Verification Context | Included | Input Signals | Public Output Signals | Circuit Constraints | On-Chain Constraints |
-|---|---|---|---|---|---|---|---|
-| [Membership](zk/circuits/membership/membership_circuit.circom) | Private verification of DAO membership via ZK credentials & Merkle proofs. | Per-DAO | | <ul><li>`root`<li>`group hash`<li>`identity trapdoor`<li>`identity nullifier`<li>`path elements`<li>`path indices`</ul> | <ul><li>`root`<li>`group hash`<li>`membership nullifier`</ul> | `isMember === 1` | Unique `membership nullifier` |
-| [Proposal Submission](zk/circuits/proposal/proposal_circuit.circom) | Private submission of funding proposals from verified DAO members, with content validation & deduplication. | Per-DAO, Per-EPOCH | Membership Proof | <ul><li>Membership inputs<li>`proposal content hash`<li>`proposal title hash`<li>`proposal description hash`<li>`proposal payload hash`<li>`proposal metadata hash`<li> `proposal funding hash` <li>`epoch hash`</ul> | <ul><li>`proposal context hash`<li>`proposal submission nullifier` <li>`proposal claim nullifier`<li>`root`<li>`proposal content hash`</ul> | `isMember === 1`<br>`Poseidon(title, desc, payload) === ContentHash` | Unique `proposal submission nullifier` |
-| [Vote](zk/circuits/vote/vote_circuit.circom) | Confidential voting by verified DAO members, with content validation, submisison nullifier and vote uniqueness verification. | Per-DAO, Per-EPOCH, Per-PROPOSAL | Membership Proof | <ul><li>Membership inputs <li> `vote choice` <li> `epoch hash` <li> `proposal hash`<li> `proposal submission nullifier` <li>`proposal title hash`<li>`proposal description hash`<li>`proposal payload hash`<li>`proposal metadata hash`<li> `proposal funding hash`</ul> | <ul><li> `vote context hash` <li> `vote nullifier` <li> `onchain verifiable vote choice hash` <li> `root` <li> `submission nullifier`</ul> | `isValidVoteChoice === 1` &`computedProposalSubmissionNullifier === proposalSubmissionNullifier` | Unique `vote nullifier` |
-| [Proposal Claim](zk/circuits/proposal-claim/proposal_claim_circuit.circom) | Confidential verification that a reward claim for an accepted proposal is made by its original anonymous creator. | Per-PROPOSAL, Per-Submitter | Membership Proof | <ul><li>Membership inputs <li>`proposal submisison nullifer` <li>`proposal claim nullifier` <li>`proposal context hash` <li>`identity nullifier` </ul> | <li>`proposal submisison nullifer` <li>`proposal claim nullifier` <li>`proposal context hash` | `computedClaimNullifier === proposalClaimNullifier` | Unique `claim nullifier` |
+| Circuit | Purpose | Verification Context | Key Inputs | Public Outputs | Main Constraints | On-Chain Check |
+|---|---|---|---|---|---|---|
+| [Membership](zk/circuits/membership/membership_circuit.circom) | Prove DAO membership using ZK credentials and Merkle proofs | Per-DAO | Merkle root, group hash, identity keys, Merkle path | Merkle root, group hash, membership nullifier | Must be a valid member; unique nullifier | Membership nullifier not reused |
+| [Proposal Submission](zk/circuits/proposal/proposal_circuit.circom) | Submit proposals privately, ensuring uniqueness and content integrity | Per-DAO, Per-Epoch | Membership proof, proposal content hashes, epoch hash | Proposal context hash, submission & claim nullifiers, Merkle root | Valid member, content hash matches, unique submission | Submission nullifier not reused |
+| [Vote](zk/circuits/vote/vote_circuit.circom) | Cast votes anonymously, ensuring one vote per member per proposal | Per-DAO, Per-Epoch, Per-Proposal | Membership proof, vote choice, proposal hashes | Vote context hash, vote nullifier, choice hash, Merkle root | Valid vote, correct proposal, unique vote | Vote nullifier not reused |
+| [Proposal Claim](zk/circuits/proposal-claim/proposal_claim_circuit.circom) | Prove ownership of a passed proposal to claim rewards | Per-Proposal, Per-Submitter | Membership proof, proposal nullifiers, context hash | Submission & claim nullifiers, context hash | Claim nullifier matches, unique claim | Claim nullifier not reused |
 </div>
 
-### ZK Off-Chain Tooling
+### Off-Chain ZK Tooling
 
-A dedicated set of off-chain scripts and utilities orchestrates the entire ZKP lifecycle. These tools facilitate the secure creation of ZK identities (generating identity trapdoors and nullifiers), the dynamic construction and storage of Merkle Trees, and the efficient generation of proofs for all integrated ZK circuits.
+A set of off-chain scripts supports the ZK lifecycle. These tools help members generate their ZK identities, build and update Merkle trees, and create proofs for all supported circuits. This off-chain layer is essential for keeping sensitive operations private and efficient.
 
-### Core Script Modules & Responsibilities
+### Core Script Modules 
 
 <div style="overflow-x: auto;">
 
-| Core Script | Class | Summary | Primitives Used | Key Methods |
+| Script | Class | What It Does | Key Primitives | Main Methods |
 |---|---|---|---|---|
-| [generateCredentials.js](frontend/src/scripts/generateCredentials.js) | `ZkCredentials` | Manages ZK identity: seeds, keys, credentials. | <ul><li>Mnemonic Seeds<li>HKDF<li>Keccak256<li>Poseidon Hash</li></ul> | <ul><li>`generateMnemonicSeed`<li>`generateSeedFromMnemonic`<li>`generateKeys`<li>`generateIdentity`<li>`generateCredentials`</ul> |
-| [merkleTreeService.js](frontend/src/scripts/merkleTreeService.js) | `MerkleTreeService` | Creates Merkle trees & generates proofs. | <ul><li>Merkle Trees<li>Poseidon Hash</li></ul> | <ul><li>`createMerkleTree`<li>`generateMerkleProof`</ul> |
-| [generateZKProof.js](frontend/src/scripts/generateZKProof.js) | `ZKProofGenerator` | Generates ZK proofs for circuits. | <ul><li>ZKPs (PLONK)<li>Poseidon Hash<li>Merkle Trees<li>Calldata Encoding</li></ul> | <ul><li>`generateMembershipCircuitInput`<li>`generateProposalCircuitInput`<li>`generateProof`<li>`verifyProofOffChain`<li>`generateSolidityCalldata`</ul> |
+| [generateCredentials.js](frontend/src/scripts/generateCredentials.js) | `ZkCredentials` | Handles ZK identity creation: seeds, keys, credentials | Mnemonic seeds, HKDF, Keccak256, Poseidon | `generateMnemonicSeed`, `generateSeedFromMnemonic`, `generateKeys`, `generateIdentity`, `generateCredentials` |
+| [merkleTreeService.js](frontend/src/scripts/merkleTreeService.js) | `MerkleTreeService` | Builds Merkle trees and generates proofs | Merkle trees, Poseidon hash | `createMerkleTree`, `generateMerkleProof` |
+| [generateZKProof.js](frontend/src/scripts/generateZKProof.js) | `ZKProofGenerator` | Generates ZK proofs for all circuits | PLONK, Poseidon, Merkle trees, calldata encoding | `generateMembershipCircuitInput`, `generateProposalCircuitInput`, `generateProof`, `verifyProofOffChain`, `generateSolidityCalldata` |
 </div>

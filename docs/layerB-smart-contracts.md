@@ -1,45 +1,37 @@
 ## Layer B: On-Chain Infrastructure 
 
-This layer provides the foundational smart contract architecture for Ignition ZK, ensuring upgradeability, modularity, and secure operation. 
+Layer B is where IgnitionZK’s governance logic and treasury management live. This layer is built for flexibility, upgradeability, and security, so DAOs can evolve over time without losing control or transparency.
 
-The system is organized into several core contract groups:
+The system is organized around a few main contract groups:
 
-- **Governance & Managers:** Upgradeable manager contracts (Membership, Proposal, Vote) coordinate DAO membership, proposal lifecycle, and voting, all governed by the central GovernanceManager.
-- **Verifiers:** Immutable ZK-SNARK verifier contracts validate membership, proposal, and voting proofs, enabling privacy-preserving governance.
-- **NFT Factory:** An efficient ERC721 clone factory deploys group NFTs for DAO membership gating.
-- **Treasury System:** A modular, upgradeable treasury framework manages on-chain funds for each DAO. Treasury instances are deployed as beacon proxies, supporting flexible funding modules (e.g., grants, quadratic funding), role-based security and independent storage.
+- Manager Contracts handle membership, proposals, and voting. Each manager is upgradeable and works under the coordination of the GovernanceManager, which acts as the protocol’s central authority.
+- Verifiers are immutable contracts that check zero-knowledge proofs for membership, proposals, and voting. They make sure only valid, private actions are accepted.
+- NFT Factory is a lightweight ERC721 clone factory that issues non-transferable membership tokens, so only real, approved members can participate.
+- The treasury system allows each DAO to gets its own upgradeable treasury, deployed as a beacon proxy. Treasuries are isolated, upgradeable, and support a range of funding modules (like grants), all managed by the protocol.
 
-Together, these contracts enable secure, extensible, and privacy-preserving DAO operations, with seamless upgrade paths for both governance logic and treasury management.
+Role-based permissions are used throughout, so only authorized parties can make changes to membership, proposals, voting, or treasury actions. Every sensitive operation is protected by these checks, and all upgrades are controlled by multi-signature wallets for added security.
 
-### Key Features:
+### Contract Overview
 
-* **UUPS Upgradeability:** Core manager contracts (Membership, Proposal, Voting, GovernanceManager, and funding modules) are fully upgradeable via the UUPS (ERC-1967) proxy pattern.
-* **Beacon Upgradeability:** Treasury contracts are upgradeable via the Beacon proxy pattern, allowing all treasury instances to be upgraded simultaneously through the BeaconManager.
-* **NFT Clone Factory:** Utilizes lightweight minimal proxies, aka "clones" (EIP-1167), for efficient ERC721 contract deployment.
-* **NFT-Gated Access:** Implements a robust ERC721-gated mechanism for controlling DAO membership.
-* **Role-Based Security:** Granular, role-gated execution ensures secure control over critical membership, proposal, voting and treasury logic.
-* **Extensible Treasury:** Supports dynamic plug-in funding modules for flexible treasury management, with all treasury instances upgradeable via a single beacon.
-
-### Smart Contract Modules and Responsibilities
+Below is a summary of the main contracts and what they do:
 
 <div style="overflow-x: auto;">
 
-| Smart Contract                                                                 | Category      | Type                        | Stores                                                                                 | Responsibilities                                                                                                         | Owner                        |
-|--------------------------------------------------------------------------------|---------------|-----------------------------|----------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------|------------------------------|
-| [MembershipManager](hardhat/contracts/managers/MembershipManager.sol)           | Manager       | UUPS (ERC-1967)             | Merkle roots                                                                           | - Deploy group NFTs<br>- Manage DAO members<br>- Verify DAO membership                                                   | GovernanceManager            |
-| [ProposalManager](hardhat/contracts/managers/ProposalManager.sol)               | Manager       | UUPS (ERC-1967)             | Proposal submission nullifiers<br>Proposal claim nullifiers                            | - Verify proposal submissions<br>- Verify proposal claims                                                                 | GovernanceManager            |
-| [VoteManager](hardhat/contracts/managers/VoteManager.sol)                       | Manager       | UUPS (ERC-1967)             | Vote nullifiers<br>Proposal results (tally, status, nullifier)<br>Quorum parameters<br>Group member count | - Verify vote validity<br>- Store and update proposal status                                                              | GovernanceManager            |
-| [MembershipVerifier](hardhat/contracts/verifiers/MembershipVerifier.sol)        | Verifier      | Immutable                   | —                                                                                      | - Verify DAO membership claims (via MembershipManager)                                                                    | Unrestricted                 |
-| [ProposalSubmissionVerifier](hardhat/contracts/verifiers/ProposalVerifier.sol)  | Verifier      | Immutable                   | —                                                                                      | - Verify proposal submission proofs (via ProposalManager)                                                                 | Unrestricted                 |
-| [ProposalClaimVerifier](hardhat/contracts/verifiers/ProposalVerifier.sol)       | Verifier      | Immutable                   | —                                                                                      | - Verify proposal claim proofs (via ProposalManager)                                                                      | Unrestricted                 |
-| [VoteVerifier](hardhat/contracts/verifiers/VoteVerifier.sol)                    | Verifier      | Immutable                   | —                                                                                      | - Verify voting proofs (via VoteManager)                                                                                  | Unrestricted                 |
-| [ERC721IgnitionZK](hardhat/contracts/token/ERC721IgnitionZK.sol)                | NFT Factory   | Clone (EIP-1167)            | —                                                                                      | - Deploy NFT clones for DAOs                                                                                              | MembershipManager            |
-| [GovernanceManager](hardhat/contracts/governance/GovernanceManager.sol)         | Governance    | UUPS (ERC-1967)             | Addresses of active funding modules                                                    | - Manage addresses of funding modules<br>- Delegate calls to managers via relayer                                         | IgnitionZK MultiSig          |
-| [TreasuryManager](hardhat/contracts/treasury/TreasuryManager.sol)               | Treasury      | Beacon Proxy Instance       | Funding request records (per instance)                                                 | - Template for beacon proxy instance deployment<br>- Access-controlled, upgradeable treasury logic                        | DAO Treasury MultiSig (per instance) |
-| [BeaconManager](hardhat/contracts/treasury/BeaconManager.sol)                   | Treasury      | Beacon (immutable)          | Implementation address                                                                 | - Holds implementation for TreasuryManager beacon proxies<br>- Owner can upgrade all treasuries                           | IgnitionZK MultiSig          |
-| [TreasuryFactory](hardhat/contracts/treasury/TreasuryFactory.sol)               | Treasury      | Immutable                   | Beacon proxy addresses                                                                 | - Deploys beacon proxy instances                                                                                         | GovernanceManager            |
-| [GrantModule](hardhat/contracts/fundingModules/GrantModule.sol)                 | Funding Module| UUPS (ERC-1967)             | —                                                                                      | - Initiates grant funding requests to treasury instances                                                                  | GovernanceManager            |
-| Quadratic Funding Module                                                        | Funding Module| (Planned)                   | —                                                                                      | - (Planned) Quadratic funding logic                                                                                      | GovernanceManager            |
-
-</details>
-
+| Contract | Type | Upgradeability | What It Stores | What It Does | Owner |
+|---|---|---|---|---|---|
+| [MembershipManager](../hardhat/contracts/managers/MembershipManager.sol) | Manager | UUPS | Merkle roots | Deploys group NFTs, manages members, verifies membership | GovernanceManager |
+| [ProposalManager](../hardhat/contracts/managers/ProposalManager.sol) | Manager | UUPS | Proposal nullifiers | Verifies proposal submissions and claims | GovernanceManager |
+| [VoteManager](../hardhat/contracts/managers/VoteManager.sol) | Manager | UUPS | Vote nullifiers, proposal results, quorum params | Verifies votes, tracks proposal status | GovernanceManager |
+| [MembershipVerifier](../hardhat/contracts/verifiers/MembershipVerifier.sol) | Verifier | Immutable | — | Checks membership proofs | — |
+| [ProposalSubmissionVerifier](../hardhat/contracts/verifiers/ProposalVerifier.sol) | Verifier | Immutable | — | Checks proposal submission proofs | — |
+| [ProposalClaimVerifier](../hardhat/contracts/verifiers/ProposalVerifier.sol) | Verifier | Immutable | — | Checks proposal claim proofs | — |
+| [VoteVerifier](../hardhat/contracts/verifiers/VoteVerifier.sol) | Verifier | Immutable | — | Checks voting proofs | — |
+| [ERC721IgnitionZK](../hardhat/contracts/token/ERC721IgnitionZK.sol) | NFT Factory | Clone | — | Deploys NFT clones for DAOs | MembershipManager |
+| [GovernanceManager](../hardhat/contracts/governance/GovernanceManager.sol) | Governance | UUPS | Funding module addresses | Manages modules, delegates calls, protocol admin | IgnitionZK MultiSig |
+| [TreasuryManager](../hardhat/contracts/treasury/TreasuryManager.sol) | Treasury | Beacon Proxy | Funding requests | Handles treasury logic, timelocks, admin controls | DAO Treasury MultiSig |
+| [BeaconManager](../hardhat/contracts/treasury/BeaconManager.sol) | Treasury | Beacon | Implementation address | Upgrades all treasuries at once | IgnitionZK MultiSig |
+| [TreasuryFactory](../hardhat/contracts/treasury/TreasuryFactory.sol)  | Treasury | Immutable | Proxy addresses | Deploys new treasury instances | GovernanceManager |
+| [GrantModule](../hardhat/contracts/fundingModules/GrantModule.sol) | Funding Module | UUPS | — | Handles grant funding requests | GovernanceManager |
+| Quadratic Funding Module | Funding Module | (Planned) | — | (Planned) Quadratic funding logic | GovernanceManager |
+</div>
+---
