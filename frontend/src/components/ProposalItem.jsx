@@ -13,12 +13,12 @@ import { useState } from "react";
 import { useGetEpochsByGroupId } from "../hooks/queries/epochs/useGetEpochsByGroupId";
 import { useVerifyProposalClaim } from "../hooks/queries/proofs/useVerifyProposalClaim";
 import { useGetCommitmentArray } from "../hooks/queries/merkleTreeLeaves/useGetCommitmentArray";
-import { useGetUserGroups } from "../hooks/queries/groupMembers/useGetUserGroups";
 import { useGetProposalSubmissionNullifier } from "../hooks/queries/proofs/useGetProposalSubmissionNullifier";
 import { useUpdateProposalStatus } from "../hooks/queries/proposals/useUpdateProposalStatus";
 
 // Utilities
 import { calculateEpochPhases } from "../scripts/utils/epochPhaseCalculator";
+import { calculateProgressBarStep } from "../scripts/utils/progressBarStepCalculator";
 import { getClaimedStatusId } from "../services/apiProposalStatus";
 
 const ProposalItemContainer = styled.li`
@@ -218,7 +218,6 @@ function ProposalItem({ proposal = {} }) {
     useGetCommitmentArray({
       groupId: proposal.group_id,
     });
-  const { userGroups } = useGetUserGroups();
 
   const { updateStatus: updateProposalStatus, isLoading: isUpdatingStatus } =
     useUpdateProposalStatus();
@@ -387,6 +386,59 @@ function ProposalItem({ proposal = {} }) {
     setShowMnemonicInput(false);
   };
 
+  const getProgressData = () => {
+    if (!proposal.epoch_id || !epochs || isLoadingEpochs) {
+      return {
+        currentStep: 1,
+        isStep2Rejected: false,
+        isStep3NotClaimed: false,
+        isStep5TransferRejected: false,
+        isStep6Completed: false,
+      };
+    }
+
+    try {
+      const proposalEpoch = epochs.find(
+        (epoch) => epoch.epoch_id === proposal.epoch_id
+      );
+
+      if (!proposalEpoch) {
+        return {
+          currentStep: 1,
+          isStep2Rejected: false,
+          isStep3NotClaimed: false,
+          isStep5TransferRejected: false,
+          isStep6Completed: false,
+        };
+      }
+
+      const epochData = {
+        epoch_start_time: proposalEpoch.epoch_start_time,
+        epoch_duration: proposalEpoch.epoch_duration,
+      };
+
+      const phases = calculateEpochPhases(epochData);
+
+      return calculateProgressBarStep(proposal, phases);
+    } catch (error) {
+      console.error("Error calculating progress data:", {
+        error: error.message,
+        stack: error.stack,
+        proposalId: proposal.proposal_id,
+        epochId: proposal.epoch_id,
+        groupId: proposal.group_id,
+      });
+
+      return {
+        currentStep: 1,
+        isStep2Rejected: false,
+        isStep3NotClaimed: false,
+        isStep5TransferRejected: false,
+        isStep6Completed: false,
+      };
+    }
+  };
+
   const getVotingWindow = () => {
     if (!proposal.epoch_id || !epochs || isLoadingEpochs) {
       return "Voting window not available";
@@ -407,6 +459,7 @@ function ProposalItem({ proposal = {} }) {
       };
 
       const phases = calculateEpochPhases(epochData);
+
       const votingStart = formatDate(phases.votingPhase.start);
       const votingEnd = formatDate(phases.votingPhase.end);
 
@@ -471,7 +524,13 @@ function ProposalItem({ proposal = {} }) {
           </RightSection>
         </HeaderSection>
 
-        <ProposalProgressBar />
+        <ProposalProgressBar
+          currentStep={getProgressData().currentStep}
+          isStep2Rejected={getProgressData().isStep2Rejected}
+          isStep3NotClaimed={getProgressData().isStep3NotClaimed}
+          isStep5TransferRejected={getProgressData().isStep5TransferRejected}
+          isStep6Completed={getProgressData().isStep6Completed}
+        />
 
         <FooterSection>
           <CustomButton
