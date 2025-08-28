@@ -6,6 +6,7 @@ import toast from "react-hot-toast";
 import CustomButton from "./CustomButton";
 import MnemonicInput from "./MnemonicInput";
 import Spinner from "./Spinner";
+import ProposalProgressBar from "./ProposalProgressBar";
 
 // Hooks
 import { useState } from "react";
@@ -469,6 +470,8 @@ function ProposalItem({ proposal = {} }) {
             </StatusIndicator>
           </RightSection>
         </HeaderSection>
+
+        <ProposalProgressBar />
 
         <FooterSection>
           <CustomButton

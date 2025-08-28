@@ -13,7 +13,6 @@ import CreateProposal from "./CreateProposal";
 
 // icon
 import { FaCirclePlus } from "react-icons/fa6";
-import ProposalProgressBarDemo from "../components/ProposalProgressBarDemo";
 
 const PageContainer = styled.div`
   display: flex;
@@ -161,7 +160,6 @@ export default function Proposals() {
           <div>Error: {error.message}</div>
         ) : (
           <ActivityList key={`active-${refreshKey}`}>
-            <ProposalProgressBarDemo />
             {filteredProposals?.map((proposal) => (
               <ProposalItem
                 key={`active-${proposal.proposal_id}`}
