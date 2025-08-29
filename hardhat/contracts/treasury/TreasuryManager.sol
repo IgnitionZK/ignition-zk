@@ -563,6 +563,33 @@ contract TreasuryManager is Initializable, AccessControlUpgradeable, ReentrancyG
     }
 
     /**
+     * @notice Checks if an address has the default admin role.
+     * @param addr The address to check.
+     * @return True if the address has the default admin role, false otherwise.
+     */
+    function hasDefaultAdminRole(address addr) external view returns (bool) {
+        return hasRole(DEFAULT_ADMIN_ROLE, addr);
+    }
+
+    /**
+     * @notice Checks if an address has the emergency recovery role.
+     * @param addr The address to check.
+     * @return True if the address has the emergency recovery role, false otherwise.
+     */
+    function hasEmergencyRecoveryRole(address addr) external view returns (bool) {
+        return hasRole(EMERGENCY_RECOVERY_ROLE, addr);
+    }
+
+    /**
+     * @notice Checks if an address has the governance manager role.
+     * @param addr The address to check.
+     * @return True if the address has the governance manager role, false otherwise.
+     */
+    function hasGovernanceManagerRole(address addr) external view returns (bool) {
+        return hasRole(GOVERNANCE_MANAGER_ROLE, addr);
+    }
+
+    /**
      * @notice Checks if a funding request is pending approval.
      * @param contextKey The unique identifier for the funding request.
      * @return True if the funding request is pending approval, false otherwise.
@@ -667,7 +694,6 @@ contract TreasuryManager is Initializable, AccessControlUpgradeable, ReentrancyG
         (bool success, ) = request.to.call{ value: request.amount }("");
 
         if (!success) {
-            request.executed = false;
             revert TransferFailed();
         }
     

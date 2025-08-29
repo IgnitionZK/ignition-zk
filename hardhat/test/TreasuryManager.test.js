@@ -1915,7 +1915,7 @@ describe("Treasury Manager Unit Tests:", function () {
         expect(isLocked).to.be.false;  
     });
 
-     it(`FUNCTION: lockTreasury, unlockTreasury
+    it(`FUNCTION: lockTreasury, unlockTreasury
         TESTING: authorization (failure)
         EXPECTED: should not allow the non-admin or non-recovery to lock or unlock the treasury`, async function () {
         ({ mockGovernanceManager, mockTreasuryManager, mockBeaconManager } = await deployMock_GovernanceManager_TreasuryManager_BeaconManager());
@@ -1941,6 +1941,39 @@ describe("Treasury Manager Unit Tests:", function () {
         // Unlock the treasury
         await expect(treasuryInstance.connect(user1).unlockTreasury())
             .to.be.revertedWithCustomError(treasuryInstance, "CallerNotAuthorized");
+    });
+
+    it(`FUNCTION: hasEmergencyRecoveryRole, hasGovernanceManagerRole, hasAdminRole
+        TESTING: roles
+        EXPECTED: should assign the correct roles`, async function () {
+        // deploy group NFT and initialize group root
+        await deployGroupNftAndSetRoot(governor, groupKey, nftName, nftSymbol, rootHash1);
+
+        // Use EOA test signer as treasury factory owner
+        await deployTreasuryFactoryWithEOAOwner();
+
+        // Deploy treasury instance: deployTreasuryInstanceWithEOAOwner(treasuryFactorySigner, treasuryMultisig, treasuryRecovery)
+        const treasuryInstance = await deployTreasuryInstanceWithEOAOwner(governor, await deployer.getAddress(), await user1.getAddress());
+
+        // Get current default admin
+        const hasAdminRole = await treasuryInstance.hasDefaultAdminRole(await deployer.getAddress());
+        expect(hasAdminRole).to.be.true;
+
+        const hasEmergencyRecoveryRole = await treasuryInstance.hasEmergencyRecoveryRole(await user1.getAddress());
+        expect(hasEmergencyRecoveryRole).to.be.true;
+
+        const hasGovernanceManagerRole = await treasuryInstance.hasGovernanceManagerRole(await governor.getAddress());
+        expect(hasGovernanceManagerRole).to.be.true;
+
+        expect(await treasuryInstance.connect(deployer).transferAdminRole(await user1.getAddress()))
+            .to.emit(treasuryInstance, "AdminRoleTransferred")
+            .withArgs(await deployer.getAddress(), await user1.getAddress());
+
+        const newHasAdminRole = await treasuryInstance.hasDefaultAdminRole(await user1.getAddress());
+        expect(newHasAdminRole).to.be.true;
+
+        const oldHasAdminRole = await treasuryInstance.hasDefaultAdminRole(await deployer.getAddress());
+        expect(oldHasAdminRole).to.be.false;
     });
 
 });
