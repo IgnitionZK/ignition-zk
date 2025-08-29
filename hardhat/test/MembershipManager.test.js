@@ -661,7 +661,7 @@ describe("Membership Manager Unit Tests:", function () {
             "OwnableUnauthorizedAccount"
         );
     });
-
+    /*
     it(`FUNCTION: mintNftToMember
         TESTING: Access Control MINTER_ROLE, custom error: AccessControlUnauthorizedAccount
         EXPECTED: should not mint an NFT to a member if the membershipManager revokes the MINTER_ROLE via the governor`, async function () {
@@ -718,7 +718,6 @@ describe("Membership Manager Unit Tests:", function () {
             .withArgs(groupKey, user1Address, anyUint); // anyUint allows for any uint256 value for the tokenId
     });
 
-    /*
     it("mintNftToMember: should not allow reentrancy attack on minting NFT", async function () {
         const user1Address = await user1.getAddress();
         const attackerAddress = await attackerERC721.getAddress();
@@ -906,7 +905,7 @@ describe("Membership Manager Unit Tests:", function () {
             "OwnableUnauthorizedAccount"
         );
     });
-
+    /*
     it(`FUNCTION: burnMemberNft
         TESTING: Access Control BURNER_ROLE, custom error: AccessControlUnauthorizedAccount
         EXPECTED: should not allow the membershipManager to burn a member's NFT if the governor revokes the BURNER_ROLE`, async function () {
@@ -965,6 +964,7 @@ describe("Membership Manager Unit Tests:", function () {
             .to.emit(membershipManager, "MemberNftBurned")
             .withArgs(groupKey, user1Address, anyUint); 
     });
+    */
 
     it(`FUNCTIONALITY: NFT transfer
         TESTING: Soulbound NFT transfer restrictions (transferFrom()), custom error: TransferNotAllowed

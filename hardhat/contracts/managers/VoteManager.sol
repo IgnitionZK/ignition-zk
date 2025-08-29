@@ -347,8 +347,6 @@ contract VoteManager is Initializable, OwnableUpgradeable, UUPSUpgradeable, IVot
         uint256[5] calldata publicSignals,
         bytes32 contextKey,
         bytes32 groupKey
-        //bytes32 currentRoot,
-        //bool isProposalSubmitted
     ) 
         external 
         onlyOwner
@@ -402,7 +400,6 @@ contract VoteManager is Initializable, OwnableUpgradeable, UUPSUpgradeable, IVot
 
         // Update vote tally for proposal
         VoteTypes.ProposalResult storage result = proposalResults[contextKey];
-        //VoteTypes.VoteTally storage tally = proposalResults[contextKey].tally;
 
         if ( inferredChoice == VoteTypes.VoteChoice.No) {
             result.tally.no++;

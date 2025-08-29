@@ -2,11 +2,7 @@
 <p align="center">
   <img src="frontend/src/assets/logo-transparent-bg.png" alt="IgnitionZK Logo" width="100" />
   <h1 align="center" style="margin-top: 0.3rem;">IgnitionZK</h1>
-  <h3 align="center" style="margin: 0;">ZK-Governed · Modular · Upgradeable Treasury</h3>
-</p>
-
-<p align="center">
-  <a href="./docs/architecture.md">View system architecture</a>
+  <h3 align="center" style="margin: 0;">ZK-Governed · Modular · Upgradeable Governance & Treasury</h3>
 </p>
 
 > 🚧 **Project Status**: Alpha - In active development and testing. Not yet ready for production use.
@@ -61,7 +57,7 @@
 
 ---
 
-[Read more about the architecture](./docs/architecture.md) 
+[Read more about the system architecture](./docs/architecture.md) 
 
 ## IgnitionZK Components
 
@@ -74,9 +70,11 @@ The IgnitionZK framework combines a zero-knowledge cryptographic engine with a f
 
 The ZK Engine is the privacy backbone of IgnitionZK. It uses the PLONK protocol and a set of custom circuits to let members prove eligibility, submit proposals, vote, and claim rewards—all without revealing their identity or sensitive data. Off-chain tools help members generate their ZK credentials and manage Merkle trees, while on-chain verifiers check proofs efficiently.
 
-* **ZK Circuits** for membership, proposals, voting, and claims
-* **Verifier Contracts** to validate proofs on-chain
-* **Off-Chain Tooling** for credential generation and Merkle tree management
+Key components:
+
+* **ZK circuits** for membership, proposals, voting, and claims, each enforcing privacy and uniqueness
+* **Verifier contracts** deployed on-chain to validate ZK proofs
+* **Scripts and utilities** for generating credentials and updating Merkle trees off-chain
 
 [Read more about the ZK engine](./docs/layerA-zk-engine.md) 
 
@@ -88,14 +86,10 @@ The ZK Engine is the privacy backbone of IgnitionZK. It uses the PLONK protocol 
 
 ## Layer B: On-Chain Infrastructure 
 
-The on-chain layer is built on OpenZeppelin's UUPS proxy pattern for upgradeability and security. Manager contracts handle membership, proposals, voting, and treasury operations. Membership is enforced with ERC721 NFTs, and each group’s treasury is an upgradeable beacon proxy, keeping funds isolated and secure. Funding modules are plug-and-play, managed by IgnitionZK, and can be upgraded as needs evolve.
+The on-chain layer is built on OpenZeppelin's UUPS proxy pattern for upgradeability and security. **Manager contracts** handle membership, proposals, voting, and treasury operations, **ERC721 NFTs enforce membership**. 
+Each group’s treasury is deployed as an **upgradeable beacon proxy**, keeping funds isolated and secure. **Funding modules** are plug-and-play, managed by IgnitionZK, and can be upgraded as needs evolve.
 
-* **Manager Contracts** for membership, proposals, voting, and treasury
-* **NFT Membership** for verifiable group access
-* **Governance Manager** as the central coordinator
-* **Beacon Proxy Treasuries** for isolated, upgradeable fund management
-
-[Read more about the smart contracts layer](./docs/layerB-smart-contracts.md) | [ Read more about the system architecture](./docs/architecture.md)
+[Read more about the smart contracts layer](./docs/layerB-smart-contracts.md)
 
 ## IgnitionZK Lifecycle
 

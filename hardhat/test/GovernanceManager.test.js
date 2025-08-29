@@ -742,6 +742,7 @@ describe("Governance Manager Unit Tests:", function () {
         );
     });
 
+    /*
     it(`FUNCTION: delegateRevokeMinterRole
         TESTING: onlyRelayer authorization (success)
         EXPECTED: should allow the relayer to revoke the minter role from the membership manager and emit event`, async function () {
@@ -819,6 +820,7 @@ describe("Governance Manager Unit Tests:", function () {
                 "OnlyRelayerAllowed"
             ); 
     });
+    */
 
     it(`FUNCTION: relayer()
         TESTING: stored data

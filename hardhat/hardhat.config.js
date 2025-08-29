@@ -55,9 +55,10 @@ module.exports = {
     sepolia: {
       url: process.env.ALCHEMY_SEPOLIA_URL,
       accounts: [process.env.PRIVATE_KEY],
-      gasPrice: 20000000000, // 20 gwei
       gas: 8000000, // 8M gas limit
       timeout: 300000, // 5 minutes
+      // maxFeePerGas: 20000000000, // e.g., 20 gwei
+      // maxPriorityFeePerGas: 2000000000, // e.g., 2 gwei
     },
     localhost: {
       url: "http://127.0.0.1:8545", // Local Hardhat node URL

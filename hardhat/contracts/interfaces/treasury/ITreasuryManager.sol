@@ -99,7 +99,28 @@ interface ITreasuryManager {
      * @return The current balance of the treasury in wei.
      */
     function getBalance() external view returns (uint256);
-    
+
+    /**
+     * @notice Checks if an address has the default admin role.
+     * @param addr The address to check.
+     * @return True if the address has the default admin role, false otherwise.
+     */
+    function hasDefaultAdminRole(address addr) external view returns (bool);
+
+    /**
+     * @notice Checks if an address has the governance manager role.
+     * @param addr The address to check.
+     * @return True if the address has the governance manager role, false otherwise.
+     */
+    function hasGovernanceManagerRole(address addr) external view returns (bool);
+
+    /**
+     * @notice Checks if an address has the emergency recovery role.
+     * @param addr The address to check.
+     * @return True if the address has the emergency recovery role, false otherwise.
+     */
+    function hasEmergencyRecoveryRole(address addr) external view returns (bool);
+
     /**
      * @notice Checks if a transfer request is pending approval.
      * @param contextKey The unique identifier for the transfer request.

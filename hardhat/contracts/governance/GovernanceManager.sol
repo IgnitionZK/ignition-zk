@@ -335,54 +335,6 @@ contract GovernanceManager is Initializable, UUPSUpgradeable, OwnableUpgradeable
         emit FundingModuleRemoved(_fundingType, _module);
     }
 
-    /**
-     * @notice Sets a new membership manager address.
-     * @dev Only the owner can call this function.
-     * @param _membershipManager The new address for the membership manager.
-     * @custom:error AddressCannotBeZero If the provided membership manager address is zero.
-     * @custom:error AddressIsNotAContract If the provided address is not a contract.
-     * @custom:error NewAddressMustBeDifferent If the new address is the same as the
-     * current membership manager address.
-     * @custom:error InterfaceIdNotSupported If the provided address does not support the IMembership
-     * interface.
-     */
-    /*
-    function setMembershipManager(address _membershipManager) external onlyOwner nonZeroAddress(_membershipManager) {
-        if(_membershipManager.code.length == 0) revert AddressIsNotAContract();
-        if(_membershipManager == address(membershipManager)) revert NewAddressMustBeDifferent();
-
-        bytes4 interfaceId = type(IMembershipManager).interfaceId;
-        if(!_supportsInterface(_membershipManager, interfaceId)) revert InterfaceIdNotSupported();
-
-        membershipManager = IMembershipManager(_membershipManager);
-        emit MembershipManagerSet(_membershipManager);
-    }
-    */
-
-    /**
-     * @notice Sets a new membership manager address.
-     * @dev Only the owner can call this function.
-     * @param _proposalManager The new address for the proposal manager.
-     * @custom:error AddressCannotBeZero If the provided proposal manager address is zero.
-     * @custom:error AddressIsNotAContract If the provided address is not a contract.
-     * @custom:error NewAddressMustBeDifferent If the new address is the same as the
-     * current proposal manager address.
-     * @custom:error InterfaceIdNotSupported If the provided address does not support the IProposalManager
-     * interface.
-     */
-    /*
-    function setProposalManager(address _proposalManager) external onlyOwner nonZeroAddress(_proposalManager) {
-        if(_proposalManager.code.length == 0) revert AddressIsNotAContract();
-        if(_proposalManager == address(proposalManager)) revert NewAddressMustBeDifferent();
-
-        bytes4 interfaceId = type(IProposalManager).interfaceId;
-        if(!_supportsInterface(_proposalManager, interfaceId)) revert InterfaceIdNotSupported();
-
-        proposalManager = IProposalManager(_proposalManager);
-        emit ProposalManagerSet(_proposalManager);
-    }
-    */
-
 // ====================================================================================================================
 // ====================================================================================================================
 //                           EXTERNAL STATE-CHANGING FUNCTIONS (FORWARDED VIA GOVERNANCE)
@@ -398,7 +350,7 @@ contract GovernanceManager is Initializable, UUPSUpgradeable, OwnableUpgradeable
      * @dev Only the relayer can call this function.
      * @param membershipVerifier The address of the new membership verifier contract.
      */
-    function delegateSetMembershipVerifier(address membershipVerifier) external onlyRelayer {
+    function delegateSetMembershipVerifier(address membershipVerifier) external onlyOwner {
         membershipManager.setMembershipVerifier(membershipVerifier);
     }
 
@@ -471,44 +423,6 @@ contract GovernanceManager is Initializable, UUPSUpgradeable, OwnableUpgradeable
      */
     function delegateBurnMemberNft(address memberAddress, bytes32 groupKey) external onlyRelayer {
         membershipManager.burnMemberNft(memberAddress, groupKey);
-    }
-
-    /**
-     * @notice Delegates the revokeMinterRole call to the membership manager.
-     * @dev Only callable by the relayer.
-     * @param nftClone The address of the NFT clone contract.
-     */
-    function delegateRevokeMinterRole(address nftClone) external onlyRelayer {
-        membershipManager.revokeMinterRole(nftClone);
-    }
-
-    /**
-     * @notice Delegates the revokeBurnerRole call to the membership manager.
-     * @dev Only callable by the relayer.
-     * @param nftClone The address of the NFT clone contract.
-     */
-    function delegateRevokeBurnerRole(address nftClone) external onlyRelayer {
-        membershipManager.revokeBurnerRole(nftClone);
-    }
-
-    /**
-     * @notice Delegates the grantMinterRole call to the membership manager.
-     * @dev Only callable by the relayer.
-     * @param nftClone The address of the NFT clone contract.
-     * @param grantTo The address to grant the minter role to.
-     */
-    function delegateGrantMinterRole(address nftClone, address grantTo) external onlyRelayer {
-        membershipManager.grantMinterRole(nftClone, grantTo);
-    }
-
-    /**
-     * @notice Delegates the grantBurnerRole call to the membership manager.
-     * @dev Only callable by the relayer.
-     * @param nftClone The address of the NFT clone contract.
-     * @param grantTo The address to grant the burner role to.
-     */
-    function delegateGrantBurnerRole(address nftClone, address grantTo) external onlyRelayer {
-        membershipManager.grantBurnerRole(nftClone, grantTo);
     }
 
     // ================================================================================================================

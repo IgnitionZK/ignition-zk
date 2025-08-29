@@ -110,35 +110,4 @@ interface IMembershipManager {
      * @return The version string of the MembershipManager contract.
      */
     function getContractVersion() external view returns (string memory);
-    
-// ====================================================================================================================
-//                                       EXTERNAL HELPER FUNCTIONS
-// ====================================================================================================================
-
-    /** 
-     * @notice Revokes the MINTER_ROLE from the specified NFT clone.
-     * @param nftClone The address of the NFT contract clone from which to revoke the role.
-     */
-    function revokeMinterRole(address nftClone) external;
-
-    /** 
-     * @notice Revokes the BURNER_ROLE from the specified NFT clone.
-     * @param nftClone The address of the NFT contract clone from which to revoke the role.
-     */
-    function revokeBurnerRole(address nftClone) external;
-
-    /**
-     * @notice Grants the MINTER_ROLE to the specified address in the NFT clone.
-     * @param nftClone The address of the NFT contract clone to which to grant the role.
-     * @param grantTo The address to which to grant the role.
-     */
-    function grantMinterRole(address nftClone, address grantTo) external;
-
-    /**
-     * @notice Grants the BURNER_ROLE to the specified address in the NFT clone.
-     * @param nftClone The address of the NFT contract clone to which to grant the role.
-     * @param grantTo The address to which to grant the role.
-     */
-    function grantBurnerRole(address nftClone, address grantTo) external;
-    
 }
