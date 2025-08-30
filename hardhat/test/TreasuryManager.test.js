@@ -616,6 +616,7 @@ describe("Treasury Manager Unit Tests:", function () {
             fundingRequest.requestedAt,
             fundingRequest.requestedAt + BigInt(TIMELOCK_DELAY_DAYS * 24 * 60 * 60),
             false,
+            false,
             false
         ]);
 
@@ -628,6 +629,7 @@ describe("Treasury Manager Unit Tests:", function () {
             BigInt(1),
             fundingRequest2.requestedAt,
             fundingRequest2.requestedAt + BigInt(TIMELOCK_DELAY_DAYS * 24 * 60 * 60),
+            false,
             false,
             false
         ]);
@@ -712,6 +714,48 @@ describe("Treasury Manager Unit Tests:", function () {
         await expect(treasuryInstance.connect(deployer).approveTransfer(voteContextKey))
             .to.be.revertedWithCustomError(treasuryInstance, "AccessControlUnauthorizedAccount");
 
+    });
+
+    it(`FUNCTION: approveTransfer
+        TESTING: custom error: TransferHasBeenCancelled
+        EXPECTED: should not allow a non-owner/admin to approve a funding request that has been cancelled`, async function () {
+        ({ mockGovernanceManager, mockTreasuryManager, mockBeaconManager } = await deployMock_GovernanceManager_TreasuryManager_BeaconManager());
+        
+        // deploy group NFT and initialize group root
+        await deployGroupNftAndSetRoot(governor, groupKey, nftName, nftSymbol, rootHash1);
+        await deployTreasuryFactoryWithContractOwner();
+        await deployMockGrantModule();
+
+        // Get governance manager signer
+        const governanceManagerSigner = await setContractAsSignerAndFund(mockGovernanceManager);
+        
+        // Deploy treasury instance: deployTreasuryInstanceWithEOAOwner(treasuryFactorySigner, treasuryMultisig, treasuryRecovery)
+        const treasuryInstance = await deployTreasuryInstanceWithEOAOwner(governanceManagerSigner, await governor.getAddress(), await governor.getAddress());
+
+        // Stop contract as signer
+        await stopContractAsSigner(mockGovernanceManager);
+
+        // Get mock grant module contract as signer with funds for gas
+        const mockGrantModuleSigner = await setContractAsSignerAndFund(mockGrantModule);
+       
+        // Request transfer
+        const grantType = ethers.id("grant");
+
+        await treasuryInstance.connect(mockGrantModuleSigner).requestTransfer(
+            voteContextKey,
+            await user1.getAddress(), // to
+            3, // amount
+            grantType // fundingType
+        );
+
+        await stopContractAsSigner(mockGrantModule);
+
+        // Cancel funding request
+        await treasuryInstance.connect(governor).cancelTransfer(voteContextKey);
+
+        // Approve funding request
+        await expect(treasuryInstance.connect(governor).approveTransfer(voteContextKey))
+            .to.be.revertedWithCustomError(treasuryInstance, "TransferHasBeenCancelled");
     });
 
     it(`FUNCTION: approveTransfer
@@ -924,6 +968,57 @@ describe("Treasury Manager Unit Tests:", function () {
         expect(await treasuryInstance.connect(governor).executeTransfer(voteContextKey))
             .to.emit(treasuryInstance, "TransferExecuted")
             .withArgs(voteContextKey, await user1.getAddress(), 3);
+    });
+
+    it(`FUNCTION: executeTransfer
+        TESTING: custom error: TransferHasBeenCancelled
+        EXPECTED: should not allow the treasury instance owner/admin to execute a transfer that has been cancelled`, async function () {
+        ({ mockGovernanceManager, mockTreasuryManager, mockBeaconManager } = await deployMock_GovernanceManager_TreasuryManager_BeaconManager());
+        
+        // deploy group NFT and initialize group root
+        await deployGroupNftAndSetRoot(governor, groupKey, nftName, nftSymbol, rootHash1);
+        await deployTreasuryFactoryWithContractOwner();
+        await deployMockGrantModule();
+
+        // Get governance manager signer
+        const governanceManagerSigner = await setContractAsSignerAndFund(mockGovernanceManager);
+        
+        // Deploy treasury instance: deployTreasuryInstanceWithEOAOwner(treasuryFactorySigner, treasuryMultisig, treasuryRecovery)
+        const treasuryInstance = await deployTreasuryInstanceWithEOAOwner(governanceManagerSigner, await governor.getAddress(), await governor.getAddress());
+
+        // Stop contract as signer
+        await stopContractAsSigner(mockGovernanceManager);
+
+        // Get mock grant module contract as signer with funds for gas
+        const mockGrantModuleSigner = await setContractAsSignerAndFund(mockGrantModule);
+       
+        // Request transfer
+        const grantType = ethers.id("grant");
+
+        await treasuryInstance.connect(mockGrantModuleSigner).requestTransfer(
+            voteContextKey,
+            await user1.getAddress(), // to
+            3, // amount
+            grantType // fundingType
+        );
+
+        await stopContractAsSigner(mockGrantModule);
+
+        // Approve funding request
+        await treasuryInstance.connect(governor).approveTransfer(voteContextKey);
+
+        // Cancel funding request
+        await treasuryInstance.connect(governor).cancelTransfer(voteContextKey);
+
+        // Skip Timelock
+        await skipDays(3);
+
+        // Fund the treasury instance with ETH
+        await treasuryInstance.fund({ value: ethers.parseEther("5.0") });
+
+        // Execute funding request
+        await expect(treasuryInstance.connect(governor).executeTransfer(voteContextKey))
+            .to.be.revertedWithCustomError(treasuryInstance, "TransferHasBeenCancelled");
     });
 
     it(`FUNCTION: executeTransfer
@@ -1324,9 +1419,10 @@ describe("Treasury Manager Unit Tests:", function () {
         // Fund the treasury instance with ETH
         await treasuryInstance.fund({ value: ethers.parseEther("3.0") });
 
-        // Execute funding requests
+        // Execute one funding request
         await treasuryInstance.connect(governor).executeTransfer(voteContextKey);
-        await treasuryInstance.connect(governor).executeTransfer(voteContextKey2);
+        // Cancel the other funding request
+        await treasuryInstance.connect(governor).cancelTransfer(voteContextKey2);
 
         // Get the stored funding request
         const fundingRequest = await treasuryInstance.connect(governor).getFundingRequest(voteContextKey);
@@ -1340,7 +1436,8 @@ describe("Treasury Manager Unit Tests:", function () {
             fundingRequest.requestedAt,
             fundingRequest.requestedAt + BigInt(3 * 24 * 60 * 60),
             true,
-            true
+            true, 
+            false
         ]);
 
         // Check that the funding request details for the second request are correct
@@ -1353,6 +1450,7 @@ describe("Treasury Manager Unit Tests:", function () {
             fundingRequest2.requestedAt,
             fundingRequest2.requestedAt + BigInt(3 * 24 * 60 * 60),
             true,
+            false, 
             true
         ]);
 
@@ -1696,17 +1794,18 @@ describe("Treasury Manager Unit Tests:", function () {
             .to.emit(treasuryInstance, "TransferCancelled")
             .withArgs(voteContextKey);
 
-        // Check that the funding request does not exist
+        // Check that the funding request has been marked as cancelled
         const fundingRequest = await treasuryInstance.connect(governor).getFundingRequest(voteContextKey);
         expect(fundingRequest).to.deep.equal([
-            ethers.ZeroHash,
-            ethers.ZeroAddress,
-            ethers.ZeroAddress,
-            BigInt(0),
-            BigInt(0),
-            BigInt(0),
+            grantType,
+            mockGrantModule.target,
+            await user1.getAddress(),
+            ethers.parseEther("3.0"),
+            fundingRequest.requestedAt,
+            fundingRequest.requestedAt + BigInt(3 * 24 * 60 * 60),
             false,
-            false
+            false, 
+            true
         ]);
 
         // Attempt to re-request same transfer
@@ -1714,12 +1813,12 @@ describe("Treasury Manager Unit Tests:", function () {
         await setContractAsSignerAndFund(mockGrantModule);
 
         // Request transfer
-        expect(await treasuryInstance.connect(mockGrantModuleSigner).requestTransfer(
+        await expect(treasuryInstance.connect(mockGrantModuleSigner).requestTransfer(
             voteContextKey,
             await user1.getAddress(), // to
             ethers.parseEther("3.0"), // amount
             grantType // fundingType
-        )).to.emit(treasuryInstance, "TransferRequested");
+        )).to.be.revertedWithCustomError(treasuryInstance, "FundingAlreadyRequested");
 
         await stopContractAsSigner(mockGrantModule);
 
@@ -1840,6 +1939,53 @@ describe("Treasury Manager Unit Tests:", function () {
         // Attempt to cancel the funding request
         await expect(treasuryInstance.connect(governor).cancelTransfer(voteContextKey))
             .to.be.revertedWithCustomError(treasuryInstance, "TransferAlreadyExecuted");
+    });
+    it(`FUNCTION: cancelTransfer
+        TESTING: custom error: TransferAlreadyCancelled
+        EXPECTED: should not allow the owner/admin to cancel a transfer that has already been cancelled`, async function () {
+        ({ mockGovernanceManager, mockTreasuryManager, mockBeaconManager } = await deployMock_GovernanceManager_TreasuryManager_BeaconManager());
+        
+        // deploy group NFT and initialize group root
+        await deployGroupNftAndSetRoot(governor, groupKey, nftName, nftSymbol, rootHash1);
+        await deployTreasuryFactoryWithContractOwner();
+        await deployMockGrantModule();
+
+        // Get governance manager signer
+        const governanceManagerSigner = await setContractAsSignerAndFund(mockGovernanceManager);
+
+        // Deploy treasury instance: deployTreasuryInstanceWithEOAOwner(treasuryFactorySigner, treasuryMultisig, treasuryRecovery)
+        const treasuryInstance = await deployTreasuryInstanceWithEOAOwner(governanceManagerSigner, await governor.getAddress(), await governor.getAddress());
+
+        // Stop contract as signer
+        await stopContractAsSigner(mockGovernanceManager);
+
+        // Get mock grant module contract as signer with funds for gas
+        const mockGrantModuleSigner = await setContractAsSignerAndFund(mockGrantModule);
+
+        // Request transfer
+        const grantType = ethers.id("grant");
+
+        await treasuryInstance.connect(mockGrantModuleSigner).requestTransfer(
+            voteContextKey,
+            await user1.getAddress(), // to
+            ethers.parseEther("3.0"), // amount
+            grantType // fundingType
+        );
+
+        await stopContractAsSigner(mockGrantModule);
+
+        // Skip Timelock
+        await skipDays(3);
+
+        // Fund the treasury instance with ETH
+        await treasuryInstance.fund({ value: ethers.parseEther("3.0") });
+
+        // Cancel the funding request
+        await treasuryInstance.connect(governor).cancelTransfer(voteContextKey);
+
+        // Attempt to cancel the funding request again
+        await expect(treasuryInstance.connect(governor).cancelTransfer(voteContextKey))
+            .to.be.revertedWithCustomError(treasuryInstance, "TransferAlreadyCancelled");
     });
 
     it(`FUNCTION: fund

@@ -82,6 +82,12 @@ contract TreasuryManager is Initializable, AccessControlUpgradeable, ReentrancyG
     /// @notice Thrown if the treasury is locked.
     error TreasuryIsLocked();
 
+    /// @notice Thrown if a transfer request has been cancelled.
+    error TransferHasBeenCancelled();
+
+    /// @notice Thrown if a transfer request has already been cancelled.
+    error TransferAlreadyCancelled();
+
     // ====================================================================================================
     // GENERAL ERRORS
     // ====================================================================================================
@@ -434,7 +440,8 @@ contract TreasuryManager is Initializable, AccessControlUpgradeable, ReentrancyG
             requestedAt: block.timestamp,
             releaseTime: block.timestamp + TIMELOCK_DELAY_DAYS * 1 days,
             approved: false,
-            executed: false
+            executed: false,
+            cancelled: false
         });
 
         emit TransferRequested(contextKey, msg.sender, _to, _amount);
@@ -522,9 +529,10 @@ contract TreasuryManager is Initializable, AccessControlUpgradeable, ReentrancyG
 
         if (request.requestedAt == 0) revert RequestDoesNotExist();
         if (request.executed) revert TransferAlreadyExecuted();
+        if (request.cancelled) revert TransferAlreadyCancelled();
         //if (block.timestamp > request.releaseTime) revert TimelockHasPassed();
 
-        delete fundingRequests[contextKey];
+        request.cancelled = true;
         emit TransferCancelled(contextKey);
     }
 
@@ -658,7 +666,8 @@ contract TreasuryManager is Initializable, AccessControlUpgradeable, ReentrancyG
         if (request.approved) revert TransferAlreadyApproved();
         if (request.executed) revert TransferAlreadyExecuted();
         if (activeModule != request.from) revert InconsistentFundingModule();
-        
+        if (request.cancelled) revert TransferHasBeenCancelled();
+
         // Effects
         request.approved = true;
         emit TransferApproved(contextKey, request.to, request.amount);
@@ -683,6 +692,7 @@ contract TreasuryManager is Initializable, AccessControlUpgradeable, ReentrancyG
         if (request.requestedAt == 0) revert RequestDoesNotExist();
         if (!request.approved) revert TransferNotApproved();
         if (request.executed) revert TransferAlreadyExecuted();
+        if (request.cancelled) revert TransferHasBeenCancelled();
         if (request.releaseTime > block.timestamp) revert RequestInTimelock();
         if (activeModule != request.from) revert InconsistentFundingModule();
         if (request.amount > address(this).balance) revert InsufficientBalance();
