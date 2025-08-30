@@ -16,5 +16,6 @@ library TreasuryTypes {
         uint256 releaseTime;
         bool approved;
         bool executed;
+        bool cancelled;
     }
 }
