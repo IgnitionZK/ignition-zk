@@ -521,7 +521,7 @@ export default function CreateProposal({ onSuccess, onCancel }) {
   const currencyTypeOptions = ["ETH"];
 
   // Funding type options
-  const fundingTypeOptions = ["Lump sum payment"];
+  const fundingTypeOptions = ["Grant"];
 
   // File validation constants
   const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
@@ -752,10 +752,9 @@ export default function CreateProposal({ onSuccess, onCancel }) {
           ipfs_cid: ipfsCid,
         },
         payload: {
-          target_contract: "0xGovernanceContractAddress", // This would be dynamic
-          target_function: "executeProposal",
-          target_action: "delegateDistributeGrant",
-          value: "0",
+          target_contract: "0xGovernanceContractAddress", // hardcoded value
+          target_function: "delegateDistributeFunding", // hardcoded value
+          value: "0", // hardcoded value
           calldata: {
             recipient: recipient,
             amount,
