@@ -597,20 +597,6 @@ function ProposalItem({ proposal = {} }) {
                 </div>
               )}
             </>
-          ) : proposal.status_type === "claimed" ? (
-            <div
-              style={{
-                fontSize: "1.4rem",
-                color: "var(--color-green-400)",
-                fontWeight: "500",
-                padding: "0.8rem 1.6rem",
-                backgroundColor: "rgba(34, 197, 94, 0.1)",
-                border: "1px solid rgba(34, 197, 94, 0.2)",
-                borderRadius: "0.8rem",
-              }}
-            >
-              ✅ Award Claimed
-            </div>
           ) : null}
         </FooterSection>
       </ProposalItemContainer>
