@@ -284,91 +284,223 @@ describe("Governance Manager Unit Tests:", function () {
         ))
             .to.be.revertedWithCustomError(governanceManager, "OwnableUnauthorizedAccount");
     });
-    /*
-    it(`FUNCTION: setMembershipManager
-        TESTING: custom error: AddressIsNotAContract
-        EXPECTED: should not allow the owner to set an EOA as the new membership manager`, async function () {
-        await expect(governanceManager.connect(deployer).setMembershipManager(await user1.getAddress()))
-            .to.be.revertedWithCustomError(governanceManager, "AddressIsNotAContract");
+
+    it(`FUNCTION: delegateUpgradeProposalManager
+        TESTING: onlyOwner authorization (success)
+        EXPECTED: should allow the owner to upgrade the proposal manager contract`, async function () {
+        
+        const proxyAddress = await proposalManager.target;
+        const implementationAddress = await upgrades.erc1967.getImplementationAddress(proxyAddress);
+       
+        // Add this check in your test
+        const adminSlot = await ethers.provider.getStorage(
+            proxyAddress, 
+            "0xb53127684a568b3173ae13b9f8a6016e243e63b6e8ee1178d6a717850b5d6103"
+        );
+        // Check that admin slot is zero for UUPS
+        expect(adminSlot).to.equal(ethers.ZeroHash, "Admin slot should be zero for UUPS");
+
+        // Update state to ensure data is preserved across updates
+        // deploy group NFT
+        await deployGroupNftAndSetRoot();
+        await setMockSubmissionVerifierAndVerifyProposal();
+
+        // Check that the proposal nullifier exists
+        const proposalNullifier = await proposalManager.submissionNullifiers(proposalContextKey);
+        expect(proposalNullifier).to.not.equal(ethers.ZeroHash, "Proposal nullifier should exist");
+
+        // Deploy new contract
+        const MockProposalManagerV2 = await ethers.getContractFactory("MockProposalManagerV2");
+        const proposalManagerV2Impl = await MockProposalManagerV2.deploy();
+        await proposalManagerV2Impl.waitForDeployment();
+
+        // Upgrade the proposal manager
+        await governanceManager.connect(deployer).delegateUpgradeProposalManager(proposalManagerV2Impl.target);
+
+        // Check that the proxy address is unchanged
+        const newProxyAddress = await proposalManager.target;
+        expect(newProxyAddress).to.equal(proxyAddress, "Proxy address should remain the same after upgrade");
+
+        // Check that the implementation address changed
+        const newImplementationAddress = await upgrades.erc1967.getImplementationAddress(newProxyAddress);
+        expect(newImplementationAddress).to.not.equal(implementationAddress, "Implementation address should change after upgrade");
+
+        // Check that the newVersion function exists:
+        const upgradedProposalManager = await ethers.getContractAt("MockProposalManagerV2", proposalManager.target);
+        const version = await upgradedProposalManager.newVersion();
+        expect(version).to.equal("v2", "New version should be v2");
+
+        // Check that the proposal nullifier still exists:
+        const newProposalNullifier = await proposalManager.submissionNullifiers(proposalContextKey);
+        expect(newProposalNullifier).to.equal(proposalNullifier, "Proposal nullifier should remain the same after upgrade");
     });
 
-    it(`FUNCTION: setMembershipManager
-        TESTING: custom error: NewAddressMustBeDifferent
-        EXPECTED: should not allow the owner to set the same address as the new membership manager`, async function () {
-        await expect(governanceManager.connect(deployer).setMembershipManager(membershipManager.target))
-            .to.be.revertedWithCustomError(governanceManager, "NewAddressMustBeDifferent");
+    it(`FUNCTION: delegateUpgradeMembershipManager
+        TESTING: onlyOwner authorization (success)
+        EXPECTED: should allow the owner to upgrade the membership manager contract`, async function () {
+
+        const proxyAddress = await membershipManager.target;
+        const implementationAddress = await upgrades.erc1967.getImplementationAddress(proxyAddress);
+       
+        // Add this check in your test
+        const adminSlot = await ethers.provider.getStorage(
+            proxyAddress, 
+            "0xb53127684a568b3173ae13b9f8a6016e243e63b6e8ee1178d6a717850b5d6103"
+        );
+        // Check that admin slot is zero for UUPS
+        expect(adminSlot).to.equal(ethers.ZeroHash, "Admin slot should be zero for UUPS");
+        
+        // Update state to ensure data is preserved across updates
+        // deploy group NFT
+        await governanceManager.connect(relayer).delegateDeployGroupNft(groupKey, nftName, nftSymbol);
+
+        // Get the address of the deployed group NFT
+        const groupNftAddress = await membershipManager.groupNftAddresses(groupKey);
+        expect(groupNftAddress).to.not.equal(ethers.ZeroAddress, "Group NFT address should be valid");
+
+        // Deploy new contract
+        const MockMembershipManagerV2 = await ethers.getContractFactory("MockMembershipManagerV2");
+        const membershipManagerV2Impl = await MockMembershipManagerV2.deploy();
+        await membershipManagerV2Impl.waitForDeployment();
+
+        // Upgrade the membership manager
+        await governanceManager.connect(deployer).delegateUpgradeMembershipManager(membershipManagerV2Impl.target);
+
+        // Check that the proxy address is unchanged
+        const newProxyAddress = await membershipManager.target;
+        expect(newProxyAddress).to.equal(proxyAddress, "Proxy address should remain the same after upgrade");
+
+        // Check that the implementation address changed
+        const newImplementationAddress = await upgrades.erc1967.getImplementationAddress(newProxyAddress);
+        expect(newImplementationAddress).to.not.equal(implementationAddress, "Implementation address should change after upgrade");
+
+        // Check that the newVersion function exists:
+        const upgradedMembershipManager = await ethers.getContractAt("MockMembershipManagerV2", membershipManager.target);
+        const version = await upgradedMembershipManager.newVersion();
+        expect(version).to.equal("v2", "New version should be v2");
+
+        // Check that the group NFT address is still there
+        const newGroupNftAddress = await membershipManager.groupNftAddresses(groupKey);
+        expect(newGroupNftAddress).to.equal(groupNftAddress, "Group NFT address should remain the same after upgrade");
     });
 
-    it(`FUNCTION: setMembershipManager
-        TESTING: custom error: InterfaceIdNotSupported
-        EXPECTED: should not allow the owner to set a contract as the new membership manager that does not support the IMembershipManager interface`, async function () {
+    it(`FUNCTION: delegateUpgradeVoteManager
+        TESTING: onlyOwner authorization (success)
+        EXPECTED: should allow the owner to upgrade the vote manager contract`, async function () {
 
-        await expect(governanceManager.connect(deployer).setMembershipManager(proposalManager.target))
-            .to.be.revertedWithCustomError(governanceManager, "InterfaceIdNotSupported");
+        const proxyAddress = await voteManager.target;
+        const implementationAddress = await upgrades.erc1967.getImplementationAddress(proxyAddress);
+       
+        // Add this check in your test
+        const adminSlot = await ethers.provider.getStorage(
+            proxyAddress, 
+            "0xb53127684a568b3173ae13b9f8a6016e243e63b6e8ee1178d6a717850b5d6103"
+        );
+        // Check that admin slot is zero for UUPS
+        expect(adminSlot).to.equal(ethers.ZeroHash, "Admin slot should be zero for UUPS");
+
+        // Update state to ensure data is preserved across updates
+        // Deploy the group NFT and initialize the root
+        await governanceManager.connect(relayer).delegateDeployGroupNft(realGroupKey, nftName, nftSymbol);
+        await governanceManager.connect(relayer).delegateSetRoot(realRoot, realGroupKey);
+        await governanceManager.connect(relayer).delegateSetMemberCount(realGroupKey, 1);
+
+        // submit and verify a proposal
+        await governanceManager.connect(relayer).delegateVerifyProposal(
+            realProposalProof, 
+            realProposalPublicSignals, 
+            realGroupKey,
+            realProposalContextKey
+        );
+
+        // verify a vote on the submitted proposal
+        await governanceManager.connect(relayer).delegateVerifyVote(
+            realVoteProof,
+            realVotePublicSignals,
+            realGroupKey,
+            realVoteContextKey
+        );
+
+        // Check that the vote nullifier exists
+        const voteNullifier = await voteManager.voteNullifiers(voteContextKey);
+        expect(voteNullifier).to.not.equal(ethers.ZeroHash, "Vote nullifier should exist");
+
+        // Deploy new contract
+        const MockVoteManagerV2 = await ethers.getContractFactory("MockVoteManagerV2");
+        const voteManagerV2Impl = await MockVoteManagerV2.deploy();
+        await voteManagerV2Impl.waitForDeployment();
+
+        // Upgrade the vote manager
+        await governanceManager.connect(deployer).delegateUpgradeVoteManager(voteManagerV2Impl.target);
+
+        // Check that the proxy address is unchanged
+        const newProxyAddress = await voteManager.target;
+        expect(newProxyAddress).to.equal(proxyAddress, "Proxy address should remain the same after upgrade");
+
+        // Check that the implementation address changed
+        const newImplementationAddress = await upgrades.erc1967.getImplementationAddress(newProxyAddress);
+        expect(newImplementationAddress).to.not.equal(implementationAddress, "Implementation address should change after upgrade");
+
+        // Check that the newVersion function exists:
+        const upgradedVoteManager = await ethers.getContractAt("MockVoteManagerV2", voteManager.target);
+        const version = await upgradedVoteManager.newVersion();
+        expect(version).to.equal("v2", "New version should be v2");
+
+        // Check that the vote nullifier still exists:
+        const newVoteNullifier = await voteManager.voteNullifiers(voteContextKey);
+        expect(newVoteNullifier).to.equal(voteNullifier, "Vote nullifier should remain the same after upgrade");
     });
 
-    it(`FUNCTION: setMembershipManager
-        TESTING: custom error: AddressCannotBeZero
-        EXPECTED: should not allow the owner to set the zero address as the new membership manager`, async function () {
+    it(`FUNCTION: delegateUpgradeGrantModule
+        TESTING: onlyOwner authorization (success)
+        EXPECTED: should allow the owner to upgrade the grant module contract`, async function () {
 
-        await expect(governanceManager.connect(deployer).setMembershipManager(ethers.ZeroAddress))
-            .to.be.revertedWithCustomError(governanceManager, "AddressCannotBeZero");
+        const proxyAddress = await grantModule.target;
+        const implementationAddress = await upgrades.erc1967.getImplementationAddress(proxyAddress);
+       
+        // Add this check in your test
+        const adminSlot = await ethers.provider.getStorage(
+            proxyAddress, 
+            "0xb53127684a568b3173ae13b9f8a6016e243e63b6e8ee1178d6a717850b5d6103"
+        );
+        // Check that admin slot is zero for UUPS
+        expect(adminSlot).to.equal(ethers.ZeroHash, "Admin slot should be zero for UUPS");
+
+        // Deploy new contract
+        const MockGrantModuleV2 = await ethers.getContractFactory("MockGrantModuleWithReceive");
+        const grantModuleV2Impl = await MockGrantModuleV2.deploy();
+        await grantModuleV2Impl.waitForDeployment();
+
+        // Upgrade the grant module
+        await governanceManager.connect(deployer).delegateUpgradeGrantModule(grantModuleV2Impl.target);
+
+        // Check that the proxy address is unchanged
+        const newProxyAddress = await grantModule.target;
+        expect(newProxyAddress).to.equal(proxyAddress, "Proxy address should remain the same after upgrade");
+
+        // Check that the implementation address changed
+        const newImplementationAddress = await upgrades.erc1967.getImplementationAddress(newProxyAddress);
+        expect(newImplementationAddress).to.not.equal(implementationAddress, "Implementation address should change after upgrade");
+
+        // Check that the newVersion function exists:
+        const upgradedGrantModule = await ethers.getContractAt("MockGrantModuleWithReceive", grantModule.target);
+        const version = await upgradedGrantModule.newVersion();
+        expect(version).to.equal("v2", "New version should be v2");
     });
 
-    it(`FUNCTION: setMembershipManager
-        TESTING: event: MembershipManagerSet
-        EXPECTED: should allow the owner to set a contract that supports the MembershipManager interface as the new membership manager`, async function () {
+    it(`FUNCTION: delegateUpgradeGrantModule
+        TESTING: onlyOwner authorization (failure)
+        EXPECTED: should allow a non-owner to upgrade the grant module contract`, async function () {
 
-        // Deploy a mock membership manager contract that implements the IMembershipManager interface
-        const mockMembershipManager = await deployMockMembershipManagerV2();
+        // Deploy new contract
+        const MockGrantModuleV2 = await ethers.getContractFactory("MockGrantModuleWithReceive");
+        const grantModuleV2Impl = await MockGrantModuleV2.deploy();
+        await grantModuleV2Impl.waitForDeployment();
 
-        await expect(governanceManager.connect(deployer).setMembershipManager(mockMembershipManager.target))
-            .to.emit(governanceManager, "MembershipManagerSet")
-            .withArgs(mockMembershipManager.target);
+        // Upgrade the grant module
+        await expect(governanceManager.connect(relayer).delegateUpgradeGrantModule(grantModuleV2Impl.target))
+            .to.be.revertedWithCustomError(governanceManager, "OwnableUnauthorizedAccount");
     });
-
-    it(`FUNCTION: setProposalManager
-        TESTING: custom error: AddressIsNotAContract
-        EXPECTED: should not allow the owner to set an EOA as the new proposal manager`, async function () {
-        await expect(governanceManager.connect(deployer).setProposalManager(await user1.getAddress()))
-            .to.be.revertedWithCustomError(governanceManager, "AddressIsNotAContract");
-    });
-
-    it(`FUNCTION: setProposalManager
-        TESTING: custom error: NewAddressMustBeDifferent
-        EXPECTED: should not allow the owner to set the same address as the new proposal manager`, async function () {
-        await expect(governanceManager.connect(deployer).setProposalManager(proposalManager.target))
-            .to.be.revertedWithCustomError(governanceManager, "NewAddressMustBeDifferent");
-    });
-
-    it(`FUNCTION: setProposalManager
-        TESTING: custom error: InterfaceIdNotSupported
-        EXPECTED: should not allow the owner to set a contract as the new proposal manager that does not support the IProposalManager interface`, async function () {
-
-        await expect(governanceManager.connect(deployer).setProposalManager(membershipManager.target))
-            .to.be.revertedWithCustomError(governanceManager, "InterfaceIdNotSupported");
-    });
-
-    it(`FUNCTION: setProposalManager
-        TESTING: custom error: AddressCannotBeZero
-        EXPECTED: should not allow the owner to set the zero address as the new proposal manager`, async function () {
-
-        await expect(governanceManager.connect(deployer).setProposalManager(ethers.ZeroAddress))
-            .to.be.revertedWithCustomError(governanceManager, "AddressCannotBeZero");
-    });
-
-    it(`FUNCTION: setProposalManager
-        TESTING: event: ProposalManagerSet
-        EXPECTED: should allow the owner to set a contract that supports the ProposalManager interface as the new proposal manager`, async function () {
-
-        // Deploy a mock proposal manager contract that implements the IProposalManager interface
-        const mockProposalManager = await deployMockProposalManagerV2();
-
-        await expect(governanceManager.connect(deployer).setProposalManager(mockProposalManager.target))
-            .to.emit(governanceManager, "ProposalManagerSet")
-            .withArgs(mockProposalManager.target);
-    });
-    */
 
     it(`FUNCTION: setRelayer
         TESTING: onlyOwner authorization (success), event: RelayerSet
@@ -1549,20 +1681,6 @@ describe("Governance Manager Unit Tests:", function () {
         expect(isExecuted).to.be.true;
     });
 
-    it(`FUNCTION: delegateIsPendingApproval, delegateIsPendingExecution, delegateIsExecuted
-        TESTING: authorization (failure)
-        EXPECTED: should not allow a non-relayer to view the transfer requests pending approval, execution, or execution status`, async function () {
-     
-        await expect(governanceManager.connect(user1).delegateIsPendingApproval(realGroupKey, realVoteContextKey))
-            .to.be.revertedWithCustomError(governanceManager, "OnlyRelayerAllowed");
-
-        await expect(governanceManager.connect(user1).delegateIsPendingExecution(realGroupKey, realVoteContextKey))
-            .to.be.revertedWithCustomError(governanceManager, "OnlyRelayerAllowed");
-
-        await expect(governanceManager.connect(user1).delegateIsExecuted(realGroupKey, realVoteContextKey))
-            .to.be.revertedWithCustomError(governanceManager, "OnlyRelayerAllowed");
-    });
-
     it(`FUNCTION: delegateGetBalance
         TESTING: authorization (success), returned balance
         EXPECTED: should allow the relayer to view the balance of a treasuryInstance`, async function () {
@@ -1604,27 +1722,6 @@ describe("Governance Manager Unit Tests:", function () {
         const finalBalance = await governanceManager.connect(relayer).delegateGetBalance(realGroupKey);
         expect(finalBalance).to.equal(ethers.parseEther("10.0"));
 
-    });
-
-    it(`FUNCTION: delegateGetBalance
-        TESTING: authorization (success), returned balance
-        EXPECTED: should allow the relayer to view the balance of a treasuryInstance`, async function () {
-        // Set TreasuryFactory address in GovernanceManager
-        await governanceManager.connect(deployer).setTreasuryFactory(treasuryFactory.target);
-    
-        // Deploy Group Nft and set root
-        await governanceManager.connect(relayer).delegateDeployGroupNft(realGroupKey, nftName, nftSymbol);
-        await governanceManager.connect(relayer).delegateSetRoot(realRoot, realGroupKey);
-
-        // Deploy the treasury instance
-        await governanceManager.connect(relayer).delegateDeployTreasury(
-            realGroupKey, 
-            await user1.getAddress(), // treasuryMultiSig
-            await user1.getAddress() // treasuryRecovery
-        );
-
-        await expect(governanceManager.connect(user1).delegateGetBalance(realGroupKey))
-            .to.be.revertedWithCustomError(governanceManager, "OnlyRelayerAllowed");
     });
 
     it(`FUNCTION: delegateGetFundingRequest
@@ -1685,32 +1782,10 @@ describe("Governance Manager Unit Tests:", function () {
             fundingRequest.requestedAt,
             fundingRequest.requestedAt + BigInt(3 * 24 * 60 * 60),
             false,
+            false,
             false
         ]);
 
-    });
-
-    it(`FUNCTION: delegateGetFundingRequest
-        TESTING: authorization (failure), returned data
-        EXPECTED: should not allow a non-relayer to view the funding requests of a treasury instance`, async function () {
-
-        // Set TreasuryFactory address in GovernanceManager
-        await governanceManager.connect(deployer).setTreasuryFactory(treasuryFactory.target);
-    
-        // Deploy Group Nft and set root
-        await governanceManager.connect(relayer).delegateDeployGroupNft(realGroupKey, nftName, nftSymbol);
-        await governanceManager.connect(relayer).delegateSetRoot(realRoot, realGroupKey);
-
-        // Deploy the treasury instance
-        await governanceManager.connect(relayer).delegateDeployTreasury(
-            realGroupKey, 
-            await user1.getAddress(), // treasuryMultiSig
-            await user1.getAddress() // treasuryRecovery
-        );
-
-        // Get the funding request
-        await expect(governanceManager.connect(user1).delegateGetFundingRequest(realGroupKey, realVoteContextKey))
-            .to.be.revertedWithCustomError(governanceManager, "OnlyRelayerAllowed");
     });
 
 });

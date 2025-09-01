@@ -343,8 +343,7 @@ contract MockProposalManagerV2 is Initializable, OwnableUpgradeable, UUPSUpgrade
         return "ProposalManager v1.0.0"; 
     }
 
-    function dummyFunction() external pure returns (string memory) {
-        return "This is a dummy function";
+    function newVersion() public pure returns (string memory) {
+        return "v2";
     }
-
 }

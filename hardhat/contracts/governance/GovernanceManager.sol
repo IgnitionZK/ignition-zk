@@ -16,6 +16,7 @@ import { IVersioned } from "../interfaces/IVersioned.sol";
 import { ITreasuryFactory } from "../interfaces/treasury/ITreasuryFactory.sol";
 import { IGrantModule } from "../interfaces/fundingModules/IGrantModule.sol";
 import { ITreasuryManager } from "../interfaces/treasury/ITreasuryManager.sol";
+import { IUpgradeable } from "../interfaces/IUpgradeable.sol";
 
 // Libraries:
 import { VoteTypes } from "../libraries/VoteTypes.sol";
@@ -346,6 +347,15 @@ contract GovernanceManager is Initializable, UUPSUpgradeable, OwnableUpgradeable
     // ================================================================================================================
 
     /**
+     * @notice Delegates the upgrade call to the membership manager.
+     * @dev Only callable by the owner.
+     * @param newImplementation The address of the new implementation contract.
+     */
+    function delegateUpgradeMembershipManager(address newImplementation) external onlyOwner {
+        IUpgradeable(address(membershipManager)).upgradeToAndCall(newImplementation, "");
+    }
+
+    /**
      * @notice Delegates the setMembershipVerifier call to the membership manager.
      * @dev Only the relayer can call this function.
      * @param membershipVerifier The address of the new membership verifier contract.
@@ -430,6 +440,15 @@ contract GovernanceManager is Initializable, UUPSUpgradeable, OwnableUpgradeable
     // ================================================================================================================
 
     /**
+     * @notice Delegates the upgrade call to the proposal manager.
+     * @dev Only callable by the owner.
+     * @param newImplementation The address of the new implementation contract.
+     */
+    function delegateUpgradeProposalManager(address newImplementation) external onlyOwner {
+        IUpgradeable(address(proposalManager)).upgradeToAndCall(newImplementation, "");
+    }
+
+    /**
      * @notice Delegates the setProposalSubmissionVerifier call to the proposal manager.
      * @dev Only callable by the owner.
      * @param submissionVerifier The address of the new proposal submission verifier contract.
@@ -483,6 +502,15 @@ contract GovernanceManager is Initializable, UUPSUpgradeable, OwnableUpgradeable
     // 3. VoteManager Delegation Functions
     // ================================================================================================================
 
+    /**
+     * @notice Delegates the upgrade call to the vote manager.
+     * @dev Only callable by the owner.
+     * @param newImplementation The address of the new implementation contract.
+     */
+    function delegateUpgradeVoteManager(address newImplementation) external onlyOwner {
+        IUpgradeable(address(voteManager)).upgradeToAndCall(newImplementation, "");
+    }
+    
     /**
      * @notice Delegates the setVoteVerifier call to the vote manager.
      * @dev Only callable by the owner.
@@ -551,12 +579,18 @@ contract GovernanceManager is Initializable, UUPSUpgradeable, OwnableUpgradeable
     }
 
     // ================================================================================================================
-    // 5. TreasuryManager Delegation Functions
+    // 5. Funding Modules Delegation Functions
     // ================================================================================================================
-
-    // ================================================================================================================
-    // 6. Funding Modules Delegation Functions
-    // ================================================================================================================
+    
+    /**
+     * @notice Delegates the upgrade call to the vote manager.
+     * @dev Only callable by the owner.
+     * @param newImplementation The address of the new implementation contract.
+     */
+    function delegateUpgradeGrantModule(address newImplementation) external onlyOwner {
+        address grantModule = activeModuleRegistry[FundingTypes.GRANT_TYPE];
+        IUpgradeable(address(grantModule)).upgradeToAndCall(newImplementation, "");
+    }
 
     /**
      * @notice Executes a proposal by distributing funds from the group treasury.
@@ -611,21 +645,8 @@ contract GovernanceManager is Initializable, UUPSUpgradeable, OwnableUpgradeable
 // ====================================================================================================================
 // ====================================================================================================================
 
-  
     // ================================================================================================================
-    // 1. MembershipManager Delegation Functions
-    // ================================================================================================================
-
-    // ================================================================================================================
-    // 2. ProposalManager Delegation Functions
-    // ================================================================================================================
-
-    // ================================================================================================================
-    // 3. VoteManager Delegation Functions
-    // ================================================================================================================
-
-    // ================================================================================================================
-    // 4. TreasuryFactory Delegation Functions
+    // 1. TreasuryFactory Delegation Functions
     // ================================================================================================================
 
     function delegateGetTreasuryAddress(bytes32 groupKey) external view returns (address) {
@@ -634,7 +655,7 @@ contract GovernanceManager is Initializable, UUPSUpgradeable, OwnableUpgradeable
     }
 
     // ================================================================================================================
-    // 5. TreasuryManager Delegation Functions
+    // 2. TreasuryManager Delegation Functions
     // ================================================================================================================
 
     /**
@@ -642,7 +663,7 @@ contract GovernanceManager is Initializable, UUPSUpgradeable, OwnableUpgradeable
      * @dev Only callable by the relayer.
      * @param groupKey The unique identifier for the group.
      */
-    function delegateGetBalance(bytes32 groupKey) external view onlyRelayer returns (uint256) {
+    function delegateGetBalance(bytes32 groupKey) external view returns (uint256) {
         address groupTreasury = _getGroupTreasuryAddress(groupKey);
         return ITreasuryManager(groupTreasury).getBalance();
     }
@@ -653,7 +674,7 @@ contract GovernanceManager is Initializable, UUPSUpgradeable, OwnableUpgradeable
      * @param groupKey The unique identifier for the group.
      * @param contextKey The unique identifier for the context.
      */
-    function delegateIsPendingApproval(bytes32 groupKey, bytes32 contextKey) external view onlyRelayer returns (bool) {
+    function delegateIsPendingApproval(bytes32 groupKey, bytes32 contextKey) external view returns (bool) {
         address groupTreasury = _getGroupTreasuryAddress(groupKey);
         return ITreasuryManager(groupTreasury).isPendingApproval(contextKey);
     }
@@ -664,7 +685,7 @@ contract GovernanceManager is Initializable, UUPSUpgradeable, OwnableUpgradeable
      * @param groupKey The unique identifier for the group.
      * @param contextKey The unique identifier for the context.
      */
-    function delegateIsPendingExecution(bytes32 groupKey, bytes32 contextKey) external view onlyRelayer returns (bool) {
+    function delegateIsPendingExecution(bytes32 groupKey, bytes32 contextKey) external view returns (bool) {
         address groupTreasury = _getGroupTreasuryAddress(groupKey);
         return ITreasuryManager(groupTreasury).isPendingExecution(contextKey);
     }
@@ -675,7 +696,7 @@ contract GovernanceManager is Initializable, UUPSUpgradeable, OwnableUpgradeable
      * @param groupKey The unique identifier for the group.
      * @param contextKey The unique identifier for the context.
      */
-    function delegateIsExecuted(bytes32 groupKey, bytes32 contextKey) external view onlyRelayer returns (bool) {
+    function delegateIsExecuted(bytes32 groupKey, bytes32 contextKey) external view returns (bool) {
         address groupTreasury = _getGroupTreasuryAddress(groupKey);
         return ITreasuryManager(groupTreasury).isExecuted(contextKey);
     }
@@ -686,14 +707,10 @@ contract GovernanceManager is Initializable, UUPSUpgradeable, OwnableUpgradeable
      * @param groupKey The unique identifier for the group.
      * @param contextKey The unique identifier for the context.
      */
-    function delegateGetFundingRequest(bytes32 groupKey, bytes32 contextKey) external view onlyRelayer returns (TreasuryTypes.FundingRequest memory) {
+    function delegateGetFundingRequest(bytes32 groupKey, bytes32 contextKey) external view returns (TreasuryTypes.FundingRequest memory) {
         address groupTreasury = _getGroupTreasuryAddress(groupKey);
         return ITreasuryManager(groupTreasury).getFundingRequest(contextKey);
     }
-
-    // ================================================================================================================
-    // 6. Funding Module Delegation Functions
-    // ================================================================================================================
 
     
 // ====================================================================================================================
