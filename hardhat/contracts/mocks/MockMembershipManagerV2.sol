@@ -520,72 +520,13 @@ contract MockMembershipManagerV2 is Initializable, UUPSUpgradeable, OwnableUpgra
      * @dev Returns the version of the contract.
      * @return string The version of the contract.
      */
-    function getContractVersion() external view override(IVersioned, IMembershipManager) onlyOwner returns (string memory) {
+    function getContractVersion() external view override(IVersioned, IMembershipManager) returns (string memory) {
         return "MembershipManager v1.0.0"; 
     }
-    
-// ====================================================================================================================
-//                                       EXTERNAL HELPER FUNCTIONS
-// ====================================================================================================================
-
-    /**
-     * @dev Only callable by the owner (governor).
-     * @custom:error AddressCannotBeZero If the provided NFT clone address is zero.
-     */
-    function revokeMinterRole(address nftClone) external onlyOwner nonZeroAddress(nftClone) {
-        _revokeRole(nftClone, IERC721IgnitionZK(nftClone).MINTER_ROLE());
-    }
-
-    /**
-     * @dev Only callable by the owner (governor).
-     * @custom:error AddressCannotBeZero If the provided NFT clone address is zero.
-     */
-    function revokeBurnerRole(address nftClone) external onlyOwner nonZeroAddress(nftClone) {
-        _revokeRole(nftClone, IERC721IgnitionZK(nftClone).BURNER_ROLE());
-    }
-
-    /**
-     * @dev Only callable by the owner (governor).
-     * @custom:error AddressCannotBeZero If the provided NFT clone or grantTo address are zero.
-     */
-    function grantMinterRole(address nftClone, address grantTo) external onlyOwner nonZeroAddress(nftClone) nonZeroAddress(grantTo) {
-        _grantRole(nftClone, IERC721IgnitionZK(nftClone).MINTER_ROLE(), grantTo);
-    }
-
-    /**
-     * @dev Only callable by the owner (governor).
-     * @custom:error AddressCannotBeZero If the provided NFT clone or grantTo address are zero.
-     */
-    function grantBurnerRole(address nftClone, address grantTo) external onlyOwner nonZeroAddress(nftClone) nonZeroAddress(grantTo) {
-        _grantRole(nftClone, IERC721IgnitionZK(nftClone).BURNER_ROLE(), grantTo);
-    }
-
+       
 // ====================================================================================================================
 //                                       PRIVATE HELPER FUNCTIONS
 // ====================================================================================================================
-
-    /**
-     * @dev Revokes a specific role from the NFT clone.
-     * @param nftClone The address of the NFT contract clone from which to revoke the role.
-     * @param role The role to revoke (e.g., MINTER_ROLE, BURNER_ROLE).
-     */
-    function _revokeRole(address nftClone, bytes32 role) private {
-        IERC721IgnitionZK nft = IERC721IgnitionZK(nftClone);
-        nft.revokeRole(role, address(this));
-        emit RoleRevoked(nftClone, role, address(this));
-    }
-
-    /**
-     * @dev Grants a specific role to an address in the NFT clone.
-     * @param nftClone The address of the NFT contract clone to which to grant the role.
-     * @param role The role to grant (e.g., MINTER_ROLE, BURNER_ROLE).
-     * @param grantTo The address to which to grant the role.
-     */
-    function _grantRole(address nftClone, bytes32 role, address grantTo) private {
-        IERC721IgnitionZK nft = IERC721IgnitionZK(nftClone);
-        nft.grantRole(role, grantTo);
-        emit RoleGranted(nftClone, role, grantTo);
-    }
 
     /**
      * @dev Ensures that a group NFT is deployed for the specified group key.
@@ -598,9 +539,7 @@ contract MockMembershipManagerV2 is Initializable, UUPSUpgradeable, OwnableUpgra
         return nftAddress;
     }
 
-    function dummy() external pure returns (string memory) {
-        return "dummy";
+    function newVersion() public pure returns (string memory) {
+        return "v2";
     }
-
-
 }

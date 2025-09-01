@@ -347,8 +347,6 @@ contract MockVoteManagerV2 is Initializable, OwnableUpgradeable, UUPSUpgradeable
         uint256[5] calldata publicSignals,
         bytes32 contextKey,
         bytes32 groupKey
-        //bytes32 currentRoot,
-        //bool isProposalSubmitted
     ) 
         external 
         onlyOwner
@@ -402,7 +400,6 @@ contract MockVoteManagerV2 is Initializable, OwnableUpgradeable, UUPSUpgradeable
 
         // Update vote tally for proposal
         VoteTypes.ProposalResult storage result = proposalResults[contextKey];
-        //VoteTypes.VoteTally storage tally = proposalResults[contextKey].tally;
 
         if ( inferredChoice == VoteTypes.VoteChoice.No) {
             result.tally.no++;
@@ -629,8 +626,7 @@ contract MockVoteManagerV2 is Initializable, OwnableUpgradeable, UUPSUpgradeable
         return (a + b - 1) / b;
     }
 
-    function dummy() external pure returns (uint256) {
-        return 42;
+    function newVersion() public pure returns (string memory) {
+        return "v2";
     }
-
 }

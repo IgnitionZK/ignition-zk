@@ -11,6 +11,12 @@ The system is organized around a few main contract groups:
 
 Role-based permissions are used throughout, so only authorized parties can make changes to membership, proposals, voting, or treasury actions. Every sensitive operation is protected by these checks, and all upgrades are controlled by multi-signature wallets for added security.
 
+![Contract ownership](../frontend/src/assets/ownership-flow.png)
+*IgnitionZK smart contract ownership flow*
+
+![Contract ownership](../frontend/src/assets/action-flow.png)
+*Onchain flow per action type*
+
 ### Contract Overview
 
 Below is a summary of the main contracts and what they do:
@@ -35,3 +41,4 @@ Below is a summary of the main contracts and what they do:
 | Quadratic Funding Module | Funding Module | (Planned) | — | (Planned) Quadratic funding logic | GovernanceManager |
 </div>
 ---
+

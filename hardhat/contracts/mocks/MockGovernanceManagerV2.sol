@@ -16,6 +16,7 @@ import { IVersioned } from "../interfaces/IVersioned.sol";
 import { ITreasuryFactory } from "../interfaces/treasury/ITreasuryFactory.sol";
 import { IGrantModule } from "../interfaces/fundingModules/IGrantModule.sol";
 import { ITreasuryManager } from "../interfaces/treasury/ITreasuryManager.sol";
+import { IUpgradeable } from "../interfaces/IUpgradeable.sol";
 
 // Libraries:
 import { VoteTypes } from "../libraries/VoteTypes.sol";
@@ -346,6 +347,15 @@ contract MockGovernanceManagerV2 is Initializable, UUPSUpgradeable, OwnableUpgra
     // ================================================================================================================
 
     /**
+     * @notice Delegates the upgrade call to the membership manager.
+     * @dev Only callable by the owner.
+     * @param newImplementation The address of the new implementation contract.
+     */
+    function delegateUpgradeMembershipManager(address newImplementation) external onlyOwner {
+        IUpgradeable(address(membershipManager)).upgradeToAndCall(newImplementation, "");
+    }
+
+    /**
      * @notice Delegates the setMembershipVerifier call to the membership manager.
      * @dev Only the relayer can call this function.
      * @param membershipVerifier The address of the new membership verifier contract.
@@ -430,6 +440,15 @@ contract MockGovernanceManagerV2 is Initializable, UUPSUpgradeable, OwnableUpgra
     // ================================================================================================================
 
     /**
+     * @notice Delegates the upgrade call to the proposal manager.
+     * @dev Only callable by the owner.
+     * @param newImplementation The address of the new implementation contract.
+     */
+    function delegateUpgradeProposalManager(address newImplementation) external onlyOwner {
+        IUpgradeable(address(proposalManager)).upgradeToAndCall(newImplementation, "");
+    }
+
+    /**
      * @notice Delegates the setProposalSubmissionVerifier call to the proposal manager.
      * @dev Only callable by the owner.
      * @param submissionVerifier The address of the new proposal submission verifier contract.
@@ -483,6 +502,15 @@ contract MockGovernanceManagerV2 is Initializable, UUPSUpgradeable, OwnableUpgra
     // 3. VoteManager Delegation Functions
     // ================================================================================================================
 
+    /**
+     * @notice Delegates the upgrade call to the vote manager.
+     * @dev Only callable by the owner.
+     * @param newImplementation The address of the new implementation contract.
+     */
+    function delegateUpgradeVoteManager(address newImplementation) external onlyOwner {
+        IUpgradeable(address(voteManager)).upgradeToAndCall(newImplementation, "");
+    }
+    
     /**
      * @notice Delegates the setVoteVerifier call to the vote manager.
      * @dev Only callable by the owner.
@@ -557,6 +585,16 @@ contract MockGovernanceManagerV2 is Initializable, UUPSUpgradeable, OwnableUpgra
     // ================================================================================================================
     // 6. Funding Modules Delegation Functions
     // ================================================================================================================
+    
+    /**
+     * @notice Delegates the upgrade call to the vote manager.
+     * @dev Only callable by the owner.
+     * @param newImplementation The address of the new implementation contract.
+     */
+    function delegateUpgradeGrantModule(address newImplementation) external onlyOwner {
+        address grantModule = activeModuleRegistry[FundingTypes.GRANT_TYPE];
+        IUpgradeable(address(grantModule)).upgradeToAndCall(newImplementation, "");
+    }
 
     /**
      * @notice Executes a proposal by distributing funds from the group treasury.
@@ -757,9 +795,9 @@ contract MockGovernanceManagerV2 is Initializable, UUPSUpgradeable, OwnableUpgra
         revert UnknownFunctionCall();
     }
     
-    receive() external payable {
-        // This contract can receive Ether, but it does not handle it.
-        // Any Ether sent to this contract will be accepted, but no actions will be taken.
+    function newVersion() public pure returns (string memory) {
+        return "v2";
     }
 
+    receive() external payable {}
 }

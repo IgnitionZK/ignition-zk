@@ -17,6 +17,7 @@ import { FundingTypes } from "../libraries/FundingTypes.sol";
 /**
  * @title GrantModule
  * @notice This contract is responsible for requesting funding for grant proposals.
+ * @dev The GrantModule is a stateless contract that accepts calls from the GovernanceManager and forwards them to the relevant treasury instance.
  */
 contract MockGrantModuleWithReceive is Initializable, UUPSUpgradeable, OwnableUpgradeable, IGrantModule, IVersioned {
 
@@ -110,12 +111,6 @@ contract MockGrantModuleWithReceive is Initializable, UUPSUpgradeable, OwnableUp
         nonZeroAddress(groupTreasury)
         nonZeroAddress(to) 
     {
-        // Checks in funding module: 
-        // GM checks that 
-        // a) context key exists in VM and
-        // b) passed == true 
-        // !!! submission nullifier corresponds to voted contextKey in VM
-       
         ITreasuryManager(groupTreasury).requestTransfer(
             contextKey,
             to,
@@ -135,6 +130,10 @@ contract MockGrantModuleWithReceive is Initializable, UUPSUpgradeable, OwnableUp
      */
     function getContractVersion() external view override(IVersioned, IGrantModule) onlyOwner returns (string memory) {
         return "GrantModule v1.0.0"; 
+    }
+    
+    function newVersion() public pure returns (string memory) {
+        return "v2";
     }
 
     receive() external payable {}

@@ -86,6 +86,9 @@ Key components:
 
 ## Layer B: On-Chain Infrastructure 
 
+![Contract ownership](frontend/src/assets/ownership-flow.png)
+*IgnitionZK smart contract ownership flow*
+
 The on-chain layer is built on OpenZeppelin's UUPS proxy pattern for upgradeability and security. **Manager contracts** handle membership, proposals, voting, and treasury operations, **ERC721 NFTs enforce membership**. 
 Each group’s treasury is deployed as an **upgradeable beacon proxy**, keeping funds isolated and secure. **Funding modules** are plug-and-play, managed by IgnitionZK, and can be upgraded as needs evolve.
 
