@@ -170,15 +170,8 @@ contract VoteManagerTest is Test {
         vm.assume(_memberCount != 0);
         vm.assume(_memberCount <= 1024);
 
-        // 1. Deploy group NFT
-        membershipManager.deployGroupNft(
-            validGroupKey,
-            nftName,
-            nftSymbol
-        );
-        
-        // 2. Set the root for the group
-        membershipManager.setRoot(validCurrentRoot, validGroupKey);
+        // Deploy the Group NFT and set the Merkle Root
+        _deployGroupNftAndSetRoot();
 
         // Expect the MemberCountSet event to be emitted
         vm.expectEmit(true, true, false, false);
@@ -201,15 +194,8 @@ contract VoteManagerTest is Test {
     function test_setMemberCount_RevertsWhenMemberCountIsHigh() public {
         vm.startPrank(governor);
         
-        // 1. Deploy group NFT
-        membershipManager.deployGroupNft(
-            validGroupKey,
-            nftName,
-            nftSymbol
-        );
-        
-        // 2. Set the root for the group
-        membershipManager.setRoot(validCurrentRoot, validGroupKey);
+        // Deploy the Group NFT and set the Merkle Root
+        _deployGroupNftAndSetRoot();
 
         vm.expectRevert(VoteManager.InvalidMemberCount.selector);
         // 3. Set member count
@@ -220,15 +206,9 @@ contract VoteManagerTest is Test {
     function test_setMemberCount_SucceedsWhenMemberCountIsOne() public {
         vm.startPrank(governor);
         
-        // 1. Deploy group NFT
-        membershipManager.deployGroupNft(
-            validGroupKey,
-            nftName,
-            nftSymbol
-        );
-        
-        // 2. Set the root for the group
-        membershipManager.setRoot(validCurrentRoot, validGroupKey);
+        // Deploy the Group NFT and set the Merkle Root
+        _deployGroupNftAndSetRoot();
+
         // Expect the MemberCountSet event to be emitted
         vm.expectEmit(true, true, false, false);
         emit VoteManager.MemberCountSet(validGroupKey, 1);
@@ -245,15 +225,8 @@ contract VoteManagerTest is Test {
     function test_setMemberCount_SucceedsWhenMemberCountIs1024() public {
         vm.startPrank(governor);
         
-        // 1. Deploy group NFT
-        membershipManager.deployGroupNft(
-            validGroupKey,
-            nftName,
-            nftSymbol
-        );
-        
-        // 2. Set the root for the group
-        membershipManager.setRoot(validCurrentRoot, validGroupKey);
+        // Deploy the Group NFT and set the Merkle Root
+        _deployGroupNftAndSetRoot();
 
         // Expect the MemberCountSet event to be emitted
         vm.expectEmit(true, true, false, false);
@@ -272,17 +245,10 @@ contract VoteManagerTest is Test {
     function test_setMemberCount_QuorumIs50WhenMemberCountIs30() public {
         vm.startPrank(governor);
         
-        // 1. Deploy group NFT
-        membershipManager.deployGroupNft(
-            validGroupKey,
-            nftName,
-            nftSymbol
-        );
-        
-        // 2. Set the root for the group
-        membershipManager.setRoot(validCurrentRoot, validGroupKey);
+        // Deploy the Group NFT and set the Merkle Root
+        _deployGroupNftAndSetRoot();
 
-        // 3. Set member count
+        // Set member count
         voteManagerHelper.setMemberCount(validGroupKey, 30);
         (uint256 memberCount, uint256 quorum) = voteManagerHelper.groupParams(validGroupKey);
         assertEq(quorum, 50, "Quorum is not 50");
@@ -292,17 +258,10 @@ contract VoteManagerTest is Test {
     function test_setMemberCount_QuorumIs25WhenMemberCountIs200() public {
         vm.startPrank(governor);
         
-        // 1. Deploy group NFT
-        membershipManager.deployGroupNft(
-            validGroupKey,
-            nftName,
-            nftSymbol
-        );
-        
-        // 2. Set the root for the group
-        membershipManager.setRoot(validCurrentRoot, validGroupKey);
+        // Deploy the Group NFT and set the Merkle Root
+        _deployGroupNftAndSetRoot();
 
-        // 3. Set member count
+        // Set member count
         voteManagerHelper.setMemberCount(validGroupKey, 200);
         (uint256 memberCount, uint256 quorum) = voteManagerHelper.groupParams(validGroupKey);
         assertEq(quorum, 25, "Quorum is not 25");
@@ -338,11 +297,16 @@ contract VoteManagerTest is Test {
 
     function testFuzz_ceilDiv(uint256 a, uint256 b) public {
         vm.startPrank(governor);
-        vm.assume(a != 0 && b != 0);
+        // a and b inputs cannot be outside the 1 to 1024 range
+        a = bound(a, 1, 1024);
+        b = bound(b, 1, 1024);
+        // compute ceiling division from the contract
         uint256 ceilDivOutput = voteManagerHelper.exposed_ceilDiv(a, b);
+
+        // calculated the expected value
         uint256 expectedOutput = _applyCeilDiv(a, b);
+
         assertEq(ceilDivOutput, expectedOutput, "Output of ceiling division does not match");
-        
         vm.stopPrank();
     }
 
@@ -363,8 +327,19 @@ contract VoteManagerTest is Test {
         return quorumScaled / scalingFactor;
     }
 
-    function _applyCeilDiv(uint256 a, uint256 b) private pure returns (uint256) {
-        //if (a == 0 || b == 0) revert InvalidCeilInputs();  
+    function _applyCeilDiv(uint256 a, uint256 b) private pure returns (uint256) {  
         return (a + b - 1) / b;
+    }
+
+    function _deployGroupNftAndSetRoot() private {
+        // 1. Deploy group NFT
+        membershipManager.deployGroupNft(
+            validGroupKey,
+            nftName,
+            nftSymbol
+        );
+        
+        // 2. Set the root for the group
+        membershipManager.setRoot(validCurrentRoot, validGroupKey);
     }
 }
