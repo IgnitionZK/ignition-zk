@@ -14,7 +14,7 @@ Role-based permissions are used throughout, so only authorized parties can make 
 ![Contract ownership](../frontend/src/assets/ownership-flow.png)
 *IgnitionZK smart contract ownership flow*
 
-![Contract ownership](../frontend/src/assets/action-flow.png)
+![Contract ownership](../frontend/src/assets/onchain-flow.png)
 *Onchain flow per action type*
 
 ### Contract Overview
