@@ -752,7 +752,7 @@ export default function CreateProposal({ onSuccess, onCancel }) {
           ipfs_cid: ipfsCid,
         },
         payload: {
-          target_contract: "0xGovernanceContractAddress", // hardcoded value
+          target_contract: "0x66132e41BCEACb279c66525835602fD76900B417", // hardcoded value
           target_function: "delegateDistributeFunding", // hardcoded value
           value: "0", // hardcoded value
           calldata: {

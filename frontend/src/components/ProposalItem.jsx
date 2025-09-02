@@ -20,6 +20,9 @@ import { useUpdateProposalStatus } from "../hooks/queries/proposals/useUpdatePro
 import { calculateEpochPhases } from "../scripts/utils/epochPhaseCalculator";
 import { calculateProgressBarStep } from "../scripts/utils/progressBarStepCalculator";
 import { getClaimedStatusId } from "../services/apiProposalStatus";
+import { useRelayerDistributeFunding } from "../hooks/relayers/useRelayerDistributeFunding";
+import { getFundingTypeFromProposal } from "../scripts/utils/fundingTypes";
+import { ZKProofGenerator } from "../scripts/generateZKProof";
 
 const ProposalItemContainer = styled.li`
   background-color: rgba(165, 180, 252, 0.1);
@@ -208,7 +211,7 @@ function ProposalItem({ proposal = {} }) {
   const { epochs, isLoading: isLoadingEpochs } = useGetEpochsByGroupId(
     proposal.group_id
   );
-
+  // console.log(proposal);
   const {
     verifyProposalClaim,
     isVerifying,
@@ -226,6 +229,8 @@ function ProposalItem({ proposal = {} }) {
     nullifierHash: proposalSubmissionNullifier,
     isLoading: isLoadingSubmissionNullifier,
   } = useGetProposalSubmissionNullifier(proposal.proposal_id);
+
+  const { distributeFunding, isDistributing } = useRelayerDistributeFunding();
 
   if (!proposal || typeof proposal !== "object") {
     return (
@@ -362,13 +367,57 @@ function ProposalItem({ proposal = {} }) {
           });
 
           console.log("Proposal status updated to claimed successfully");
-          toast.success("Award claimed successfully!");
+
+          // After successful claim, distribute the funds
+          setProgress("Distributing funds...");
+
+          try {
+            // Extract funding data from proposal
+            const recipient = proposal.payload?.calldata?.recipient;
+            const amount = proposal.payload?.calldata?.amount;
+            const fundingType = getFundingTypeFromProposal(proposal.funding);
+
+            if (!recipient || !amount) {
+              throw new Error(
+                "Missing recipient or amount in proposal payload"
+              );
+            }
+
+            // Compute context key dynamically using vote context key (group, epoch, proposal)
+            const contextKey = await ZKProofGenerator.computeVoteContextKey(
+              proposal.group_id,
+              proposal.epoch_id,
+              proposal.proposal_id
+            );
+            console.log(contextKey);
+
+            console.log("Distributing funds with data:", {
+              groupId: proposal.group_id,
+              contextKey: contextKey,
+              recipient,
+              amount,
+              fundingType,
+              expectedProposalNullifier: proposalSubmissionHash,
+            });
+
+            const distributionResult = await distributeFunding({
+              groupId: proposal.group_id,
+              contextKey: contextKey,
+              recipient,
+              amount,
+              fundingType,
+              expectedProposalNullifier: proposalSubmissionHash,
+            });
+
+            console.log("Fund distribution successful:", distributionResult);
+            toast.success("Award claimed and funds distributed successfully!");
+          } catch (distributionError) {
+            console.error("Failed to distribute funds:", distributionError);
+            toast.success("Award claimed successfully!");
+          }
         } catch (statusUpdateError) {
           console.error("Failed to update proposal status:", statusUpdateError);
           toast.success("Award claimed successfully!");
-          toast.warning(
-            "Claim successful but status update failed. Please contact support."
-          );
         }
       } else {
         throw new Error("Proposal claim verification failed");
@@ -565,6 +614,7 @@ function ProposalItem({ proposal = {} }) {
                   isLoadingSubmissionNullifier ||
                   isVerifying ||
                   isUpdatingStatus ||
+                  isDistributing ||
                   !proposal.claim_hash ||
                   !proposalSubmissionNullifier
                 }
@@ -576,7 +626,7 @@ function ProposalItem({ proposal = {} }) {
                     : "Click to claim award"
                 }
               >
-                {isClaiming || isVerifying || isUpdatingStatus
+                {isClaiming || isVerifying || isUpdatingStatus || isDistributing
                   ? progress || "Claiming..."
                   : isLoadingSubmissionNullifier
                   ? "Loading..."
