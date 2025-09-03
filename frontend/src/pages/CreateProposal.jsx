@@ -29,6 +29,9 @@ import { getCurrentPhase } from "../scripts/utils/epochPhaseCalculator";
 import { uploadFile } from "../scripts/uploadFile";
 import { ZKProofGenerator } from "../scripts/generateZKProof";
 
+// Utility function to validate Ethereum address
+const isValidEthAddress = (address) => /^0x[a-fA-F0-9]{40}$/.test(address);
+
 const PageContainer = styled.div`
   display: flex;
   flex-direction: column;
@@ -389,6 +392,7 @@ export default function CreateProposal({ onSuccess, onCancel }) {
   const [amount, setAmount] = useState("");
   const [currencyType, setCurrencyType] = useState("ETH");
   const [fundingType, setFundingType] = useState("Lump sum payment");
+  const [recipient, setRecipient] = useState("");
 
   // File upload state
   const [uploadedFile, setUploadedFile] = useState(null);
@@ -517,7 +521,7 @@ export default function CreateProposal({ onSuccess, onCancel }) {
   const currencyTypeOptions = ["ETH"];
 
   // Funding type options
-  const fundingTypeOptions = ["Lump sum payment"];
+  const fundingTypeOptions = ["Grant"];
 
   // File validation constants
   const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
@@ -567,6 +571,10 @@ export default function CreateProposal({ onSuccess, onCancel }) {
         if (!/^\d+$/.test(value)) return "Amount must be a positive integer";
         if (parseInt(value) <= 0) return "Amount must be greater than 0";
         return "";
+      case "recipient":
+        if (!value) return "Recipient address is required";
+        if (!isValidEthAddress(value)) return "Invalid Ethereum address";
+        return "";
       case "uploadedFile":
         return !value ? "Please upload a proposal document" : "";
       default:
@@ -603,6 +611,9 @@ export default function CreateProposal({ onSuccess, onCancel }) {
       case "fundingType":
         setFundingType(value);
         break;
+      case "recipient":
+        setRecipient(value);
+        break;
     }
 
     // Validate and update errors
@@ -627,6 +638,7 @@ export default function CreateProposal({ onSuccess, onCancel }) {
       proposalName,
       description,
       amount,
+      recipient,
     }[name];
 
     const error = validateField(name, value);
@@ -646,6 +658,7 @@ export default function CreateProposal({ onSuccess, onCancel }) {
       "proposalName",
       "description",
       "amount",
+      "recipient",
       "uploadedFile",
     ];
     const newTouched = {};
@@ -659,6 +672,7 @@ export default function CreateProposal({ onSuccess, onCancel }) {
         proposalName,
         description,
         amount,
+        recipient,
         uploadedFile,
       }[field];
       newErrors[field] = validateField(field, value);
@@ -738,12 +752,11 @@ export default function CreateProposal({ onSuccess, onCancel }) {
           ipfs_cid: ipfsCid,
         },
         payload: {
-          target_contract: "0xGovernanceContractAddress", // This would be dynamic
-          target_function: "executeProposal",
-          target_action: "delegateDistributeGrant",
-          value: "0",
+          target_contract: "0x66132e41BCEACb279c66525835602fD76900B417", // hardcoded value
+          target_function: "delegateDistributeFunding", // hardcoded value
+          value: "0", // hardcoded value
           calldata: {
-            recipient: "0xabcdefabcdefabcdefabcdefabcdefabcdefabcd", // This would be dynamic
+            recipient: recipient,
             amount,
           },
         },
@@ -948,6 +961,7 @@ export default function CreateProposal({ onSuccess, onCancel }) {
       proposalName ||
       description ||
       amount ||
+      recipient ||
       uploadedFile;
 
     if (hasData) {
@@ -979,6 +993,7 @@ export default function CreateProposal({ onSuccess, onCancel }) {
     title: proposalName || "Untitled Proposal",
     group_name: selectedGroup || "Unknown Group",
     description: description || "No description available",
+    recipient: recipient || "No recipient specified",
   };
 
   return (
@@ -1174,6 +1189,30 @@ export default function CreateProposal({ onSuccess, onCancel }) {
           />
           {touched.description && errors.description && (
             <ErrorMessage>{errors.description}</ErrorMessage>
+          )}
+        </FormField>
+
+        <FormField>
+          <Label>
+            Recipient Address
+            <InfoIconWrapper>
+              <InfoIcon />
+              <Tooltip>
+                Enter the Ethereum address of the recipient for the funding
+                amount. This is the address that will receive the funds.
+              </Tooltip>
+            </InfoIconWrapper>
+          </Label>
+          <Input
+            type="text"
+            value={recipient}
+            onChange={(e) => handleFieldChange("recipient", e.target.value)}
+            onBlur={() => handleFieldBlur("recipient")}
+            placeholder="Enter recipient address (e.g., 0x123...)"
+            required
+          />
+          {touched.recipient && errors.recipient && (
+            <ErrorMessage>{errors.recipient}</ErrorMessage>
           )}
         </FormField>
 

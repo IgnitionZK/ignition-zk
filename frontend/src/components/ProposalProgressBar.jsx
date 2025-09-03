@@ -3,7 +3,6 @@ import styled from "styled-components";
 import { FaCheck, FaTimes } from "react-icons/fa";
 
 const ProgressBarContainer = styled.div`
-  background-color: rgba(59, 62, 112, 0.8);
   border-radius: 0.8rem;
   padding: 2rem;
   margin: 1.6rem 0;
