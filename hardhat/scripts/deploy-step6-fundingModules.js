@@ -3,7 +3,7 @@ const { ethers, upgrades } = require("hardhat");
 async function main() {
   console.log("🚀 Step 6: Deploying the FundingModules...\n");
 
-  const GOVERNANCE_MANAGER_ADDRESS = "0x66132e41BCEACb279c66525835602fD76900B417"; // From Step 3
+  const GOVERNANCE_MANAGER_ADDRESS = "0x364773751c69f6ED23f9C65Eec28Aa4444fc76fB"; // From Step 3
   
   console.log("📋 Configuration:");
   console.log(`📄 GovernanceManager: ${GOVERNANCE_MANAGER_ADDRESS}`);

@@ -13,7 +13,7 @@ async function main() {
   console.log("");
 
   // Configuration - Update these addresses from previous steps
-  const GOVERNANCE_MANAGER_ADDRESS = "0x66132e41BCEACb279c66525835602fD76900B417"; // From Step 3
+  const GOVERNANCE_MANAGER_ADDRESS = "0x364773751c69f6ED23f9C65Eec28Aa4444fc76fB"; // From Step 3
   const RELAYER = "0x5F909fd25A9F5e4f5a219318FdeD6C8124F6c1F1";
   const IGNITIONZK_MULTISIG = "0x5E42277e70102B6932727DA70f19Df8b6feD15E3";
 
