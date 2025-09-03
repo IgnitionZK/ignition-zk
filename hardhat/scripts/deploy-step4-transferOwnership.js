@@ -17,16 +17,17 @@ async function main() {
     "0x6A9Dba0dB75814dD85a5Dc8660994694E0b03994"; // From Step 2
   const PROPOSAL_MANAGER_ADDRESS = "0x09aCC8acddac915DbAC5Cf0D174F1Cd58F4AFF14"; // From Step 2
   const VOTE_MANAGER_ADDRESS = "0x977C130D984A7501a173b68467cFCa342a5339cA"; // From Step 2 
-  const GOVERNOR_ADDRESS = "0x66132e41BCEACb279c66525835602fD76900B417"; // From Step 3
-  const OWNER_RELAYER = "0x5F909fd25A9F5e4f5a219318FdeD6C8124F6c1F1";
+  const GOVERNANCE_MANAGER_ADDRESS = "0x66132e41BCEACb279c66525835602fD76900B417"; // From Step 3
+  const RELAYER = "0x5F909fd25A9F5e4f5a219318FdeD6C8124F6c1F1";
   const NFT_IMPLEMENTATION = "0x7C33a33561C0CFa6EECA18239A119d3FD3267B2A"; // From Step 1
 
   console.log("📋 Configuration:");
   console.log(`👥 MembershipManager: ${MEMBERSHIP_MANAGER_ADDRESS}`);
   console.log(`📄 ProposalManager: ${PROPOSAL_MANAGER_ADDRESS}`);
   console.log(`📄 VoteManager: ${VOTE_MANAGER_ADDRESS}`);
-  console.log(`🏛️  Governor: ${GOVERNOR_ADDRESS}`);
-  console.log(`👤 Owner/Relayer: ${OWNER_RELAYER}`);
+  console.log(`🏛️ GovernanceManager: ${GOVERNANCE_MANAGER_ADDRESS}`);
+  console.log(`👤 Relayer: ${RELAYER}`);
+
   console.log("");
 
   // Validation check - ensure addresses are not zero addresses
@@ -34,7 +35,7 @@ async function main() {
     MEMBERSHIP_MANAGER_ADDRESS === ethers.ZeroAddress ||
     PROPOSAL_MANAGER_ADDRESS === ethers.ZeroAddress ||
     VOTE_MANAGER_ADDRESS === ethers.ZeroAddress ||
-    GOVERNOR_ADDRESS === ethers.ZeroAddress
+    GOVERNANCE_MANAGER_ADDRESS === ethers.ZeroAddress
   ) {
     console.error("❌ Please ensure all addresses are properly set!");
     process.exit(1);
@@ -54,62 +55,62 @@ async function main() {
       "VoteManager",
       VOTE_MANAGER_ADDRESS
     );
-    const governor = await ethers.getContractAt(
+    const governanceManager = await ethers.getContractAt(
       "GovernanceManager",
-      GOVERNOR_ADDRESS
+      GOVERNANCE_MANAGER_ADDRESS
     );
 
     console.log(
-      "🔧 Step 4a: Transferring MembershipManager ownership to Governor..."
+      "🔧 Step 4a: Transferring MembershipManager ownership to GovernanceManager..."
     );
-    // Transfer MembershipManager ownership to Governor
+    // Transfer MembershipManager ownership to GovernanceManager
     const transferTx = await membershipManager.transferOwnership(
-      GOVERNOR_ADDRESS
+      GOVERNANCE_MANAGER_ADDRESS
     );
-    console.log("⏳ Waiting for ownership transfer...");
+    console.log(`⏳ Waiting for ownership transfer... TX Hash: ${transferTx.hash}`);
     await transferTx.wait();
 
-    console.log("✅ MembershipManager ownership transferred to Governor!");
+    console.log("✅ MembershipManager ownership transferred to GovernanceManager!");
 
-    // Transfer ownership of ProposalManager to Governor
+    // Transfer ownership of ProposalManager to GovernanceManager
     console.log(
-      "🔧 Step 4b: Transferring ProposalManager ownership to Governor..."
+      "🔧 Step 4b: Transferring ProposalManager ownership to GovernanceManager..."
     );
     const transferProposalManagerTx = await proposalManager.transferOwnership(
-      GOVERNOR_ADDRESS
+      GOVERNANCE_MANAGER_ADDRESS
     );
-    console.log("⏳ Waiting for ownership transfer...");
+    console.log(`⏳ Waiting for ownership transfer... TX Hash: ${transferProposalManagerTx.hash}`);
     await transferProposalManagerTx.wait();
-    console.log("✅ ProposalManager ownership transferred to Governor!");
+    console.log("✅ ProposalManager ownership transferred to GovernanceManager!");
 
-    // Transfer ownership of VoteManager to Governor
+    // Transfer ownership of VoteManager to GovernanceManager
     console.log(
-      "🔧 Step 4c: Transferring VoteManager ownership to Governor..."
+      "🔧 Step 4c: Transferring VoteManager ownership to GovernanceManager..."
     );
     const transferVoteManagerTx = await voteManager.transferOwnership(
-      GOVERNOR_ADDRESS
+      GOVERNANCE_MANAGER_ADDRESS
     );
-    console.log("⏳ Waiting for ownership transfer...");
+    console.log(`⏳ Waiting for ownership transfer... TX Hash: ${transferVoteManagerTx.hash}`);
     await transferVoteManagerTx.wait();
-    console.log("✅ VoteManager ownership transferred to Governor!");
+    console.log("✅ VoteManager ownership transferred to GovernanceManager!");
 
     console.log("\n🔧 Step 4d: Verifying setup...");
     // Verify ownership
     const membershipManagerOwner = await membershipManager.owner();
     const proposalManagerOwner = await proposalManager.owner();
     const voteManagerOwner = await voteManager.owner();
-    const governorOwner = await governor.owner();
+    const governanceManagerOwner = await governanceManager.owner();
 
     console.log(`👥 MembershipManager owner: ${membershipManagerOwner}`);
     console.log(`📄 ProposalManager owner: ${proposalManagerOwner}`);
-    console.log(`🗳️  VoteManager owner: ${voteManagerOwner}`);
-    console.log(`🏛️  Governor owner: ${governorOwner}`);
+    console.log(`🗳️ VoteManager owner: ${voteManagerOwner}`);
+    console.log(`🏛️ GovernanceManager owner: ${governanceManagerOwner}`);
 
     if (
-      membershipManagerOwner === GOVERNOR_ADDRESS &&
-      proposalManagerOwner === GOVERNOR_ADDRESS &&
-      voteManagerOwner === GOVERNOR_ADDRESS &&
-      governorOwner === OWNER_RELAYER
+      membershipManagerOwner === GOVERNANCE_MANAGER_ADDRESS &&
+      proposalManagerOwner === GOVERNANCE_MANAGER_ADDRESS &&
+      voteManagerOwner === GOVERNANCE_MANAGER_ADDRESS &&
+      governanceManagerOwner === RELAYER
     ) {
       console.log("✅ Ownership verification successful!");
     } else {
@@ -124,16 +125,16 @@ async function main() {
     console.log(`🔧 ERC721IgnitionZK (Implementation): ${NFT_IMPLEMENTATION}`);
     console.log(`👥 MembershipManager (Proxy): ${MEMBERSHIP_MANAGER_ADDRESS}`);
     console.log(`📄 ProposalManager (Proxy): ${PROPOSAL_MANAGER_ADDRESS}`);
-    console.log(`🗳️  VoteManager (Proxy): ${VOTE_MANAGER_ADDRESS}`);
-    console.log(`🏛️  Governor (Proxy): ${GOVERNOR_ADDRESS}`);
-    console.log(`👤 Owner/Relayer: ${OWNER_RELAYER}`);
+    console.log(`🗳️ VoteManager (Proxy): ${VOTE_MANAGER_ADDRESS}`);
+    console.log(`🏛️ GovernanceManager (Proxy): ${GOVERNANCE_MANAGER_ADDRESS}`);
+    console.log(`👤 Relayer: ${RELAYER}`);
     console.log("\n🔗 Contract Relationships:");
-    console.log("• Governor owns MembershipManager");
-    console.log("• Governor owns ProposalManager");
-    console.log("• Governor owns VoteManager");
-    console.log("• Owner/Relayer owns Governor");
+    console.log("• GovernanceManager owns MembershipManager");
+    console.log("• GovernanceManager owns ProposalManager");
+    console.log("• GovernanceManager owns VoteManager");
+    console.log("• Relayer temporarily owns GovernanceManager");
     console.log("• MembershipManager can deploy group NFTs");
-    console.log("• Governor can delegate calls to MembershipManager");
+    console.log("• GovernanceManager can delegate calls to Manager contracts");
     console.log("=".repeat(60));
   } catch (error) {
     console.error("❌ Step 4 failed:", error.message);

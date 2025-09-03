@@ -68,10 +68,10 @@ This deploys:
 
 ### Step 3: Deploy GovernanceManager
 
-Update the addresses in `deploy-step3-governor.js` with the addresses from Step 2, then run:
+Update the addresses in `deploy-step3-governanceManager.js` with the addresses from Step 2, then run:
 
 ```bash
-npx hardhat run scripts/deploy-step3-governor.js --network <your-network>
+npx hardhat run scripts/deploy-step3-governanceManager.js --network <your-network>
 ```
 
 This deploys:
@@ -123,6 +123,17 @@ This step:
 
 - Deploys the GrantModule
 - Adds the GrantModule address in the activeModuleRegistry of the GovernanceManager
+
+### Step 7: Transfer GovernanceManager Ownership
+
+Update the addresses in `deploy-step7-transferGMOwnership.js` with all previous addresses, then run:
+
+```bash
+npx hardhat run scripts/deploy-step6-transferGMOwnership.js --network <your-network>
+```
+
+This step:
+- Transfers the GovernanceManager ownership from the relayer to the IgnitionZK multisig
 
 ## Contract Architecture
 
