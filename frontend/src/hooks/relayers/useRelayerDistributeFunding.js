@@ -38,7 +38,6 @@ export function useRelayerDistributeFunding() {
         throw new Error("No authentication token found. Please log in.");
       }
 
-      // Validate required parameters
       if (!groupId) {
         throw new Error("groupId is required");
       }
@@ -61,28 +60,28 @@ export function useRelayerDistributeFunding() {
         throw new Error("proposalId is required");
       }
 
-      // Validate Ethereum address format
       if (!ethers.isAddress(recipient)) {
         throw new Error("recipient must be a valid Ethereum address");
       }
 
-      // Validate amount is a positive number
       const amountNumber = Number(amount);
       if (isNaN(amountNumber) || amountNumber <= 0) {
         throw new Error("amount must be a positive number");
       }
 
+      const amountInWei = ethers.parseEther(amount.toString());
+
       console.log("[FRONTEND/useRelayerDistributeFunding] Data received:", {
         groupId,
         contextKey,
         recipient,
-        amount,
+        amount: amount,
+        amountInWei: amountInWei.toString(),
         fundingType,
         expectedProposalNullifier,
         proposalId,
       });
 
-      // Convert the groupId UUID to bytes32 format
       console.log(
         "[FRONTEND/useRelayerDistributeFunding] Converting groupId to bytes32 format"
       );
@@ -100,7 +99,7 @@ export function useRelayerDistributeFunding() {
             group_key: groupKeyBytes32.toString(),
             context_key: contextKey.toString(),
             to: recipient,
-            amount: amount.toString(),
+            amount: amountInWei.toString(),
             funding_type: fundingType,
             expected_proposal_nullifier: expectedProposalNullifier.toString(),
           },
@@ -159,7 +158,6 @@ export function useRelayerDistributeFunding() {
         data
       );
 
-      // Update proposal status to "requested" on successful distribution
       if (proposalId) {
         try {
           const requestedStatusId = getRequestedStatusId();
@@ -181,13 +179,9 @@ export function useRelayerDistributeFunding() {
       return data;
     },
     onSuccess: () => {
-      // Invalidate proposals queries to refresh the UI
-      // Add a small delay to ensure database updates have propagated
       setTimeout(() => {
-        // Invalidate all proposal-related queries
         queryClient.invalidateQueries({ queryKey: ["proposals"] });
         queryClient.invalidateQueries({ queryKey: ["pendingInboxProposals"] });
-        // Also invalidate any proposals queries with group IDs
         queryClient.invalidateQueries({
           predicate: (query) => query.queryKey[0] === "proposals",
         });

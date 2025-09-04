@@ -412,9 +412,7 @@ function ProposalItem({ proposal = {} }) {
             });
 
             console.log("Fund distribution successful:", distributionResult);
-            toast.success(
-              "Award claimed, funds distributed, and transfer requested successfully!"
-            );
+            toast.success("Award claimed and transfer successfully requested!");
           } catch (distributionError) {
             console.error("Failed to distribute funds:", distributionError);
             toast.success("Award claimed successfully!");
