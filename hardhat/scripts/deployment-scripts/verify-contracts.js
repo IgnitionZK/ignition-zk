@@ -6,7 +6,7 @@ async function main() {
     const RELAYER = "0x5F909fd25A9F5e4f5a219318FdeD6C8124F6c1F1";
     const IGNITIONZK_MULTISIG = "0x5E42277e70102B6932727DA70f19Df8b6feD15E3";
 
-    // Load addresses from .env or a JSON file
+    // REPLACE WITH DEPLOYED_ADDRESSES IN update-deployment-addresses.js
     const DEPLOYED_ADDRESSES = {
         // Step 0 - Verifier Contracts
         MEMBERSHIP_VERIFIER: "0xf1b3963996420a1765B452AB51ad7b52e94F9C1d", // FROM STEP 0
