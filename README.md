@@ -1,3 +1,7 @@
+<p align="center">
+  <a href="./LICENSE-GPL"><img src="https://img.shields.io/badge/License-GPLv3-blue.svg" alt="License: GPL v3"></a>
+  <a href="./LICENSE-MIT"><img src="https://img.shields.io/badge/License-MIT-yellow.svg" alt="License: MIT"></a>
+</p>
 
 <p align="center">
   <img src="frontend/src/assets/logo-transparent-bg.png" alt="IgnitionZK Logo" width="100" />
@@ -152,3 +156,27 @@ After voting, the original proposer can claim ownership of a successful proposal
 Once a proposal is accepted and claimed, the DAO moves to execution. The system routes the approved proposal to the right funding module, which sends a disbursement request to the group’s treasury. A timelock gives admins time to review or cancel the transfer. After the timelock, the treasury admin can approve and execute the transfer. Emergency locks are available if needed, and every step is logged on-chain for transparency.
 
 [Read more about proposal execution](./docs/lifecycle-phase5-execution.md)
+
+## License
+
+This project is dual-licensed:
+
+### GPL-3.0 License
+
+The following components are licensed under [GPL-3.0](./LICENSE-GPL):
+
+- All verifier contracts in `/hardhat/contracts/verifiers/`
+- Manager contracts that directly integrate with verifiers:
+  - `MembershipManager.sol`
+  - `ProposalManager.sol`
+  - `VoteManager.sol`
+
+### MIT License
+
+All other components not explicitly mentioned above are licensed under the [MIT License](./LICENSE-MIT).
+
+This dual-licensing approach means:
+- Components under GPL-3.0 require that any derivative works also be open-sourced under GPL-3.0
+- Components under MIT can be freely used in both open source and proprietary projects
+
+For more details, please see the [LICENSE-GPL](./LICENSE-GPL) and [LICENSE-MIT](./LICENSE-MIT) files.
