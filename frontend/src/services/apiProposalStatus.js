@@ -3,6 +3,8 @@ import { supabase } from "./supabase";
 export const PROPOSAL_STATUS_IDS = {
   // uuid from "claimed" status_type from backend
   CLAIMED: "a9f2bdcf-ab17-44d5-96c3-afcb742c696a",
+  // uuid from "requested" status_type from backend
+  REQUESTED: "4e8a689c-545a-45d4-be2d-7ace9b53e880",
 };
 
 /**
@@ -42,6 +44,14 @@ export async function getStatusId(statusType) {
  */
 export function getClaimedStatusId() {
   return PROPOSAL_STATUS_IDS.CLAIMED;
+}
+
+/**
+ * Gets the requested status ID
+ * @returns {string} The requested status ID
+ */
+export function getRequestedStatusId() {
+  return PROPOSAL_STATUS_IDS.REQUESTED;
 }
 
 /**

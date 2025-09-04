@@ -398,6 +398,7 @@ function ProposalItem({ proposal = {} }) {
               amount,
               fundingType,
               expectedProposalNullifier: proposalSubmissionHash,
+              proposalId: proposal.proposal_id,
             });
 
             const distributionResult = await distributeFunding({
@@ -407,10 +408,13 @@ function ProposalItem({ proposal = {} }) {
               amount,
               fundingType,
               expectedProposalNullifier: proposalSubmissionHash,
+              proposalId: proposal.proposal_id,
             });
 
             console.log("Fund distribution successful:", distributionResult);
-            toast.success("Award claimed and funds distributed successfully!");
+            toast.success(
+              "Award claimed, funds distributed, and transfer requested successfully!"
+            );
           } catch (distributionError) {
             console.error("Failed to distribute funds:", distributionError);
             toast.success("Award claimed successfully!");

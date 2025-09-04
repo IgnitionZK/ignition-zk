@@ -220,15 +220,25 @@ serve(async (req) => {
     );
     let transactionResponse;
     let actionPerformed = "delegateDistributeFunding";
+    // Fix: Convert the amount and nullifier to their correct types for the contract call.
+    // The amount should be a BigInt.
+    const convertedAmount = ethers.toBigInt(amount);
+    // The nullifier is a string representation of a BigInt, but the contract's `bytes32`
+    // type expects a hexadecimal value. We first convert it to a BigInt and then
+    // format it as a `0x`-prefixed hex string using `toBeHex`.
+    const convertedNullifier = ethers.toBeHex(
+      ethers.toBigInt(expected_proposal_nullifier),
+      32
+    );
     console.log(
       "[RELAYER/DistributeFunding] Calling delegateDistributeFunding with:",
       {
         group_key,
         context_key,
         to,
-        amount,
+        convertedAmount,
         funding_type,
-        expected_proposal_nullifier,
+        convertedNullifier,
       }
     );
     // Call the delegateDistributeFunding function on the GovernanceManager contract
@@ -236,9 +246,9 @@ serve(async (req) => {
       group_key,
       context_key,
       to,
-      amount,
+      convertedAmount,
       funding_type,
-      expected_proposal_nullifier
+      convertedNullifier
     );
     console.log(
       "[RELAYER/DistributeFunding] Transaction response:",

@@ -1,15 +1,20 @@
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "../../services/supabase";
 import { uuidToBytes32 } from "../../scripts/utils/uuidToBytes32";
 import { ethers } from "ethers";
+import { updateProposalStatus } from "../../services/apiProposals";
+import { getRequestedStatusId } from "../../services/apiProposalStatus";
 
 /**
  * Custom hook to distribute funding using the Supabase edge function relayer.
  * This hook handles the distribution of funds from the group treasury to the proposal recipient
  * after a proposal has been successfully claimed. It converts group IDs to bytes32 format,
  * validates parameters, and delegates the distribution to the backend relayer.
+ * On successful distribution, it updates the proposal status to "requested".
  */
 export function useRelayerDistributeFunding() {
+  const queryClient = useQueryClient();
+
   const distributeFundingMutation = useMutation({
     mutationFn: async ({
       groupId,
@@ -18,6 +23,7 @@ export function useRelayerDistributeFunding() {
       amount,
       fundingType,
       expectedProposalNullifier,
+      proposalId,
     }) => {
       const {
         data: { session },
@@ -51,6 +57,9 @@ export function useRelayerDistributeFunding() {
       if (!expectedProposalNullifier) {
         throw new Error("expectedProposalNullifier is required");
       }
+      if (!proposalId) {
+        throw new Error("proposalId is required");
+      }
 
       // Validate Ethereum address format
       if (!ethers.isAddress(recipient)) {
@@ -70,6 +79,7 @@ export function useRelayerDistributeFunding() {
         amount,
         fundingType,
         expectedProposalNullifier,
+        proposalId,
       });
 
       // Convert the groupId UUID to bytes32 format
@@ -149,7 +159,39 @@ export function useRelayerDistributeFunding() {
         data
       );
 
+      // Update proposal status to "requested" on successful distribution
+      if (proposalId) {
+        try {
+          const requestedStatusId = getRequestedStatusId();
+          await updateProposalStatus({
+            proposalId: proposalId,
+            statusId: requestedStatusId,
+          });
+          console.log(
+            `[FRONTEND/useRelayerDistributeFunding] Proposal ${proposalId} status updated to "requested".`
+          );
+        } catch (updateError) {
+          console.error(
+            `[FRONTEND/useRelayerDistributeFunding] Failed to update proposal ${proposalId} status to "requested":`,
+            updateError
+          );
+        }
+      }
+
       return data;
+    },
+    onSuccess: () => {
+      // Invalidate proposals queries to refresh the UI
+      // Add a small delay to ensure database updates have propagated
+      setTimeout(() => {
+        // Invalidate all proposal-related queries
+        queryClient.invalidateQueries({ queryKey: ["proposals"] });
+        queryClient.invalidateQueries({ queryKey: ["pendingInboxProposals"] });
+        // Also invalidate any proposals queries with group IDs
+        queryClient.invalidateQueries({
+          predicate: (query) => query.queryKey[0] === "proposals",
+        });
+      }, 500);
     },
   });
 
