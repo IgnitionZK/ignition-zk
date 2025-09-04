@@ -51,6 +51,11 @@ export function calculateProgressBarStep(
   else if (status_type === "claimed") {
     currentStep = 4;
   }
+  // Step 4: "Transfer Requested" - Completed if status is requested
+  else if (status_type === "requested") {
+    currentStep = 5; // Move to step 5 since step 4 is completed
+    isStep6Completed = false; // Ensure step 6 is not marked as completed
+  }
   // If proposal is rejected, always show at step 2 as rejected
   else if (status_type === "rejected") {
     currentStep = 2;
