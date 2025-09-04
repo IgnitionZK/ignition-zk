@@ -135,6 +135,17 @@ npx hardhat run scripts/deploy-step6-transferGMOwnership.js --network <your-netw
 This step:
 - Transfers the GovernanceManager ownership from the relayer to the IgnitionZK multisig
 
+### Step 8: Verify the implementation contracts on Etherscan
+
+Update the deployed addresses object in `verify-contracts.js` with the whole DEPLOYED_ADRESSES object in update-deployment-addresses, then run:
+
+```bash
+npx hardhat run scripts/verify-contracts.js --network <your-network>
+```
+This step:
+
+- Verifies the implementation contracts on Etherscan. The proxy contracts need to be verified manually.
+
 ## Contract Architecture
 
 After deployment, the contract hierarchy is:
