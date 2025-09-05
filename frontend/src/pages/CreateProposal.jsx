@@ -391,7 +391,7 @@ export default function CreateProposal({ onSuccess, onCancel }) {
   const [proposalType, setProposalType] = useState("Funding Request");
   const [amount, setAmount] = useState("");
   const [currencyType, setCurrencyType] = useState("ETH");
-  const [fundingType, setFundingType] = useState("Lump sum payment");
+  const [fundingType, setFundingType] = useState("Grant");
   const [recipient, setRecipient] = useState("");
 
   // File upload state
@@ -510,12 +510,7 @@ export default function CreateProposal({ onSuccess, onCancel }) {
   }, [campaigns]);
 
   // Proposal type options
-  const proposalTypeOptions = [
-    "Funding Request",
-    "Governance",
-    "Technical",
-    "Other",
-  ];
+  const proposalTypeOptions = ["Funding Request", "Governance", "Technical"];
 
   // Currency type options
   const currencyTypeOptions = ["ETH"];
