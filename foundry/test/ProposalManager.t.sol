@@ -25,12 +25,11 @@ import { IProposalManager } from "hardhat-contracts/interfaces/managers/IProposa
 import { IMembershipManager } from "hardhat-contracts/interfaces/managers/IMembershipManager.sol";
 import { IProposalVerifier } from "hardhat-contracts/interfaces/verifiers/IProposalVerifier.sol";
 
-contract Dummy {
-    function dummyFunction() external pure returns (string memory) {
-        return "Dummy Function";
-    }
-}
-
+/**
+ * @notice Fuzz Tests for ProposalManager
+ * @dev We only use Foundry for Fuzz testing the relevant functions. 
+ * The rest of the unit tests can be found in the hardhat test suite.
+ */
 contract ProposalManagerTest is Test {
     MockProposalVerifier private mockProposalVerifier;
     MockProposalClaimVerifier private mockProposalClaimVerifier;
@@ -38,19 +37,23 @@ contract ProposalManagerTest is Test {
     MembershipManager private membershipManager;
     MembershipVerifier private membershipVerifier;
     ERC721IgnitionZK private nftImplementation; 
-    Dummy private dummy;
 
+    // Mock owner
     address governor = vm.addr(1);
 
+    // Mock ERC721 token name and symbol
     string nftName = "Test Group NFT";
     string nftSymbol = "TGNFT";
     
+    // Mock proof data
+    bytes32 validGroupKey = keccak256(abi.encodePacked("groupKey"));
     bytes32 validContextHash = keccak256(abi.encodePacked("contextKey"));
     bytes32 validSubmissionNullifier = keccak256(abi.encodePacked("proposalNullifier"));
     bytes32 validClaimNullifier = keccak256(abi.encodePacked("claimNullifier"));
     bytes32 validCurrentRoot = keccak256(abi.encodePacked("currentRoot"));
     bytes32 validContentHash = keccak256(abi.encodePacked("contentHash"));
 
+    // Mock proof
     uint256[24] private proof = [
             uint256(1), 2, 3, 4, 5, 6, 7, 8, 9, 10, 
             11, 12, 13, 14, 15, 16, 17, 18, 19, 20,
@@ -77,9 +80,6 @@ contract ProposalManagerTest is Test {
         // deploy the mock verifiers
         mockProposalVerifier = new MockProposalVerifier();
         mockProposalClaimVerifier = new MockProposalClaimVerifier();
-
-        // deploy the dummy contract
-        dummy = new Dummy();
 
         // deploy the NFT implementation contract
         nftImplementation = new ERC721IgnitionZK();
@@ -146,32 +146,6 @@ contract ProposalManagerTest is Test {
         vm.stopPrank();
     }
 
-    
-    /**
-     * @dev Tests that the proposal submission verifier cannot be set to an address that does not support the required interface.
-     */
-    /*
-    function test_setProposalSubmissionVerifier_RevertsIfAddressDoesNotSupportInterface() public {
-        vm.startPrank(governor);
-        vm.expectRevert(ProposalManager.AddressDoesNotSupportInterface.selector);
-        proposalManager.setProposalSubmissionVerifier(address(dummy));
-        vm.stopPrank();
-    }
-    */
-
-    /**
-     * @dev Checks that the proposal submission verifier can be set to a valid contract address.
-     * It assumes the address is not zero and supports the IProposalVerifier interface.
-     */
-    /*
-    function test_setProposalSubmissionVerifier_SucceedsWithValidAddress() public {
-        vm.startPrank(governor);
-        proposalManager.setProposalSubmissionVerifier(address(mockProposalVerifier));
-        assertEq(proposalManager.getProposalSubmissionVerifier(), address(mockProposalVerifier));
-        vm.stopPrank();
-    }
-    */
-
     // =====================================================================================================================
     //                                     TESTS: setProposalClaimVerifier
     // =====================================================================================================================
@@ -198,12 +172,13 @@ contract ProposalManagerTest is Test {
     /**
      * @dev Fuzz test: tests that the verifyProposal function reverts when the context key is invalid.
      * It assumes the context key is not zero and does not match the valid context hash.
-     */
-     /*
+     */ 
     function testFuzz_verifyProposal_RevertsWhenContextKeyIsInvalid(bytes32 contextKey) public {
         vm.startPrank(governor);
         vm.assume(contextKey != bytes32(0));
         vm.assume(contextKey != validContextHash);
+
+        _deployGroupNftAndSetRoot();
         proposalManager.setProposalSubmissionVerifier(address(mockProposalVerifier));
         
         vm.expectRevert(ProposalManager.InvalidContextHash.selector);
@@ -211,126 +186,11 @@ contract ProposalManagerTest is Test {
             proof,
             publicSignals,
             contextKey,
-            groupKey
+            validGroupKey
         );
         vm.stopPrank();
     }
-    */
 
-    /**
-     * @dev Tests that the verifyProposal function succeeds when the context key is valid.
-     */
-    /*
-    function test_verifyProposal_SucceedsWhenContextKeyIsValid() public {
-        vm.startPrank(governor);
-        
-        proposalManager.setProposalSubmissionVerifier(address(mockProposalVerifier));
-        
-        vm.expectEmit(true, true, true, true);
-        emit ProposalManager.SubmissionVerified(validContextHash, validSubmissionNullifier, validClaimNullifier, validContentHash);
-        proposalManager.verifyProposal(
-            proof,
-            publicSignals,
-            validContextHash,
-            validCurrentRoot
-        );
-        vm.stopPrank();
-    }
-    */
-
-    /**
-     * @dev Fuzz test: tests that the verifyProposal function reverts when the currentRoot is invalid.
-     * It assumes the currentRoot is not equal to the valid root.
-     */
-     /*
-    function testFuzz_verifyProposal_RevertsWhenMerkleRootIsInvalid(bytes32 root) public {
-        vm.startPrank(governor);
-        vm.assume(root != validCurrentRoot);
-        proposalManager.setProposalSubmissionVerifier(address(mockProposalVerifier));
-        
-        vm.expectRevert(ProposalManager.InvalidMerkleRoot.selector);
-        proposalManager.verifyProposal(
-            proof,
-            publicSignals,
-            validContextHash,
-            root
-        );
-        vm.stopPrank();
-    }
-    */
-
-    /**
-     * @dev Tests that the verifyProposal function succeeds when the context key is valid.
-     */
-    /*
-    function test_verifyProposal_SucceedsWhenMerkleRootIsValid() public {
-        vm.startPrank(governor);
-        proposalManager.setProposalSubmissionVerifier(address(mockProposalVerifier));
-        
-        vm.expectEmit(true, true, true, true);
-        emit ProposalManager.SubmissionVerified(validContextHash, validSubmissionNullifier, validClaimNullifier, validContentHash);
-        proposalManager.verifyProposal(
-            proof,
-            publicSignals,
-            validContextHash,
-            validCurrentRoot
-        );
-        vm.stopPrank();
-    }
-    */
-
-    /**
-    * @dev Tests that the verifyProposal function fails when the current root is zero.
-     */
-    /*
-    function test_verifyProposal_FailsWhenCurrentRootIsZero() public {
-        vm.startPrank(governor);
-        proposalManager.setProposalSubmissionVerifier(address(mockProposalVerifier));
-
-        uint256[5] memory currPublicSignals = [
-            uint256(keccak256(abi.encodePacked("contextKey"))), 
-            uint256(keccak256(abi.encodePacked("proposalNullifier"))), 
-            uint256(keccak256(abi.encodePacked("claimNullifier"))),
-            uint256(0), // currentRoot is zero
-            uint256(keccak256(abi.encodePacked("contentHash")))
-        ];
-        
-        vm.expectRevert(ProposalManager.RootNotYetInitialized.selector);
-        proposalManager.verifyProposal(
-            proof,
-            currPublicSignals,
-            validContextHash,
-            bytes32(0)
-        );
-        vm.stopPrank();
-    }
-    */
-
-    /**
-     * @dev Tests that the verifyProposal function fails when the submission nullifier has already been used.
-     */
-    /*
-    function test_verifyProposal_FailsWhenSubmissionNullifierIsUsed() public {
-        vm.startPrank(governor);
-        proposalManager.setProposalSubmissionVerifier(address(mockProposalVerifier));
-
-        proposalManager.verifyProposal(
-            proof,
-            publicSignals,
-            validContextHash,
-            validCurrentRoot
-        );
-
-        vm.expectRevert(ProposalManager.SubmissionNullifierAlreadyUsed.selector);
-        proposalManager.verifyProposal(
-            proof,
-            publicSignals,
-            validContextHash,
-            validCurrentRoot
-        );
-        vm.stopPrank();
-    }
-    */
     // =====================================================================================================================
     //                                     TESTS: verifyProposalClaim
     // =====================================================================================================================
@@ -339,7 +199,6 @@ contract ProposalManagerTest is Test {
      * @dev Fuzz test: tests that the verifyProposalClaim function reverts when the proposal has not been submitted.
      * It assumes the context key is not zero.
      */
-     /*
     function testFuzz_verifyProposalClaim_RevertsWhenProposalHasNotBeenSubmitted(bytes32 contextKey) public {
         vm.startPrank(governor);
         vm.assume(contextKey != bytes32(0));
@@ -353,52 +212,20 @@ contract ProposalManagerTest is Test {
         );
         vm.stopPrank();
     }
-    */
+
     /**
-     * @dev Tests that the verifyProposalClaim function succeeds when the context key is valid and a submission for that key has been verified.
+     * @dev Helper Function: Deploys the group NFT and sets the Merkle root.
      */
-    /*
-    function test_verifyProposalClaim_SucceedsWhenContextKeyIsValid() public {
-        vm.startPrank(governor);
-        proposalManager.setProposalClaimVerifier(address(mockProposalClaimVerifier));
-
-        // verify a proposal first to ensure the claim can be verified
-        proposalManager.verifyProposal(
-            proof,
-            publicSignals,
-            validContextHash,
-            validCurrentRoot
+    function _deployGroupNftAndSetRoot() private {
+        // 1. Deploy group NFT
+        membershipManager.deployGroupNft(
+            validGroupKey,
+            nftName,
+            nftSymbol
         );
-
-        vm.expectEmit(true, true, true, true);
-        emit ProposalManager.ClaimVerified(validContextHash, validClaimNullifier, validSubmissionNullifier);
-        proposalManager.verifyProposalClaim(
-            proof,
-            publicSignalsClaim,
-            validContextHash
-        );
-        vm.stopPrank();
+        
+        // 2. Set the root for the group
+        membershipManager.setRoot(validCurrentRoot, validGroupKey);
     }
-    */
-
-    // =====================================================================================================================
-    //                                     Helper Functions
-    // =====================================================================================================================
-    /*
-    function _supportsIProposalInterface(address _address) private view returns (bool) {
-        uint256[24] memory dummyProof = [uint256(1), 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24];
-        uint256[5] memory dummyPublicSignals = [uint256(1), 2, 3, 4, 5];
-
-        try IProposalVerifier(_address).verifyProof(dummyProof, dummyPublicSignals) returns (bool) {
-            return true;
-        } catch {
-            return false;
-        }
-    }
-    */
-
-
-
-
 
 }

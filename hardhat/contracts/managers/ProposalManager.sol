@@ -259,7 +259,6 @@ contract ProposalManager is Initializable, OwnableUpgradeable, UUPSUpgradeable, 
         uint256[24] calldata proof,
         uint256[5] calldata publicSignals,
         bytes32 contextKey,
-        //bytes32 currentRoot
         bytes32 groupKey
     ) external onlyOwner nonZeroKey(contextKey) {
 

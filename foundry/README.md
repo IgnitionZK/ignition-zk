@@ -1,66 +1,28 @@
-## Foundry
+## IgnitionZK Foundry Tests
 
-**Foundry is a blazing fast, portable and modular toolkit for Ethereum application development written in Rust.**
+This directory contains supplementary Foundry tests for the IgnitionZK contracts, focused on fuzz testing critical components.
 
-Foundry consists of:
+### Testing Approach
+Hardhat serves as our primary testing framework: [Hardhat Tests](../hardhat/test)
 
--   **Forge**: Ethereum testing framework (like Truffle, Hardhat and DappTools).
--   **Cast**: Swiss army knife for interacting with EVM smart contracts, sending transactions and getting chain data.
--   **Anvil**: Local Ethereum node, akin to Ganache, Hardhat Network.
--   **Chisel**: Fast, utilitarian, and verbose solidity REPL.
+We use only Foundry specifically for property-based fuzz testing.
 
-## Documentation
+### Running Tests
 
-https://book.getfoundry.sh/
-
-## Usage
-
-### Build
-
-```shell
-$ forge build
+**Run all tests**
+```
+forge test
 ```
 
-### Test
-
-```shell
-$ forge test
+**Run specific fuzz tests**
+```
+forge test --match-test testFuzz
 ```
 
-### Format
-
-```shell
-$ forge fmt
+**Increase fuzz runs**
+```
+forge test --fuzz-runs 1000
 ```
 
-### Gas Snapshots
-
-```shell
-$ forge snapshot
-```
-
-### Anvil
-
-```shell
-$ anvil
-```
-
-### Deploy
-
-```shell
-$ forge script script/Counter.s.sol:CounterScript --rpc-url <your_rpc_url> --private-key <your_private_key>
-```
-
-### Cast
-
-```shell
-$ cast <subcommand>
-```
-
-### Help
-
-```shell
-$ forge --help
-$ anvil --help
-$ cast --help
-```
+## License
+These tests are dual-licensed under GPL-3.0 and MIT. See the project root for license details.
