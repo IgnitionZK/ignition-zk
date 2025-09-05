@@ -112,13 +112,21 @@ const ProposalProgressBar = ({
   isStep3NotClaimed = false,
   isStep5TransferRejected = false,
   isStep4Completed = false,
+  isStep3Completed = false,
+  hasTreasury = true,
 }) => {
-  const steps = [
-    { id: 1, label: "Submitted", position: 0 },
-    { id: 2, label: "Accepted", position: 33 },
-    { id: 3, label: "Claimed", position: 67 },
-    { id: 4, label: "Transfer Requested", position: 100 },
-  ];
+  const steps = hasTreasury
+    ? [
+        { id: 1, label: "Submitted", position: 0 },
+        { id: 2, label: "Accepted", position: 33 },
+        { id: 3, label: "Claimed", position: 67 },
+        { id: 4, label: "Transfer Requested", position: 100 },
+      ]
+    : [
+        { id: 1, label: "Submitted", position: 0 },
+        { id: 2, label: "Accepted", position: 50 },
+        { id: 3, label: "Claimed", position: 100 },
+      ];
 
   const getStepStatus = (stepId) => {
     // Step 1 is always completed since a proposal must be submitted to exist
@@ -136,6 +144,9 @@ const ProposalProgressBar = ({
       return { isCompleted: false, isRejected: true, isCurrent: false };
     }
     if (stepId === 4 && isStep4Completed) {
+      return { isCompleted: true, isRejected: false, isCurrent: false };
+    }
+    if (stepId === 3 && isStep3Completed) {
       return { isCompleted: true, isRejected: false, isCurrent: false };
     }
 
@@ -209,10 +220,16 @@ const ProposalProgressBar = ({
         ))}
 
         {/* Phase Labels */}
-        <PhaseLabel $left={16} $isCompleted={currentStep >= 2}>
+        <PhaseLabel
+          $left={hasTreasury ? 16 : 25}
+          $isCompleted={currentStep >= 2}
+        >
           Proposal Voting Phase
         </PhaseLabel>
-        <PhaseLabel $left={50} $isCompleted={currentStep >= 3}>
+        <PhaseLabel
+          $left={hasTreasury ? 50 : 75}
+          $isCompleted={currentStep >= 3}
+        >
           Proposal Review Phase
         </PhaseLabel>
 
