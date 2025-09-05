@@ -157,6 +157,32 @@ Once a proposal is accepted and claimed, the DAO moves to execution. The system 
 
 [Read more about proposal execution](./docs/lifecycle-phase5-execution.md)
 
+## Testing
+
+Our smart contract testing strategy combines two frameworks:
+
+- **Hardhat**: Comprehensive unit and integration tests
+- **Foundry**: Advanced property-based fuzz testing
+
+### Running Tests
+
+Run all tests with a single command:
+
+```bash
+./runTests.sh
+```
+### Hardhat tests only
+
+```bash
+cd hardhat && npx hardhat test
+```
+
+### Foundry fuzz tests only
+
+```bash
+cd foundry && forge test
+```
+
 ## License
 
 This project is dual-licensed:

@@ -4,7 +4,6 @@ pragma solidity ^0.8.28;
 import "forge-std/Test.sol";
 import "forge-std/console.sol";
 
-
 // OZ Imports:
 import { Clones } from "@openzeppelin/contracts/proxy/Clones.sol";
 import { ERC1967Proxy } from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
@@ -33,11 +32,15 @@ import { IVoteVerifier } from "hardhat-contracts/interfaces/verifiers/IVoteVerif
 // Libraries:
 import { VoteTypes } from "hardhat-contracts/libraries/VoteTypes.sol";
 
+/**
+ * @notice Fuzz Tests for VoteManager
+ * @dev We only use Foundry for Fuzz testing the relevant functions. 
+ * The rest of the unit tests can be found in the hardhat test suite.
+ */
 contract VoteManagerTest is Test {
     // Managers
     MembershipManager membershipManager;
     ProposalManager proposalManager;
-    //VoteManager voteManager;
     MockVoteManagerHelper voteManagerHelper;
 
     // ERC721 
@@ -163,7 +166,8 @@ contract VoteManagerTest is Test {
     }
 
     /** 
-     * @dev Fuzz test: 
+     * @dev Fuzz test: setMemberCount with fuzzed member count between 1 and 1024 
+     * Assumes _memberCount is not zero and is less than or equal to 1024.
      */
     function testFuzz_setMemberCount_SucceedsWithFuzzedMemberCount(uint256 _memberCount) public {
         vm.startPrank(governor);
@@ -191,6 +195,9 @@ contract VoteManagerTest is Test {
         vm.stopPrank();
     }
 
+    /*
+     * @dev Edge Case Test: setMemberCount reverts when member count is too high
+     */
     function test_setMemberCount_RevertsWhenMemberCountIsHigh() public {
         vm.startPrank(governor);
         
@@ -203,6 +210,9 @@ contract VoteManagerTest is Test {
         vm.stopPrank();
     }
 
+    /*
+     * @dev Edge Case Test: setMemberCount succeeds when member count is one
+     */
     function test_setMemberCount_SucceedsWhenMemberCountIsOne() public {
         vm.startPrank(governor);
         
@@ -222,6 +232,9 @@ contract VoteManagerTest is Test {
         vm.stopPrank();
     }
 
+    /*
+     * @dev Edge Case Test: setMemberCount succeeds when member count is 1024
+     */
     function test_setMemberCount_SucceedsWhenMemberCountIs1024() public {
         vm.startPrank(governor);
         
@@ -242,6 +255,9 @@ contract VoteManagerTest is Test {
         vm.stopPrank();
     }
 
+    /*
+     * @dev Edge Case Test: setMemberCount succeeds when member count is 30
+     */
     function test_setMemberCount_QuorumIs50WhenMemberCountIs30() public {
         vm.startPrank(governor);
         
@@ -255,6 +271,9 @@ contract VoteManagerTest is Test {
         vm.stopPrank();
     }
 
+    /*
+     * @dev Edge Case Test: setMemberCount succeeds when member count is 200
+     */
     function test_setMemberCount_QuorumIs25WhenMemberCountIs200() public {
         vm.startPrank(governor);
         
@@ -268,6 +287,10 @@ contract VoteManagerTest is Test {
         vm.stopPrank();
     }
 
+    /*
+     * @dev Fuzz Test: linearInterpolation with fuzzed x between x1 and x2
+     * Assumes x is between x1 and x2
+     */
     function testFuzz_linearInterpolation(uint256 x) public {
         vm.startPrank(governor);
 
@@ -295,9 +318,15 @@ contract VoteManagerTest is Test {
         vm.stopPrank();
     }
 
+    /*
+     * @dev Fuzz Test: ceilDiv with fuzzed a and b.
+     * @param a The numerator
+     * @param b The denominator
+     * Assumes both a and b are not zero and they are between 1 and 1024.
+     */
     function testFuzz_ceilDiv(uint256 a, uint256 b) public {
         vm.startPrank(governor);
-        // a and b inputs cannot be outside the 1 to 1024 range
+        // a and b inputs cannot be outside the 1 to 1024 range in _computePassedStatus
         a = bound(a, 1, 1024);
         b = bound(b, 1, 1024);
         // compute ceiling division from the contract
@@ -310,6 +339,10 @@ contract VoteManagerTest is Test {
         vm.stopPrank();
     }
 
+    /**
+     * @dev Helper Function: Applies linear interpolation to find the quorum percentage based on group size.
+     * This function is used to compare the linear interpolation result to the value obtained from the contract function.
+     */
     function _applyLinearInterpolation(uint256 x) private returns (uint256) {
         VoteTypes.QuorumParams memory params = voteManagerHelper.getQuorumParams();
         uint256 yScalingFactor = 1e4; 
@@ -327,10 +360,17 @@ contract VoteManagerTest is Test {
         return quorumScaled / scalingFactor;
     }
 
+    /*
+     * @dev Helper Function: Applies ceiling division to find the amount of required votes based on quorum in _computePassedStatus.
+     * This function is used to compare the linear interpolation result to the value obtained from the contract function.
+     */
     function _applyCeilDiv(uint256 a, uint256 b) private pure returns (uint256) {  
         return (a + b - 1) / b;
     }
 
+    /**
+     * @dev Helper Function: Deploys the group NFT and sets the Merkle root.
+     */
     function _deployGroupNftAndSetRoot() private {
         // 1. Deploy group NFT
         membershipManager.deployGroupNft(

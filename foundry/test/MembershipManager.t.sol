@@ -24,7 +24,11 @@ import { IProposalManager } from "hardhat-contracts/interfaces/managers/IProposa
 import { IMembershipManager } from "hardhat-contracts/interfaces/managers/IMembershipManager.sol";
 import { IProposalVerifier } from "hardhat-contracts/interfaces/verifiers/IProposalVerifier.sol";
 
-
+/**
+ * @notice Fuzz Tests for MembershipManager
+ * @dev We only use Foundry for Fuzz testing the relevant functions. 
+ * The rest of the unit tests can be found in the hardhat test suite.
+ */
 contract MembershipManagerTest is Test {
     MembershipManager membershipManager;
     MembershipVerifier membershipVerifier;
@@ -198,12 +202,9 @@ contract MembershipManagerTest is Test {
             mockNftSymbol
         );
         
-        // initialize the root for the group
-        membershipManager.setRoot(mockRootHash, mockGroupKey);
-
         // check the emitted event for setting the root
-        vm.expectEmit(true, true, true, false);
-        emit MembershipManager.RootSet(mockGroupKey, mockRootHash, newRoot);
+        vm.expectEmit(true, true, false, false);
+        emit MembershipManager.RootInitialized(mockGroupKey, newRoot);
         // set the new root for the group
         membershipManager.setRoot(newRoot, mockGroupKey);
 
