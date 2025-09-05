@@ -111,15 +111,13 @@ const ProposalProgressBar = ({
   isStep2Rejected = false,
   isStep3NotClaimed = false,
   isStep5TransferRejected = false,
-  isStep6Completed = false,
+  isStep4Completed = false,
 }) => {
   const steps = [
     { id: 1, label: "Submitted", position: 0 },
-    { id: 2, label: "Accepted", position: 20 },
-    { id: 3, label: "Claimed", position: 40 },
-    { id: 4, label: "Transfer Requested", position: 60 },
-    { id: 5, label: "Transfer Approved", position: 80 },
-    { id: 6, label: "Transfer Executed", position: 100 },
+    { id: 2, label: "Accepted", position: 33 },
+    { id: 3, label: "Claimed", position: 67 },
+    { id: 4, label: "Transfer Requested", position: 100 },
   ];
 
   const getStepStatus = (stepId) => {
@@ -134,10 +132,10 @@ const ProposalProgressBar = ({
     if (stepId === 3 && isStep3NotClaimed) {
       return { isCompleted: false, isRejected: true, isCurrent: false };
     }
-    if (stepId === 5 && isStep5TransferRejected) {
+    if (stepId === 4 && isStep5TransferRejected) {
       return { isCompleted: false, isRejected: true, isCurrent: false };
     }
-    if (stepId === 6 && isStep6Completed) {
+    if (stepId === 4 && isStep4Completed) {
       return { isCompleted: true, isRejected: false, isCurrent: false };
     }
 
@@ -154,7 +152,7 @@ const ProposalProgressBar = ({
   const getStepLabel = (stepId, originalLabel) => {
     if (stepId === 2 && isStep2Rejected) return "Rejected";
     if (stepId === 3 && isStep3NotClaimed) return "Not Claimed";
-    if (stepId === 5 && isStep5TransferRejected) return "Transfer Rejected";
+    if (stepId === 4 && isStep5TransferRejected) return "Transfer Rejected";
     return originalLabel;
   };
 
@@ -211,10 +209,10 @@ const ProposalProgressBar = ({
         ))}
 
         {/* Phase Labels */}
-        <PhaseLabel $left={10} $isCompleted={currentStep >= 2}>
+        <PhaseLabel $left={16} $isCompleted={currentStep >= 2}>
           Proposal Voting Phase
         </PhaseLabel>
-        <PhaseLabel $left={30} $isCompleted={currentStep >= 3}>
+        <PhaseLabel $left={50} $isCompleted={currentStep >= 3}>
           Proposal Review Phase
         </PhaseLabel>
 

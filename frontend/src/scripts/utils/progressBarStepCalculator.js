@@ -18,7 +18,7 @@ export function calculateProgressBarStep(
   let isStep2Rejected = false;
   let isStep3NotClaimed = false;
   let isStep5TransferRejected = false;
-  let isStep6Completed = false;
+  let isStep4Completed = false;
 
   if (!proposal || !phases || !currentDate) {
     return {
@@ -26,7 +26,7 @@ export function calculateProgressBarStep(
       isStep2Rejected,
       isStep3NotClaimed,
       isStep5TransferRejected,
-      isStep6Completed,
+      isStep4Completed,
     };
   }
 
@@ -47,14 +47,12 @@ export function calculateProgressBarStep(
   else if (isInPhase(reviewPhase) && status_type === "approved") {
     currentStep = 3;
   }
-  // Step 4: "Transfer Requested" - Current if status is claimed
+  // Step 4: "Transfer Requested" - Current if status is claimed, completed if requested
   else if (status_type === "claimed") {
     currentStep = 4;
-  }
-  // Step 4: "Transfer Requested" - Completed if status is requested
-  else if (status_type === "requested") {
-    currentStep = 5; // Move to step 5 since step 4 is completed
-    isStep6Completed = false; // Ensure step 6 is not marked as completed
+  } else if (status_type === "requested") {
+    currentStep = 4;
+    isStep4Completed = true;
   }
   // If proposal is rejected, always show at step 2 as rejected
   else if (status_type === "rejected") {
@@ -67,7 +65,7 @@ export function calculateProgressBarStep(
     isStep2Rejected,
     isStep3NotClaimed,
     isStep5TransferRejected,
-    isStep6Completed,
+    isStep4Completed,
   };
 }
 

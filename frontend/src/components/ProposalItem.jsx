@@ -444,7 +444,7 @@ function ProposalItem({ proposal = {} }) {
         isStep2Rejected: false,
         isStep3NotClaimed: false,
         isStep5TransferRejected: false,
-        isStep6Completed: false,
+        isStep4Completed: false,
       };
     }
 
@@ -459,7 +459,7 @@ function ProposalItem({ proposal = {} }) {
           isStep2Rejected: false,
           isStep3NotClaimed: false,
           isStep5TransferRejected: false,
-          isStep6Completed: false,
+          isStep4Completed: false,
         };
       }
 
@@ -485,7 +485,7 @@ function ProposalItem({ proposal = {} }) {
         isStep2Rejected: false,
         isStep3NotClaimed: false,
         isStep5TransferRejected: false,
-        isStep6Completed: false,
+        isStep4Completed: false,
       };
     }
   };
@@ -580,7 +580,7 @@ function ProposalItem({ proposal = {} }) {
           isStep2Rejected={getProgressData().isStep2Rejected}
           isStep3NotClaimed={getProgressData().isStep3NotClaimed}
           isStep5TransferRejected={getProgressData().isStep5TransferRejected}
-          isStep6Completed={getProgressData().isStep6Completed}
+          isStep4Completed={getProgressData().isStep4Completed}
         />
 
         <FooterSection>
