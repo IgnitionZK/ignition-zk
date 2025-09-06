@@ -15,6 +15,7 @@ import { useVerifyProposalClaim } from "../hooks/queries/proofs/useVerifyProposa
 import { useGetCommitmentArray } from "../hooks/queries/merkleTreeLeaves/useGetCommitmentArray";
 import { useGetProposalSubmissionNullifier } from "../hooks/queries/proofs/useGetProposalSubmissionNullifier";
 import { useUpdateProposalStatus } from "../hooks/queries/proposals/useUpdateProposalStatus";
+import { useGetGroupById } from "../hooks/queries/groups/useGetGroupById";
 
 // Utilities
 import { calculateEpochPhases } from "../scripts/utils/epochPhaseCalculator";
@@ -211,6 +212,9 @@ function ProposalItem({ proposal = {} }) {
   const { epochs, isLoading: isLoadingEpochs } = useGetEpochsByGroupId(
     proposal.group_id
   );
+  const { group, isLoading: isLoadingGroup } = useGetGroupById({
+    groupId: proposal.group_id,
+  });
   // console.log(proposal);
   const {
     verifyProposalClaim,
@@ -444,9 +448,13 @@ function ProposalItem({ proposal = {} }) {
         isStep2Rejected: false,
         isStep3NotClaimed: false,
         isStep5TransferRejected: false,
-        isStep6Completed: false,
+        isStep4Completed: false,
+        isStep3Completed: false,
       };
     }
+
+    // Check if group has treasury_address
+    const hasTreasury = !!group?.treasury_address;
 
     try {
       const proposalEpoch = epochs.find(
@@ -459,7 +467,8 @@ function ProposalItem({ proposal = {} }) {
           isStep2Rejected: false,
           isStep3NotClaimed: false,
           isStep5TransferRejected: false,
-          isStep6Completed: false,
+          isStep4Completed: false,
+          isStep3Completed: false,
         };
       }
 
@@ -470,7 +479,12 @@ function ProposalItem({ proposal = {} }) {
 
       const phases = calculateEpochPhases(epochData);
 
-      return calculateProgressBarStep(proposal, phases);
+      return calculateProgressBarStep(
+        proposal,
+        phases,
+        new Date(),
+        hasTreasury
+      );
     } catch (error) {
       console.error("Error calculating progress data:", {
         error: error.message,
@@ -485,7 +499,8 @@ function ProposalItem({ proposal = {} }) {
         isStep2Rejected: false,
         isStep3NotClaimed: false,
         isStep5TransferRejected: false,
-        isStep6Completed: false,
+        isStep4Completed: false,
+        isStep3Completed: false,
       };
     }
   };
@@ -580,7 +595,9 @@ function ProposalItem({ proposal = {} }) {
           isStep2Rejected={getProgressData().isStep2Rejected}
           isStep3NotClaimed={getProgressData().isStep3NotClaimed}
           isStep5TransferRejected={getProgressData().isStep5TransferRejected}
-          isStep6Completed={getProgressData().isStep6Completed}
+          isStep4Completed={getProgressData().isStep4Completed}
+          isStep3Completed={getProgressData().isStep3Completed}
+          hasTreasury={!!group?.treasury_address}
         />
 
         <FooterSection>
