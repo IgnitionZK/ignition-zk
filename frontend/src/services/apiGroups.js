@@ -1,6 +1,32 @@
 import { supabase } from "./supabase";
 
 /**
+ * Gets a group by its ID including treasury_address
+ * @param {Object} params - The parameters object
+ * @param {string} params.groupId - The ID of the group to fetch
+ * @returns {Promise<Object>} The group object with all fields including treasury_address
+ * @throws {Error} If groupId is not provided or if there's a database error
+ */
+export async function getGroupById({ groupId }) {
+  if (!groupId) {
+    throw new Error("groupId is required");
+  }
+
+  const { data, error } = await supabase
+    .schema("ignitionzk")
+    .from("groups")
+    .select("*")
+    .eq("group_id", groupId)
+    .single();
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  return data;
+}
+
+/**
  * Searches for groups in the database by name using case-insensitive partial matching.
  * Uses PostgreSQL's ILIKE operator which performs case-insensitive pattern matching.
  * The search term is wrapped in % wildcards, so it will match the term anywhere in the name.
