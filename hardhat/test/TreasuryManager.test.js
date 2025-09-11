@@ -264,6 +264,18 @@ describe("Treasury Manager Unit Tests:", function () {
                 "AlreadyHasRole"
             );
     });
+
+    it(`FUNCTION: transferAdminRole
+        TESTING: custom error: NotInitialized
+        EXPECTED: should revert if the proxy has not been initialized`, async function () {
+        ({ mockGovernanceManager, mockTreasuryManager, mockBeaconManager } = await deployMock_GovernanceManager_TreasuryManager_BeaconManager());
+        
+        await expect(mockTreasuryManager.transferAdminRole(await governor.getAddress()))
+            .to.be.revertedWithCustomError(
+                mockTreasuryManager, 
+                "NotInitialized"
+            );
+    });
   
     it(`FUNCTION: emergencyAccessControl
         TESTING: event: EmergencyAccessGranted
@@ -307,6 +319,18 @@ describe("Treasury Manager Unit Tests:", function () {
 
         await expect(treasuryInstance.connect(governor).emergencyAccessControl(await user1.getAddress()))
             .to.be.revertedWithCustomError(treasuryInstance, "AccessControlUnauthorizedAccount");
+    });
+
+    it(`FUNCTION: emergencyAccessControl
+        TESTING: custom error: NotInitialized
+        EXPECTED: should revert if the proxy has not been initialized`, async function () {
+        ({ mockGovernanceManager, mockTreasuryManager, mockBeaconManager } = await deployMock_GovernanceManager_TreasuryManager_BeaconManager());
+        
+        await expect(mockTreasuryManager.emergencyAccessControl(await governor.getAddress()))
+            .to.be.revertedWithCustomError(
+                mockTreasuryManager, 
+                "NotInitialized"
+            );
     });
 
     it(`FUNCTION: emergencyAccessControl
@@ -396,6 +420,24 @@ describe("Treasury Manager Unit Tests:", function () {
             2, // amount
             grantType // fundingType
         )).to.be.revertedWithCustomError(treasuryInstance, "UnknownFundingType");
+
+        await stopContractAsSigner(mockGrantModule);
+    });
+
+    it(`FUNCTION: requestTransfer
+        TESTING: custom error: NotInitialized
+        EXPECTED: should revert if the contract (proxy) has not been initialized`, async function () {
+        ({ mockGovernanceManager, mockTreasuryManager, mockBeaconManager } = await deployMock_GovernanceManager_TreasuryManager_BeaconManager());
+        
+        // Request transfer
+        const grantType = ethers.id("unknown");
+        
+        await expect(mockTreasuryManager.requestTransfer(
+            voteContextKey,
+            await user1.getAddress(), // to
+            2, // amount
+            grantType // fundingType
+        )).to.be.revertedWithCustomError(mockTreasuryManager, "NotInitialized");
 
         await stopContractAsSigner(mockGrantModule);
     });
@@ -2009,6 +2051,37 @@ describe("Treasury Manager Unit Tests:", function () {
 
         await expect(treasuryInstance.connect(governor).fund({ value: 0 }))
             .to.be.revertedWithCustomError(treasuryInstance, "AmountCannotBeZero");
+    });
+
+    it(`FUNCTION: fund
+        TESTING: custom error: NotInitialized
+        EXPECTED: should not allow to fund the treasury when the treasuryManager instance (proxy) has not been initialized`, async function () {
+        ({ mockGovernanceManager, mockTreasuryManager, mockBeaconManager } = await deployMock_GovernanceManager_TreasuryManager_BeaconManager());
+        
+        // deploy group NFT and initialize group root
+        await deployGroupNftAndSetRoot(governor, groupKey, nftName, nftSymbol, rootHash1);
+        await deployTreasuryFactoryWithContractOwner();
+        await deployMockGrantModule();
+
+        await expect(mockTreasuryManager.fund({value: ethers.parseEther("1")}))
+            .to.be.revertedWithCustomError(mockTreasuryManager, "NotInitialized")
+    });
+
+    it(`FUNCTION: receive
+        TESTING: custom error: NotInitialized
+        EXPECTED: should not allow to send ETH the treasury when the treasuryManager instance (proxy) has not been initialized`, async function () {
+        ({ mockGovernanceManager, mockTreasuryManager, mockBeaconManager } = await deployMock_GovernanceManager_TreasuryManager_BeaconManager());
+        
+        // deploy group NFT and initialize group root
+        await deployGroupNftAndSetRoot(governor, groupKey, nftName, nftSymbol, rootHash1);
+        await deployTreasuryFactoryWithContractOwner();
+        await deployMockGrantModule();
+
+        await expect(deployer.sendTransaction({
+            to: mockTreasuryManager.target,
+            value: ethers.parseEther("1.0")
+        })).to.be.revertedWithCustomError(mockTreasuryManager, "NotInitialized")
+
     });
 
     it(`FUNCTION: lockTreasury, unlockTreasury

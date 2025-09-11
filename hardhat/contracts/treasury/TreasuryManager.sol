@@ -110,6 +110,9 @@ contract TreasuryManager is Initializable, AccessControlUpgradeable, ReentrancyG
     /// @notice Thrown if the address already has the specified role.
     error AlreadyHasRole();
 
+    /// @notice Thrown if the contract has not been initialized.
+    error NotInitialized();
+
 // ====================================================================================================================
 //                                                  EVENTS
 // ====================================================================================================================
@@ -225,7 +228,7 @@ contract TreasuryManager is Initializable, AccessControlUpgradeable, ReentrancyG
     uint256 public lockedUntil;
 
     // ====================================================================================================
-    // CONSTANTS
+    // CONSTANTS / IMMUTABLE VARIABLES
     // ====================================================================================================
 
     /// @dev The role that grants access to the governance manager.
@@ -300,6 +303,15 @@ contract TreasuryManager is Initializable, AccessControlUpgradeable, ReentrancyG
         _;
     }
 
+    /*
+     * @dev Ensures the contract has been initialized in this storage context (proxy).
+     * Reverts if governanceManager is unset (uninitialized proxy or implementation).
+     */
+    modifier onlyInitialized() {
+        if(address(governanceManager) == address(0)) revert NotInitialized();
+        _;
+    }
+
 // ====================================================================================================================
 //                                 CONSTRUCTOR / INITIALIZER 
 // ====================================================================================================================
@@ -357,7 +369,12 @@ contract TreasuryManager is Initializable, AccessControlUpgradeable, ReentrancyG
      * @param _newAdmin The address of the new admin that will receive the DEFAULT_ADMIN_ROLE.
      * @custom:error AddressCannotBeZero Thrown if the provided address is zero.
      */
-    function transferAdminRole(address _newAdmin) external onlyRole(DEFAULT_ADMIN_ROLE) nonZeroAddress(_newAdmin) {
+    function transferAdminRole(address _newAdmin) 
+        external 
+        onlyInitialized
+        onlyRole(DEFAULT_ADMIN_ROLE) 
+        nonZeroAddress(_newAdmin)  
+    {
         if (hasRole(DEFAULT_ADMIN_ROLE, _newAdmin)) revert AlreadyHasRole();
         _grantRole(DEFAULT_ADMIN_ROLE, _newAdmin);  
         _revokeRole(DEFAULT_ADMIN_ROLE, msg.sender);
@@ -372,7 +389,12 @@ contract TreasuryManager is Initializable, AccessControlUpgradeable, ReentrancyG
      * @param _newAdmin The address of the new admin that will receive the DEFAULT_ADMIN_ROLE.
      * @custom:error AddressCannotBeZero Thrown if the provided address is zero.
      */
-    function emergencyAccessControl(address _newAdmin) external onlyRole(EMERGENCY_RECOVERY_ROLE) nonZeroAddress(_newAdmin) {
+    function emergencyAccessControl(address _newAdmin) 
+        external 
+        onlyInitialized
+        onlyRole(EMERGENCY_RECOVERY_ROLE) 
+        nonZeroAddress(_newAdmin)  
+    {
         if (hasRole(DEFAULT_ADMIN_ROLE, _newAdmin)) revert AlreadyHasRole();
         _grantRole(DEFAULT_ADMIN_ROLE, _newAdmin);
         emit EmergencyAccessGranted(_newAdmin);
@@ -383,7 +405,11 @@ contract TreasuryManager is Initializable, AccessControlUpgradeable, ReentrancyG
      * @dev This function can only be called by the DEFAULT_ADMIN_ROLE or EMERGENCY_RECOVERY_ROLE.
      * It locks the treasury for a specified period.
      */
-    function lockTreasury() external onlyDefaultAdminOrEmergencyRecovery {
+    function lockTreasury() 
+        external 
+        onlyInitialized 
+        onlyDefaultAdminOrEmergencyRecovery 
+    {
         isTreasuryLocked = true;
         // Lock treasury for 3 days
         lockedUntil = block.timestamp + TIMELOCK_DELAY_DAYS * 1 days;
@@ -394,7 +420,11 @@ contract TreasuryManager is Initializable, AccessControlUpgradeable, ReentrancyG
      * @notice Manually unlocks the treasury, allowing transfers to occur.
      * @dev This function can only be called by the DEFAULT_ADMIN_ROLE or EMERGENCY_RECOVERY_ROLE.
      */
-    function unlockTreasury() external onlyDefaultAdminOrEmergencyRecovery {
+    function unlockTreasury() 
+        external 
+        onlyInitialized 
+        onlyDefaultAdminOrEmergencyRecovery 
+    {
         isTreasuryLocked = false;
         lockedUntil = 0;
         emit TreasuryUnlocked();
@@ -425,9 +455,10 @@ contract TreasuryManager is Initializable, AccessControlUpgradeable, ReentrancyG
         bytes32 _fundingType
     ) 
         external 
+        onlyInitialized
         onlyActiveFundingModule(_fundingType)
         nonZeroAddress(_to) 
-        nonZeroKey(contextKey)
+        nonZeroKey(contextKey)  
     {   
         if (_amount == 0) revert AmountCannotBeZero();
         if (fundingRequests[contextKey].to != address(0)) revert FundingAlreadyRequested();
@@ -461,9 +492,10 @@ contract TreasuryManager is Initializable, AccessControlUpgradeable, ReentrancyG
      */
     function approveTransfer(bytes32 contextKey) 
         external 
+        onlyInitialized
         onlyRole(DEFAULT_ADMIN_ROLE) 
         nonZeroKey(contextKey) 
-        nonReentrant
+        nonReentrant 
     {
         _approve(contextKey);
     }
@@ -486,9 +518,10 @@ contract TreasuryManager is Initializable, AccessControlUpgradeable, ReentrancyG
      */
     function executeTransfer(bytes32 contextKey) 
         external 
+        onlyInitialized
         onlyRole(DEFAULT_ADMIN_ROLE) 
         nonZeroKey(contextKey) 
-        nonReentrant
+        nonReentrant 
     {
         _execute(contextKey);
     }
@@ -501,9 +534,10 @@ contract TreasuryManager is Initializable, AccessControlUpgradeable, ReentrancyG
      */
     function approveAndExecuteTransfer(bytes32 contextKey) 
         external 
+        onlyInitialized
         onlyRole(DEFAULT_ADMIN_ROLE) 
         nonZeroKey(contextKey) 
-        nonReentrant 
+        nonReentrant  
     {   
         TreasuryTypes.FundingRequest memory request = fundingRequests[contextKey];
 
@@ -524,7 +558,12 @@ contract TreasuryManager is Initializable, AccessControlUpgradeable, ReentrancyG
      * @custom:error RequestDoesNotExist Thrown if the requested transfer does not exist.
      * @custom:error TransferAlreadyExecuted Thrown if the transfer has already been executed.
      */
-    function cancelTransfer(bytes32 contextKey) external onlyRole(DEFAULT_ADMIN_ROLE) nonZeroKey(contextKey) {
+    function cancelTransfer(bytes32 contextKey) 
+        external 
+        onlyInitialized
+        onlyRole(DEFAULT_ADMIN_ROLE) 
+        nonZeroKey(contextKey)  
+    {
         TreasuryTypes.FundingRequest storage request = fundingRequests[contextKey];
 
         if (request.requestedAt == 0) revert RequestDoesNotExist();
@@ -543,8 +582,9 @@ contract TreasuryManager is Initializable, AccessControlUpgradeable, ReentrancyG
     /**
      * @notice Funds the treasury with a specified amount.
      * @dev This function allows users to send ETH to the treasury.
+     * Sending ETH to the implementation contract is guarded via onlyInitialized.
      */
-    function fund() external payable {
+    function fund() external payable onlyInitialized {
         if(msg.value == 0) revert AmountCannotBeZero();
         emit FundsReceived(msg.sender, msg.value);
     }
@@ -552,11 +592,11 @@ contract TreasuryManager is Initializable, AccessControlUpgradeable, ReentrancyG
     /**
      * @notice Allows the contract to receive ETH directly.
      * @dev This function is called when the contract receives ETH without specifying a function.
+     * Sending ETH to the implementation contract is guarded via onlyInitialized.
      */
-    receive() external payable {
+    receive() external payable onlyInitialized {
         emit FundsReceived(msg.sender, msg.value);
     }
-
 
 // ====================================================================================================================
 //                                       EXTERNAL VIEW FUNCTIONS
@@ -718,7 +758,6 @@ contract TreasuryManager is Initializable, AccessControlUpgradeable, ReentrancyG
     function _getActiveModule(bytes32 fundingType) private view returns (address) {
         return governanceManager.activeModuleRegistry(fundingType);
     }
-
 
 // ====================================================================================================================
 //                                       FALLBACK FUNCTION

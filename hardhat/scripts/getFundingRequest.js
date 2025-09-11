@@ -10,13 +10,14 @@ async function main() {
 
   // Parameters
   const groupKey =
-    "0x054d70ae1145812385c1a98abf5aef0497fa12d7dd895b3178630c1cb3d39462";
+    "0x183d36a5e60881d841a1fac7dd3a26f6edc628a07391e4ce6e3564862d438bcd";
   const contextKey =
-    "0x2a28f8dd10b96332c992c2b6b6b85697f6263686a57803a241a1aa8752113c73";
+    "0x29ce33768b944c92ef10794f718ff07fda861a1e0aafe825a77f16d4c455adca";
 
   // Minimal ABI for the function we need
   const abi = [
     "function delegateGetFundingRequest(bytes32 groupKey, bytes32 contextKey) external view returns (tuple(bytes32 fundingType, address from, address to, uint256 amount, uint256 requestedAt, uint256 releaseTime, bool approved, bool executed, bool cancelled))",
+    "function delegateGetTreasuryAddress(bytes32 groupKey) external view returns (address)",
   ];
 
   try {
@@ -46,6 +47,9 @@ async function main() {
       groupKey,
       contextKey
     );
+
+    const treasuryAddress = await governanceManager.delegateGetTreasuryAddress(groupKey);
+    console.log("Treasury address:", treasuryAddress);
 
     console.log("\n✅ Funding Request retrieved successfully!");
     console.log("📊 Funding Request Details:");
