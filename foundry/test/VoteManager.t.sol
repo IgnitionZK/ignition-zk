@@ -3,6 +3,7 @@ pragma solidity ^0.8.28;
 
 import "forge-std/Test.sol";
 import "forge-std/console.sol";
+import "forge-std/StdInvariant.sol";
 
 // OZ Imports:
 import { Clones } from "@openzeppelin/contracts/proxy/Clones.sol";
@@ -37,7 +38,7 @@ import { VoteTypes } from "hardhat-contracts/libraries/VoteTypes.sol";
  * @dev We only use Foundry for Fuzz testing the relevant functions. 
  * The rest of the unit tests can be found in the hardhat test suite.
  */
-contract VoteManagerTest is Test {
+contract VoteManagerTest is StdInvariant, Test {
     // Managers
     MembershipManager membershipManager;
     ProposalManager proposalManager;
@@ -92,6 +93,9 @@ contract VoteManagerTest is Test {
             uint256(validCurrentRoot),
             uint256(validSubmissionNullifier)
         ];
+    
+    
+    uint256 lastMemberCount;
 
     function setUp() public {
         // deploy the mock verifiers
@@ -163,6 +167,8 @@ contract VoteManagerTest is Test {
         // cast the proxy to VoteManagerHelper interface
         voteManagerHelper = MockVoteManagerHelper(address(proxyVoteManagerHelper));
 
+        lastMemberCount = 0;
+        targetContract(address(this));
     }
 
     /** 
@@ -337,6 +343,61 @@ contract VoteManagerTest is Test {
 
         assertEq(ceilDivOutput, expectedOutput, "Output of ceiling division does not match");
         vm.stopPrank();
+    }
+
+    /// @dev Invariant tests
+
+    /*
+     * @dev Handler function for invariant test
+     */
+    function handler_setMemberCount(uint256 _memberCount) public {
+        _memberCount = bound(_memberCount, 1, 1024);
+        vm.startPrank(governor);
+
+        if(lastMemberCount == 0) {
+            _deployGroupNftAndSetRoot();
+        }
+
+        voteManagerHelper.setMemberCount(validGroupKey, _memberCount);
+        lastMemberCount = _memberCount;
+
+        vm.stopPrank();
+    }
+
+    /*
+     * @dev Invariant Test for memberCount
+     */
+    function invariant_memberCountInValidRange() public {
+
+        if (lastMemberCount == 0) return;
+
+        (uint256 storedMemberCount, uint256 storedQuorum) = voteManagerHelper.groupParams(validGroupKey);
+
+        assertEq(storedMemberCount, lastMemberCount, "Member count doesn't match");
+        assertGe(storedMemberCount, 1, "Member count cannot be 0");
+        assertLe(storedMemberCount, 1024, "Member count too high");
+        assertGe(storedQuorum, 25, "Quorum too low");
+        assertLe(storedQuorum, 50, "Quorum too high");
+    }
+
+    /*
+     * @dev Invariant Test for quorum (linear interpolation)
+     */
+    function invariant_quorumIsLinearlyInterpolated() public {
+        if (lastMemberCount == 0) return;
+
+        (uint256 storedMemberCount, uint256 storedQuorum) = voteManagerHelper.groupParams(validGroupKey);
+
+        if (storedMemberCount <= 30) {
+            assertEq(storedQuorum, 50);
+        } 
+        else if (storedMemberCount >= 200) {
+            assertEq(storedQuorum, 25);
+        }
+        else {
+            uint256 expectedQuorum = _applyLinearInterpolation(storedMemberCount);
+            assertEq(expectedQuorum, storedQuorum, "Expected and stored quorum values should match");
+        }
     }
 
     /**
