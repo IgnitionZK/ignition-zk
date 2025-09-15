@@ -4,6 +4,7 @@ require("@nomicfoundation/hardhat-ignition");
 require("hardhat-contract-sizer");
 require("dotenv").config();
 require('hardhat-docgen');
+require("solidity-coverage");
 
 /** @type import('hardhat/config').HardhatUserConfig */
 module.exports = {

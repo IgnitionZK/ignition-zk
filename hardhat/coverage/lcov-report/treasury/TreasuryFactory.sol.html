@@ -1,0 +1,596 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <title>Code coverage report for treasury/TreasuryFactory.sol</title>
+    <meta charset="utf-8" />
+    <link rel="stylesheet" href="../prettify.css" />
+    <link rel="stylesheet" href="../base.css" />
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style type='text/css'>
+        .coverage-summary .sorter {
+            background-image: url(../sort-arrow-sprite.png);
+        }
+    </style>
+</head>
+<body>
+<div class='wrapper'>
+  <div class='pad1'>
+    <h1>
+      <a href="../index.html">all files</a> / <a href="index.html">treasury/</a> TreasuryFactory.sol
+    </h1>
+    <div class='clearfix'>
+      <div class='fl pad1y space-right2'>
+        <span class="strong">100% </span>
+        <span class="quiet">Statements</span>
+        <span class='fraction'>10/10</span>
+      </div>
+      <div class='fl pad1y space-right2'>
+        <span class="strong">88.89% </span>
+        <span class="quiet">Branches</span>
+        <span class='fraction'>16/18</span>
+      </div>
+      <div class='fl pad1y space-right2'>
+        <span class="strong">100% </span>
+        <span class="quiet">Functions</span>
+        <span class='fraction'>5/5</span>
+      </div>
+      <div class='fl pad1y space-right2'>
+        <span class="strong">100% </span>
+        <span class="quiet">Lines</span>
+        <span class='fraction'>17/17</span>
+      </div>
+    </div>
+  </div>
+  <div class='status-line high'></div>
+<pre><table class="coverage">
+<tr><td class="line-count quiet">1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+14
+15
+16
+17
+18
+19
+20
+21
+22
+23
+24
+25
+26
+27
+28
+29
+30
+31
+32
+33
+34
+35
+36
+37
+38
+39
+40
+41
+42
+43
+44
+45
+46
+47
+48
+49
+50
+51
+52
+53
+54
+55
+56
+57
+58
+59
+60
+61
+62
+63
+64
+65
+66
+67
+68
+69
+70
+71
+72
+73
+74
+75
+76
+77
+78
+79
+80
+81
+82
+83
+84
+85
+86
+87
+88
+89
+90
+91
+92
+93
+94
+95
+96
+97
+98
+99
+100
+101
+102
+103
+104
+105
+106
+107
+108
+109
+110
+111
+112
+113
+114
+115
+116
+117
+118
+119
+120
+121
+122
+123
+124
+125
+126
+127
+128
+129
+130
+131
+132
+133
+134
+135
+136
+137
+138
+139
+140
+141
+142
+143
+144
+145
+146
+147
+148
+149
+150
+151
+152
+153
+154
+155
+156
+157
+158
+159
+160
+161
+162
+163
+164
+165
+166
+167
+168
+169
+170
+171
+172
+173
+174
+175
+176
+177
+178</td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">649×</span>
+<span class="cline-any cline-yes">648×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">83×</span>
+<span class="cline-any cline-yes">82×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">162×</span>
+<span class="cline-any cline-yes">162×</span>
+<span class="cline-any cline-yes">162×</span>
+<span class="cline-any cline-yes">162×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">81×</span>
+<span class="cline-any cline-yes">80×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">79×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">79×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">79×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">79×</span>
+<span class="cline-any cline-yes">79×</span>
+<span class="cline-any cline-yes">79×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">103×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.28;
+&nbsp;
+// OZ Imports:
+import { BeaconProxy } from "@openzeppelin/contracts/proxy/beacon/BeaconProxy.sol";
+import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
+import { ERC165 } from "@openzeppelin/contracts/utils/introspection/ERC165.sol";
+&nbsp;
+// Interfaces:
+import { ITreasuryManager } from "../interfaces/treasury/ITreasuryManager.sol";
+import { ITreasuryFactory } from "../interfaces/treasury/ITreasuryFactory.sol";
+import { IERC165 } from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
+import { IMembershipManager } from "../interfaces/managers/IMembershipManager.sol";
+&nbsp;
+/**
+ * @title TreasuryFactory
+ * @notice This contract is responsible for deploying and managing treasury instances for different DAO groups.
+ */
+contract TreasuryFactory is Ownable, ERC165, ITreasuryFactory {
+// ====================================================================================================================
+//                                                  CUSTOM ERRORS
+// ====================================================================================================================
+&nbsp;
+    /// @dev Thrown if the provided key (contextKey) is zero.
+    error KeyCannotBeZero();
+&nbsp;
+    /// @dev Thrown if the provided address is zero.
+    error AddressCannotBeZero();
+&nbsp;
+    /// @dev Thrown if a treasury instance for the DAO has already been deployed.
+    error GroupTreasuryAlreadyExists();
+&nbsp;
+    /// @dev Thrown if a DAO NFT has not yet been deployed. 
+    /// The DAO has to first be initiated via NFT deployment.
+    error GroupNftNotSet();
+&nbsp;
+// ====================================================================================================================
+//                                                  EVENTS
+// ====================================================================================================================
+&nbsp;
+    /// Declared in ITreasuryFactory.
+&nbsp;
+// ====================================================================================================================
+//                                          STATE VARIABLES
+// ====================================================================================================================
+&nbsp;
+    /// @dev Mapping storing the DAO treasury addresses per groupKey (DAO identifier)
+    mapping(bytes32 =&gt; address) public groupTreasuryAddresses;
+&nbsp;
+    /// @dev Address of the BeaconManager contract pointing to the current implementation.
+    address public immutable beaconManager;
+&nbsp;
+    /// @dev Address of the GovernanceManager.
+    address public immutable governanceManager;
+&nbsp;
+    /// @dev Address of the MembershipManager.
+    IMembershipManager public immutable membershipManager;
+&nbsp;
+// ====================================================================================================================
+//                                                  MODIFIERS
+// ====================================================================================================================
+&nbsp;
+    /**
+     * @dev Ensures that the provided address is not the zero address.
+     * @param addr The address to check.
+     */
+    modifier nonZeroAddress(address addr) {
+        if (addr == address(0)) revert AddressCannotBeZero();
+        _;
+    }
+&nbsp;
+    /**
+     * @dev Ensures that the provided group key is not zero.
+     * @param key The unique identifier for the group.
+     */
+    modifier nonZeroKey(bytes32 key) {
+        if (key == bytes32(0)) revert KeyCannotBeZero();
+        _;
+    }
+&nbsp;
+// ====================================================================================================================
+//                                 CONSTRUCTOR 
+// ====================================================================================================================
+    // transfer ownership to Governance Manager after GM is deployed!
+    /**
+     * @dev Constructor for the TreasuryFactory contract.
+     * @param _beaconManager The address of the beacon contract.
+     * @param _governanceManager The address of the governance manager contract.
+     * @param _membershipManager The address of the membership manager contract.
+     */
+    constructor(
+        address _beaconManager,
+        address _governanceManager,
+        address _membershipManager
+    ) 
+        Ownable(_governanceManager)
+        nonZeroAddress(_beaconManager)
+        nonZeroAddress(_governanceManager)
+        nonZeroAddress(_membershipManager)
+    {
+        beaconManager = _beaconManager;
+        governanceManager = _governanceManager;
+        membershipManager = IMembershipManager(_membershipManager);
+        emit TreasuryFactoryDeployed(beaconManager, governanceManager);
+    }
+&nbsp;
+// ====================================================================================================================
+//                                       EXTERNAL STATE-CHANGING FUNCTIONS
+// ====================================================================================================================
+&nbsp;
+    /**
+     * @notice Deploys new treasury instances for the DAO groups.
+     * @dev only callable by the owner (GovernanceManager)
+     * Audit note: With a reentrancy guard in place (mapping lock), the risk of a re-entrancy attack is mitigated.
+     * @param groupKey The unique group (DAO) identifier.
+     * @param treasuryMultiSig The address of the treasury multi-signature wallet.
+     * @param treasuryRecovery The address of the treasury recovery wallet.
+     */
+    function deployTreasury(
+        bytes32 groupKey, 
+        address treasuryMultiSig,
+        address treasuryRecovery
+    ) 
+        external 
+        onlyOwner 
+        nonZeroKey(groupKey) 
+        nonZeroAddress(treasuryMultiSig)
+        <span class="missing-if-branch" title="else path not taken" >E</span>nonZeroAddress(treasuryRecovery)
+    {
+&nbsp;
+        if (groupTreasuryAddresses[groupKey] != address(0)) revert GroupTreasuryAlreadyExists();
+        if (membershipManager.groupNftAddresses(groupKey) == address(0)) revert GroupNftNotSet();
+&nbsp;
+        // Lock the groupTreasuryAddresses mapping for the groupKey to mitigate re-entrancy risk
+        groupTreasuryAddresses[groupKey] = address(1);
+&nbsp;
+        bytes memory initData = abi.encodeWithSelector(
+            ITreasuryManager.initialize.selector,
+            treasuryMultiSig, // initialOwner with DEFAULT_ADMIN_ROLE
+            governanceManager, // GOVERNANCE_MANAGER_ROLE
+            treasuryRecovery // recovery multi sig for EMERGENCY_RECOVERY_ROLE
+        );
+&nbsp;
+        // creates non-deterministic addresses (different address for every new proxy)
+        BeaconProxy treasuryProxy = new BeaconProxy(
+            beaconManager, 
+            initData
+        );
+&nbsp;
+        // Update the mock treasury address to the real one
+        address treasury = address(treasuryProxy);
+        groupTreasuryAddresses[groupKey] = treasury;
+        emit TreasuryDeployed(groupKey, treasury);
+    }
+&nbsp;
+// ====================================================================================================================
+//                                       EXTERNAL VIEW FUNCTIONS
+// ====================================================================================================================
+    
+    /**
+     * @dev Checks if the contract supports a specific interface.
+     * @param interfaceId The interface identifier to check.
+     * @return bool True if the interface is supported, false otherwise.
+     */
+    function supportsInterface(bytes4 interfaceId) 
+        public 
+        view 
+        virtual 
+        override
+        returns (bool) 
+    {
+        return interfaceId == type(ITreasuryFactory).interfaceId || <span class="branch-1 cbranch-no" title="branch not covered" >super.supportsInterface(interfaceId)</span>;
+    }
+&nbsp;
+}
+&nbsp;
+&nbsp;
+&nbsp;</pre></td></tr>
+</table></pre>
+<div class='push'></div><!-- for sticky footer -->
+</div><!-- /wrapper -->
+<div class='footer quiet pad2 space-top1 center small'>
+  Code coverage
+  generated by <a href="http://istanbul-js.org/" target="_blank">istanbul</a> at Mon Sep 15 2025 18:21:10 GMT+0200 (Central European Summer Time)
+</div>
+</div>
+<script src="../prettify.js"></script>
+<script>
+window.onload = function () {
+        if (typeof prettyPrint === 'function') {
+            prettyPrint();
+        }
+};
+</script>
+<script src="../sorter.js"></script>
+</body>
+</html>

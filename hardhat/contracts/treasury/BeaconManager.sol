@@ -76,8 +76,8 @@ contract BeaconManager is Ownable {
      */
     function updateImplementation(address newImplementation) external onlyOwner nonZeroAddress(newImplementation) {
         if(newImplementation.code.length == 0) revert AddressIsNotAContract();
-        beacon.upgradeTo(newImplementation);
         emit BeaconImplementationUpdated(newImplementation);
+        beacon.upgradeTo(newImplementation);
     }
 
     /**

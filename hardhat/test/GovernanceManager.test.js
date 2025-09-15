@@ -1788,5 +1788,29 @@ describe("Governance Manager Unit Tests:", function () {
 
     });
 
+    it(`FUNCTION: getContractVersion
+        TESTING: returned version value
+        EXPECTED: should return the correct contract version number`, async function () {
+        expect(await governanceManager.getContractVersion()).to.equal("GovernanceManager v1.0.0");
+    });
+
+    it(`FUNCTION: fallback
+        TESTING: custom error: UnknownFunctionCall
+        EXPECTED: should revert with a custom error if an unknown function is called`, async function () {
+        
+        // random function selector
+        const unknownSelector = "0xaabbccdd";
+
+        await expect(user1.sendTransaction({
+            to: governanceManager.target,
+            data: unknownSelector
+            })).to.be.revertedWithCustomError(
+                governanceManager,
+                "UnknownFunctionCall"
+            );
+
+    });
+
+
 });
 

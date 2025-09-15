@@ -266,6 +266,25 @@ describe("Treasury Manager Unit Tests:", function () {
     });
 
     it(`FUNCTION: transferAdminRole
+        TESTING: custom error: AddressCannotBeZero
+        EXPECTED: should revert if new admin is the zero address`, async function () {
+        // deploy group NFT and initialize group root
+        await deployGroupNftAndSetRoot(governor, groupKey, nftName, nftSymbol, rootHash1);
+        
+        // Use EOA test signer as treasury factory owner
+        await deployTreasuryFactoryWithEOAOwner();
+        
+        // Deploy treasury instance: deployTreasuryInstanceWithEOAOwner(treasuryFactorySigner, treasuryMultisig, treasuryRecovery)
+        const treasuryInstance = await deployTreasuryInstanceWithEOAOwner(governor, await governor.getAddress(), await governor.getAddress());
+
+        await expect(treasuryInstance.connect(governor).transferAdminRole(ethers.ZeroAddress))
+            .to.be.revertedWithCustomError(
+                treasuryInstance, 
+                "AddressCannotBeZero"
+            );
+    });
+
+    it(`FUNCTION: transferAdminRole
         TESTING: custom error: NotInitialized
         EXPECTED: should revert if the proxy has not been initialized`, async function () {
         ({ mockGovernanceManager, mockTreasuryManager, mockBeaconManager } = await deployMock_GovernanceManager_TreasuryManager_BeaconManager());
@@ -349,6 +368,22 @@ describe("Treasury Manager Unit Tests:", function () {
             .to.be.revertedWithCustomError(treasuryInstance, "AlreadyHasRole");
     });
 
+    it(`FUNCTION: emergencyAccessControl
+        TESTING: custom error: AddressCannotBeZero
+        EXPECTED: should not let the emergency recovery role holder grant admin rights to the zero address`, async function () {
+        // deploy group NFT and initialize group root
+        await deployGroupNftAndSetRoot(governor, groupKey, nftName, nftSymbol, rootHash1);
+        
+        // Use EOA test signer as treasury factory owner
+        await deployTreasuryFactoryWithEOAOwner();
+
+        // Deploy treasury instance: deployTreasuryInstanceWithEOAOwner(treasuryFactorySigner, treasuryMultisig, treasuryRecovery)
+        const treasuryInstance = await deployTreasuryInstanceWithEOAOwner(governor, await governor.getAddress(), await deployer.getAddress());
+
+        await expect(treasuryInstance.connect(deployer).emergencyAccessControl(ethers.ZeroAddress))
+            .to.be.revertedWithCustomError(treasuryInstance, "AddressCannotBeZero");
+    });
+
     it(`FUNCTION: requestTransfer
         TESTING: event: TransferRequested
         EXPECTED: should allow the authorized funding module to request a transfer and emit event`, async function () {
@@ -423,6 +458,77 @@ describe("Treasury Manager Unit Tests:", function () {
 
         await stopContractAsSigner(mockGrantModule);
     });
+
+    it(`FUNCTION: requestTransfer
+        TESTING: custom error: AddressCannotBeZero
+        EXPECTED: should revert if the recipient address is the zero address`, async function () {
+        ({ mockGovernanceManager, mockTreasuryManager, mockBeaconManager } = await deployMock_GovernanceManager_TreasuryManager_BeaconManager());
+        
+        // deploy group NFT and initialize group root
+        await deployGroupNftAndSetRoot(governor, groupKey, nftName, nftSymbol, rootHash1);
+        await deployTreasuryFactoryWithContractOwner();
+        await deployMockGrantModule();
+        
+        // Get governance manager signer
+        const governanceManagerSigner = await setContractAsSignerAndFund(mockGovernanceManager);
+        
+        // Deploy treasury instance: deployTreasuryInstanceWithEOAOwner(treasuryFactorySigner, treasuryMultisig, treasuryRecovery)
+        const treasuryInstance = await deployTreasuryInstanceWithEOAOwner(governanceManagerSigner, await governor.getAddress(), await governor.getAddress());
+
+        // Stop contract as signer
+        await stopContractAsSigner(mockGovernanceManager);
+
+        // Get mock grant module contract as signer with funds for gas
+        const mockGrantModuleSigner = await setContractAsSignerAndFund(mockGrantModule);
+       
+        // Request transfer
+        const grantType = ethers.id("grant");
+        
+        await expect(treasuryInstance.connect(mockGrantModuleSigner).requestTransfer(
+            voteContextKey,
+            ethers.ZeroAddress, // to
+            2, // amount
+            grantType // fundingType
+        )).to.be.revertedWithCustomError(treasuryInstance, "AddressCannotBeZero");
+
+        await stopContractAsSigner(mockGrantModule);
+    });
+
+    it(`FUNCTION: requestTransfer
+        TESTING: custom error: KeyCannotBeZero
+        EXPECTED: should revert if the voteContextKey is the zero hash`, async function () {
+        ({ mockGovernanceManager, mockTreasuryManager, mockBeaconManager } = await deployMock_GovernanceManager_TreasuryManager_BeaconManager());
+        
+        // deploy group NFT and initialize group root
+        await deployGroupNftAndSetRoot(governor, groupKey, nftName, nftSymbol, rootHash1);
+        await deployTreasuryFactoryWithContractOwner();
+        await deployMockGrantModule();
+        
+        // Get governance manager signer
+        const governanceManagerSigner = await setContractAsSignerAndFund(mockGovernanceManager);
+        
+        // Deploy treasury instance: deployTreasuryInstanceWithEOAOwner(treasuryFactorySigner, treasuryMultisig, treasuryRecovery)
+        const treasuryInstance = await deployTreasuryInstanceWithEOAOwner(governanceManagerSigner, await governor.getAddress(), await governor.getAddress());
+
+        // Stop contract as signer
+        await stopContractAsSigner(mockGovernanceManager);
+
+        // Get mock grant module contract as signer with funds for gas
+        const mockGrantModuleSigner = await setContractAsSignerAndFund(mockGrantModule);
+       
+        // Request transfer
+        const grantType = ethers.id("grant");
+        
+        await expect(treasuryInstance.connect(mockGrantModuleSigner).requestTransfer(
+            ethers.ZeroHash,
+            await user1.getAddress(), // to
+            2, // amount
+            grantType // fundingType
+        )).to.be.revertedWithCustomError(treasuryInstance, "KeyCannotBeZero");
+
+        await stopContractAsSigner(mockGrantModule);
+    });
+
 
     it(`FUNCTION: requestTransfer
         TESTING: custom error: NotInitialized
@@ -801,6 +907,27 @@ describe("Treasury Manager Unit Tests:", function () {
     });
 
     it(`FUNCTION: approveTransfer
+        TESTING: custom error: KeyCannotBeZero
+        EXPECTED: should not allow the admin to approve a funding request with a zero vote context key`, async function () {
+        ({ mockGovernanceManager, mockTreasuryManager, mockBeaconManager } = await deployMock_GovernanceManager_TreasuryManager_BeaconManager());
+        
+        // deploy group NFT and initialize group root
+        await deployGroupNftAndSetRoot(governor, groupKey, nftName, nftSymbol, rootHash1);
+        await deployTreasuryFactoryWithContractOwner();
+        await deployMockGrantModule();
+
+        // Get governance manager signer
+        const governanceManagerSigner = await setContractAsSignerAndFund(mockGovernanceManager);
+        
+        // Deploy treasury instance: deployTreasuryInstanceWithEOAOwner(treasuryFactorySigner, treasuryMultisig, treasuryRecovery)
+        const treasuryInstance = await deployTreasuryInstanceWithEOAOwner(governanceManagerSigner, await governor.getAddress(), await governor.getAddress());
+
+        // Approve funding request
+        await expect(treasuryInstance.connect(governor).approveTransfer(ethers.ZeroHash))
+            .to.be.revertedWithCustomError(treasuryInstance, "KeyCannotBeZero");
+    });
+
+    it(`FUNCTION: approveTransfer
         TESTING: custom error: RequestDoesNotExist
         EXPECTED: should revert if the funding request does not exist`, async function () {
         ({ mockGovernanceManager, mockTreasuryManager, mockBeaconManager } = await deployMock_GovernanceManager_TreasuryManager_BeaconManager());
@@ -963,6 +1090,18 @@ describe("Treasury Manager Unit Tests:", function () {
             .to.be.revertedWithCustomError(treasuryInstance, "InconsistentFundingModule");
     });
 
+    it(`FUNCTION: approveTransfer
+        TESTING: custom error: NotInitialized
+        EXPECTED: should not allow to approve a transfer if a contract has not been initialized`, async function () {
+        ({ mockGovernanceManager, mockTreasuryManager, mockBeaconManager } = await deployMock_GovernanceManager_TreasuryManager_BeaconManager());
+        
+        await expect(mockTreasuryManager.approveTransfer(voteContextKey))
+            .to.be.revertedWithCustomError(
+                mockTreasuryManager,
+                "NotInitialized"
+            );
+    });
+
     it(`FUNCTION: executeTransfer
         TESTING: event: TransferExecuted
         EXPECTED: should allow the treasury instance owner/admin to execute a transfer`, async function () {
@@ -1010,6 +1149,18 @@ describe("Treasury Manager Unit Tests:", function () {
         expect(await treasuryInstance.connect(governor).executeTransfer(voteContextKey))
             .to.emit(treasuryInstance, "TransferExecuted")
             .withArgs(voteContextKey, await user1.getAddress(), 3);
+    });
+
+    it(`FUNCTION: executeTransfer
+        TESTING: custom error: NotInitialized
+        EXPECTED: should not allow to execute a transfer if a contract has not been initialized`, async function () {
+        ({ mockGovernanceManager, mockTreasuryManager, mockBeaconManager } = await deployMock_GovernanceManager_TreasuryManager_BeaconManager());
+        
+        await expect(mockTreasuryManager.executeTransfer(voteContextKey))
+            .to.be.revertedWithCustomError(
+                mockTreasuryManager,
+                "NotInitialized"
+            );
     });
 
     it(`FUNCTION: executeTransfer
@@ -1149,6 +1300,27 @@ describe("Treasury Manager Unit Tests:", function () {
         // Execute funding request
         await expect(treasuryInstance.connect(governor).executeTransfer(voteContextKey))
             .to.be.revertedWithCustomError(treasuryInstance, "RequestDoesNotExist");
+    });
+
+    it(`FUNCTION: executeTransfer
+        TESTING: custom error: KeyCannotBeZero
+        EXPECTED: should not allow the admin to execute a funding request with a zero vote context key`, async function () {
+        ({ mockGovernanceManager, mockTreasuryManager, mockBeaconManager } = await deployMock_GovernanceManager_TreasuryManager_BeaconManager());
+        
+        // deploy group NFT and initialize group root
+        await deployGroupNftAndSetRoot(governor, groupKey, nftName, nftSymbol, rootHash1);
+        await deployTreasuryFactoryWithContractOwner();
+        await deployMockGrantModule();
+
+        // Get governance manager signer
+        const governanceManagerSigner = await setContractAsSignerAndFund(mockGovernanceManager);
+        
+        // Deploy treasury instance: deployTreasuryInstanceWithEOAOwner(treasuryFactorySigner, treasuryMultisig, treasuryRecovery)
+        const treasuryInstance = await deployTreasuryInstanceWithEOAOwner(governanceManagerSigner, await governor.getAddress(), await governor.getAddress());
+
+        // Approve funding request
+        await expect(treasuryInstance.connect(governor).executeTransfer(ethers.ZeroHash))
+            .to.be.revertedWithCustomError(treasuryInstance, "KeyCannotBeZero");
     });
 
     it(`FUNCTION: executeTransfer
@@ -1793,6 +1965,38 @@ describe("Treasury Manager Unit Tests:", function () {
             .to.emit(treasuryInstance, "TransferExecuted");
     });
 
+    it(`FUNCTION: approveAndExecuteTransfer
+        TESTING: custom error: NotInitialized
+        EXPECTED: should not allow to approve and execute a transfer if a contract has not been initialized`, async function () {
+        ({ mockGovernanceManager, mockTreasuryManager, mockBeaconManager } = await deployMock_GovernanceManager_TreasuryManager_BeaconManager());
+        
+        await expect(mockTreasuryManager.approveAndExecuteTransfer(voteContextKey))
+            .to.be.revertedWithCustomError(
+                mockTreasuryManager,
+                "NotInitialized"
+            );
+    });
+
+    it(`FUNCTION: approveAndExecuteTransfer
+        TESTING: custom error: KeyCannotBeZero
+        EXPECTED: should not allow the admin to approve and execute a funding request with a zero vote context key`, async function () {
+        ({ mockGovernanceManager, mockTreasuryManager, mockBeaconManager } = await deployMock_GovernanceManager_TreasuryManager_BeaconManager());
+        
+        // deploy group NFT and initialize group root
+        await deployGroupNftAndSetRoot(governor, groupKey, nftName, nftSymbol, rootHash1);
+        await deployTreasuryFactoryWithContractOwner();
+        await deployMockGrantModule();
+
+        // Get governance manager signer
+        const governanceManagerSigner = await setContractAsSignerAndFund(mockGovernanceManager);
+        
+        // Deploy treasury instance: deployTreasuryInstanceWithEOAOwner(treasuryFactorySigner, treasuryMultisig, treasuryRecovery)
+        const treasuryInstance = await deployTreasuryInstanceWithEOAOwner(governanceManagerSigner, await governor.getAddress(), await governor.getAddress());
+
+        // Approve funding request
+        await expect(treasuryInstance.connect(governor).approveAndExecuteTransfer(ethers.ZeroHash))
+            .to.be.revertedWithCustomError(treasuryInstance, "KeyCannotBeZero");
+    });
 
     it(`FUNCTION: cancelTransfer
         TESTING: authorization (success), events: TransferCancelled
@@ -1936,6 +2140,27 @@ describe("Treasury Manager Unit Tests:", function () {
     });
 
     it(`FUNCTION: cancelTransfer
+        TESTING: custom error: KeyCannotBeZero
+        EXPECTED: should not allow the admin to cancel a funding request with a zero vote context key`, async function () {
+        ({ mockGovernanceManager, mockTreasuryManager, mockBeaconManager } = await deployMock_GovernanceManager_TreasuryManager_BeaconManager());
+        
+        // deploy group NFT and initialize group root
+        await deployGroupNftAndSetRoot(governor, groupKey, nftName, nftSymbol, rootHash1);
+        await deployTreasuryFactoryWithContractOwner();
+        await deployMockGrantModule();
+
+        // Get governance manager signer
+        const governanceManagerSigner = await setContractAsSignerAndFund(mockGovernanceManager);
+        
+        // Deploy treasury instance: deployTreasuryInstanceWithEOAOwner(treasuryFactorySigner, treasuryMultisig, treasuryRecovery)
+        const treasuryInstance = await deployTreasuryInstanceWithEOAOwner(governanceManagerSigner, await governor.getAddress(), await governor.getAddress());
+
+        // Approve funding request
+        await expect(treasuryInstance.connect(governor).cancelTransfer(ethers.ZeroHash))
+            .to.be.revertedWithCustomError(treasuryInstance, "KeyCannotBeZero");
+    });
+
+    it(`FUNCTION: cancelTransfer
         TESTING: custom error: TransferAlreadyExecuted
         EXPECTED: should not allow the owner/admin to cancel a transfer that has already been executed`, async function () {
         ({ mockGovernanceManager, mockTreasuryManager, mockBeaconManager } = await deployMock_GovernanceManager_TreasuryManager_BeaconManager());
@@ -2028,6 +2253,18 @@ describe("Treasury Manager Unit Tests:", function () {
         // Attempt to cancel the funding request again
         await expect(treasuryInstance.connect(governor).cancelTransfer(voteContextKey))
             .to.be.revertedWithCustomError(treasuryInstance, "TransferAlreadyCancelled");
+    });
+
+    it(`FUNCTION: cancelTransfer
+        TESTING: custom error: NotInitialized
+        EXPECTED: should not allow to cancel a transfer if a contract has not been initialized`, async function () {
+        ({ mockGovernanceManager, mockTreasuryManager, mockBeaconManager } = await deployMock_GovernanceManager_TreasuryManager_BeaconManager());
+        
+        await expect(mockTreasuryManager.cancelTransfer(voteContextKey))
+            .to.be.revertedWithCustomError(
+                mockTreasuryManager,
+                "NotInitialized"
+            );
     });
 
     it(`FUNCTION: fund
@@ -2162,6 +2399,30 @@ describe("Treasury Manager Unit Tests:", function () {
             .to.be.revertedWithCustomError(treasuryInstance, "CallerNotAuthorized");
     });
 
+    it(`FUNCTION: lockTreasury, unlockTreasury
+        TESTING: custom error: NotInitialized
+        EXPECTED: should not allow to lock the treasury if a contract has not been initialized`, async function () {
+        ({ mockGovernanceManager, mockTreasuryManager, mockBeaconManager } = await deployMock_GovernanceManager_TreasuryManager_BeaconManager());
+        
+        await expect(mockTreasuryManager.lockTreasury())
+            .to.be.revertedWithCustomError(
+                mockTreasuryManager,
+                "NotInitialized"
+            );
+    });
+
+    it(`FUNCTION: unlockTreasury
+        TESTING: custom error: NotInitialized
+        EXPECTED: should not allow to unlock the treasury if a contract has not been initialized`, async function () {
+        ({ mockGovernanceManager, mockTreasuryManager, mockBeaconManager } = await deployMock_GovernanceManager_TreasuryManager_BeaconManager());
+        
+        await expect(mockTreasuryManager.unlockTreasury())
+            .to.be.revertedWithCustomError(
+                mockTreasuryManager,
+                "NotInitialized"
+            );
+    });
+
     it(`FUNCTION: hasEmergencyRecoveryRole, hasGovernanceManagerRole, hasAdminRole
         TESTING: roles
         EXPECTED: should assign the correct roles`, async function () {
@@ -2195,4 +2456,57 @@ describe("Treasury Manager Unit Tests:", function () {
         expect(oldHasAdminRole).to.be.false;
     });
 
+    it(`FUNCTION: fallback
+        TESTING: custom error: UnknownFunctionCall
+        EXPECTED: should revert with a custom error if an unknown function is called`, async function () {
+        
+        // deploy group NFT and initialize group root
+        await deployGroupNftAndSetRoot(governor, groupKey, nftName, nftSymbol, rootHash1);
+
+        // Use EOA test signer as treasury factory owner
+        await deployTreasuryFactoryWithEOAOwner();
+
+        // Deploy treasury instance: deployTreasuryInstanceWithEOAOwner(treasuryFactorySigner, treasuryMultisig, treasuryRecovery)
+        const treasuryInstance = await deployTreasuryInstanceWithEOAOwner(governor, await deployer.getAddress(), await user1.getAddress());
+        
+        // random function selector
+        const unknownSelector = "0xaabbccdd";
+
+        await expect(user1.sendTransaction({
+            to: treasuryInstance.target,
+            data: unknownSelector
+            })).to.be.revertedWithCustomError(
+                treasuryInstance,
+                "UnknownFunctionCall"
+            );
+
+    });
+
+    it(`FUNCTION: getContractVersion
+        TESTING: returned version
+        EXPECTED: should return the correct cotnract version`, async function () {
+        ({ mockGovernanceManager, mockTreasuryManager, mockBeaconManager } = await deployMock_GovernanceManager_TreasuryManager_BeaconManager());
+        
+        // deploy group NFT and initialize group root
+        await deployGroupNftAndSetRoot(governor, groupKey, nftName, nftSymbol, rootHash1);
+        await deployTreasuryFactoryWithContractOwner();
+        await deployMockGrantModule();
+
+        // Get governance manager signer
+        const governanceManagerSigner = await setContractAsSignerAndFund(mockGovernanceManager);
+
+        // Deploy treasury instance: deployTreasuryInstanceWithEOAOwner(treasuryFactorySigner, treasuryMultisig, treasuryRecovery)
+        const treasuryInstance = await deployTreasuryInstanceWithEOAOwner(governanceManagerSigner, await governor.getAddress(), await governor.getAddress());
+
+        // Stop contract as signer
+        await stopContractAsSigner(mockGovernanceManager);
+
+        // contract version of implementation contract
+        expect(await mockTreasuryManager.getContractVersion()).to.equal("TreasuryManager v1.0.0");
+
+        // contract version of treasury instance
+        expect(await treasuryInstance.getContractVersion())
+            .to.equal("TreasuryManager v1.0.0");
+    });
+   
 });

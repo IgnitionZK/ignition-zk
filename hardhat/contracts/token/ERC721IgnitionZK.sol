@@ -22,18 +22,35 @@ import { IERC721 } from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 * The contract is designed to be upgradeable and follows the OpenZeppelin standards.
 */
 contract ERC721IgnitionZK is Initializable, ContextUpgradeable, ERC721Upgradeable, ERC721EnumerableUpgradeable, ERC721BurnableUpgradeable, AccessControlUpgradeable {
-    
-    // Custom error for non-transferability
+
+// ====================================================================================================================
+//                                                  CUSTOM ERRORS
+// ====================================================================================================================
+   
+    /// @notice Thrown if a transfer attempt is made.
     error TransferNotAllowed();
 
+// ====================================================================================================================
+//                                                  STATE VARIABLES
+// ====================================================================================================================
+  
     uint256 private _nextTokenId;
 
+// ====================================================================================================================
+//                                                  CONSTANTS 
+// ====================================================================================================================
+    
+    /// @dev Minter and burner role identitfiers
     bytes32 public constant MINTER_ROLE = keccak256("MINTER_ROLE");
     bytes32 public constant BURNER_ROLE = keccak256("BURNER_ROLE");
 
+// ====================================================================================================================
+//                                 CONSTRUCTOR / INITIALIZER 
+// ====================================================================================================================
+
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() {
-        _disableInitializers();               // protects the template itself
+        _disableInitializers();               
     }
 
     function initialize(
@@ -56,6 +73,10 @@ contract ERC721IgnitionZK is Initializable, ContextUpgradeable, ERC721Upgradeabl
         _grantRole(BURNER_ROLE, initialBurner);
         _grantRole(BURNER_ROLE, initialAdmin);
     }
+
+// ====================================================================================================================
+//                                       EXTERNAL STATE-CHANGING FUNCTIONS
+// ====================================================================================================================
 
     function safeMint(address to) external onlyRole(MINTER_ROLE) returns (uint256) {
         uint256 tokenId = _nextTokenId++;
@@ -104,6 +125,9 @@ contract ERC721IgnitionZK is Initializable, ContextUpgradeable, ERC721Upgradeabl
         return super._update(to, tokenId, auth);
     }
 
+    /*
+     * @dev Override necessary because _increaseBalance is defined in both ERC721Upgradeable and ERC721EnumerableUpgradeable.
+     */
     function _increaseBalance(address account, uint128 value)
         internal
         override(ERC721Upgradeable, ERC721EnumerableUpgradeable)

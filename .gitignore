@@ -4,4 +4,9 @@ node_modules/
 # .env variables
 .env
                     
+# Virtual environment
+venv/
+
+# Slither report
+slither-report.txt
                     

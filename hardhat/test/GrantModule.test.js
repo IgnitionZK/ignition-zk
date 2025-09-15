@@ -413,30 +413,21 @@ describe("Grant Module Unit Tests:", function () {
         await stopContractAsSigner(mockGovernanceManager);
     });
 
+    it(`FUNCTION: getContractVersion 
+        TESTING: stored version
+        EXPECTED: should return the correct contract version`, async function () {
+        
+        ({ mockGovernanceManager, mockTreasuryManager, mockBeaconManager } = await deployMock_GovernanceManager_TreasuryManager_BeaconManager());
+        
+        // deploy group NFT and initialize group root
+        await deployGroupNftAndSetRoot(governor, groupKey, nftName, nftSymbol, rootHash1);
+        await deployTreasuryFactory();
+        await deployMockGrantModule();
+
+        expect(await mockGrantModule.getContractVersion()).to.equal("GrantModule v1.0.0");
+        
+    });
 
 
 
 });
-
-/*
-function distributeGrant(
-        address groupTreasury,
-        bytes32 contextKey,
-        address to,
-        uint256 amount
-    ) 
-        external 
-        onlyOwner
-        nonZeroKey(contextKey)
-        nonZeroAddress(groupTreasury)
-        nonZeroAddress(to) 
-    {
-        ITreasuryManager(groupTreasury).requestTransfer(
-            contextKey,
-            to,
-            amount,
-            FundingTypes.GRANT_TYPE
-        );
-        emit GrantRequested(groupTreasury, contextKey, to, amount);
-    }
-*/

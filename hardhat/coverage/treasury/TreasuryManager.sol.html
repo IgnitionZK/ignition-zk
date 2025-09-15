@@ -1,0 +1,2366 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <title>Code coverage report for treasury/TreasuryManager.sol</title>
+    <meta charset="utf-8" />
+    <link rel="stylesheet" href="../prettify.css" />
+    <link rel="stylesheet" href="../base.css" />
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style type='text/css'>
+        .coverage-summary .sorter {
+            background-image: url(../sort-arrow-sprite.png);
+        }
+    </style>
+</head>
+<body>
+<div class='wrapper'>
+  <div class='pad1'>
+    <h1>
+      <a href="../index.html">all files</a> / <a href="index.html">treasury/</a> TreasuryManager.sol
+    </h1>
+    <div class='clearfix'>
+      <div class='fl pad1y space-right2'>
+        <span class="strong">100% </span>
+        <span class="quiet">Statements</span>
+        <span class='fraction'>76/76</span>
+      </div>
+      <div class='fl pad1y space-right2'>
+        <span class="strong">93.85% </span>
+        <span class="quiet">Branches</span>
+        <span class='fraction'>122/130</span>
+      </div>
+      <div class='fl pad1y space-right2'>
+        <span class="strong">100% </span>
+        <span class="quiet">Functions</span>
+        <span class='fraction'>31/31</span>
+      </div>
+      <div class='fl pad1y space-right2'>
+        <span class="strong">100% </span>
+        <span class="quiet">Lines</span>
+        <span class='fraction'>95/95</span>
+      </div>
+    </div>
+  </div>
+  <div class='status-line high'></div>
+<pre><table class="coverage">
+<tr><td class="line-count quiet">1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+14
+15
+16
+17
+18
+19
+20
+21
+22
+23
+24
+25
+26
+27
+28
+29
+30
+31
+32
+33
+34
+35
+36
+37
+38
+39
+40
+41
+42
+43
+44
+45
+46
+47
+48
+49
+50
+51
+52
+53
+54
+55
+56
+57
+58
+59
+60
+61
+62
+63
+64
+65
+66
+67
+68
+69
+70
+71
+72
+73
+74
+75
+76
+77
+78
+79
+80
+81
+82
+83
+84
+85
+86
+87
+88
+89
+90
+91
+92
+93
+94
+95
+96
+97
+98
+99
+100
+101
+102
+103
+104
+105
+106
+107
+108
+109
+110
+111
+112
+113
+114
+115
+116
+117
+118
+119
+120
+121
+122
+123
+124
+125
+126
+127
+128
+129
+130
+131
+132
+133
+134
+135
+136
+137
+138
+139
+140
+141
+142
+143
+144
+145
+146
+147
+148
+149
+150
+151
+152
+153
+154
+155
+156
+157
+158
+159
+160
+161
+162
+163
+164
+165
+166
+167
+168
+169
+170
+171
+172
+173
+174
+175
+176
+177
+178
+179
+180
+181
+182
+183
+184
+185
+186
+187
+188
+189
+190
+191
+192
+193
+194
+195
+196
+197
+198
+199
+200
+201
+202
+203
+204
+205
+206
+207
+208
+209
+210
+211
+212
+213
+214
+215
+216
+217
+218
+219
+220
+221
+222
+223
+224
+225
+226
+227
+228
+229
+230
+231
+232
+233
+234
+235
+236
+237
+238
+239
+240
+241
+242
+243
+244
+245
+246
+247
+248
+249
+250
+251
+252
+253
+254
+255
+256
+257
+258
+259
+260
+261
+262
+263
+264
+265
+266
+267
+268
+269
+270
+271
+272
+273
+274
+275
+276
+277
+278
+279
+280
+281
+282
+283
+284
+285
+286
+287
+288
+289
+290
+291
+292
+293
+294
+295
+296
+297
+298
+299
+300
+301
+302
+303
+304
+305
+306
+307
+308
+309
+310
+311
+312
+313
+314
+315
+316
+317
+318
+319
+320
+321
+322
+323
+324
+325
+326
+327
+328
+329
+330
+331
+332
+333
+334
+335
+336
+337
+338
+339
+340
+341
+342
+343
+344
+345
+346
+347
+348
+349
+350
+351
+352
+353
+354
+355
+356
+357
+358
+359
+360
+361
+362
+363
+364
+365
+366
+367
+368
+369
+370
+371
+372
+373
+374
+375
+376
+377
+378
+379
+380
+381
+382
+383
+384
+385
+386
+387
+388
+389
+390
+391
+392
+393
+394
+395
+396
+397
+398
+399
+400
+401
+402
+403
+404
+405
+406
+407
+408
+409
+410
+411
+412
+413
+414
+415
+416
+417
+418
+419
+420
+421
+422
+423
+424
+425
+426
+427
+428
+429
+430
+431
+432
+433
+434
+435
+436
+437
+438
+439
+440
+441
+442
+443
+444
+445
+446
+447
+448
+449
+450
+451
+452
+453
+454
+455
+456
+457
+458
+459
+460
+461
+462
+463
+464
+465
+466
+467
+468
+469
+470
+471
+472
+473
+474
+475
+476
+477
+478
+479
+480
+481
+482
+483
+484
+485
+486
+487
+488
+489
+490
+491
+492
+493
+494
+495
+496
+497
+498
+499
+500
+501
+502
+503
+504
+505
+506
+507
+508
+509
+510
+511
+512
+513
+514
+515
+516
+517
+518
+519
+520
+521
+522
+523
+524
+525
+526
+527
+528
+529
+530
+531
+532
+533
+534
+535
+536
+537
+538
+539
+540
+541
+542
+543
+544
+545
+546
+547
+548
+549
+550
+551
+552
+553
+554
+555
+556
+557
+558
+559
+560
+561
+562
+563
+564
+565
+566
+567
+568
+569
+570
+571
+572
+573
+574
+575
+576
+577
+578
+579
+580
+581
+582
+583
+584
+585
+586
+587
+588
+589
+590
+591
+592
+593
+594
+595
+596
+597
+598
+599
+600
+601
+602
+603
+604
+605
+606
+607
+608
+609
+610
+611
+612
+613
+614
+615
+616
+617
+618
+619
+620
+621
+622
+623
+624
+625
+626
+627
+628
+629
+630
+631
+632
+633
+634
+635
+636
+637
+638
+639
+640
+641
+642
+643
+644
+645
+646
+647
+648
+649
+650
+651
+652
+653
+654
+655
+656
+657
+658
+659
+660
+661
+662
+663
+664
+665
+666
+667
+668
+669
+670
+671
+672
+673
+674
+675
+676
+677
+678
+679
+680
+681
+682
+683
+684
+685
+686
+687
+688
+689
+690
+691
+692
+693
+694
+695
+696
+697
+698
+699
+700
+701
+702
+703
+704
+705
+706
+707
+708
+709
+710
+711
+712
+713
+714
+715
+716
+717
+718
+719
+720
+721
+722
+723
+724
+725
+726
+727
+728
+729
+730
+731
+732
+733
+734
+735
+736
+737
+738
+739
+740
+741
+742
+743
+744
+745
+746
+747
+748
+749
+750
+751
+752
+753
+754
+755
+756
+757
+758
+759
+760
+761
+762
+763
+764
+765
+766
+767
+768</td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">283×</span>
+<span class="cline-any cline-yes">280×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">91×</span>
+<span class="cline-any cline-yes">86×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">6×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">4×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">42×</span>
+<span class="cline-any cline-yes">41×</span>
+<span class="cline-any cline-yes">41×</span>
+<span class="cline-any cline-yes">40×</span>
+<span class="cline-any cline-yes">39×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">152×</span>
+<span class="cline-any cline-yes">141×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">369×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">79×</span>
+<span class="cline-any cline-yes">79×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">79×</span>
+<span class="cline-any cline-yes">79×</span>
+<span class="cline-any cline-yes">79×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">79×</span>
+<span class="cline-any cline-yes">79×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">3×</span>
+<span class="cline-any cline-yes">2×</span>
+<span class="cline-any cline-yes">2×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">2×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">2×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">3×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">3×</span>
+<span class="cline-any cline-yes">3×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">37×</span>
+<span class="cline-any cline-yes">36×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">34×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">34×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">22×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">16×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">3×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">3×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">2×</span>
+<span class="cline-any cline-yes">2×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">8×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">8×</span>
+<span class="cline-any cline-yes">7×</span>
+<span class="cline-any cline-yes">6×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">5×</span>
+<span class="cline-any cline-yes">5×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">24×</span>
+<span class="cline-any cline-yes">23×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">2×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">7×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">3×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">8×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">5×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">2×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">24×</span>
+<span class="cline-any cline-yes">24×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">24×</span>
+<span class="cline-any cline-yes">23×</span>
+<span class="cline-any cline-yes">21×</span>
+<span class="cline-any cline-yes">21×</span>
+<span class="cline-any cline-yes">20×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">19×</span>
+<span class="cline-any cline-yes">19×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">19×</span>
+<span class="cline-any cline-yes">19×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">19×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">18×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">18×</span>
+<span class="cline-any cline-yes">17×</span>
+<span class="cline-any cline-yes">16×</span>
+<span class="cline-any cline-yes">15×</span>
+<span class="cline-any cline-yes">14×</span>
+<span class="cline-any cline-yes">13×</span>
+<span class="cline-any cline-yes">12×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">11×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">11×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">11×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">10×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">84×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.28;
+&nbsp;
+// OZ Imports:
+import { AccessControlUpgradeable } from "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
+import { Initializable } from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
+import { ReentrancyGuardUpgradeable } from "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol";
+&nbsp;
+// Interfaces:
+import { ITreasuryManager } from "../interfaces/treasury/ITreasuryManager.sol";
+import { IVersioned } from "../interfaces/IVersioned.sol";
+import { IGovernanceManager } from "../interfaces/governance/IGovernanceManager.sol";
+&nbsp;
+// Libraries:
+import { FundingTypes } from "../libraries/FundingTypes.sol";
+import { TreasuryTypes } from "../libraries/TreasuryTypes.sol";
+&nbsp;
+/**
+ * @title TreasuryManager
+ * @notice This contract is responsible for managing the treasury of a DAO group.
+ * @dev It includes functionalities for handling funds, managing roles, and interacting with other components of the DAO.
+ */
+contract TreasuryManager is Initializable, AccessControlUpgradeable, ReentrancyGuardUpgradeable, ITreasuryManager, IVersioned {
+// ====================================================================================================================
+//                                                  CUSTOM ERRORS
+// ====================================================================================================================
+    
+    // ====================================================================================================
+    // FUNDING TYPE ERRORS
+    // ====================================================================================================
+&nbsp;
+    /// @notice Thrown if the provided funding type is not defined in the FundingTypes library.
+    error UnknownFundingType();
+&nbsp;
+    // ====================================================================================================
+    // FUNDING MODULE ERRORS
+    // ====================================================================================================
+&nbsp;
+    /// @notice Thrown if the caller is not an authorized funding module.
+    error UnauthorizedModule();
+&nbsp;
+    /// @notice Thrown if the active funding module is not set.
+    error ActiveModuleNotSet();
+&nbsp;
+    // ====================================================================================================
+    // TRANSFER ERRORS
+    // ====================================================================================================
+&nbsp;
+    /// @notice Thrown if the treasury balance is lower than the requested transfer amount.
+    error InsufficientBalance();
+&nbsp;
+    /// @notice Thrown if a transfer request record for the specific contextKey already exists.
+    error FundingAlreadyRequested();
+    
+    /// @notice Thrown if the transfer has already been approved.
+    error TransferAlreadyApproved();
+&nbsp;
+    /// @notice Thrown if the funds have already been transferred.
+    error TransferAlreadyExecuted();
+&nbsp;
+    /// @notice Thrown if the contextKey provided during transfer approval does not correspond to a pending transfer request.
+    error RequestDoesNotExist();
+&nbsp;
+    /// @notice Thrown if the fund transfer has failed.
+    error TransferFailed();
+    
+    /// @notice Thrown if the transfer cannot be executed because it is in the timelock phase.
+    error RequestInTimelock();
+    
+    /// @notice Thrown if the transfer amount is zero.
+    error AmountCannotBeZero();
+&nbsp;
+    /// @notice Thrown if the provided funding module is not consistent with the expected module.
+    error InconsistentFundingModule();
+&nbsp;
+    /// @notice Thrown if the pending transfer has not been approved.
+    error TransferNotApproved();
+&nbsp;
+    /// @notice Thrown if the timelock period for a transfer request has passed.
+    error TimelockHasPassed();
+&nbsp;
+    /// @notice Thrown if the treasury is locked.
+    error TreasuryIsLocked();
+&nbsp;
+    /// @notice Thrown if a transfer request has been cancelled.
+    error TransferHasBeenCancelled();
+&nbsp;
+    /// @notice Thrown if a transfer request has already been cancelled.
+    error TransferAlreadyCancelled();
+&nbsp;
+    // ====================================================================================================
+    // GENERAL ERRORS
+    // ====================================================================================================
+    
+    /// @notice Thrown if the provided address is zero.
+    error AddressCannotBeZero();
+&nbsp;
+    /// @notice Thrown if the provided key (contextKey) is zero.
+    error KeyCannotBeZero();
+&nbsp;
+    /// @notice Thrown if a call is made to a function that does not exist in the contract.
+    error UnknownFunctionCall();
+&nbsp;
+    /// @notice Thrown if the function call does not originate from either the FUNDING_MODULE_ROLE or the GOVERNANCE_MANAGER_ROLE.
+    error CallerNotAuthorized();
+&nbsp;
+    /// @notice Thrown if the provided address is not a contract.
+    error AddressIsNotAContract();
+&nbsp;
+    /// @notice Thrown if the address already has the specified role.
+    error AlreadyHasRole();
+&nbsp;
+    /// @notice Thrown if the contract has not been initialized.
+    error NotInitialized();
+&nbsp;
+// ====================================================================================================================
+//                                                  EVENTS
+// ====================================================================================================================
+    
+    /**
+     * @notice Emitted when funds are received by the treasury.
+     * @dev This event is emitted whenever the treasury receives funds, either through the `fund` function or the `receive` function.
+     * @param sender The address that sent the funds.
+     * @param amount The amount of funds received.
+     */
+    event FundsReceived(address indexed sender, uint256 amount);
+&nbsp;
+    /**
+     * @notice Emitted when a transfer request is made.
+     * @param contextKey The unique identifier for the transfer request.
+     * @param from The address (funding module contract address) that initiated the transfer request.
+     * @param to The address that is the recipient of the transfer.
+     * @param amount The amount of funds requested for transfer.
+     */
+    event TransferRequested(bytes32 indexed contextKey, address indexed from, address indexed to, uint256 amount);
+    
+    /**
+     * @notice Emitted when a transfer is approved.
+     * @param contextKey The unique identifier for the transfer request.
+     * @param to The recipient address for the funds.
+     * @param amount The amount of funds to be transferred.
+     */
+    event TransferApproved(bytes32 indexed contextKey, address indexed to, uint256 amount);
+&nbsp;
+    /**
+     * @notice Emitted when a transfer is executed.
+     * @param contextKey The unique identifier for the transfer request.
+     * @param to The address that received the funds.
+     * @param amount The amount of funds that were transferred.
+     */
+    event TransferExecuted(bytes32 indexed contextKey, address indexed to, uint256 amount);
+&nbsp;
+    /**
+     * @notice Emitted when a transfer is cancelled.
+     * @param contextKey The unique identifier for the transfer request.
+     */
+    event TransferCancelled(bytes32 indexed contextKey);
+    
+    /**
+     * @notice Emitted when emergency access is granted to a new admin.
+     * @param newAdmin The address of the new admin.
+     * @dev Does not revoke the DEFAULT_ADMIN_ROLE from the previous admin.
+     */
+    event EmergencyAccessGranted(address indexed newAdmin);
+&nbsp;
+    /**
+     * @notice Emitted when the admin role is transferred to a new address.
+     * @param oldAdmin The address of the previous admin.
+     * @param newAdmin The address of the new admin.
+     * @dev Revokes the DEFAULT_ADMIN_ROLE from the previous admin.
+     */
+    event AdminRoleTransferred(address indexed oldAdmin, address indexed newAdmin);
+&nbsp;
+    /**
+     * @notice Emitted when the treasury is initialized.
+     * @param treasuryMultiSig The address of the treasury multi-signature wallet.
+     * @param governanceManager The address of the governance manager contract.
+     * @param treasuryRecovery The address of the treasury recovery contract.
+     */
+    event TreasuryInitialized(address indexed treasuryMultiSig, address indexed governanceManager, address indexed treasuryRecovery);
+&nbsp;
+    /**
+     * @notice Emitted when a transfer request has already gone through the approval process.
+     * @param contextKey The unique identifier for the transfer request.
+     */
+    event ApprovalSkipped(bytes32 indexed contextKey);
+&nbsp;
+    /**
+     * @notice Emitted when the treasury is locked.
+     */
+    event TreasuryLocked();
+&nbsp;
+    /**
+     * @notice Emitted when the treasury is unlocked.
+     */
+    event TreasuryUnlocked();
+&nbsp;
+// ====================================================================================================================
+//                                          STATE VARIABLES
+// NOTE: Once the contract is deployed do not change the order of the variables. If this contract is updated append new variables to the end of this list. 
+// ====================================================================================================================
+    
+    // ====================================================================================================
+    // STRUCTS &amp; ENUMS
+    // ====================================================================================================
+    
+    /// @dev Struct representing a funding request.
+    // Defined in libraries/TreasuryTypes.sol
+&nbsp;
+    // ====================================================================================================
+    // MAPPINGS
+    // ====================================================================================================
+    
+    /// @dev Mapping of unique context keys (context: group, epoch, proposal) to funding requests.
+    mapping(bytes32 =&gt; TreasuryTypes.FundingRequest) public fundingRequests;
+&nbsp;
+    // ====================================================================================================
+    // STATE VARIABLES
+    // ====================================================================================================
+&nbsp;
+    /// @dev The interface of the governance manager contract.
+    IGovernanceManager public governanceManager;
+&nbsp;
+    /// @dev Indicates whether the treasury is locked.
+    bool public isTreasuryLocked;
+&nbsp;
+    /// @dev The timestamp until which the treasury is locked.
+    uint256 public lockedUntil;
+&nbsp;
+    // ====================================================================================================
+    // CONSTANTS / IMMUTABLE VARIABLES
+    // ====================================================================================================
+&nbsp;
+    /// @dev The role that grants access to the governance manager.
+    bytes32 public constant GOVERNANCE_MANAGER_ROLE = keccak256("GOVERNANCE_MANAGER_ROLE");
+&nbsp;
+    /// @dev The role that grants access to the recovery treasury wallet.
+    bytes32 public constant EMERGENCY_RECOVERY_ROLE = keccak256("EMERGENCY_RECOVERY_ROLE");
+&nbsp;
+    /// @dev The type identifiers for the different funding modules:
+    // Imported from library FundingTypes.
+&nbsp;
+    /// @dev The delay in days for the timelock mechanism.
+    /// @dev This is used to prevent immediate execution of transfers after they are requested.
+    /// @dev The value is set to 3 days, which is equivalent to 3 * 24 * 60 * 60 seconds.
+    uint256 public constant TIMELOCK_DELAY_DAYS = 3;
+&nbsp;
+// ====================================================================================================================
+//                                                  MODIFIERS
+// ====================================================================================================================
+&nbsp;
+    /**
+     * @dev Ensures that the provided address is not the zero address.
+     * @param addr The address to check.
+     */
+    modifier nonZeroAddress(address addr) {
+        if (addr == address(0)) revert AddressCannotBeZero();
+        _;
+    }
+&nbsp;
+    /**
+     * @dev Ensures that the provided group key is not zero.
+     * @param key The unique identifier for the group.
+     */
+    modifier nonZeroKey(bytes32 key) {
+        if (key == bytes32(0)) revert KeyCannotBeZero();
+        _;
+    }
+&nbsp;
+    /**
+     * @dev Ensures that the caller has the DEFAULT_ADMIN_ROLE or the EMERGENCY_RECOVERY_ROLE.
+     * This modifier is used to restrict access to certain functions to only the emergency role or default admin.
+     */
+    modifier onlyDefaultAdminOrEmergencyRecovery() {
+        if ( 
+            !hasRole(DEFAULT_ADMIN_ROLE, msg.sender) &amp;&amp;
+            !hasRole(EMERGENCY_RECOVERY_ROLE, msg.sender)
+        ) revert CallerNotAuthorized();
+        _;
+    }
+&nbsp;
+    /**
+     * @dev Ensures that the caller is the active funding module for the specified funding type.
+     */
+    modifier onlyActiveFundingModule(bytes32 _fundingType) { 
+        if (!FundingTypes.isKnownType(_fundingType)) revert UnknownFundingType();
+        address activeModule = _getActiveModule(_fundingType);
+        if (activeModule == address(0)) revert ActiveModuleNotSet();
+        if (msg.sender != activeModule) revert UnauthorizedModule();
+        _;
+    }
+&nbsp;
+    /*
+     * @dev Ensures the contract has been initialized in this storage context (proxy).
+     * Reverts if governanceManager is unset (uninitialized proxy or implementation).
+     */
+    modifier onlyInitialized() {
+        if(address(governanceManager) == address(0)) revert NotInitialized();
+        _;
+    }
+&nbsp;
+// ====================================================================================================================
+//                                 CONSTRUCTOR / INITIALIZER 
+// ====================================================================================================================
+    
+    /// @custom:oz-upgrades-unsafe-allow constructor
+    constructor() {
+        _disableInitializers();               
+    }
+&nbsp;
+    /**
+     * @notice Initializes the Treasury contract.
+     * @dev This function is called during the deployment of the contract to set up initial roles and funding types.
+     * The initial owner is expected to be the GovernanceManager, which will later transfer ownership to the DAO multisig.
+     * @param _treasuryMultiSig The address of the treasury multi-signature wallet.
+     * @param _governanceManager The address of the governance manager.
+     * @param _treasuryRecovery The address of the treasury recovery multi-signature wallet.
+     * @custom:error AddressCannotBeZero Thrown if any of the provided addresses are zero.
+     */
+    function initialize(
+        address _treasuryMultiSig, 
+        address _governanceManager,
+        address _treasuryRecovery
+    ) 
+        external 
+        <span class="missing-if-branch" title="else path not taken" >E</span>initializer
+        <span class="missing-if-branch" title="else path not taken" >E</span>nonZeroAddress(_treasuryMultiSig)
+        <span class="missing-if-branch" title="else path not taken" >E</span>nonZeroAddress(_governanceManager)
+        <span class="missing-if-branch" title="else path not taken" >E</span>nonZeroAddress(_treasuryRecovery)
+    {
+        __AccessControl_init();
+        __ReentrancyGuard_init(); 
+&nbsp;
+        _grantRole(DEFAULT_ADMIN_ROLE, _treasuryMultiSig);
+        _grantRole(GOVERNANCE_MANAGER_ROLE, _governanceManager);
+        _grantRole(EMERGENCY_RECOVERY_ROLE, _treasuryRecovery);
+&nbsp;
+        //if (_governanceManager.code.length == 0) revert AddressIsNotAContract();
+        governanceManager = IGovernanceManager(_governanceManager);
+        emit TreasuryInitialized(_treasuryMultiSig, _governanceManager, _treasuryRecovery);
+    }   
+&nbsp;
+// ====================================================================================================================
+//                                       EXTERNAL STATE-CHANGING FUNCTIONS
+// ====================================================================================================================
+&nbsp;
+    // ====================================================================================================
+    // ADMIN ROLE TRANSFER - EMERGENCY ACCESS - TREASURY LOCK
+    // ====================================================================================================
+&nbsp;
+    /**
+     * @notice Transfers the DEFAULT_ADMIN_ROLE to a new address.
+     * @dev This function can only be called by the current DEFAULT_ADMIN_ROLE.
+     * It revokes the DEFAULT_ADMIN_ROLE from the previous admin and grants it to the new admin.
+     * This is used to transfer ownership of the treasury management to a new admin, such as a DAO multisig.
+     * @param _newAdmin The address of the new admin that will receive the DEFAULT_ADMIN_ROLE.
+     * @custom:error AddressCannotBeZero Thrown if the provided address is zero.
+     */
+    function transferAdminRole(address _newAdmin) 
+        external 
+        onlyInitialized
+        onlyRole(DEFAULT_ADMIN_ROLE) 
+        nonZeroAddress(_newAdmin)  
+    {
+        if (hasRole(DEFAULT_ADMIN_ROLE, _newAdmin)) revert AlreadyHasRole();
+        _grantRole(DEFAULT_ADMIN_ROLE, _newAdmin);  
+        _revokeRole(DEFAULT_ADMIN_ROLE, msg.sender);
+&nbsp;
+        emit AdminRoleTransferred(msg.sender, _newAdmin);
+    }
+&nbsp;
+    /**
+     * @notice Grants emergency access to a new admin.
+     * @dev This function can only be called by the EMERGENCY_RECOVERY_ROLE.
+     * It does not revoke the DEFAULT_ADMIN_ROLE from the previous admin.
+     * @param _newAdmin The address of the new admin that will receive the DEFAULT_ADMIN_ROLE.
+     * @custom:error AddressCannotBeZero Thrown if the provided address is zero.
+     */
+    function emergencyAccessControl(address _newAdmin) 
+        external 
+        onlyInitialized
+        onlyRole(EMERGENCY_RECOVERY_ROLE) 
+        nonZeroAddress(_newAdmin)  
+    {
+        if (hasRole(DEFAULT_ADMIN_ROLE, _newAdmin)) revert AlreadyHasRole();
+        _grantRole(DEFAULT_ADMIN_ROLE, _newAdmin);
+        emit EmergencyAccessGranted(_newAdmin);
+    }
+&nbsp;
+    /**
+     * @notice Locks the treasury, preventing any transfers.
+     * @dev This function can only be called by the DEFAULT_ADMIN_ROLE or EMERGENCY_RECOVERY_ROLE.
+     * It locks the treasury for a specified period.
+     * Audit note: Even though block.timestamp could be manipulated by miners, the manipulation window is just a few seconds.
+     * Such a manipulation does not critically affect the treasury lock functionality.
+     */
+    function lockTreasury() 
+        external 
+        onlyInitialized 
+        onlyDefaultAdminOrEmergencyRecovery 
+    {
+        isTreasuryLocked = true;
+        // Lock treasury for 3 days
+        lockedUntil = block.timestamp + TIMELOCK_DELAY_DAYS * 1 days;
+        emit TreasuryLocked();
+    }
+&nbsp;
+    /**
+     * @notice Manually unlocks the treasury, allowing transfers to occur.
+     * @dev This function can only be called by the DEFAULT_ADMIN_ROLE or EMERGENCY_RECOVERY_ROLE.
+     */
+    function unlockTreasury() 
+        external 
+        onlyInitialized 
+        onlyDefaultAdminOrEmergencyRecovery 
+    {
+        isTreasuryLocked = false;
+        lockedUntil = 0;
+        emit TreasuryUnlocked();
+    }
+&nbsp;
+    // ====================================================================================================
+    // TRANSFER REQUESTS &amp; APPROVALS
+    // ====================================================================================================
+&nbsp;
+    /**
+     * @notice Requests a transfer of funds from the treasury to a specified address.
+     * @dev This function can only be called by a funding module with the FUNDING_MODULE_ROLE.
+     * It applies a timelock delay before the transfer can be executed.
+     * @dev Audit note: Even though block.timestamp could be manipulated by miners, the manipulation window is just a few seconds.
+     * Such a manipulation does not critically affect the treasury lock functionality.
+     * @param contextKey The unique identifier for the transfer request.
+     * @param _to The address that will receive the funds.
+     * @param _amount The amount of funds to be transferred.
+     * @param _fundingType The unique identifier for the funding type.
+     * @custom:error UnauthorizedModule Thrown if the caller is not an authorized funding module.
+     * @custom:error AmountCannotBeZero Thrown if the requested transfer amount is zero.
+     * @custom:error FundingAlreadyRequested Thrown if a transfer request for the specified contextKey already exists.
+     * @custom:error AddressCannotBeZero Thrown if the recipient address is zero.
+     * @custom:error KeyCannotBeZero Thrown if the contextKey is zero.
+     */
+    function requestTransfer(
+        bytes32 contextKey,
+        address _to, 
+        uint256 _amount, 
+        bytes32 _fundingType
+    ) 
+        external 
+        onlyInitialized
+        onlyActiveFundingModule(_fundingType)
+        nonZeroAddress(_to) 
+        nonZeroKey(contextKey)  
+    {   
+        if (_amount == 0) revert AmountCannotBeZero();
+        if (fundingRequests[contextKey].to != address(0)) revert FundingAlreadyRequested();
+&nbsp;
+        fundingRequests[contextKey] = TreasuryTypes.FundingRequest({
+            fundingType: _fundingType,
+            from: msg.sender,
+            to: _to,
+            amount: _amount,
+            requestedAt: block.timestamp,
+            releaseTime: block.timestamp + TIMELOCK_DELAY_DAYS * 1 days,
+            approved: false,
+            executed: false,
+            cancelled: false
+        });
+&nbsp;
+        emit TransferRequested(contextKey, msg.sender, _to, _amount);
+    }
+&nbsp;
+&nbsp;
+    /**
+     * @notice Approves a transfer request from the treasury to a specified address.
+     * @dev This function can only be called by the DEFAULT_ADMIN_ROLE.
+     * A transfer can be approved even if the release time has not yet passed.
+     * @param contextKey The unique identifier for the transfer request.
+     * @custom:error RequestDoesNotExist Thrown if the transfer request for the specified contextKey does not exist.
+     * @custom:error TransferAlreadyApproved Thrown if the transfer has already been approved.
+     * @custom:error TransferAlreadyExecuted Thrown if the transfer has already been executed.
+     * @custom:error InconsistentFundingModule Thrown if the active module for the specified funding type does not match the from address instance.
+     * @custom:error AmountCannotBeZero Thrown if the requested transfer amount is zero.
+     */
+    function approveTransfer(bytes32 contextKey) 
+        external 
+        onlyInitialized
+        onlyRole(DEFAULT_ADMIN_ROLE) 
+        nonZeroKey(contextKey) 
+        <span class="missing-if-branch" title="else path not taken" >E</span>nonReentrant 
+    {
+        _approve(contextKey);
+    }
+&nbsp;
+    // Note: Consider making transfer execution permissionless 
+&nbsp;
+    /**
+     * @notice Executes a transfer request from the treasury to a specified address.
+     * @dev This function can only be called by the DEFAULT_ADMIN_ROLE.
+     * It is non-reentrant to prevent re-entrancy attacks.
+     * @param contextKey The unique identifier for the transfer request.
+     * @custom:error TreasuryIsLocked Thrown if the treasury has been locked.
+     * @custom:error RequestDoesNotExist Thrown if the transfer request for the specified contextKey does not exist.
+     * @custom:error TransferNotApproved Thrown if the transfer has not been approved.
+     * @custom:error TransferAlreadyExecuted Thrown if the transfer has already been executed.
+     * @custom:error RequestInTimelock Thrown if the transfer request is still in the timelock phase and cannot be executed yet.
+     * @custom:error InconsistentFundingModule Thrown if the active module for the specified funding type does not match the from address instance.
+     * @custom:error InsufficientBalance Thrown if the treasury does not have enough balance to fulfill the transfer request.
+     * @custom:error AmountCannotBeZero Thrown if the requested transfer amount is zero.
+     */
+    function executeTransfer(bytes32 contextKey) 
+        external 
+        onlyInitialized
+        onlyRole(DEFAULT_ADMIN_ROLE) 
+        nonZeroKey(contextKey) 
+        <span class="missing-if-branch" title="else path not taken" >E</span>nonReentrant 
+    {
+        _execute(contextKey);
+    }
+&nbsp;
+    /**
+     * @notice Approves and executes a transfer request in a single transaction.
+     * @dev Transfer execution will fail if the funding request is still in timelock. 
+     * The approval step will be skipped if the transfer request has already been approved.
+     * @param contextKey The unique identifier for the transfer request.
+     */
+    function approveAndExecuteTransfer(bytes32 contextKey) 
+        external 
+        onlyInitialized
+        onlyRole(DEFAULT_ADMIN_ROLE) 
+        nonZeroKey(contextKey) 
+        <span class="missing-if-branch" title="else path not taken" >E</span>nonReentrant  
+    {   
+        TreasuryTypes.FundingRequest memory request = fundingRequests[contextKey];
+&nbsp;
+        if (request.approved) {
+             _execute(contextKey);
+             emit ApprovalSkipped(contextKey);
+        } else {
+            _approve(contextKey);
+            _execute(contextKey);
+        }
+    }
+&nbsp;
+    /**
+     * @notice Cancels a transfer request.
+     * @dev This function allows the admin to cancel a transfer request that has not already been executed.
+     * It allows for requests to be cancelled during or after timelock.
+     * @param contextKey The unique identifier for the transfer request.
+     * @custom:error RequestDoesNotExist Thrown if the requested transfer does not exist.
+     * @custom:error TransferAlreadyExecuted Thrown if the transfer has already been executed.
+     */
+    function cancelTransfer(bytes32 contextKey) 
+        external 
+        onlyInitialized
+        onlyRole(DEFAULT_ADMIN_ROLE) 
+        nonZeroKey(contextKey)  
+    {
+        TreasuryTypes.FundingRequest storage request = fundingRequests[contextKey];
+&nbsp;
+        if (request.requestedAt == 0) revert RequestDoesNotExist();
+        if (request.executed) revert TransferAlreadyExecuted();
+        if (request.cancelled) revert TransferAlreadyCancelled();
+        //if (block.timestamp &gt; request.releaseTime) revert TimelockHasPassed();
+&nbsp;
+        request.cancelled = true;
+        emit TransferCancelled(contextKey);
+    }
+&nbsp;
+    // ====================================================================================================
+    // RECEIVING FUNDS
+    // ====================================================================================================
+&nbsp;
+    /**
+     * @notice Funds the treasury with a specified amount.
+     * @dev This function allows users to send ETH to the treasury.
+     * Sending ETH to the implementation contract is guarded via onlyInitialized.
+     */
+    function fund() external payable onlyInitialized {
+        if(msg.value == 0) revert AmountCannotBeZero();
+        emit FundsReceived(msg.sender, msg.value);
+    }
+&nbsp;
+    /**
+     * @notice Allows the contract to receive ETH directly.
+     * @dev This function is called when the contract receives ETH without specifying a function.
+     * Sending ETH to the implementation contract is guarded via onlyInitialized.
+     */
+    receive() external payable onlyInitialized {
+        emit FundsReceived(msg.sender, msg.value);
+    }
+&nbsp;
+// ====================================================================================================================
+//                                       EXTERNAL VIEW FUNCTIONS
+// ====================================================================================================================
+&nbsp;
+    /**
+     * @notice Returns the balance of the treasury.
+     * @return The current balance of the treasury in wei.
+     */
+    function getBalance() external view returns (uint256) {
+        return address(this).balance;
+    }
+&nbsp;
+    /**
+     * @notice Checks if an address has the default admin role.
+     * @param addr The address to check.
+     * @return True if the address has the default admin role, false otherwise.
+     */
+    function hasDefaultAdminRole(address addr) external view returns (bool) {
+        return hasRole(DEFAULT_ADMIN_ROLE, addr);
+    }
+&nbsp;
+    /**
+     * @notice Checks if an address has the emergency recovery role.
+     * @param addr The address to check.
+     * @return True if the address has the emergency recovery role, false otherwise.
+     */
+    function hasEmergencyRecoveryRole(address addr) external view returns (bool) {
+        return hasRole(EMERGENCY_RECOVERY_ROLE, addr);
+    }
+&nbsp;
+    /**
+     * @notice Checks if an address has the governance manager role.
+     * @param addr The address to check.
+     * @return True if the address has the governance manager role, false otherwise.
+     */
+    function hasGovernanceManagerRole(address addr) external view returns (bool) {
+        return hasRole(GOVERNANCE_MANAGER_ROLE, addr);
+    }
+&nbsp;
+    /**
+     * @notice Checks if a funding request is pending approval.
+     * @param contextKey The unique identifier for the funding request.
+     * @return True if the funding request is pending approval, false otherwise.
+     */
+    function isPendingApproval(bytes32 contextKey) external view returns (bool) {
+        return !fundingRequests[contextKey].approved &amp;&amp; !fundingRequests[contextKey].executed;
+    }
+&nbsp;
+    /**
+     * @notice Checks if a funding request is approved and pending execution.
+     * @param contextKey The unique identifier for the funding request.
+     * @return True if the funding request is pending execution, false otherwise.
+     */
+    function isPendingExecution(bytes32 contextKey) external view returns (bool) {
+        return fundingRequests[contextKey].approved &amp;&amp; !fundingRequests[contextKey].executed;
+    }
+&nbsp;
+    /**
+     * @notice Checks if a funding request has been executed.
+     * @param contextKey The unique identifier for the funding request.
+     * @return True if the funding request has been executed, false otherwise.
+     */
+    function isExecuted(bytes32 contextKey) external view returns (bool) {
+        return fundingRequests[contextKey].executed;
+    }
+&nbsp;
+    /**
+     * @notice Retrieves the details of a funding request.
+     * @param contextKey The unique identifier for the funding request.
+     * @return The funding request details.
+     */
+    function getFundingRequest(bytes32 contextKey) external view returns (TreasuryTypes.FundingRequest memory) {
+        return fundingRequests[contextKey];
+    }
+&nbsp;
+    /**
+     * @notice Checks if the treasury is currently locked.
+     * @return True if the treasury is locked, false otherwise.
+     * @dev Audit note: Even though block.timestamp could be manipulated by miners, the manipulation window is just a few seconds.
+     * Such a manipulation does not critically affect the treasury lock functionality.
+     */
+    function isLocked() external view returns (bool) {
+        return isTreasuryLocked &amp;&amp; block.timestamp &lt;= lockedUntil;
+    }
+&nbsp;
+    /**
+     * @dev Returns the version of the contract.
+     * @return string The version of the contract.
+     */
+    function getContractVersion() external view override(IVersioned, ITreasuryManager) returns (string memory) {
+        return "TreasuryManager v1.0.0"; 
+    }
+&nbsp;
+// ====================================================================================================================
+//                                       PRIVATE HELPER FUNCTIONS
+// ====================================================================================================================
+&nbsp;
+    /**
+     * @dev Approves a funding request.
+     * @param contextKey The unique identifier for the funding request.
+     */
+    function _approve(bytes32 contextKey) private {
+        TreasuryTypes.FundingRequest storage request = fundingRequests[contextKey];
+        address activeModule = _getActiveModule(request.fundingType);
+&nbsp;
+        // Checks
+        if (request.requestedAt == 0) revert RequestDoesNotExist();
+        if (request.approved) revert TransferAlreadyApproved();
+        <span class="missing-if-branch" title="if path not taken" >I</span>if (request.executed) revert TransferAlreadyExecuted();
+        if (activeModule != request.from) revert InconsistentFundingModule();
+        if (request.cancelled) revert TransferHasBeenCancelled();
+&nbsp;
+        // Effects
+        request.approved = true;
+        emit TransferApproved(contextKey, request.to, request.amount);
+    }
+&nbsp;
+    /**
+     * @dev Executes a funding request.
+     * @param contextKey The unique identifier for the funding request.
+     * @dev Audit note: Even though block.timestamp could be manipulated by miners, the manipulation window is just a few seconds.
+     * Such a manipulation does not critically affect the treasury lock functionality.
+     */
+    function _execute(bytes32 contextKey) private {
+        TreasuryTypes.FundingRequest storage request = fundingRequests[contextKey];
+        address activeModule = _getActiveModule(request.fundingType);
+&nbsp;
+        // Checks
+        if (isTreasuryLocked &amp;&amp; block.timestamp &lt;= lockedUntil) revert TreasuryIsLocked();
+        // Auto-unlock treasury after lock period has passed
+        if (isTreasuryLocked &amp;&amp; block.timestamp &gt; lockedUntil) {
+            isTreasuryLocked = false;
+            lockedUntil = 0;
+            emit TreasuryUnlocked();
+        }
+        if (request.requestedAt == 0) revert RequestDoesNotExist();
+        if (!request.approved) revert TransferNotApproved();
+        if (request.executed) revert TransferAlreadyExecuted();
+        if (request.cancelled) revert TransferHasBeenCancelled();
+        if (request.releaseTime &gt; block.timestamp) revert RequestInTimelock();
+        if (activeModule != request.from) revert InconsistentFundingModule();
+        if (request.amount &gt; address(this).balance) revert InsufficientBalance();
+        
+        // Effects
+        request.executed = true;
+&nbsp;
+        // Interactions
+        (bool success, ) = request.to.call{ value: request.amount }("");
+&nbsp;
+        if (!success) {
+            revert TransferFailed();
+        }
+    
+        emit TransferExecuted(contextKey, request.to, request.amount);
+    }
+&nbsp;
+    /**
+     * @dev Retrieves the active module for a given funding type.
+     * @param fundingType The unique identifier for the funding type.
+     * @return address The address of the active module.
+     */
+    function _getActiveModule(bytes32 fundingType) private view returns (address) {
+        return governanceManager.activeModuleRegistry(fundingType);
+    }
+&nbsp;
+// ====================================================================================================================
+//                                       FALLBACK FUNCTION
+// ====================================================================================================================
+&nbsp;
+    /**
+     * @notice Fallback function for handling calls to non-existent functions or when no data is sent.
+     * @custom:error UnknownFunctionCall Thrown if the called function does not exist.
+     */
+    fallback() external {
+        revert UnknownFunctionCall();
+    }
+}</pre></td></tr>
+</table></pre>
+<div class='push'></div><!-- for sticky footer -->
+</div><!-- /wrapper -->
+<div class='footer quiet pad2 space-top1 center small'>
+  Code coverage
+  generated by <a href="http://istanbul-js.org/" target="_blank">istanbul</a> at Mon Sep 15 2025 18:21:10 GMT+0200 (Central European Summer Time)
+</div>
+</div>
+<script src="../prettify.js"></script>
+<script>
+window.onload = function () {
+        if (typeof prettyPrint === 'function') {
+            prettyPrint();
+        }
+};
+</script>
+<script src="../sorter.js"></script>
+</body>
+</html>

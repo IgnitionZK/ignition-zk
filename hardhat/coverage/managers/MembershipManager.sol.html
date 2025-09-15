@@ -1,0 +1,1703 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <title>Code coverage report for managers/MembershipManager.sol</title>
+    <meta charset="utf-8" />
+    <link rel="stylesheet" href="../prettify.css" />
+    <link rel="stylesheet" href="../base.css" />
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style type='text/css'>
+        .coverage-summary .sorter {
+            background-image: url(../sort-arrow-sprite.png);
+        }
+    </style>
+</head>
+<body>
+<div class='wrapper'>
+  <div class='pad1'>
+    <h1>
+      <a href="../index.html">all files</a> / <a href="index.html">managers/</a> MembershipManager.sol
+    </h1>
+    <div class='clearfix'>
+      <div class='fl pad1y space-right2'>
+        <span class="strong">100% </span>
+        <span class="quiet">Statements</span>
+        <span class='fraction'>60/60</span>
+      </div>
+      <div class='fl pad1y space-right2'>
+        <span class="strong">85.23% </span>
+        <span class="quiet">Branches</span>
+        <span class='fraction'>75/88</span>
+      </div>
+      <div class='fl pad1y space-right2'>
+        <span class="strong">100% </span>
+        <span class="quiet">Functions</span>
+        <span class='fraction'>15/15</span>
+      </div>
+      <div class='fl pad1y space-right2'>
+        <span class="strong">100% </span>
+        <span class="quiet">Lines</span>
+        <span class='fraction'>69/69</span>
+      </div>
+    </div>
+  </div>
+  <div class='status-line high'></div>
+<pre><table class="coverage">
+<tr><td class="line-count quiet">1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+14
+15
+16
+17
+18
+19
+20
+21
+22
+23
+24
+25
+26
+27
+28
+29
+30
+31
+32
+33
+34
+35
+36
+37
+38
+39
+40
+41
+42
+43
+44
+45
+46
+47
+48
+49
+50
+51
+52
+53
+54
+55
+56
+57
+58
+59
+60
+61
+62
+63
+64
+65
+66
+67
+68
+69
+70
+71
+72
+73
+74
+75
+76
+77
+78
+79
+80
+81
+82
+83
+84
+85
+86
+87
+88
+89
+90
+91
+92
+93
+94
+95
+96
+97
+98
+99
+100
+101
+102
+103
+104
+105
+106
+107
+108
+109
+110
+111
+112
+113
+114
+115
+116
+117
+118
+119
+120
+121
+122
+123
+124
+125
+126
+127
+128
+129
+130
+131
+132
+133
+134
+135
+136
+137
+138
+139
+140
+141
+142
+143
+144
+145
+146
+147
+148
+149
+150
+151
+152
+153
+154
+155
+156
+157
+158
+159
+160
+161
+162
+163
+164
+165
+166
+167
+168
+169
+170
+171
+172
+173
+174
+175
+176
+177
+178
+179
+180
+181
+182
+183
+184
+185
+186
+187
+188
+189
+190
+191
+192
+193
+194
+195
+196
+197
+198
+199
+200
+201
+202
+203
+204
+205
+206
+207
+208
+209
+210
+211
+212
+213
+214
+215
+216
+217
+218
+219
+220
+221
+222
+223
+224
+225
+226
+227
+228
+229
+230
+231
+232
+233
+234
+235
+236
+237
+238
+239
+240
+241
+242
+243
+244
+245
+246
+247
+248
+249
+250
+251
+252
+253
+254
+255
+256
+257
+258
+259
+260
+261
+262
+263
+264
+265
+266
+267
+268
+269
+270
+271
+272
+273
+274
+275
+276
+277
+278
+279
+280
+281
+282
+283
+284
+285
+286
+287
+288
+289
+290
+291
+292
+293
+294
+295
+296
+297
+298
+299
+300
+301
+302
+303
+304
+305
+306
+307
+308
+309
+310
+311
+312
+313
+314
+315
+316
+317
+318
+319
+320
+321
+322
+323
+324
+325
+326
+327
+328
+329
+330
+331
+332
+333
+334
+335
+336
+337
+338
+339
+340
+341
+342
+343
+344
+345
+346
+347
+348
+349
+350
+351
+352
+353
+354
+355
+356
+357
+358
+359
+360
+361
+362
+363
+364
+365
+366
+367
+368
+369
+370
+371
+372
+373
+374
+375
+376
+377
+378
+379
+380
+381
+382
+383
+384
+385
+386
+387
+388
+389
+390
+391
+392
+393
+394
+395
+396
+397
+398
+399
+400
+401
+402
+403
+404
+405
+406
+407
+408
+409
+410
+411
+412
+413
+414
+415
+416
+417
+418
+419
+420
+421
+422
+423
+424
+425
+426
+427
+428
+429
+430
+431
+432
+433
+434
+435
+436
+437
+438
+439
+440
+441
+442
+443
+444
+445
+446
+447
+448
+449
+450
+451
+452
+453
+454
+455
+456
+457
+458
+459
+460
+461
+462
+463
+464
+465
+466
+467
+468
+469
+470
+471
+472
+473
+474
+475
+476
+477
+478
+479
+480
+481
+482
+483
+484
+485
+486
+487
+488
+489
+490
+491
+492
+493
+494
+495
+496
+497
+498
+499
+500
+501
+502
+503
+504
+505
+506
+507
+508
+509
+510
+511
+512
+513
+514
+515
+516
+517
+518
+519
+520
+521
+522
+523
+524
+525
+526
+527
+528
+529
+530
+531
+532
+533
+534
+535
+536
+537
+538
+539
+540
+541
+542
+543
+544
+545
+546
+547</td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">490×</span>
+<span class="cline-any cline-yes">489×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1954×</span>
+<span class="cline-any cline-yes">1951×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">614×</span>
+<span class="cline-any cline-yes">614×</span>
+<span class="cline-any cline-yes">614×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">614×</span>
+<span class="cline-any cline-yes">614×</span>
+<span class="cline-any cline-yes">614×</span>
+<span class="cline-any cline-yes">614×</span>
+<span class="cline-any cline-yes">614×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">7×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">6×</span>
+<span class="cline-any cline-yes">6×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">8×</span>
+<span class="cline-any cline-yes">8×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">8×</span>
+<span class="cline-any cline-yes">8×</span>
+<span class="cline-any cline-yes">7×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">5×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">3×</span>
+<span class="cline-any cline-yes">3×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">206×</span>
+<span class="cline-any cline-yes">204×</span>
+<span class="cline-any cline-yes">202×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">200×</span>
+<span class="cline-any cline-yes">200×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">200×</span>
+<span class="cline-any cline-yes">200×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">200×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">200×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">164×</span>
+<span class="cline-any cline-yes">164×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">163×</span>
+<span class="cline-any cline-yes">162×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">161×</span>
+<span class="cline-any cline-yes">161×</span>
+<span class="cline-any cline-yes">157×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">4×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">98×</span>
+<span class="cline-any cline-yes">96×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">95×</span>
+<span class="cline-any cline-yes">95×</span>
+<span class="cline-any cline-yes">95×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">94×</span>
+<span class="cline-any cline-yes">94×</span>
+<span class="cline-any cline-yes">93×</span>
+<span class="cline-any cline-yes">93×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">7×</span>
+<span class="cline-any cline-yes">7×</span>
+<span class="cline-any cline-yes">6×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">4×</span>
+<span class="cline-any cline-yes">80×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">4×</span>
+<span class="cline-any cline-yes">3×</span>
+<span class="cline-any cline-yes">3×</span>
+<span class="cline-any cline-yes">3×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">2×</span>
+<span class="cline-any cline-yes">2×</span>
+<span class="cline-any cline-yes">2×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">266×</span>
+<span class="cline-any cline-yes">266×</span>
+<span class="cline-any cline-yes">262×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">// SPDX-License-Identifier: GPL-3.0
+pragma solidity ^0.8.28;
+&nbsp;
+// OZ imports:
+import { UUPSUpgradeable } from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
+import { Initializable } from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
+import { OwnableUpgradeable } from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+import { ERC165Upgradeable } from "@openzeppelin/contracts-upgradeable/utils/introspection/ERC165Upgradeable.sol";
+// import Clones for NFT factory pattern:
+import { Clones } from "@openzeppelin/contracts/proxy/Clones.sol";
+&nbsp;
+// Interfaces:
+import { IERC721IgnitionZK } from "../interfaces/IERC721IgnitionZK.sol";
+import { IERC165 } from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
+import { IERC721 } from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
+import { IMembershipManager } from "../interfaces/managers/IMembershipManager.sol";
+import { IMembershipVerifier } from "../interfaces/verifiers/IMembershipVerifier.sol";
+import { IVersioned } from "../interfaces/IVersioned.sol";
+&nbsp;
+/**
+ * @title MembershipManager
+ * @notice This contract serves as the central hub for managing group memberships, utilizing a
+ * dedicated ERC721 NFTs for membership tokens.
+ * It is designed to be upgradeable via the UUPS proxy pattern by the governor.
+ * @dev A contract to manage membership in groups using Merkle trees.
+ * It allows for initializing and updating Merkle roots, verifying proofs, managing group NFTs,
+ * and adding/removing members. This contract acts as a factory for ERC721IgnitionZK NFT contracts.
+ */
+contract MembershipManager is Initializable, UUPSUpgradeable, OwnableUpgradeable, IMembershipManager, ERC165Upgradeable, IVersioned {
+// ====================================================================================================================
+//                                                  CUSTOM ERRORS
+// ====================================================================================================================
+    // ====================================================================================================
+    // MERKLE ROOT ERRORS
+    // ====================================================================================================
+&nbsp;
+    /// @notice Thrown if a Merkle root is zero.
+    error RootCannotBeZero();
+    
+    /// @notice Thrown if the Merkle root does not match the current root.
+    error InvalidMerkleRoot();
+&nbsp;
+    /// @notice Thrown if a new Merkle root is the same as the current root.
+    error NewRootMustBeDifferent();
+&nbsp;
+    /// @notice Thrown if a Merkle root has not been initialized for a group.
+    error RootNotYetInitialized();
+&nbsp;
+    // ====================================================================================================
+    // NFT ERRORS
+    // ====================================================================================================
+&nbsp;
+    /// @notice Thrown if a group NFT has not been set for a group.
+    error GroupNftNotSet();
+&nbsp;
+    /// @notice Thrown if a group NFT has already been set for a group.
+    error GroupNftAlreadySet();
+&nbsp;
+    /// @notice Thrown if the NFT implementation does not support the ERC721 interface.
+    error NftMustBeERC721();
+&nbsp;
+    /// @notice Thrown if the NFT name is empty or exceeds the maximum length.
+    error InvalidNftNameLength();
+&nbsp;
+    /// @notice Thrown if the NFT symbol is empty or exceeds the maximum length.
+    error InvalidNftSymbolLength();
+&nbsp;
+    /// @notice Thrown if the `safeMint` call to the NFT contract fails.
+    error MintingFailed(string reason);
+&nbsp;
+    // ====================================================================================================
+    // PROOF ERRORS
+    // ====================================================================================================
+&nbsp;
+    /// @notice Thrown if the zk-SNARK proof is invalid.
+    /// @param groupKey The unique identifier for the group associated with the proof.
+    error InvalidProof(bytes32 groupKey);
+&nbsp;
+    /// @notice Thrown if the group key in the public signals does not match the expected group key.
+    error InvalidGroupKey();
+&nbsp;
+    // ====================================================================================================
+    // MEMBER ERRORS
+    // ====================================================================================================
+&nbsp;
+    /// @notice Thrown if a member address already has a token for the group.
+    error MemberAlreadyHasToken();
+&nbsp;
+    /// @notice Thrown if a member address does not have a token for the group.
+    error MemberDoesNotHaveToken();
+&nbsp;
+    /// @notice Thrown if the provided array of member addresses exceeds the maximum allowed batch size.
+    error MemberBatchTooLarge();
+&nbsp;
+    /// @notice Thrown if the provided array of member addresses is empty.
+    error NoMembersProvided();
+&nbsp;
+    /// @notice Thrown if the member address is not an externally owned account (EOA).
+    error MemberMustBeEOA();
+    
+    // ====================================================================================================
+    // GENERAL ERRORS (used in Modifiers)
+    // ====================================================================================================
+&nbsp;
+    /// @notice Thrown if a key (groupKey) is zero.
+    error KeyCannotBeZero();
+&nbsp;
+    /// @notice Thrown if an address is zero.
+    error AddressCannotBeZero();
+&nbsp;
+    /// @notice Thrown if the provided address is not a contract.
+    error AddressIsNotAContract();
+&nbsp;
+    /// @notice Thrown if the provided address does not support the required interface.
+    /// @dev This is used to check if the address supports the `verifyProof` function
+    //error AddressDoesNotSupportInterface();
+    
+// ====================================================================================================================
+//                                                  EVENTS
+// ====================================================================================================================
+&nbsp;
+    /**
+     * @notice This event is emitted when the initial root is set for a group, allowing for future updates and proof verifications.
+     * @dev Emitted when a new Merkle root is initialized for a group.
+     * @param groupKey The unique identifier for the group.
+     * @param root The initialized Merkle root for the group.
+    */
+    event RootInitialized(bytes32 indexed groupKey, bytes32 root);
+    
+    /**
+     * @notice Emitted when an existing Merkle root for a group is updated.
+     * @param groupKey The unique identifier for the group.
+     * @param oldRoot The previous Merkle root.
+     * @param newRoot The new Merkle root.
+     */
+    event RootSet(bytes32 indexed groupKey, bytes32 oldRoot, bytes32 newRoot);
+    
+     /**
+     * @notice Emitted after a zk-SNARK proof is verified.
+     * @param groupKey The unique identifier for the group.
+     */
+    event ProofVerified(bytes32 indexed groupKey); 
+    
+    /**
+     * @notice Emitted when a new ERC721 NFT contract is deployed for a group.
+     * @param groupKey The unique identifier for the group.
+     * @param nftAddress The address of the newly deployed NFT contract.
+     * @param name The name of the new NFT collection.
+     * @param symbol The symbol of the new NFT collection.
+     */
+    event GroupNftDeployed(bytes32 indexed groupKey, address indexed nftAddress, string name, string symbol);
+    
+    /**
+     * @notice Emitted when a member is successfully added to a group and a token is minted.
+     * @param groupKey The unique identifier for the group.
+     * @param memberAddress The address of the new member.
+     * @param tokenId The ID of the minted membership token.
+     */ 
+    event MemberNftMinted(bytes32 indexed groupKey, address indexed memberAddress, uint256 tokenId);
+    
+    /**
+     * @notice Emitted when a member is successfully removed from a group and their token is burned.
+     * @param groupKey The unique identifier for the group.
+     * @param memberAddress The address of the removed member.
+     * @param tokenId The ID of the burned membership token.
+     */  
+    event MemberNftBurned(bytes32 indexed groupKey, address indexed memberAddress, uint256 tokenId);
+    
+    /**
+     * @notice Emitted when a role is revoked from the NFT clone.
+     * @param nftClone The address of the NFT contract clone from which the role was revoked.
+     * @param role The role that was revoked (e.g., MINTER_ROLE, BURNER_ROLE).
+     * @param revokedFrom The address from which the role was revoked (usually this contract).
+     */ 
+    event RoleRevoked(address indexed nftClone, bytes32 role, address indexed revokedFrom);
+    
+    /**
+     * @notice Emitted when a role is granted to an address in the NFT clone.
+     * @param nftClone The address of the NFT contract clone to which the role was granted.
+     * @param role The role that was granted (e.g., MINTER_ROLE, BURNER_ROLE).
+     * @param grantedTo The address to which the role was granted.
+     */
+    event RoleGranted(address indexed nftClone, bytes32 role, address indexed grantedTo);
+    
+    /**
+     * @notice Emitted when the address of the NFT implementation contract is set.
+     * @param nftImplementation The address of the NFT implementation contract.
+     */
+    event NftImplementationSet(address indexed nftImplementation);
+&nbsp;
+    /**
+     * @notice Emitted when the address of the membership verifier contract is set.
+     * @param membershipVerifier The address of the membership verifier contract.
+     */
+    event MembershipVerifierSet(address indexed membershipVerifier);
+&nbsp;
+// ====================================================================================================================
+//                                          STATE VARIABLES
+// NOTE: Once the contract is deployed do not change the order of the variables. If this contract is updated append new variables to the end of this list. 
+// ====================================================================================================================
+    // ====================================================================================================
+    // MAPPINGS
+    // ====================================================================================================
+&nbsp;
+    /// @dev Maps a unique group key to its current Merkle root.
+    mapping(bytes32 =&gt; bytes32) public groupRoots; 
+    
+    /// @dev Maps a group key to the address of its associated ERC721 NFT contract.
+    mapping(bytes32 =&gt; address) public groupNftAddresses; 
+&nbsp;
+    // ====================================================================================================
+    // ADDRESSES
+    // ====================================================================================================
+    
+    /// @dev The address of the NFT implementation contract used for creating new group NFTs.
+    address public nftImplementation;
+&nbsp;
+    /// @dev The interface of the membership verifier contract.
+    IMembershipVerifier public membershipVerifier;
+&nbsp;
+    // ====================================================================================================
+    // CONSTANTS
+    // ====================================================================================================
+&nbsp;
+    /// @dev The maximum number of members that can be added in a single batch transaction.
+    uint256 public constant MAX_MEMBERS_BATCH = 30;
+&nbsp;
+// ====================================================================================================================
+//                                                  MODIFIERS
+// ====================================================================================================================
+&nbsp;
+    /**
+     * @dev Ensures that the provided group key is not zero.
+     * @param groupKey The unique identifier for the group.
+     */
+    modifier nonZeroKey(bytes32 groupKey) {
+        if (groupKey == bytes32(0)) revert KeyCannotBeZero();
+        _;
+    }
+&nbsp;
+    /**
+     * @dev Ensures that the provided address is not the zero address.
+     * @param addr The address to check.
+     */
+    modifier nonZeroAddress(address addr) {
+         if (addr == address(0)) revert AddressCannotBeZero();
+         _;
+    }
+&nbsp;
+// ====================================================================================================================
+//                                 CONSTRUCTOR / INITIALIZER / UPGRADE AUTHORIZATION
+// ====================================================================================================================
+&nbsp;
+    /**
+     * @dev Authorizes upgrades for the UUPS proxy. Only callable by the contract's governor.
+     * @param newImplementation The address of the new implementation contract.
+     */
+    function _authorizeUpgrade(address newImplementation) internal override onlyOwner {}
+&nbsp;
+    /// @custom:oz-upgrades-unsafe-allow constructor
+    constructor() {
+        _disableInitializers(); 
+    }
+&nbsp;
+    /**
+     * @notice Initializes the MembershipManager contract.
+     * @dev This function replaces the constructor for upgradeable contracts and is called once
+     * after the proxy is deployed. It sets the governor.
+     * @dev The governor is set as the owner of this contract, allowing it to manage upgrades and configurations.
+     * @dev The NFT implementation address is checked to ensure it supports the ERC721 interface.
+     * @param _governor The address of the governor (DAO) contract.
+     * @param _nftImplementation The address of the NFT implementation contract to be used for group NFTs.
+     * @custom:error AddressCannotBeZero If any of the provided addresses are zero.
+     * @custom:error NftMustBeERC721 If the provided NFT implementation does not support the ERC721 interface.
+     */
+    function initialize
+    (
+        address _governor, 
+        address _nftImplementation,
+        address _membershipVerifier
+    ) 
+        external 
+        <span class="missing-if-branch" title="else path not taken" >E</span>initializer 
+        <span class="missing-if-branch" title="else path not taken" >E</span>nonZeroAddress(_governor) 
+        <span class="missing-if-branch" title="else path not taken" >E</span>nonZeroAddress(_nftImplementation) 
+        <span class="missing-if-branch" title="else path not taken" >E</span>nonZeroAddress(_membershipVerifier) 
+    {
+        __Ownable_init(_governor);
+        __UUPSUpgradeable_init();
+        __ERC165_init();
+      
+        <span class="missing-if-branch" title="if path not taken" >I</span>if (!IERC165(_nftImplementation).supportsInterface(type(IERC721).interfaceId)) revert NftMustBeERC721();
+        nftImplementation = _nftImplementation;
+        membershipVerifier = IMembershipVerifier(_membershipVerifier);
+        emit NftImplementationSet(_nftImplementation);
+        emit MembershipVerifierSet(_membershipVerifier);
+    }
+&nbsp;
+// ====================================================================================================================
+//                                       EXTERNAL STATE-CHANGING FUNCTIONS
+// ====================================================================================================================
+&nbsp;
+    /**
+     * @dev This function can only be called by the contract owner (governor).
+     * @custom:error AddressCannotBeZero If the provided verifier address is zero.
+     * @custom:error AddressIsNotAContract If the provided address is not a contract.
+     */
+    function setMembershipVerifier(address _membershipVerifier) external onlyOwner nonZeroAddress(_membershipVerifier) {
+        if(_membershipVerifier.code.length == 0) revert AddressIsNotAContract();
+        //if(!_supportsIMembershipInterface(_membershipVerifier)) revert AddressDoesNotSupportInterface();
+&nbsp;
+        membershipVerifier = IMembershipVerifier(_membershipVerifier);
+        emit MembershipVerifierSet(_membershipVerifier);
+    }
+&nbsp;
+    /**
+     * @dev Verifies a zk-SNARK proof for membership in a group.
+     * It does not check for unique nullifiers or prevent double-spending. It can be used multiple times to prove membership of a user. 
+     * @dev It can only be called by the contract owner (governor).
+     * @custom:error RootNotYetInitialized If no root has been set for the group yet.
+     * @custom:error InvalidMerkleRoot If the provided proof root does not match the current root.
+     * @custom:error InvalidGroupKey If the group key in the public signals does not match the expected group key.
+     * @custom:error InvalidProof If the provided zk-SNARK proof is invalid for the given group key.
+     */
+    function verifyMembership(
+        uint256[24] calldata proof, 
+        uint256[2] calldata publicSignals,
+        bytes32 groupKey
+    ) external onlyOwner <span class="missing-if-branch" title="else path not taken" >E</span>nonZeroKey(groupKey) {
+&nbsp;
+        bytes32 proofRoot = bytes32(publicSignals[0]);
+        bytes32 proofGroupHash = bytes32(publicSignals[1]);
+&nbsp;
+        // check if root is valid
+        bytes32 currentRoot = groupRoots[groupKey];
+        if (currentRoot == bytes32(0)) revert RootNotYetInitialized();
+        if (currentRoot != proofRoot) revert InvalidMerkleRoot();
+&nbsp;
+        // check if context is valid
+        if (groupKey != proofGroupHash) revert InvalidGroupKey();
+&nbsp;
+        // check if proof is valid
+        bool isValid = membershipVerifier.verifyProof(proof, publicSignals);
+        if (!isValid) revert InvalidProof(groupKey);
+&nbsp;
+        // emit event
+        emit ProofVerified(groupKey);
+    }
+&nbsp;
+    /**
+     * @dev Uses the Clones library to create a deterministic clone of the NFT implementation.
+     * @dev The newly deployed NFT Clone's owner is set to the MembershipManager.
+     * @dev Only the governor can call this function. 
+     * @custom:error GroupNftAlreadySet If an NFT contract has already been deployed for this group key.
+     * @custom:error KeyCannotBeZero If the provided group key is zero.
+     */
+    function deployGroupNft(
+        bytes32 groupKey,
+        string calldata name, 
+        string calldata symbol
+    ) 
+        external 
+        onlyOwner 
+        nonZeroKey(groupKey) 
+        returns (address) 
+    {
+        if (groupNftAddresses[groupKey] != address(0)) revert GroupNftAlreadySet();
+        if (bytes(symbol).length &gt; 5 || bytes(symbol).length == 0) revert InvalidNftSymbolLength();
+        if (bytes(name).length &gt; 32 || bytes(name).length == 0) revert InvalidNftNameLength();
+&nbsp;
+        bytes32 salt = groupKey;
+        address clone = Clones.cloneDeterministic(
+            nftImplementation, 
+            salt // Use groupKey as the salt for deterministic deployment
+        );
+&nbsp;
+        // Update state first to mitigate re-entrancy risk
+        groupNftAddresses[groupKey] = clone;
+        emit GroupNftDeployed(groupKey, clone, name, symbol);
+        
+        IERC721IgnitionZK(clone).initialize(
+            address(this), // DEFAULT_ADMIN_ROLE will be this contract
+            address(this), // MINTER_ROLE will be this contract
+            address(this), // BURNER_ROLE will be this contract
+            name, 
+            symbol
+        );
+        
+        return clone;
+    }
+&nbsp;
+    /**
+     * @dev Can only be called by the governor.
+     * @custom:error RootCannotBeZero If the new root is zero.
+     * @custom:error NewRootMustBeDifferent If the new root is identical to the current root.
+     * @custom:error KeyCannotBeZero If the provided group key is zero.
+     * @custom:error GroupNftNotSet If no NFT contract has been deployed for the specified group key.
+     */
+    function setRoot
+    (   
+        bytes32 newRoot, 
+        bytes32 groupKey
+    ) 
+        external 
+        onlyOwner
+        <span class="missing-if-branch" title="else path not taken" >E</span>nonZeroKey(groupKey) 
+    {
+        bytes32 currentRoot = groupRoots[groupKey];
+        _mustHaveSetGroupNft(groupKey);
+&nbsp;
+        if (newRoot == bytes32(0)) revert RootCannotBeZero();
+        if (newRoot == currentRoot) revert NewRootMustBeDifferent();
+        
+        groupRoots[groupKey] = newRoot;
+        if (currentRoot == bytes32(0)) {
+            emit RootInitialized(groupKey, newRoot);
+        } else {
+            emit RootSet(groupKey, currentRoot, newRoot);
+        }
+    }
+&nbsp;
+    /**
+     * @dev Only the governor can call this function. Ensures that the member address is not zero, does not already hold a token for this group,
+     * and is an externally owned account (EOA).
+     * The function mints a new token for the member using the group's NFT contract.
+     * Emits an event upon successful minting of the membership token.
+     * @custom:error GroupNftNotSet If no NFT contract is deployed for the specified group.
+     * @custom:error AddressCannotBeZero If the member address is zero.
+     * @custom:error MemberAlreadyHasToken If the member already holds a token for this group.
+     * @custom:error MemberMustBeEOA If the member address is a contract address (and not an EOA).
+     * @custom:error MintingFailed If the `safeMint` call to the NFT contract fails.
+     */
+    function mintNftToMember
+    (
+        address memberAddress, 
+        bytes32 groupKey
+    ) 
+        public 
+        onlyOwner 
+        <span class="missing-if-branch" title="else path not taken" >E</span>nonZeroKey(groupKey) 
+        nonZeroAddress(memberAddress) 
+    {
+        address groupNftAddress = _mustHaveSetGroupNft(groupKey);
+        if (memberAddress.code.length != 0) revert MemberMustBeEOA();
+&nbsp;
+        IERC721IgnitionZK nft = IERC721IgnitionZK(groupNftAddress);
+        uint256 memberBalance = nft.balanceOf(memberAddress);
+        if (memberBalance &gt; 0) revert MemberAlreadyHasToken();
+&nbsp;
+        uint256 mintedTokenId;
+        try nft.safeMint(memberAddress) returns (uint256 _tokenId) {
+            mintedTokenId = _tokenId;
+            emit MemberNftMinted(groupKey, memberAddress, mintedTokenId);
+        } catch Error(string memory reason) {
+            revert MintingFailed(reason);
+        }
+    }
+&nbsp;
+    /**
+     * @dev Only the governor can call this function.
+     * Iterates and calls `mintNftToMember` for each address.
+     * Audit note: Consider a pull over push method for large batches to avoid gas limit issues.
+     * @custom:error NoMembersProvided If the `memberAddresses` array is empty.
+     * @custom:error MemberBatchTooLarge If the number of members exceeds `MAX_MEMBERS_BATCH`.
+     * @custom:error (Propagates errors from `mintNftToMember`)
+     * @custom:error KeyCannotBeZero If the provided group key is zero.
+     */
+    function mintNftToMembers
+    (
+        address[] calldata memberAddresses, 
+        bytes32 groupKey
+    ) 
+        public 
+        onlyOwner 
+        <span class="missing-if-branch" title="else path not taken" >E</span>nonZeroKey(groupKey) 
+    {
+        uint256 memberCount = memberAddresses.length;
+        if (memberCount == 0) revert NoMembersProvided();
+        if (memberCount &gt; MAX_MEMBERS_BATCH) revert MemberBatchTooLarge();
+&nbsp;
+        for (uint256 i = 0; i &lt; memberCount; i++) {
+            mintNftToMember(memberAddresses[i], groupKey);
+        }
+    }
+&nbsp;
+    /**
+     * @dev Only the governor can call this function. Burns the membership token for the specified member.
+     */
+    function burnMemberNft
+    (
+        address memberAddress, 
+        bytes32 groupKey
+    ) 
+        external 
+        onlyOwner 
+        <span class="missing-if-branch" title="else path not taken" >E</span>nonZeroKey(groupKey) 
+        <span class="missing-if-branch" title="else path not taken" >E</span>nonZeroAddress(memberAddress) 
+    {
+        address groupNftAddress = _mustHaveSetGroupNft(groupKey);
+        IERC721IgnitionZK nft = IERC721IgnitionZK(groupNftAddress);
+        uint256 memberBalance = nft.balanceOf(memberAddress);
+        if (memberBalance == 0) revert MemberDoesNotHaveToken();
+&nbsp;
+        uint256 tokenIdToBurn = nft.tokenOfOwnerByIndex(memberAddress, 0);
+        nft.revokeMembershipToken(tokenIdToBurn);
+        emit MemberNftBurned(groupKey, memberAddress, tokenIdToBurn);
+    }
+&nbsp;
+// ====================================================================================================================
+//                                       EXTERNAL VIEW FUNCTIONS
+// ====================================================================================================================
+&nbsp;
+    /**
+     * @dev Checks if the contract supports a specific interface.
+     * @param interfaceId The interface identifier to check.
+     * @return bool True if the interface is supported, false otherwise.
+     */
+    function supportsInterface(bytes4 interfaceId) public view virtual override returns (bool) 
+    {
+        return interfaceId == type(IMembershipManager).interfaceId || super.supportsInterface(interfaceId);
+    }
+&nbsp;
+    /**
+     * @dev Returns the version of the contract.
+     * @return string The version of the contract.
+     */
+    function getContractVersion() external view override(IVersioned, IMembershipManager) returns (string memory) {
+        return "MembershipManager v1.0.0"; 
+    }
+       
+// ====================================================================================================================
+//                                       PRIVATE HELPER FUNCTIONS
+// ====================================================================================================================
+&nbsp;
+    /**
+     * @dev Ensures that a group NFT is deployed for the specified group key.
+     * @param groupKey The unique identifier for the group.
+     * @return address of the ERC721 NFT contract associated with the specified group key.
+     */
+    function _mustHaveSetGroupNft(bytes32 groupKey) private view returns (address) {
+        address nftAddress = groupNftAddresses[groupKey];
+        if (nftAddress == address(0)) revert GroupNftNotSet();
+        return nftAddress;
+    }
+&nbsp;
+&nbsp;
+}</pre></td></tr>
+</table></pre>
+<div class='push'></div><!-- for sticky footer -->
+</div><!-- /wrapper -->
+<div class='footer quiet pad2 space-top1 center small'>
+  Code coverage
+  generated by <a href="http://istanbul-js.org/" target="_blank">istanbul</a> at Mon Sep 15 2025 18:21:10 GMT+0200 (Central European Summer Time)
+</div>
+</div>
+<script src="../prettify.js"></script>
+<script>
+window.onload = function () {
+        if (typeof prettyPrint === 'function') {
+            prettyPrint();
+        }
+};
+</script>
+<script src="../sorter.js"></script>
+</body>
+</html>
