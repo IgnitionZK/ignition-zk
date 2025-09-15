@@ -1,0 +1,2396 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <title>Code coverage report for governance/GovernanceManager.sol</title>
+    <meta charset="utf-8" />
+    <link rel="stylesheet" href="../prettify.css" />
+    <link rel="stylesheet" href="../base.css" />
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style type='text/css'>
+        .coverage-summary .sorter {
+            background-image: url(../sort-arrow-sprite.png);
+        }
+    </style>
+</head>
+<body>
+<div class='wrapper'>
+  <div class='pad1'>
+    <h1>
+      <a href="../index.html">all files</a> / <a href="index.html">governance/</a> GovernanceManager.sol
+    </h1>
+    <div class='clearfix'>
+      <div class='fl pad1y space-right2'>
+        <span class="strong">92.68% </span>
+        <span class="quiet">Statements</span>
+        <span class='fraction'>76/82</span>
+      </div>
+      <div class='fl pad1y space-right2'>
+        <span class="strong">75.47% </span>
+        <span class="quiet">Branches</span>
+        <span class='fraction'>80/106</span>
+      </div>
+      <div class='fl pad1y space-right2'>
+        <span class="strong">90.24% </span>
+        <span class="quiet">Functions</span>
+        <span class='fraction'>37/41</span>
+      </div>
+      <div class='fl pad1y space-right2'>
+        <span class="strong">93.55% </span>
+        <span class="quiet">Lines</span>
+        <span class='fraction'>87/93</span>
+      </div>
+    </div>
+  </div>
+  <div class='status-line high'></div>
+<pre><table class="coverage">
+<tr><td class="line-count quiet">1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+14
+15
+16
+17
+18
+19
+20
+21
+22
+23
+24
+25
+26
+27
+28
+29
+30
+31
+32
+33
+34
+35
+36
+37
+38
+39
+40
+41
+42
+43
+44
+45
+46
+47
+48
+49
+50
+51
+52
+53
+54
+55
+56
+57
+58
+59
+60
+61
+62
+63
+64
+65
+66
+67
+68
+69
+70
+71
+72
+73
+74
+75
+76
+77
+78
+79
+80
+81
+82
+83
+84
+85
+86
+87
+88
+89
+90
+91
+92
+93
+94
+95
+96
+97
+98
+99
+100
+101
+102
+103
+104
+105
+106
+107
+108
+109
+110
+111
+112
+113
+114
+115
+116
+117
+118
+119
+120
+121
+122
+123
+124
+125
+126
+127
+128
+129
+130
+131
+132
+133
+134
+135
+136
+137
+138
+139
+140
+141
+142
+143
+144
+145
+146
+147
+148
+149
+150
+151
+152
+153
+154
+155
+156
+157
+158
+159
+160
+161
+162
+163
+164
+165
+166
+167
+168
+169
+170
+171
+172
+173
+174
+175
+176
+177
+178
+179
+180
+181
+182
+183
+184
+185
+186
+187
+188
+189
+190
+191
+192
+193
+194
+195
+196
+197
+198
+199
+200
+201
+202
+203
+204
+205
+206
+207
+208
+209
+210
+211
+212
+213
+214
+215
+216
+217
+218
+219
+220
+221
+222
+223
+224
+225
+226
+227
+228
+229
+230
+231
+232
+233
+234
+235
+236
+237
+238
+239
+240
+241
+242
+243
+244
+245
+246
+247
+248
+249
+250
+251
+252
+253
+254
+255
+256
+257
+258
+259
+260
+261
+262
+263
+264
+265
+266
+267
+268
+269
+270
+271
+272
+273
+274
+275
+276
+277
+278
+279
+280
+281
+282
+283
+284
+285
+286
+287
+288
+289
+290
+291
+292
+293
+294
+295
+296
+297
+298
+299
+300
+301
+302
+303
+304
+305
+306
+307
+308
+309
+310
+311
+312
+313
+314
+315
+316
+317
+318
+319
+320
+321
+322
+323
+324
+325
+326
+327
+328
+329
+330
+331
+332
+333
+334
+335
+336
+337
+338
+339
+340
+341
+342
+343
+344
+345
+346
+347
+348
+349
+350
+351
+352
+353
+354
+355
+356
+357
+358
+359
+360
+361
+362
+363
+364
+365
+366
+367
+368
+369
+370
+371
+372
+373
+374
+375
+376
+377
+378
+379
+380
+381
+382
+383
+384
+385
+386
+387
+388
+389
+390
+391
+392
+393
+394
+395
+396
+397
+398
+399
+400
+401
+402
+403
+404
+405
+406
+407
+408
+409
+410
+411
+412
+413
+414
+415
+416
+417
+418
+419
+420
+421
+422
+423
+424
+425
+426
+427
+428
+429
+430
+431
+432
+433
+434
+435
+436
+437
+438
+439
+440
+441
+442
+443
+444
+445
+446
+447
+448
+449
+450
+451
+452
+453
+454
+455
+456
+457
+458
+459
+460
+461
+462
+463
+464
+465
+466
+467
+468
+469
+470
+471
+472
+473
+474
+475
+476
+477
+478
+479
+480
+481
+482
+483
+484
+485
+486
+487
+488
+489
+490
+491
+492
+493
+494
+495
+496
+497
+498
+499
+500
+501
+502
+503
+504
+505
+506
+507
+508
+509
+510
+511
+512
+513
+514
+515
+516
+517
+518
+519
+520
+521
+522
+523
+524
+525
+526
+527
+528
+529
+530
+531
+532
+533
+534
+535
+536
+537
+538
+539
+540
+541
+542
+543
+544
+545
+546
+547
+548
+549
+550
+551
+552
+553
+554
+555
+556
+557
+558
+559
+560
+561
+562
+563
+564
+565
+566
+567
+568
+569
+570
+571
+572
+573
+574
+575
+576
+577
+578
+579
+580
+581
+582
+583
+584
+585
+586
+587
+588
+589
+590
+591
+592
+593
+594
+595
+596
+597
+598
+599
+600
+601
+602
+603
+604
+605
+606
+607
+608
+609
+610
+611
+612
+613
+614
+615
+616
+617
+618
+619
+620
+621
+622
+623
+624
+625
+626
+627
+628
+629
+630
+631
+632
+633
+634
+635
+636
+637
+638
+639
+640
+641
+642
+643
+644
+645
+646
+647
+648
+649
+650
+651
+652
+653
+654
+655
+656
+657
+658
+659
+660
+661
+662
+663
+664
+665
+666
+667
+668
+669
+670
+671
+672
+673
+674
+675
+676
+677
+678
+679
+680
+681
+682
+683
+684
+685
+686
+687
+688
+689
+690
+691
+692
+693
+694
+695
+696
+697
+698
+699
+700
+701
+702
+703
+704
+705
+706
+707
+708
+709
+710
+711
+712
+713
+714
+715
+716
+717
+718
+719
+720
+721
+722
+723
+724
+725
+726
+727
+728
+729
+730
+731
+732
+733
+734
+735
+736
+737
+738
+739
+740
+741
+742
+743
+744
+745
+746
+747
+748
+749
+750
+751
+752
+753
+754
+755
+756
+757
+758
+759
+760
+761
+762
+763
+764
+765
+766
+767
+768
+769
+770
+771
+772
+773
+774
+775
+776
+777
+778</td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">134×</span>
+<span class="cline-any cline-yes">126×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">56×</span>
+<span class="cline-any cline-yes">55×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">307×</span>
+<span class="cline-any cline-yes">307×</span>
+<span class="cline-any cline-yes">307×</span>
+<span class="cline-any cline-yes">307×</span>
+<span class="cline-any cline-yes">307×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">307×</span>
+<span class="cline-any cline-yes">307×</span>
+<span class="cline-any cline-yes">307×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">307×</span>
+<span class="cline-any cline-yes">307×</span>
+<span class="cline-any cline-yes">307×</span>
+<span class="cline-any cline-yes">307×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">307×</span>
+<span class="cline-any cline-yes">307×</span>
+<span class="cline-any cline-yes">307×</span>
+<span class="cline-any cline-yes">307×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">2×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">53×</span>
+<span class="cline-any cline-yes">52×</span>
+<span class="cline-any cline-yes">52×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">51×</span>
+<span class="cline-any cline-yes">51×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">90×</span>
+<span class="cline-any cline-yes">89×</span>
+<span class="cline-any cline-yes">88×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">87×</span>
+<span class="cline-any cline-yes">87×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">87×</span>
+<span class="cline-any cline-yes">87×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">3×</span>
+<span class="cline-any cline-yes">2×</span>
+<span class="cline-any cline-yes">2×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">23×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">35×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">4×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">2×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">2×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">7×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">3×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">17×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">2×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">11×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">11×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">11×</span>
+<span class="cline-any cline-yes">10×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">8×</span>
+<span class="cline-any cline-yes">8×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">7×</span>
+<span class="cline-any cline-yes">7×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">6×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">5×</span>
+<span class="cline-any cline-yes">4×</span>
+<span class="cline-any cline-yes">4×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">3×</span>
+<span class="cline-any cline-yes">3×</span>
+<span class="cline-any cline-yes">3×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">4×</span>
+<span class="cline-any cline-yes">3×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">3×</span>
+<span class="cline-any cline-yes">3×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">15×</span>
+<span class="cline-any cline-yes">15×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">7×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">52×</span>
+<span class="cline-any cline-yes">52×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.28;
+&nbsp;
+// OZ imports:
+import { UUPSUpgradeable } from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
+import { Initializable } from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
+import { OwnableUpgradeable } from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+import { ERC165Upgradeable } from "@openzeppelin/contracts-upgradeable/utils/introspection/ERC165Upgradeable.sol";
+&nbsp;
+// Interfaces:
+import { IMembershipManager } from "../interfaces/managers/IMembershipManager.sol";
+import { IProposalManager } from "../interfaces/managers/IProposalManager.sol";
+import { IVoteManager } from "../interfaces/managers/IVoteManager.sol";
+import { IERC165 } from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
+import { IVersioned } from "../interfaces/IVersioned.sol";
+import { ITreasuryFactory } from "../interfaces/treasury/ITreasuryFactory.sol";
+import { IGrantModule } from "../interfaces/fundingModules/IGrantModule.sol";
+import { ITreasuryManager } from "../interfaces/treasury/ITreasuryManager.sol";
+import { IUpgradeable } from "../interfaces/IUpgradeable.sol";
+&nbsp;
+// Libraries:
+import { VoteTypes } from "../libraries/VoteTypes.sol";
+import { FundingTypes } from "../libraries/FundingTypes.sol";
+import { TreasuryTypes } from "../libraries/TreasuryTypes.sol";
+&nbsp;
+/**
+ * @title GovernanceManager
+ * @notice This contract manages governance-related functions and access control for the IgnitionZK protocol.
+ * It allows for delegation of membership management and proposal verification tasks to designated relayers.
+ * The contract is upgradeable and follows the UUPS pattern, ensuring that governance can adapt to future requirements.
+ */
+contract GovernanceManager is Initializable, UUPSUpgradeable, OwnableUpgradeable, ERC165Upgradeable, IVersioned {
+// ====================================================================================================================
+//                                                  CUSTOM ERRORS
+// ====================================================================================================================
+&nbsp;
+    // ====================================================================================================
+    // AUTHORIZATION ERRORS
+    // ====================================================================================================
+&nbsp;
+    /// @notice Thrown if a function is called by an address that is not the designated relayer.
+    error OnlyRelayerAllowed();
+    
+    // ====================================================================================================
+    // TREASURY RELATED ERRORS
+    // ====================================================================================================
+&nbsp;
+    /// @notice Thrown if the treasury factory address has not been set. 
+    error TreasuryFactoryAddressNotSet();
+&nbsp;
+    /// @notice Thrown if the proposal did not pass.
+    error ProposalNotPassed();
+&nbsp;
+    /// @notice Thrown if the treasury address for a specific group is not found.
+    error TreasuryAddressNotFound();
+&nbsp;
+    /// @notice Thrown if the proposal submission nullifier is invalid.
+    error InvalidNullifier();
+&nbsp;
+    /// @notice Thrown if the funding module address is not found.
+    error FundingModuleNotFound();
+&nbsp;
+    /// @notice Thrown if the funding type is unknown.
+    error UnknownFundingType();
+&nbsp;
+    /// @notice Thrown if the provided module does not match the active module for the specified funding type.
+    error ModuleMismatch();
+&nbsp;
+    // ====================================================================================================
+    // GENERAL ERRORS
+    // ====================================================================================================
+&nbsp;
+    /// @notice Thrown if the new relayer address is the same as the current one.
+    error NewRelayerMustBeDifferent();
+&nbsp;
+    /// @notice Thrown if an address is zero.
+    error AddressCannotBeZero();
+&nbsp;
+    /// @notice Thrown if an address is not a contract.
+    error AddressIsNotAContract();
+&nbsp;
+    /// @notice Thrown if the new address is the same as the current one.
+    error NewAddressMustBeDifferent();
+&nbsp;
+    /// @notice Thrown if the expected interface ID is not supported by the target contract address.
+    error InterfaceIdNotSupported();
+&nbsp;
+    /// @notice Thrown if the function does not exist or is not implemented in the contract.
+    error UnknownFunctionCall();
+&nbsp;
+// ====================================================================================================================
+//                                                  EVENTS
+// ====================================================================================================================
+&nbsp;
+    /**
+     * @notice Emitted when the relayer address is updated.
+     * @param newRelayer The new address of the relayer.
+     */
+    event RelayerSet(address indexed newRelayer);
+&nbsp;
+    /**
+     * @notice Emitted when the membership manager address is updated.
+     * @param newMembershipManager The new address of the membership manager.
+     */
+    event MembershipManagerSet(address indexed newMembershipManager);
+&nbsp;
+    /**
+     * @notice Emitted when the proposal manager address is updated.
+     * @param newProposalManager The new address of the proposal manager.
+     */
+    event ProposalManagerSet(address indexed newProposalManager);
+&nbsp;
+    /**
+     * @notice Emitted when the vote manager address is updated.
+     * @param newVoteManager The new address of the vote manager.
+     */
+    event VoteManagerSet(address indexed newVoteManager);
+&nbsp;
+    /**
+     * @notice Emitted when the treasury factory address is updated.
+     * @param treasuryFactory The new address of the treasuryFactory.
+     */
+    event TreasuryFactorySet(address indexed treasuryFactory);
+    
+    /**
+     * @notice Emitted when a new funding module is added to the active module registry.
+     * @param fundingType The unique identifier of the funding type.
+     * @param module The address of the funding module that was added.
+     */
+    event FundingModuleAdded(bytes32 indexed fundingType, address indexed module);
+&nbsp;
+     /**
+     * @notice Emitted when the funding module address for a given funding type is updated.
+     * @param fundingType The unique identifier of the funding type.
+     * @param oldModule The address of the funding module that was updated.
+     * @param newModule The address of the funding module that was added.
+     */
+    event FundingModuleUpdated(bytes32 indexed fundingType, address indexed oldModule, address indexed newModule);
+&nbsp;
+    /**
+     * @notice Emitted when a funding module is removed from the active module registry.
+     * @param module The address of the funding module that was removed.
+     */
+    event FundingModuleRemoved(bytes32 indexed fundingType, address indexed module);
+&nbsp;
+    /**
+     * @notice Emitted when grant distribution is delegated to the grant module.
+     * @param groupTreasury The address of the group treasury.
+     * @param contextKey The unique identifier for the context of the grant.
+     * @param to The address to which the grant is delegated.
+     * @param amount The amount of the grant.
+     */
+    event GrantDistributionDelegated(address indexed groupTreasury, bytes32 indexed contextKey, address indexed to, uint256 amount);
+&nbsp;
+// ====================================================================================================================
+//                                              STATE VARIABLES
+// NOTE: Once the contract is deployed do not change the order of the variables. If this contract is updated append new variables to the end of this list. 
+// ====================================================================================================================
+    /// @dev Mapping of active funding modules.
+    /// @dev The key is the unique identifier for the funding type, and the value is the address of the active funding module for that type.
+    /// @dev This mapping is used to check which module is currently active for a specific funding type.
+    mapping(bytes32 =&gt; address) public activeModuleRegistry;
+    
+    /// @dev The address of the designated relayer, authorized to update roots and verify proofs.
+    address public relayer;
+    
+    /// @dev The interface of the membership manager contract
+    IMembershipManager public membershipManager;
+&nbsp;
+    /// @dev The interface of the proposal manager contract
+    IProposalManager public proposalManager;
+&nbsp;
+    /// @dev The interface of the vote manager contract
+    IVoteManager public voteManager;
+&nbsp;
+    /// @dev The interface of the treasury factory contract
+    ITreasuryFactory public treasuryFactory;
+&nbsp;
+// ====================================================================================================================
+//                                                  MODIFIERS
+// ====================================================================================================================
+&nbsp;
+    /**
+     * @dev Restricts function execution to the designated relayer address.
+     */
+    modifier onlyRelayer() {
+        if (msg.sender != relayer) revert OnlyRelayerAllowed();
+        _;
+    }
+&nbsp;
+    /**
+     * @dev Ensures that the provided address is not the zero address.
+     * @param addr The address to check.
+     */
+    modifier nonZeroAddress(address addr) {
+        if (addr == address(0)) revert AddressCannotBeZero();
+        _;
+    }
+&nbsp;
+// ====================================================================================================================
+//                                 CONSTRUCTOR / INITIALIZER / UPGRADE AUTHORIZATION
+// ====================================================================================================================
+    
+    /**
+     * @dev Authorizes upgrades for the UUPS proxy. Only callable by the contract's owner.
+     * @param newImplementation The address of the new implementation contract.
+     */
+    function _authorizeUpgrade(address newImplementation) internal override onlyOwner {}
+&nbsp;
+    /// @custom:oz-upgrades-unsafe-allow constructor
+    constructor() {
+        _disableInitializers(); 
+    }
+    
+    /**
+     * @dev Initializes the contract with the initial owner, relayer, and manager addresses.
+     * @param _initialOwner The address of the initial owner of the contract.
+     * @param _relayer The address of the relayer, which must not be zero.
+     * @param _membershipManager The address of the membership manager, which must not be zero.
+     * @param _proposalManager The address of the proposal manager, which must not be zero.
+     * @param _voteManager The address of the vote manager, which must not be zero.
+     * @custom:error AddressCannotBeZero If the provided relayer address is zero.
+     */
+    function initialize(
+        address _initialOwner,
+        address _relayer,
+        address _membershipManager,
+        address _proposalManager,
+        address _voteManager
+    ) 
+        external 
+        <span class="missing-if-branch" title="else path not taken" >E</span>initializer 
+    {   
+        <span class="missing-if-branch" title="if path not taken" >I</span>if (_initialOwner == address(0)) revert AddressCannotBeZero();
+        <span class="missing-if-branch" title="if path not taken" >I</span>if (_relayer == address(0)) revert AddressCannotBeZero();
+        <span class="missing-if-branch" title="if path not taken" >I</span>if (_membershipManager == address(0)) revert AddressCannotBeZero();
+        <span class="missing-if-branch" title="if path not taken" >I</span>if (_proposalManager == address(0)) revert AddressCannotBeZero();
+        <span class="missing-if-branch" title="if path not taken" >I</span>if (_voteManager == address(0)) revert AddressCannotBeZero();
+&nbsp;
+        __Ownable_init(_initialOwner);
+        __UUPSUpgradeable_init();
+        __ERC165_init();
+&nbsp;
+        relayer = _relayer;
+        membershipManager = IMembershipManager(_membershipManager);
+        proposalManager = IProposalManager(_proposalManager);
+        voteManager = IVoteManager(_voteManager);
+&nbsp;
+        emit RelayerSet(_relayer);
+        emit MembershipManagerSet(_membershipManager);
+        emit ProposalManagerSet(_proposalManager);
+        emit VoteManagerSet(_voteManager);
+    }
+&nbsp;
+// ====================================================================================================================
+//                           EXTERNAL STATE-CHANGING FUNCTIONS (NOT FORWARDED)
+// ====================================================================================================================
+&nbsp;
+    /**
+     * @notice Sets a new relayer address.
+     * @dev Only the owner can call this function.
+     * @param _relayer The new address for the relayer.
+     * @custom:error AddressCannotBeZero If the provided relayer address is zero.
+     * @custom:error NewRelayerMustBeDifferent If the new relayer address is the same as the current one.
+     */
+    function setRelayer(address _relayer) external onlyOwner nonZeroAddress(_relayer) {
+        if (_relayer == relayer) revert NewRelayerMustBeDifferent();
+        relayer = _relayer;
+        emit RelayerSet(_relayer);
+    }
+&nbsp;
+    /**
+     * @notice Sets a new treasury factory address.
+     * @dev Only the owner can call this function.
+     * @param _treasuryFactory The new address for the treasury factory.
+     * @custom:error AddressCannotBeZero If the provided treasury factory address is zero.
+     * @custom:error InterfaceIdNotSupported If the provided address does not support the ITreasuryFactory interface.
+     */
+    function setTreasuryFactory(address _treasuryFactory) external onlyOwner <span class="missing-if-branch" title="else path not taken" >E</span>nonZeroAddress(_treasuryFactory) {
+        if(_treasuryFactory.code.length == 0) revert AddressIsNotAContract();
+        bytes4 interfaceId = type(ITreasuryFactory).interfaceId;
+        if(!_supportsInterface(_treasuryFactory, interfaceId)) revert InterfaceIdNotSupported();
+        
+        treasuryFactory = ITreasuryFactory(_treasuryFactory);
+        emit TreasuryFactorySet(_treasuryFactory);
+    }
+&nbsp;
+    // ====================================================================================================
+    // REGISTERING FUNDING MODULES
+    // ====================================================================================================
+&nbsp;
+    /**
+     * @notice Adds a funding module to the active module registry.
+     * @dev This function can only be called by the owner.
+     * @param _module The address of the funding module to be added.
+     * @param _fundingType The unique identifier for the funding module type.
+     * @custom:error UnknownFundingType Thrown if the provided funding type is not defined in the FundingTypes library.
+     * @custom:error AddressIsNotAContract Thrown if the provided address is not a contract.
+     */
+    function addFundingModule(
+        address _module, 
+        bytes32 _fundingType
+    ) 
+        external 
+        onlyOwner
+    {   
+        if (!FundingTypes.isKnownType(_fundingType)) revert UnknownFundingType();
+        if (_module == address(0)) revert AddressCannotBeZero();
+        if (_module.code.length == 0) revert AddressIsNotAContract();
+&nbsp;
+        address currentModule = activeModuleRegistry[_fundingType];
+        activeModuleRegistry[_fundingType] = _module;
+&nbsp;
+        <span class="missing-if-branch" title="else path not taken" >E</span>if (currentModule != _module) {
+            emit FundingModuleUpdated(_fundingType, currentModule, _module);
+        } else {
+<span class="cstat-no" title="statement not covered" >            emit FundingModuleAdded(_fundingType, _module);</span>
+        }
+    }
+&nbsp;
+    /**
+     * @notice Removes a funding module from the active module registry.
+     * @param _module The address of the owner.
+     * @param _fundingType The unique identifier for the funding module type.
+     * @custom:error ModuleMismatch Thrown if the provided module does not match the active module for the specified funding type.
+     */
+    function removeFundingModule(
+        address _module, 
+        bytes32 _fundingType
+    ) 
+        external 
+        onlyOwner
+    {   
+        if (activeModuleRegistry[_fundingType] != _module) revert ModuleMismatch();
+        delete activeModuleRegistry[_fundingType];
+        emit FundingModuleRemoved(_fundingType, _module);
+    }
+&nbsp;
+// ====================================================================================================================
+// ====================================================================================================================
+//                           EXTERNAL STATE-CHANGING FUNCTIONS (FORWARDED VIA GOVERNANCE)
+// ====================================================================================================================
+// ====================================================================================================================
+&nbsp;
+    // ================================================================================================================
+    // 1. MembershipManager Delegation Functions
+    // ================================================================================================================
+&nbsp;
+    /**
+     * @notice Delegates the upgrade call to the membership manager.
+     * @dev Only callable by the owner.
+     * @param newImplementation The address of the new implementation contract.
+     */
+    function delegateUpgradeMembershipManager(address newImplementation) external <span class="missing-if-branch" title="else path not taken" >E</span>onlyOwner {
+        IUpgradeable(address(membershipManager)).upgradeToAndCall(newImplementation, "");
+    }
+&nbsp;
+    /**
+     * @notice Delegates the setMembershipVerifier call to the membership manager.
+     * @dev Only the relayer can call this function.
+     * @param membershipVerifier The address of the new membership verifier contract.
+     */
+<span class="fstat-no" title="function not covered" >    function delegateSetMembershipVerifier(address membershipVerifier) external onlyOwner {</span>
+<span class="cstat-no" title="statement not covered" >        membershipManager.setMembershipVerifier(membershipVerifier)</span>;
+    }
+&nbsp;
+    /**
+     * @notice Delegates the verifyMembership call to the membership manager.
+     * @dev Only the relayer can call this function.
+     * @param proof The zk-SNARK proof to verify.
+     * @param publicSignals The public signals associated with the proof.
+     * @param groupKey The unique identifier for the group.
+     */
+<span class="fstat-no" title="function not covered" >    function delegateVerifyMembership(</span>
+        uint256[24] calldata proof, 
+        uint256[2] calldata publicSignals,
+        bytes32 groupKey
+    ) external onlyRelayer {
+<span class="cstat-no" title="statement not covered" >        membershipManager.verifyMembership(proof, publicSignals, groupKey)</span>;
+    }
+&nbsp;
+    /**
+     * @notice Delegates the setRoot call to the membership manager.
+     * @dev Only callable by the relayer.
+     * @param newRoot The new Merkle root to set.
+     * @param groupKey The unique identifier for the group.
+     */
+    function delegateSetRoot(bytes32 newRoot, bytes32 groupKey) external onlyRelayer {
+        membershipManager.setRoot(newRoot, groupKey);
+    }
+&nbsp;
+    /**
+     * @notice Delegates the deployGroupNft call to the membership manager.
+     * @dev Only callable by the relayer.
+     * @param groupKey The unique identifier for the group.
+     * @param name The name of the new NFT collection.
+     * @param symbol The symbol of the new NFT collection.
+     * @return address of the newly deployed NFT contract.
+     */
+    function delegateDeployGroupNft(
+        bytes32 groupKey,
+        string calldata name,
+        string calldata symbol
+    ) external <span class="missing-if-branch" title="else path not taken" >E</span>onlyRelayer returns (address) {
+        return membershipManager.deployGroupNft(groupKey, name, symbol);
+    }
+&nbsp;
+    /**
+     * @notice Delegates the mintNftToMember call to the membership manager.
+     * @dev Only callable by the relayer.
+     * @param memberAddress The address of the member to add.
+     * @param groupKey The unique identifier for the group.
+     */
+    function delegateMintNftToMember(address memberAddress, bytes32 groupKey) external onlyRelayer {
+        membershipManager.mintNftToMember(memberAddress, groupKey);
+    }
+&nbsp;
+    /**
+     * @notice Delegates the mintNftToMembers call to the membership manager.
+     * @dev Only callable by the relayer.
+     * @param memberAddresses The addresses of the members to add.
+     * @param groupKey The unique identifier for the group.
+     */
+    function delegateMintNftToMembers(address[] calldata memberAddresses, bytes32 groupKey) external onlyRelayer {
+        membershipManager.mintNftToMembers(memberAddresses, groupKey);
+    }
+&nbsp;
+    /**
+     * @notice Delegates the burnMemberNft call to the membership manager.
+     * @dev Only callable by the relayer.
+     * @param memberAddress The address of the member to remove.
+     * @param groupKey The unique identifier for the group.
+     */
+    function delegateBurnMemberNft(address memberAddress, bytes32 groupKey) external onlyRelayer {
+        membershipManager.burnMemberNft(memberAddress, groupKey);
+    }
+&nbsp;
+    // ================================================================================================================
+    // 2. ProposalManager Delegation Functions
+    // ================================================================================================================
+&nbsp;
+    /**
+     * @notice Delegates the upgrade call to the proposal manager.
+     * @dev Only callable by the owner.
+     * @param newImplementation The address of the new implementation contract.
+     */
+    function delegateUpgradeProposalManager(address newImplementation) external <span class="missing-if-branch" title="else path not taken" >E</span>onlyOwner {
+        IUpgradeable(address(proposalManager)).upgradeToAndCall(newImplementation, "");
+    }
+&nbsp;
+    /**
+     * @notice Delegates the setProposalSubmissionVerifier call to the proposal manager.
+     * @dev Only callable by the owner.
+     * @param submissionVerifier The address of the new proposal submission verifier contract.
+     */
+    function delegateSetProposalSubmissionVerifier(address submissionVerifier) external <span class="missing-if-branch" title="else path not taken" >E</span>onlyOwner {
+        proposalManager.setProposalSubmissionVerifier(submissionVerifier);
+    }
+&nbsp;
+    /**
+     * @notice Delegates the setProposalClaimVerifier call to the proposal manager.
+     * @dev Only callable by the owner.
+     * @param claimVerifier The address of the new proposal claim verifier contract.
+     */
+    function delegateSetProposalClaimVerifier(address claimVerifier) external <span class="missing-if-branch" title="else path not taken" >E</span>onlyOwner {
+        proposalManager.setProposalClaimVerifier(claimVerifier);
+    }
+&nbsp;
+    /**
+     * @notice Delegates the verifyProposal call to the proposal manager.
+     * @dev Only callable by the relayer.
+     * @param proof The zk-SNARK proof to verify.
+     * @param pubSignals The public signals associated with the proof.
+     * @param groupKey The unique identifier for the group.
+     * @param contextKey The pre-computed context hash (group, epoch).
+     */
+    function delegateVerifyProposal(
+        uint256[24] calldata proof,
+        uint256[5] calldata pubSignals,
+        bytes32 groupKey,
+        bytes32 contextKey
+    ) external onlyRelayer {
+        proposalManager.verifyProposal(proof, pubSignals, contextKey, groupKey);
+    }
+&nbsp;
+    /**
+     * @notice Delegates the verifyProposalClaim call to the proposal manager.
+     * @dev Only callable by the relayer.
+     * @param proof The zk-SNARK proof to verify.
+     * @param publicSignals The public signals associated with the proof.
+     * @param contextKey The pre-computed context hash (group, epoch).
+     */
+    function delegateVerifyProposalClaim(
+        uint256[24] calldata proof,
+        uint256[3] calldata publicSignals,
+        bytes32 contextKey
+    ) external onlyRelayer {
+        proposalManager.verifyProposalClaim(proof, publicSignals, contextKey);
+    }
+&nbsp;
+    // ================================================================================================================
+    // 3. VoteManager Delegation Functions
+    // ================================================================================================================
+&nbsp;
+    /**
+     * @notice Delegates the upgrade call to the vote manager.
+     * @dev Only callable by the owner.
+     * @param newImplementation The address of the new implementation contract.
+     */
+    function delegateUpgradeVoteManager(address newImplementation) external <span class="missing-if-branch" title="else path not taken" >E</span>onlyOwner {
+        IUpgradeable(address(voteManager)).upgradeToAndCall(newImplementation, "");
+    }
+    
+    /**
+     * @notice Delegates the setVoteVerifier call to the vote manager.
+     * @dev Only callable by the owner.
+     * @param voteVerifier The address of the new vote verifier contract.
+     */
+<span class="fstat-no" title="function not covered" >    function delegateSetVoteVerifier(address voteVerifier) external onlyOwner {</span>
+<span class="cstat-no" title="statement not covered" >        voteManager.setVoteVerifier(voteVerifier)</span>;
+    }
+&nbsp;
+    /**
+     * @notice Delegates the verifyVote call to the vote manager.
+     * @dev Only callable by the relayer.
+     * @param proof The zk-SNARK proof to verify.
+     * @param publicSignals The public signals associated with the proof.
+     * @param groupKey The unique identifier for the voting group.
+     * @param contextKey The pre-computed context hash (group, epoch, proposal).
+     */
+    function delegateVerifyVote(
+        uint256[24] calldata proof,
+        uint256[5] calldata publicSignals,
+        bytes32 groupKey,
+        bytes32 contextKey
+    ) external <span class="missing-if-branch" title="else path not taken" >E</span>onlyRelayer {
+        voteManager.verifyVote(proof, publicSignals, contextKey, groupKey);
+    }
+&nbsp;
+    /**
+     * @notice Delegates the setMemberCount call to the vote manager.
+     * @dev Only callable by the relayer.
+     * @param groupKey The unique identifier for the voting group.
+     * @param memberCount The number of members in the voting group.
+     */
+    function delegateSetMemberCount(bytes32 groupKey, uint256 memberCount) external <span class="missing-if-branch" title="else path not taken" >E</span>onlyRelayer {
+        voteManager.setMemberCount(groupKey, memberCount);
+    }
+&nbsp;
+    /**
+     * @notice Delegates the setQuorumParams call to the vote manager.
+     * @dev Only callable by the owner.
+     * @param minQuorumPercent The minimum quorum percentage value that can be used.
+     * @param maxQuorumPercent The maximum quorum percentage value that can be used.
+     * @param maxGroupSizeForMinQuorum The maximum group size for which the minimum quorum percentage applies.
+     * @param minGroupSizeForMaxQuorum The minimum group size for which the maximum quorum percentage applies.
+     */
+<span class="fstat-no" title="function not covered" >    function delegateSetQuorumParams(</span>
+        uint256 minQuorumPercent,
+        uint256 maxQuorumPercent,
+        uint256 maxGroupSizeForMinQuorum,
+        uint256 minGroupSizeForMaxQuorum
+    ) external onlyOwner {
+<span class="cstat-no" title="statement not covered" >        voteManager.setQuorumParams(minQuorumPercent, maxQuorumPercent, maxGroupSizeForMinQuorum, minGroupSizeForMaxQuorum)</span>;
+    }
+&nbsp;
+    // ================================================================================================================
+    // 4. TreasuryFactory Delegation Functions
+    // ================================================================================================================
+&nbsp;
+    /**
+     * @notice Delegates the deployment of a treasury to the treasury factory.
+     * @dev Only callable by the relayer.
+     * @param groupKey The unique identifier for the voting group.
+     */
+    function delegateDeployTreasury(bytes32 groupKey, address treasuryMultiSig, address treasuryRecovery) external onlyRelayer {
+        if (address(treasuryFactory) == address(0)) revert TreasuryFactoryAddressNotSet();
+        treasuryFactory.deployTreasury(groupKey, treasuryMultiSig, treasuryRecovery);
+    }
+&nbsp;
+    // ================================================================================================================
+    // 5. Funding Modules Delegation Functions
+    // ================================================================================================================
+    
+    /**
+     * @notice Delegates the upgrade call to the vote manager.
+     * @dev Only callable by the owner.
+     * @param newImplementation The address of the new implementation contract.
+     */
+    function delegateUpgradeGrantModule(address newImplementation) external onlyOwner {
+        address grantModule = activeModuleRegistry[FundingTypes.GRANT_TYPE];
+        IUpgradeable(address(grantModule)).upgradeToAndCall(newImplementation, "");
+    }
+&nbsp;
+    /**
+     * @notice Executes a proposal by distributing funds from the group treasury.
+     * @dev Only callable by the relayer.
+     * @param groupKey The unique identifier for the voting group.
+     * @param contextKey The pre-computed context hash (group, epoch, proposal).
+     * @param to The address to send the funds to.
+     * @param amount The amount of funds to distribute.
+     * @param fundingType The type of funding to use.
+     * @custom:error FundingModuleNotFound If the funding module is not found.
+     * @custom:error UnknownFundingType If the funding type does not exist in the FundingTypes library.
+     * @custom:error ProposalNotPassed If the proposal has not passed.
+     * @custom:error TreasuryAddressNotFound If the treasury address is not found.
+     * @custom:error TreasuryFactoryAddressNotSet If the treasury factory address is not set.
+     * @custom:error InvalidNullifier If the proposal submission nullifier is invalid.
+     */
+    function delegateDistributeFunding(
+        bytes32 groupKey, 
+        bytes32 contextKey, 
+        address to, 
+        uint256 amount, 
+        bytes32 fundingType,
+        bytes32 expectedProposalNullifier
+    ) external onlyRelayer {
+        // Check that the treasury instance has been deployed
+        address groupTreasury = _getGroupTreasuryAddress(groupKey);
+        if (groupTreasury == address(0)) revert TreasuryAddressNotFound();
+&nbsp;
+        // Check that the proposal with the given contextKey exists and that its passed status is set to true
+        VoteTypes.ProposalResult memory proposalResult = _getProposalResult(contextKey);
+        if (!proposalResult.passed) revert ProposalNotPassed();
+&nbsp;
+        // checks that the expected proposal submission nullifier matches the stored nullifier
+        if (proposalResult.submissionNullifier != expectedProposalNullifier) revert InvalidNullifier();
+&nbsp;
+        // Get the active address of the funding module
+        if (!FundingTypes.isKnownType(fundingType)) revert UnknownFundingType();
+        address module = activeModuleRegistry[fundingType];
+        if (module == address(0)) revert FundingModuleNotFound();
+&nbsp;
+        // If all checks pass, trigger the corresponding funding module
+        <span class="missing-if-branch" title="else path not taken" >E</span>if (fundingType == FundingTypes.GRANT_TYPE) {
+            emit GrantDistributionDelegated(groupTreasury, contextKey, to, amount);
+            IGrantModule(module).distributeGrant(groupTreasury, contextKey, to, amount);
+        }
+    }
+    
+&nbsp;
+// ====================================================================================================================
+// ====================================================================================================================
+//                           EXTERNAL VIEW FUNCTIONS (FORWARDED VIA GOVERNANCE)
+// ====================================================================================================================
+// ====================================================================================================================
+&nbsp;
+    // ================================================================================================================
+    // 1. TreasuryFactory Delegation Functions
+    // ================================================================================================================
+&nbsp;
+    function delegateGetTreasuryAddress(bytes32 groupKey) external view returns (address) {
+        if (address(treasuryFactory) == address(0)) revert TreasuryFactoryAddressNotSet();
+        return treasuryFactory.groupTreasuryAddresses(groupKey);
+    }
+&nbsp;
+    // ================================================================================================================
+    // 2. TreasuryManager Delegation Functions
+    // ================================================================================================================
+&nbsp;
+    /**
+     * @notice Delegates the getBalance call to the group treasury instance.
+     * @dev Only callable by the relayer.
+     * @param groupKey The unique identifier for the group.
+     */
+    function delegateGetBalance(bytes32 groupKey) external view returns (uint256) {
+        address groupTreasury = _getGroupTreasuryAddress(groupKey);
+        return ITreasuryManager(groupTreasury).getBalance();
+    }
+&nbsp;
+    /**
+     * @notice Delegates the isPendingApproval call to the group treasury instance.
+     * @dev Only callable by the relayer.
+     * @param groupKey The unique identifier for the group.
+     * @param contextKey The unique identifier for the context.
+     */
+    function delegateIsPendingApproval(bytes32 groupKey, bytes32 contextKey) external view returns (bool) {
+        address groupTreasury = _getGroupTreasuryAddress(groupKey);
+        return ITreasuryManager(groupTreasury).isPendingApproval(contextKey);
+    }
+&nbsp;
+    /**
+     * @notice Delegates the isPendingExecution call to the group treasury instance.
+     * @dev Only callable by the relayer.
+     * @param groupKey The unique identifier for the group.
+     * @param contextKey The unique identifier for the context.
+     */
+    function delegateIsPendingExecution(bytes32 groupKey, bytes32 contextKey) external view returns (bool) {
+        address groupTreasury = _getGroupTreasuryAddress(groupKey);
+        return ITreasuryManager(groupTreasury).isPendingExecution(contextKey);
+    }
+&nbsp;
+    /**
+     * @notice Delegates the isExecuted call to the group treasury instance.
+     * @dev Only callable by the relayer.
+     * @param groupKey The unique identifier for the group.
+     * @param contextKey The unique identifier for the context.
+     */
+    function delegateIsExecuted(bytes32 groupKey, bytes32 contextKey) external view returns (bool) {
+        address groupTreasury = _getGroupTreasuryAddress(groupKey);
+        return ITreasuryManager(groupTreasury).isExecuted(contextKey);
+    }
+&nbsp;
+    /**
+     * @notice Delegates the getFundingRequest call to the group treasury instance.
+     * @dev Only callable by the relayer.
+     * @param groupKey The unique identifier for the group.
+     * @param contextKey The unique identifier for the context.
+     */
+    function delegateGetFundingRequest(bytes32 groupKey, bytes32 contextKey) external view returns (TreasuryTypes.FundingRequest memory) {
+        address groupTreasury = _getGroupTreasuryAddress(groupKey);
+        return ITreasuryManager(groupTreasury).getFundingRequest(contextKey);
+    }
+&nbsp;
+    
+// ====================================================================================================================
+//                                   EXTERNAL VIEW FUNCTIONS (NOT FORWARDED)
+// ====================================================================================================================
+&nbsp;
+    /**
+     * @dev Returns the version of the contract.
+     * @return string The version of the contract.
+     */
+    function getContractVersion() external view returns (string memory) {
+        return "GovernanceManager v1.0.0"; 
+    }
+&nbsp;
+// ====================================================================================================================
+//                                       PRIVATE HELPER FUNCTIONS
+// ====================================================================================================================
+&nbsp;
+    /**
+     * @dev Gets the address of the group treasury for a specific group.
+     * @param groupKey The unique identifier for the group.
+     * @return The group treasury address.
+     */
+    function _getGroupTreasuryAddress(bytes32 groupKey) private view returns (address) {
+        <span class="missing-if-branch" title="if path not taken" >I</span>if (address(treasuryFactory) == address(0)) revert TreasuryFactoryAddressNotSet();
+        return treasuryFactory.groupTreasuryAddresses(groupKey);
+    }
+&nbsp;
+    /**
+     * @dev Gets the result of a specific proposal.
+     * @param contextKey The unique identifier for the proposal context.
+     * @return The proposal result.
+     */
+    function _getProposalResult(bytes32 contextKey) private view returns (VoteTypes.ProposalResult memory) {
+        return voteManager.getProposalResult(contextKey);
+    }
+&nbsp;
+    /**
+     * @dev Checks if a contract supports a specific interface.
+     * @param target The address of the contract to check.
+     * @param interfaceId The interface ID to check for support.
+     * @return bool indicating whether the contract supports the specified interface.
+     */
+    function _supportsInterface(address target, bytes4 interfaceId) private view returns (bool) {
+        try IERC165(target).supportsInterface(interfaceId) returns (bool supported) {
+            return supported;
+        } catch {
+<span class="cstat-no" title="statement not covered" >            return false;</span>
+        }
+    }
+&nbsp;
+// ====================================================================================================================
+//                                       FALLBACK FUNCTION
+// ====================================================================================================================
+&nbsp;
+    /**
+     * @notice Fallback function to handle unknown function calls.
+     * @dev Reverts with an error indicating that the function does not exist or is not implemented.
+     */  
+    fallback() external {
+        revert UnknownFunctionCall();
+    }
+    
+&nbsp;
+}</pre></td></tr>
+</table></pre>
+<div class='push'></div><!-- for sticky footer -->
+</div><!-- /wrapper -->
+<div class='footer quiet pad2 space-top1 center small'>
+  Code coverage
+  generated by <a href="http://istanbul-js.org/" target="_blank">istanbul</a> at Mon Sep 15 2025 18:21:10 GMT+0200 (Central European Summer Time)
+</div>
+</div>
+<script src="../prettify.js"></script>
+<script>
+window.onload = function () {
+        if (typeof prettyPrint === 'function') {
+            prettyPrint();
+        }
+};
+</script>
+<script src="../sorter.js"></script>
+</body>
+</html>

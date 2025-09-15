@@ -75,16 +75,16 @@ contract GrantModule is Initializable, UUPSUpgradeable, OwnableUpgradeable, IGra
 
     /**
      * @dev Initializes the contract with the initial owner and treasury manager addresses.
-     * @param _owner The address of the initial owner of the contract.
+     * @param owner The address of the initial owner of the contract.
      */
     function initialize(
-        address _owner // GovernanceManager
+        address owner // GovernanceManager
     ) 
         external 
         initializer 
-        nonZeroAddress(_owner)
+        nonZeroAddress(owner)
     {
-        __Ownable_init(_owner);
+        __Ownable_init(owner);
         __UUPSUpgradeable_init();
     }
 
@@ -128,7 +128,7 @@ contract GrantModule is Initializable, UUPSUpgradeable, OwnableUpgradeable, IGra
      * @dev Returns the version of the contract.
      * @return string The version of the contract.
      */
-    function getContractVersion() external view override(IVersioned, IGrantModule) onlyOwner returns (string memory) {
+    function getContractVersion() external view override(IVersioned, IGrantModule) returns (string memory) {
         return "GrantModule v1.0.0"; 
     }
 

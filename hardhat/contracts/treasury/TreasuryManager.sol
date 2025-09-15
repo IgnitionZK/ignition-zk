@@ -99,7 +99,7 @@ contract TreasuryManager is Initializable, AccessControlUpgradeable, ReentrancyG
     error KeyCannotBeZero();
 
     /// @notice Thrown if a call is made to a function that does not exist in the contract.
-    error FunctionDoesNotExist();
+    error UnknownFunctionCall();
 
     /// @notice Thrown if the function call does not originate from either the FUNDING_MODULE_ROLE or the GOVERNANCE_MANAGER_ROLE.
     error CallerNotAuthorized();
@@ -268,19 +268,6 @@ contract TreasuryManager is Initializable, AccessControlUpgradeable, ReentrancyG
     }
 
     /**
-     * @dev Ensures that the caller has the DEFAULT_ADMIN_ROLE or the GOVERNANCE_MANAGER_ROLE.
-     * This modifier is used to restrict access to certain functions to only the governor or default admin.
-     */
-    modifier onlyGovernorOrDefaultAdmin() {
-        if ( 
-            !hasRole(DEFAULT_ADMIN_ROLE, msg.sender) &&
-            !hasRole(EMERGENCY_RECOVERY_ROLE, msg.sender) &&
-            !hasRole(GOVERNANCE_MANAGER_ROLE, msg.sender)
-        ) revert CallerNotAuthorized();
-        _;
-    }
-
-    /**
      * @dev Ensures that the caller has the DEFAULT_ADMIN_ROLE or the EMERGENCY_RECOVERY_ROLE.
      * This modifier is used to restrict access to certain functions to only the emergency role or default admin.
      */
@@ -404,6 +391,8 @@ contract TreasuryManager is Initializable, AccessControlUpgradeable, ReentrancyG
      * @notice Locks the treasury, preventing any transfers.
      * @dev This function can only be called by the DEFAULT_ADMIN_ROLE or EMERGENCY_RECOVERY_ROLE.
      * It locks the treasury for a specified period.
+     * Audit note: Even though block.timestamp could be manipulated by miners, the manipulation window is just a few seconds.
+     * Such a manipulation does not critically affect the treasury lock functionality.
      */
     function lockTreasury() 
         external 
@@ -438,6 +427,8 @@ contract TreasuryManager is Initializable, AccessControlUpgradeable, ReentrancyG
      * @notice Requests a transfer of funds from the treasury to a specified address.
      * @dev This function can only be called by a funding module with the FUNDING_MODULE_ROLE.
      * It applies a timelock delay before the transfer can be executed.
+     * @dev Audit note: Even though block.timestamp could be manipulated by miners, the manipulation window is just a few seconds.
+     * Such a manipulation does not critically affect the treasury lock functionality.
      * @param contextKey The unique identifier for the transfer request.
      * @param _to The address that will receive the funds.
      * @param _amount The amount of funds to be transferred.
@@ -676,6 +667,8 @@ contract TreasuryManager is Initializable, AccessControlUpgradeable, ReentrancyG
     /**
      * @notice Checks if the treasury is currently locked.
      * @return True if the treasury is locked, false otherwise.
+     * @dev Audit note: Even though block.timestamp could be manipulated by miners, the manipulation window is just a few seconds.
+     * Such a manipulation does not critically affect the treasury lock functionality.
      */
     function isLocked() external view returns (bool) {
         return isTreasuryLocked && block.timestamp <= lockedUntil;
@@ -697,7 +690,7 @@ contract TreasuryManager is Initializable, AccessControlUpgradeable, ReentrancyG
      * @dev Approves a funding request.
      * @param contextKey The unique identifier for the funding request.
      */
-    function _approve(bytes32 contextKey) private nonZeroKey(contextKey) {
+    function _approve(bytes32 contextKey) private {
         TreasuryTypes.FundingRequest storage request = fundingRequests[contextKey];
         address activeModule = _getActiveModule(request.fundingType);
 
@@ -716,8 +709,10 @@ contract TreasuryManager is Initializable, AccessControlUpgradeable, ReentrancyG
     /**
      * @dev Executes a funding request.
      * @param contextKey The unique identifier for the funding request.
+     * @dev Audit note: Even though block.timestamp could be manipulated by miners, the manipulation window is just a few seconds.
+     * Such a manipulation does not critically affect the treasury lock functionality.
      */
-    function _execute(bytes32 contextKey) private nonZeroKey(contextKey) {
+    function _execute(bytes32 contextKey) private {
         TreasuryTypes.FundingRequest storage request = fundingRequests[contextKey];
         address activeModule = _getActiveModule(request.fundingType);
 
@@ -765,9 +760,9 @@ contract TreasuryManager is Initializable, AccessControlUpgradeable, ReentrancyG
 
     /**
      * @notice Fallback function for handling calls to non-existent functions or when no data is sent.
-     * @custom:error FunctionDoesNotExist Thrown if the called function does not exist.
+     * @custom:error UnknownFunctionCall Thrown if the called function does not exist.
      */
     fallback() external {
-        revert FunctionDoesNotExist();
+        revert UnknownFunctionCall();
     }
 }

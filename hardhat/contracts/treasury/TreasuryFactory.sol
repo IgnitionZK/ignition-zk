@@ -54,7 +54,7 @@ contract TreasuryFactory is Ownable, ERC165, ITreasuryFactory {
     address public immutable governanceManager;
 
     /// @dev Address of the MembershipManager.
-    IMembershipManager public membershipManager;
+    IMembershipManager public immutable membershipManager;
 
 // ====================================================================================================================
 //                                                  MODIFIERS
@@ -111,6 +111,7 @@ contract TreasuryFactory is Ownable, ERC165, ITreasuryFactory {
     /**
      * @notice Deploys new treasury instances for the DAO groups.
      * @dev only callable by the owner (GovernanceManager)
+     * Audit note: With a reentrancy guard in place (mapping lock), the risk of a re-entrancy attack is mitigated.
      * @param groupKey The unique group (DAO) identifier.
      * @param treasuryMultiSig The address of the treasury multi-signature wallet.
      * @param treasuryRecovery The address of the treasury recovery wallet.
@@ -130,6 +131,9 @@ contract TreasuryFactory is Ownable, ERC165, ITreasuryFactory {
         if (groupTreasuryAddresses[groupKey] != address(0)) revert GroupTreasuryAlreadyExists();
         if (membershipManager.groupNftAddresses(groupKey) == address(0)) revert GroupNftNotSet();
 
+        // Lock the groupTreasuryAddresses mapping for the groupKey to mitigate re-entrancy risk
+        groupTreasuryAddresses[groupKey] = address(1);
+
         bytes memory initData = abi.encodeWithSelector(
             ITreasuryManager.initialize.selector,
             treasuryMultiSig, // initialOwner with DEFAULT_ADMIN_ROLE
@@ -143,9 +147,9 @@ contract TreasuryFactory is Ownable, ERC165, ITreasuryFactory {
             initData
         );
 
+        // Update the mock treasury address to the real one
         address treasury = address(treasuryProxy);
         groupTreasuryAddresses[groupKey] = treasury;
-
         emit TreasuryDeployed(groupKey, treasury);
     }
 

@@ -621,7 +621,7 @@ contract GovernanceManager is Initializable, UUPSUpgradeable, OwnableUpgradeable
 
         // Check that the proposal with the given contextKey exists and that its passed status is set to true
         VoteTypes.ProposalResult memory proposalResult = _getProposalResult(contextKey);
-        if (proposalResult.passed == false) revert ProposalNotPassed();
+        if (!proposalResult.passed) revert ProposalNotPassed();
 
         // checks that the expected proposal submission nullifier matches the stored nullifier
         if (proposalResult.submissionNullifier != expectedProposalNullifier) revert InvalidNullifier();
@@ -633,8 +633,8 @@ contract GovernanceManager is Initializable, UUPSUpgradeable, OwnableUpgradeable
 
         // If all checks pass, trigger the corresponding funding module
         if (fundingType == FundingTypes.GRANT_TYPE) {
-            IGrantModule(module).distributeGrant(groupTreasury, contextKey, to, amount);
             emit GrantDistributionDelegated(groupTreasury, contextKey, to, amount);
+            IGrantModule(module).distributeGrant(groupTreasury, contextKey, to, amount);
         }
     }
     

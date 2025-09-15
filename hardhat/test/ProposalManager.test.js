@@ -849,5 +849,9 @@ describe("Proposal Manager Unit Tests:", function () {
         expect(await proposalManager.claimNullifiers(claimNullifier1)).to.equal(true);
     });
 
-
+    it(`FUNCTION: getContractVersion
+        TESTING: returned version value
+        EXPECTED: should return the correct contract version number`, async function () {
+        expect(await proposalManager.getContractVersion()).to.equal("ProposalManager v1.0.0");
+    });
 });

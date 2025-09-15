@@ -386,6 +386,7 @@ contract VoteManager is Initializable, OwnableUpgradeable, UUPSUpgradeable, IVot
         emit VoteVerified(contextKey, proofVoteNullifier);
 
         // Infer the vote choice from the public outputs
+        // Audit note: Uninitialized variable but no risk since every possible execution path is covered below.
         VoteTypes.VoteChoice inferredChoice;
 
         if (proofVoteChoiceHash == POSEIDON_HASH_ABSTAIN){
@@ -609,6 +610,7 @@ contract VoteManager is Initializable, OwnableUpgradeable, UUPSUpgradeable, IVot
         uint256 scalingFactor = 1e4;
         uint256 slopeNumeratorPositive = y1Scaled - y2Scaled;
         uint256 slopeDenominator =  x2 - x1;
+        // multiplication before division to avoid precision loss
         uint256 slopePositiveScaled = slopeNumeratorPositive * scalingFactor / slopeDenominator;
 
         uint256 quorumScaled = y1Scaled - (slopePositiveScaled * (x - x1)) / scalingFactor;

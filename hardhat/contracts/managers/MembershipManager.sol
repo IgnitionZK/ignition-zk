@@ -374,6 +374,10 @@ contract MembershipManager is Initializable, UUPSUpgradeable, OwnableUpgradeable
             salt // Use groupKey as the salt for deterministic deployment
         );
 
+        // Update state first to mitigate re-entrancy risk
+        groupNftAddresses[groupKey] = clone;
+        emit GroupNftDeployed(groupKey, clone, name, symbol);
+        
         IERC721IgnitionZK(clone).initialize(
             address(this), // DEFAULT_ADMIN_ROLE will be this contract
             address(this), // MINTER_ROLE will be this contract
@@ -381,8 +385,7 @@ contract MembershipManager is Initializable, UUPSUpgradeable, OwnableUpgradeable
             name, 
             symbol
         );
-        groupNftAddresses[groupKey] = clone;
-        emit GroupNftDeployed(groupKey, clone, name, symbol);
+        
         return clone;
     }
 
@@ -456,6 +459,7 @@ contract MembershipManager is Initializable, UUPSUpgradeable, OwnableUpgradeable
     /**
      * @dev Only the governor can call this function.
      * Iterates and calls `mintNftToMember` for each address.
+     * Audit note: Consider a pull over push method for large batches to avoid gas limit issues.
      * @custom:error NoMembersProvided If the `memberAddresses` array is empty.
      * @custom:error MemberBatchTooLarge If the number of members exceeds `MAX_MEMBERS_BATCH`.
      * @custom:error (Propagates errors from `mintNftToMember`)

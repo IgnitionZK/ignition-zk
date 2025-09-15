@@ -1,0 +1,1958 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <title>Code coverage report for managers/VoteManager.sol</title>
+    <meta charset="utf-8" />
+    <link rel="stylesheet" href="../prettify.css" />
+    <link rel="stylesheet" href="../base.css" />
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style type='text/css'>
+        .coverage-summary .sorter {
+            background-image: url(../sort-arrow-sprite.png);
+        }
+    </style>
+</head>
+<body>
+<div class='wrapper'>
+  <div class='pad1'>
+    <h1>
+      <a href="../index.html">all files</a> / <a href="index.html">managers/</a> VoteManager.sol
+    </h1>
+    <div class='clearfix'>
+      <div class='fl pad1y space-right2'>
+        <span class="strong">100% </span>
+        <span class="quiet">Statements</span>
+        <span class='fraction'>86/86</span>
+      </div>
+      <div class='fl pad1y space-right2'>
+        <span class="strong">71.05% </span>
+        <span class="quiet">Branches</span>
+        <span class='fraction'>81/114</span>
+      </div>
+      <div class='fl pad1y space-right2'>
+        <span class="strong">100% </span>
+        <span class="quiet">Functions</span>
+        <span class='fraction'>18/18</span>
+      </div>
+      <div class='fl pad1y space-right2'>
+        <span class="strong">100% </span>
+        <span class="quiet">Lines</span>
+        <span class='fraction'>105/105</span>
+      </div>
+    </div>
+  </div>
+  <div class='status-line high'></div>
+<pre><table class="coverage">
+<tr><td class="line-count quiet">1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+14
+15
+16
+17
+18
+19
+20
+21
+22
+23
+24
+25
+26
+27
+28
+29
+30
+31
+32
+33
+34
+35
+36
+37
+38
+39
+40
+41
+42
+43
+44
+45
+46
+47
+48
+49
+50
+51
+52
+53
+54
+55
+56
+57
+58
+59
+60
+61
+62
+63
+64
+65
+66
+67
+68
+69
+70
+71
+72
+73
+74
+75
+76
+77
+78
+79
+80
+81
+82
+83
+84
+85
+86
+87
+88
+89
+90
+91
+92
+93
+94
+95
+96
+97
+98
+99
+100
+101
+102
+103
+104
+105
+106
+107
+108
+109
+110
+111
+112
+113
+114
+115
+116
+117
+118
+119
+120
+121
+122
+123
+124
+125
+126
+127
+128
+129
+130
+131
+132
+133
+134
+135
+136
+137
+138
+139
+140
+141
+142
+143
+144
+145
+146
+147
+148
+149
+150
+151
+152
+153
+154
+155
+156
+157
+158
+159
+160
+161
+162
+163
+164
+165
+166
+167
+168
+169
+170
+171
+172
+173
+174
+175
+176
+177
+178
+179
+180
+181
+182
+183
+184
+185
+186
+187
+188
+189
+190
+191
+192
+193
+194
+195
+196
+197
+198
+199
+200
+201
+202
+203
+204
+205
+206
+207
+208
+209
+210
+211
+212
+213
+214
+215
+216
+217
+218
+219
+220
+221
+222
+223
+224
+225
+226
+227
+228
+229
+230
+231
+232
+233
+234
+235
+236
+237
+238
+239
+240
+241
+242
+243
+244
+245
+246
+247
+248
+249
+250
+251
+252
+253
+254
+255
+256
+257
+258
+259
+260
+261
+262
+263
+264
+265
+266
+267
+268
+269
+270
+271
+272
+273
+274
+275
+276
+277
+278
+279
+280
+281
+282
+283
+284
+285
+286
+287
+288
+289
+290
+291
+292
+293
+294
+295
+296
+297
+298
+299
+300
+301
+302
+303
+304
+305
+306
+307
+308
+309
+310
+311
+312
+313
+314
+315
+316
+317
+318
+319
+320
+321
+322
+323
+324
+325
+326
+327
+328
+329
+330
+331
+332
+333
+334
+335
+336
+337
+338
+339
+340
+341
+342
+343
+344
+345
+346
+347
+348
+349
+350
+351
+352
+353
+354
+355
+356
+357
+358
+359
+360
+361
+362
+363
+364
+365
+366
+367
+368
+369
+370
+371
+372
+373
+374
+375
+376
+377
+378
+379
+380
+381
+382
+383
+384
+385
+386
+387
+388
+389
+390
+391
+392
+393
+394
+395
+396
+397
+398
+399
+400
+401
+402
+403
+404
+405
+406
+407
+408
+409
+410
+411
+412
+413
+414
+415
+416
+417
+418
+419
+420
+421
+422
+423
+424
+425
+426
+427
+428
+429
+430
+431
+432
+433
+434
+435
+436
+437
+438
+439
+440
+441
+442
+443
+444
+445
+446
+447
+448
+449
+450
+451
+452
+453
+454
+455
+456
+457
+458
+459
+460
+461
+462
+463
+464
+465
+466
+467
+468
+469
+470
+471
+472
+473
+474
+475
+476
+477
+478
+479
+480
+481
+482
+483
+484
+485
+486
+487
+488
+489
+490
+491
+492
+493
+494
+495
+496
+497
+498
+499
+500
+501
+502
+503
+504
+505
+506
+507
+508
+509
+510
+511
+512
+513
+514
+515
+516
+517
+518
+519
+520
+521
+522
+523
+524
+525
+526
+527
+528
+529
+530
+531
+532
+533
+534
+535
+536
+537
+538
+539
+540
+541
+542
+543
+544
+545
+546
+547
+548
+549
+550
+551
+552
+553
+554
+555
+556
+557
+558
+559
+560
+561
+562
+563
+564
+565
+566
+567
+568
+569
+570
+571
+572
+573
+574
+575
+576
+577
+578
+579
+580
+581
+582
+583
+584
+585
+586
+587
+588
+589
+590
+591
+592
+593
+594
+595
+596
+597
+598
+599
+600
+601
+602
+603
+604
+605
+606
+607
+608
+609
+610
+611
+612
+613
+614
+615
+616
+617
+618
+619
+620
+621
+622
+623
+624
+625
+626
+627
+628
+629
+630
+631
+632</td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">2244×</span>
+<span class="cline-any cline-yes">2244×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1242×</span>
+<span class="cline-any cline-yes">1241×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">307×</span>
+<span class="cline-any cline-yes">307×</span>
+<span class="cline-any cline-yes">307×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">307×</span>
+<span class="cline-any cline-yes">307×</span>
+<span class="cline-any cline-yes">307×</span>
+<span class="cline-any cline-yes">307×</span>
+<span class="cline-any cline-yes">307×</span>
+<span class="cline-any cline-yes">307×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">307×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">13×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">12×</span>
+<span class="cline-any cline-yes">12×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">39×</span>
+<span class="cline-any cline-yes">39×</span>
+<span class="cline-any cline-yes">39×</span>
+<span class="cline-any cline-yes">39×</span>
+<span class="cline-any cline-yes">39×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">39×</span>
+<span class="cline-any cline-yes">39×</span>
+<span class="cline-any cline-yes">38×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">36×</span>
+<span class="cline-any cline-yes">36×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">34×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">31×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">29×</span>
+<span class="cline-any cline-yes">29×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">27×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">27×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">27×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">27×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">19×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">6×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">26×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">26×</span>
+<span class="cline-any cline-yes">6×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">19×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">26×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">26×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">25×</span>
+<span class="cline-any cline-yes">19×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">6×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1058×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1056×</span>
+<span class="cline-any cline-yes">1056×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1056×</span>
+<span class="cline-any cline-yes">60×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">826×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">170×</span>
+<span class="cline-any cline-yes">170×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">6×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">4×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">2×</span>
+<span class="cline-any cline-yes">2×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">2×</span>
+<span class="cline-any cline-yes">2×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">2×</span>
+<span class="cline-any cline-yes">2×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">2×</span>
+<span class="cline-any cline-yes">2×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">2×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1027×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">13×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">3×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">26×</span>
+<span class="cline-any cline-yes">26×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">26×</span>
+<span class="cline-any cline-yes">26×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">25×</span>
+<span class="cline-any cline-yes">11×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">25×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1056×</span>
+<span class="cline-any cline-yes">1056×</span>
+<span class="cline-any cline-yes">1056×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">26×</span>
+<span class="cline-any cline-yes">26×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">25×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">25×</span>
+<span class="cline-any cline-yes">25×</span>
+<span class="cline-any cline-yes">25×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">25×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">170×</span>
+<span class="cline-any cline-yes">170×</span>
+<span class="cline-any cline-yes">170×</span>
+<span class="cline-any cline-yes">170×</span>
+<span class="cline-any cline-yes">170×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">170×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">170×</span>
+<span class="cline-any cline-yes">170×</span>
+<span class="cline-any cline-yes">170×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">170×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">170×</span>
+<span class="cline-any cline-yes">170×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">25×</span>
+<span class="cline-any cline-yes">25×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">// SPDX-License-Identifier: GPL-3.0
+pragma solidity ^0.8.28;
+&nbsp;
+// OZ imports:
+import { UUPSUpgradeable } from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
+import { Initializable } from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
+import { OwnableUpgradeable } from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+import { ERC165Upgradeable } from "@openzeppelin/contracts-upgradeable/utils/introspection/ERC165Upgradeable.sol";
+&nbsp;
+// Interfaces:
+import { IVoteVerifier } from "../interfaces/verifiers/IVoteVerifier.sol";
+import { IVoteManager } from "../interfaces/managers/IVoteManager.sol";
+import { IVersioned } from "../interfaces/IVersioned.sol";
+import { IMembershipManager } from "../interfaces/managers/IMembershipManager.sol";
+import { IProposalManager } from "../interfaces/managers/IProposalManager.sol";
+&nbsp;
+// Libraries:
+import { VoteTypes } from "../libraries/VoteTypes.sol";
+&nbsp;
+/**
+ * @title VoteManager
+ * @notice This contract manages the voting process for proposals.
+ * It ensures that votes are cast, verified, and tallied in a secure and efficient manner using zk-SNARKs.
+ */
+contract VoteManager is Initializable, OwnableUpgradeable, UUPSUpgradeable, IVoteManager, ERC165Upgradeable, IVersioned {
+// ====================================================================================================================
+//                                                  CUSTOM ERRORS
+// ====================================================================================================================
+    
+    // ====================================================================================================
+    // MERKLE ROOT ERRORS
+    // ====================================================================================================
+&nbsp;
+    /// @notice Thrown if the provided Merkle root does not match the expected root.
+    error InvalidMerkleRoot();
+&nbsp;
+    /// @notice Thrown if a Merkle root has not been initialized for a group.
+    error RootNotYetInitialized();
+&nbsp;
+    // ====================================================================================================
+    // PROOF ERRORS
+    // ====================================================================================================
+    
+    /// @notice Thrown if the context hash does not match the expected value.
+    error InvalidContextHash();
+&nbsp;
+    /// @notice Thrown if the vote nullifier has already been used.
+    error VoteNullifierAlreadyUsed();
+    
+    /// @notice Thrown if the provided proof is invalid.
+    /// @param contextKey The context key associated with the vote.
+    /// @param proofVoteNullifier The nullifier associated with the vote proof.
+    error InvalidVoteProof(bytes32 contextKey, bytes32 proofVoteNullifier);
+&nbsp;
+    /// @notice Thrown if a proposal has not been submitted before voting.
+    error ProposalHasNotBeenSubmitted();
+&nbsp;
+    /// @notice Thrown if the vote choice in the public outputs does not match one of the expected values.
+    error InvalidVoteChoice();
+&nbsp;
+    /// @notice Thrown if the tallying of votes is inconsistent, e.g., total votes exceed member count.
+    error TallyingInconsistent();
+&nbsp;
+    /// @notice Thrown if the submission nullifier does not match the expected value.
+    error SubmissionNullifierMismatch();
+&nbsp;
+    // ====================================================================================================
+    // GROUP PARAM ERRORS (memberCount, Quorum)
+    // ====================================================================================================
+    
+    /// @notice Thrown if the quorum parameters are invalid.
+    error InvalidQuorumParams();
+&nbsp;
+    /// @notice Thrown if the group size values corresponding to the quorum thresholds are invalid.
+    error InvalidGroupSizeParams();
+&nbsp;
+    /// @notice Thrown if the member count is zero or greater than 1024.
+    error InvalidMemberCount();
+&nbsp;
+    /// @notice Thrown if the quorum is less than 25.
+    error QuorumCannotBeLowerThan25();
+&nbsp;
+    /// @notice Thrown if the group parameters (member count or quorum) are zero.
+    error GroupParamsCannotBeZero();
+&nbsp;
+    /// @notice Thrown if the x input for linear interpolation is invalid.
+    error InvalidXInput();
+&nbsp;
+    /// @notice Thrown if the inputs for the ceiling division are invalid.
+    error InvalidCeilInputs();
+&nbsp;
+    // ====================================================================================================
+    // GENERAL ERRORS
+    // ====================================================================================================
+&nbsp;
+    /// @notice Thrown if the provided address is not a contract.
+    error AddressIsNotAContract();
+&nbsp;
+    /// @notice Thrown if the provided address does not support the IVoteVerifier interface.
+    //error AddressDoesNotSupportInterface();
+&nbsp;
+    /// @notice Thrown if the provided address is zero.
+    error AddressCannotBeZero();
+&nbsp;
+    /// @notice Thrown if the provided key is zero.
+    error KeyCannotBeZero();
+&nbsp;
+// ====================================================================================================================
+//                                                  EVENTS
+// ====================================================================================================================
+&nbsp;
+    /**
+     * @notice Emitted when a vote verifier address is set.
+     * @param voteVerifier The address of the vote verifier contract.
+     */
+    event VoteVerifierAddressSet(address indexed voteVerifier);
+&nbsp;
+    /**
+     * @notice Emitted when the membership manager address is set.
+     * @param membershipManager The address of the membership manager contract.
+     */
+    event MembershipManagerAddressSet(address indexed membershipManager);
+&nbsp;
+    /**
+     * @notice Emitted when the proposal manager address is set.
+     * @param proposalManager The address of the proposal manager contract.
+     */
+    event ProposalManagerAddressSet(address indexed proposalManager);
+&nbsp;
+    /**
+     * @notice Emitted when a vote is verified.
+     * @param contextKey The context key associated with the vote.
+     * @param voteNullifier The nullifier associated with the vote proof.
+     */
+    event VoteVerified(bytes32 indexed contextKey, bytes32 indexed voteNullifier);
+&nbsp;
+    /**
+     * @notice Emitted when a quorum is set for a group.
+     * @param groupKey The unique identifier for the group.
+     * @param quorum The quorum percentage set for the group.
+     */
+    event QuorumSet(bytes32 indexed groupKey, uint256 indexed quorum);
+&nbsp;
+    /**
+     * @notice Emitted when quorum parameters are set.
+     * @param minQuorumPercent The minimum quorum threshold percentage.
+     * @param maxQuorumPercent The maximum quorum threshold percentage.
+     * @param maxGroupSizeForMinQuorum The group size corresponding to the minimum quorum.
+     * @param minGroupSizeForMaxQuorum The group size corresponding to the maximum quorum.
+     */
+    event QuorumParamsSet(
+        uint256 minQuorumPercent,
+        uint256 maxQuorumPercent,
+        uint256 maxGroupSizeForMinQuorum,
+        uint256 minGroupSizeForMaxQuorum
+    );
+&nbsp;
+    /**
+     * @notice Emitted when a member count is set for a group.
+     * @param groupKey The unique identifier for the group.
+     * @param memberCount The number of members in the group.
+     */
+    event MemberCountSet(bytes32 indexed groupKey, uint256 memberCount);
+&nbsp;
+    /**
+     * @notice Emitted when a vote tally is updated.
+     * @param contextKey The context key associated with the vote.
+     * @param voteTally An array containing the counts of no, yes, and abstain votes.
+     *                  The order is: [noVotes, yesVotes, abstainVotes].
+     * @dev The vote tally is represented as a fixed-size array of three elements.
+     */
+    event VoteTallyUpdated(bytes32 contextKey, uint256[3] voteTally);
+&nbsp;
+    /**
+     * @notice Emitted when a proposal's status is updated.
+     * @param contextKey The context key associated with the proposal.
+     * @param passed Indicates whether the proposal has passed (true) or not (false).
+     */
+    event ProposalStatusUpdated(bytes32 contextKey, bool passed);
+&nbsp;
+// ====================================================================================================================
+//                                          STATE VARIABLES
+// NOTE: Once the contract is deployed do not change the order of the variables. If this contract is updated append new variables to the end of this list. 
+// ====================================================================================================================
+&nbsp;
+    // ====================================================================================================
+    // STRUCTS &amp; ENUMS
+    // ====================================================================================================
+    
+    // Defined in VoteTypes.sol:
+    // VoteTally, GroupParams, ProposalResult, QuorumParams, VoteChoice
+    
+    // ====================================================================================================
+    // MAPPINGS
+    // ====================================================================================================
+&nbsp;
+    /// @dev The mapping of context keys to proposal results (vote tally and passed status). Key: contextKey (bytes32) =&gt; ProposalResult 
+    mapping(bytes32 =&gt; VoteTypes.ProposalResult) public proposalResults; 
+&nbsp;
+    /// @dev The mapping of vote nullifiers. Key: voteNullifier (bytes32) =&gt; (bool) true if the vote nullifier has been used
+    mapping(bytes32 =&gt; bool) public voteNullifiers;  
+&nbsp;
+    /// @dev The mapping of group governance parameters. Key: groupKey (bytes32) =&gt; GroupParams
+    mapping(bytes32 =&gt; VoteTypes.GroupParams) public groupParams; // groupKey =&gt; GroupParams
+&nbsp;
+    // ====================================================================================================
+    // ADDRESSES
+    // ====================================================================================================
+&nbsp;
+    /// @dev The interface of the vote verifier contract.
+    IVoteVerifier public voteVerifier;
+&nbsp;
+    /// @dev The interface of the membership manager contract.
+    IMembershipManager public membershipManager;
+&nbsp;
+    /// @dev The interface of the proposal manager contract.
+    IProposalManager public proposalManager;
+&nbsp;
+    // ====================================================================================================
+    // STATE VARIABLES
+    // ====================================================================================================
+&nbsp;
+    /// @dev The quorum parameters, which include the minimum and maximum thresholds and group size parameters.
+    /// These parameters are used to determine the quorum for proposals based on the group size.
+    VoteTypes.QuorumParams public quorumParams;
+&nbsp;
+    // ====================================================================================================
+    // CONSTANTS
+    // ====================================================================================================
+&nbsp;
+    /// @dev The values corresponding to the Poseidon hash of the Abstain (0), Yes (1) and No (2) votes.
+    uint256 public constant POSEIDON_HASH_NO = 19014214495641488759237505126948346942972912379615652741039992445865937985820;
+    uint256 public constant POSEIDON_HASH_YES = 18586133768512220936620570745912940619677854269274689475585506675881198879027;
+    uint256 public constant POSEIDON_HASH_ABSTAIN = 8645981980787649023086883978738420856660271013038108762834452721572614684349;
+&nbsp;
+    // ====================================================================================================================
+    //                                                  MODIFIERS
+    // ====================================================================================================================
+&nbsp;
+    /**
+     * @dev Ensures that the provided group key is not zero.
+     * @param key The unique identifier for the group.
+     */
+    modifier nonZeroKey(bytes32 key) {
+        <span class="missing-if-branch" title="if path not taken" >I</span>if (key == bytes32(0)) revert KeyCannotBeZero();
+        _;
+    }
+&nbsp;
+    /**
+     * @dev Ensures that the provided address is not the zero address.
+     * @param addr The address to check.
+     */
+    modifier nonZeroAddress(address addr) {
+        if (addr == address(0)) revert AddressCannotBeZero();
+        _;
+    }
+&nbsp;
+// ====================================================================================================================
+//                                 CONSTRUCTOR / INITIALIZER / UPGRADE AUTHORIZATION
+// ====================================================================================================================
+&nbsp;
+    /**
+     * @dev Authorizes upgrades for the UUPS proxy. Only callable by the contract's governor.
+     * @param newImplementation The address of the new implementation contract.
+     */
+    function _authorizeUpgrade(address newImplementation) internal override onlyOwner {}
+&nbsp;
+    /// @custom:oz-upgrades-unsafe-allow constructor
+    constructor() {
+        _disableInitializers(); 
+    }
+&nbsp;
+    /**
+     * @notice Initializes the VoteManager contract.
+     * @dev This function replaces the constructor for upgradeable contracts and is called once
+     * after the proxy is deployed. It sets the initial owner, vote verifier, membership manager,
+     * and proposal manager.
+     * @param _initialOwner The address of the owner.
+     * @param _voteVerifier The address of the vote verifier contract. 
+     * @param _membershipManager The address of the membership manager contract.
+     * @param _proposalManager The address of the proposal manager contract.
+     * @custom:error AddressCannotBeZero If the provided verifier or governor address is zero.
+     */
+    function initialize(
+        address _initialOwner,
+        address _voteVerifier,
+        address _membershipManager,
+        address _proposalManager
+    ) 
+        external 
+        <span class="missing-if-branch" title="else path not taken" >E</span>initializer 
+        <span class="missing-if-branch" title="else path not taken" >E</span>nonZeroAddress(_initialOwner) 
+        <span class="missing-if-branch" title="else path not taken" >E</span>nonZeroAddress(_voteVerifier)
+        <span class="missing-if-branch" title="else path not taken" >E</span>nonZeroAddress(_membershipManager)
+        <span class="missing-if-branch" title="else path not taken" >E</span>nonZeroAddress(_proposalManager)
+    {
+        __Ownable_init(_initialOwner);
+        __UUPSUpgradeable_init();
+        __ERC165_init();
+&nbsp;
+        voteVerifier = IVoteVerifier(_voteVerifier);
+        membershipManager = IMembershipManager(_membershipManager);
+        proposalManager = IProposalManager(_proposalManager);
+        emit VoteVerifierAddressSet(_voteVerifier);
+        emit MembershipManagerAddressSet(_membershipManager);
+        emit ProposalManagerAddressSet(_proposalManager);
+&nbsp;
+        quorumParams = VoteTypes.QuorumParams({
+            minQuorumPercent: 25,
+            maxQuorumPercent: 50,
+            maxGroupSizeForMinQuorum: 200,
+            minGroupSizeForMaxQuorum: 30
+        });
+&nbsp;
+    }
+&nbsp;
+// ====================================================================================================================
+//                                       EXTERNAL STATE-CHANGING FUNCTIONS
+// ====================================================================================================================
+    /**
+     * @dev This function can only be called by the contract owner (governor).
+     * @custom:error AddressCannotBeZero If the provided verifier address is zero.
+     * @custom:error AddressIsNotAContract If the provided address is not a contract.
+     */
+     function setVoteVerifier(address _voteVerifier) external override onlyOwner nonZeroAddress(_voteVerifier) {
+        if(_voteVerifier.code.length == 0) revert AddressIsNotAContract();
+        //if(!_supportsIVoteInterface(_voteVerifier)) revert AddressDoesNotSupportInterface();
+&nbsp;
+        voteVerifier = IVoteVerifier(_voteVerifier);
+        emit VoteVerifierAddressSet(_voteVerifier);
+    }
+&nbsp;
+    /**
+     * @dev This function can only be called by the contract owner (governor).
+     * @custom:error InvalidMerkleRoot If the provided Merkle root does not match the current root.
+     * @custom:error InvalidVoteChoice If the vote choice in the public outputs does not match one of the expected values.
+     * @custom:error InvalidVoteProof If the provided proof is invalid.
+     * @custom:error ProposalHasNotBeenSubmitted If the proposal has not been submitted before voting.
+     * @custom:error InvalidContextHash If the provided context key does not match the proof context hash.
+     * @custom:error VoteNullifierAlreadyUsed If the vote nullifier has already been used.
+     * @custom:error RootNotYetInitialized If the current root has not been initialized.
+     * @custom:error InvalidVoteProof If the provided proof is invalid.
+     * @custom:error KeyCannotBeZero If the context or group key are zero.
+     */
+    function verifyVote(
+        uint256[24] calldata proof,
+        uint256[5] calldata publicSignals,
+        bytes32 contextKey,
+        bytes32 groupKey
+    ) 
+        external 
+        <span class="missing-if-branch" title="else path not taken" >E</span>onlyOwner
+        <span class="missing-if-branch" title="else path not taken" >E</span>nonZeroKey(contextKey) 
+        <span class="missing-if-branch" title="else path not taken" >E</span>nonZeroKey(groupKey)
+    {
+        // save values from public signals:
+        bytes32 proofContextHash = bytes32(publicSignals[0]);
+        bytes32 proofVoteNullifier = bytes32(publicSignals[1]);
+        uint256 proofVoteChoiceHash = publicSignals[2];
+        bytes32 proofRoot = bytes32(publicSignals[3]);
+        bytes32 proofSubmissionNullifier = bytes32(publicSignals[4]);
+&nbsp;
+        // check root
+        bytes32 currentRoot = membershipManager.groupRoots(groupKey);
+        if (currentRoot == bytes32(0)) revert RootNotYetInitialized();
+        if (proofRoot != currentRoot) revert InvalidMerkleRoot();
+&nbsp;
+        // check that proposal has been submitted and verified
+        bool isProposalSubmitted = proposalManager.submissionNullifiers(proofSubmissionNullifier);
+        if (!isProposalSubmitted) revert ProposalHasNotBeenSubmitted();
+&nbsp;
+        // check that vote nullifier has not been used
+        if (voteNullifiers[proofVoteNullifier]) revert VoteNullifierAlreadyUsed();
+&nbsp;
+        // check that context is correct
+        if (contextKey != proofContextHash) revert InvalidContextHash();
+&nbsp;
+        // verify that the proof is valid
+        bool isValidVote = voteVerifier.verifyProof(proof, publicSignals);
+        if (!isValidVote) revert InvalidVoteProof(contextKey, proofVoteNullifier);
+&nbsp;
+        // mark the vote nullifier as used
+        voteNullifiers[proofVoteNullifier] = true;
+&nbsp;
+        // Emit event for verified vote
+        emit VoteVerified(contextKey, proofVoteNullifier);
+&nbsp;
+        // Infer the vote choice from the public outputs
+        // Audit note: Uninitialized variable but no risk since every possible execution path is covered below.
+        VoteTypes.VoteChoice inferredChoice;
+&nbsp;
+        if (proofVoteChoiceHash == POSEIDON_HASH_ABSTAIN){
+            inferredChoice = VoteTypes.VoteChoice.Abstain;
+        } else if (proofVoteChoiceHash == POSEIDON_HASH_YES) {
+            inferredChoice = VoteTypes.VoteChoice.Yes;
+        } else if (proofVoteChoiceHash == POSEIDON_HASH_NO) {
+            inferredChoice = VoteTypes.VoteChoice.No;
+        } else {
+            revert InvalidVoteChoice();
+        }
+&nbsp;
+        // Update vote tally for proposal
+        VoteTypes.ProposalResult storage result = proposalResults[contextKey];
+&nbsp;
+        if ( inferredChoice == VoteTypes.VoteChoice.No) {
+            result.tally.no++;
+        } else if ( inferredChoice == VoteTypes.VoteChoice.Yes) {
+            result.tally.yes++;
+        } else <span class="missing-if-branch" title="else path not taken" >E</span>if ( inferredChoice == VoteTypes.VoteChoice.Abstain) {
+            result.tally.abstain++;
+        }
+        emit VoteTallyUpdated(contextKey, [
+            result.tally.no, 
+            result.tally.yes, 
+            result.tally.abstain
+            ]);
+        
+        // Update the proposal's Passed status
+        _updateProposalStatus(contextKey, groupKey);
+&nbsp;
+        // register the proposal submission nullifier in the proposal record
+        if (result.submissionNullifier == bytes32(0)) {
+            result.submissionNullifier = proofSubmissionNullifier;
+        } else {
+            <span class="missing-if-branch" title="if path not taken" >I</span>if (result.submissionNullifier != proofSubmissionNullifier) revert SubmissionNullifierMismatch();
+        }
+    }
+&nbsp;
+    
+    /**
+     * @dev This function can only be called by the contract owner (governor).
+     * @custom:error KeyCannotBeZero If the group key is zero.
+     * @custom:error InvalidMemberCount If the member count is zero or greater than 1024.
+     */
+    function setMemberCount(bytes32 groupKey, uint256 _memberCount) external <span class="missing-if-branch" title="else path not taken" >E</span>onlyOwner <span class="missing-if-branch" title="else path not taken" >E</span>nonZeroKey(groupKey) {
+        if (_memberCount == 0 || _memberCount &gt; 1024) revert InvalidMemberCount();
+&nbsp;
+        groupParams[groupKey].memberCount = _memberCount;
+        emit MemberCountSet(groupKey, _memberCount);
+&nbsp;
+        if (_memberCount &lt;= quorumParams.minGroupSizeForMaxQuorum ) {
+            _setQuorum(groupKey, quorumParams.maxQuorumPercent);
+        } else if (_memberCount &gt;= quorumParams.maxGroupSizeForMinQuorum) {
+            _setQuorum(groupKey, quorumParams.minQuorumPercent);
+        } else {
+            uint256 interpolatedQuorum = _linearInterpolation(_memberCount);
+            _setQuorum(groupKey, interpolatedQuorum);
+        }
+    }
+&nbsp;
+    /**
+     * @dev This function can only be called by the contract owner (governor).
+     * @custom:error InvalidQuorumParams If the quorum parameters are invalid.
+     * @custom:error InvalidGroupSizeParams If the group size values corresponding to the quorum thresholds are invalid.
+     */
+    function setQuorumParams(
+        uint256 _minQuorumPercent,
+        uint256 _maxQuorumPercent,
+        uint256 _maxGroupSizeForMinQuorum,
+        uint256 _minGroupSizeForMaxQuorum
+    ) external onlyOwner {
+        if (<span class="branch-0 cbranch-no" title="branch not covered" >_minQuorumPercent &lt; 25 ||</span>
+<span class="branch-1 cbranch-no" title="branch not covered" >            _minQuorumPercent &gt; _maxQuorumPercent</span> ||
+            _maxQuorumPercent &gt; 50 ) revert InvalidQuorumParams();
+&nbsp;
+        if (<span class="branch-0 cbranch-no" title="branch not covered" >_maxGroupSizeForMinQuorum &lt; _minGroupSizeForMaxQuorum</span> ||
+            _maxGroupSizeForMinQuorum &gt; 1024 ||
+            _minGroupSizeForMaxQuorum &lt; 5) revert InvalidGroupSizeParams();
+&nbsp;
+        <span class="missing-if-branch" title="else path not taken" >E</span>if (quorumParams.minQuorumPercent != _minQuorumPercent) {
+            quorumParams.minQuorumPercent = _minQuorumPercent;
+        }
+&nbsp;
+        <span class="missing-if-branch" title="else path not taken" >E</span>if (quorumParams.maxQuorumPercent != _maxQuorumPercent) {
+            quorumParams.maxQuorumPercent = _maxQuorumPercent;
+        }
+        
+        <span class="missing-if-branch" title="else path not taken" >E</span>if (quorumParams.maxGroupSizeForMinQuorum != _maxGroupSizeForMinQuorum) {
+            quorumParams.maxGroupSizeForMinQuorum = _maxGroupSizeForMinQuorum;
+        }
+&nbsp;
+        <span class="missing-if-branch" title="else path not taken" >E</span>if (quorumParams.minGroupSizeForMaxQuorum != _minGroupSizeForMaxQuorum) {
+            quorumParams.minGroupSizeForMaxQuorum = _minGroupSizeForMaxQuorum;
+        }
+&nbsp;
+        emit QuorumParamsSet(
+            quorumParams.minQuorumPercent,
+            quorumParams.maxQuorumPercent,
+            quorumParams.maxGroupSizeForMinQuorum,
+            quorumParams.minGroupSizeForMaxQuorum
+        );
+&nbsp;
+    }
+&nbsp;
+// ====================================================================================================================
+//                                       EXTERNAL VIEW FUNCTIONS
+// ====================================================================================================================
+&nbsp;
+    /**
+     * @dev Returns the group parameters for a given group key.
+     */
+    function getGroupParams(bytes32 groupKey) external view returns (VoteTypes.GroupParams memory params) {
+        return groupParams[groupKey];
+    }
+&nbsp;
+    /**
+     * @dev Returns the proposal result for a given context key.
+     */
+    function getProposalResult(bytes32 contextKey) external view returns (VoteTypes.ProposalResult memory result) {
+        return proposalResults[contextKey];
+    }
+&nbsp;
+    /**
+     * @dev Returns the quorum parameters for the voting system.
+     */
+    function getQuorumParams() external view returns (VoteTypes.QuorumParams memory params) {
+        return quorumParams;
+    }
+&nbsp;
+    /**
+     * @dev Returns the version of the contract.
+     * @return string The version of the contract.
+     */
+    function getContractVersion() external view override(IVersioned, IVoteManager) returns (string memory) {
+        return "VoteManager v1.0.0"; 
+    }
+&nbsp;
+&nbsp;
+// ====================================================================================================================
+//                                       PRIVATE HELPER FUNCTIONS
+// ====================================================================================================================
+    
+    /**
+     * @dev Computes and updates the proposal's passed status based on the group parameters and proposal results.
+     * @param contextKey The unique identifier for the proposal context.
+     * @param groupKey The unique identifier for the group.
+     * @custom:error KeyCannotBeZero If the context or group key are zero.
+     * @custom:error GroupParamsCannotBeZero If the member count or quorum is zero.
+     */
+    function _updateProposalStatus(bytes32 contextKey, bytes32 groupKey) private <span class="missing-if-branch" title="else path not taken" >E</span>nonZeroKey(contextKey) <span class="missing-if-branch" title="else path not taken" >E</span>nonZeroKey(groupKey) {
+        VoteTypes.GroupParams storage params = groupParams[groupKey];
+        VoteTypes.ProposalResult storage proposal = proposalResults[contextKey];
+&nbsp;
+        <span class="missing-if-branch" title="if path not taken" >I</span>if (params.memberCount == 0 || params.quorum == 0) revert GroupParamsCannotBeZero(); 
+        bool hasPassed = _computePassedStatus(params, proposal);
+&nbsp;
+        // update passed value if it is different from the current value
+        if (hasPassed != proposal.passed) {
+            proposal.passed = hasPassed;
+        }
+&nbsp;
+        emit ProposalStatusUpdated(contextKey, hasPassed);
+    }
+&nbsp;
+    /**
+     * @dev Sets the quorum for a group.
+     * @param groupKey The unique identifier for the group.
+     * @param _quorum The quorum percentage to set for the group.
+     * @custom:error QuorumCannotBeLowerThan25 If the quorum is less than 25.
+     * @custom:error KeyCannotBeZero If the group key is zero.
+     */
+    function _setQuorum(bytes32 groupKey, uint256 _quorum) private <span class="missing-if-branch" title="else path not taken" >E</span>nonZeroKey(groupKey) {
+        <span class="missing-if-branch" title="if path not taken" >I</span>if (_quorum &lt; 25 ) revert QuorumCannotBeLowerThan25();
+        groupParams[groupKey].quorum = _quorum;
+        emit QuorumSet(groupKey, _quorum);
+    }
+    
+    /**
+     * @dev Computes whether a proposal has passed based on the group parameters and proposal results.
+     * @param params The group parameters containing member count and quorum.
+     * @param proposal The proposal result containing the vote tally.
+     * @return bool True if the proposal has passed, false otherwise.
+     */
+    function _computePassedStatus(VoteTypes.GroupParams memory params, VoteTypes.ProposalResult memory proposal) private pure returns (bool)  {    
+        uint256 totalVotes = proposal.tally.no + proposal.tally.yes + proposal.tally.abstain;
+        if (totalVotes &gt; params.memberCount) {
+            // If total votes exceed member count, it indicates an error in tallying.
+            // Reverting to prevent inconsistent state.
+            revert TallyingInconsistent();
+        }
+        uint256 requiredVotes = _ceilDiv(params.memberCount * params.quorum, 100);
+        
+        bool hasReachedQuorum = totalVotes &gt;= requiredVotes;
+        bool hasYesMajority = proposal.tally.yes &gt; proposal.tally.no;
+        bool hasMinimumMembers = params.memberCount &gt;= 2;
+&nbsp;
+        return hasReachedQuorum &amp;&amp; hasYesMajority &amp;&amp; hasMinimumMembers;
+    }
+&nbsp;
+    /**
+     * @dev Performs linear interpolation to find the y value for a given x.
+     * @param x The x value for which to find the corresponding y value.
+     * @return uint256 The interpolated y value for the given x.
+     * @custom:error InvalidXInput If x is less than or equal to x1 or greater than or equal to x2.
+     * @notice We assume that x1 &lt; x2 and y1 &gt; y2 (negative slope).
+     * Formula: y = y1 + slope * (x - x1), where slope = (y2 - y1) / (x2 - x1).
+     */
+    function _linearInterpolation(uint256 x) private view returns (uint256) {
+        // y = y1 + slope * (x  - x1)
+        // slope = (y2 - y1) / (x2 - x1)
+        uint256 yScalingFactor = 1e4; 
+        uint256 x1 = quorumParams.minGroupSizeForMaxQuorum;
+        uint256 y1Scaled = quorumParams.maxQuorumPercent * yScalingFactor;
+        uint256 x2 = quorumParams.maxGroupSizeForMinQuorum;
+        uint256 y2Scaled = quorumParams.minQuorumPercent * yScalingFactor;
+&nbsp;
+        // x should be between x1 and x2
+        <span class="missing-if-branch" title="if path not taken" >I</span>if (x &lt;= x1 || x &gt;= x2) revert InvalidXInput();
+&nbsp;
+        uint256 scalingFactor = 1e4;
+        uint256 slopeNumeratorPositive = y1Scaled - y2Scaled;
+        uint256 slopeDenominator =  x2 - x1;
+        // multiplication before division to avoid precision loss
+        uint256 slopePositiveScaled = slopeNumeratorPositive * scalingFactor / slopeDenominator;
+&nbsp;
+        uint256 quorumScaled = y1Scaled - (slopePositiveScaled * (x - x1)) / scalingFactor;
+        return quorumScaled / scalingFactor;
+    }
+&nbsp;
+    /**
+     * @dev Computes the ceiling division of two numbers.
+     * @param a The numerator.
+     * @param b The denominator.
+     * @return uint256 The result of the ceiling division.
+     */
+    function _ceilDiv(uint256 a, uint256 b) private pure returns (uint256) {
+        <span class="missing-if-branch" title="if path not taken" >I</span>if (a == 0 || b == 0) revert InvalidCeilInputs();  
+        return (a + b - 1) / b;
+    }
+&nbsp;
+}
+&nbsp;</pre></td></tr>
+</table></pre>
+<div class='push'></div><!-- for sticky footer -->
+</div><!-- /wrapper -->
+<div class='footer quiet pad2 space-top1 center small'>
+  Code coverage
+  generated by <a href="http://istanbul-js.org/" target="_blank">istanbul</a> at Mon Sep 15 2025 18:21:10 GMT+0200 (Central European Summer Time)
+</div>
+</div>
+<script src="../prettify.js"></script>
+<script>
+window.onload = function () {
+        if (typeof prettyPrint === 'function') {
+            prettyPrint();
+        }
+};
+</script>
+<script src="../sorter.js"></script>
+</body>
+</html>

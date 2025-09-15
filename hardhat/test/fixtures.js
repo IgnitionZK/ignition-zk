@@ -32,6 +32,7 @@ async function setUpFixtures() {
     const MockProposalVerifier = await ethers.getContractFactory("MockProposalVerifier");
     const MockProposalClaimVerifier = await ethers.getContractFactory("MockProposalClaimVerifier");
     const MockVoteVerifier = await ethers.getContractFactory("MockVoteVerifier");
+    const MockERC721 = await ethers.getContractFactory("MockERC721");
 
     // Ids
     const groupId = '123e4567-e89b-12d3-a456-426614174000'; // Example UUID for group
@@ -362,6 +363,7 @@ async function setUpFixtures() {
         MockProposalVerifier,
         MockProposalClaimVerifier,
         MockVoteVerifier,
+        MockERC721,
 
         groupId, groupId2, epochId, proposalId, groupKey, groupKey2, epochKey, proposalKey, 
         voteContextKey, proposalContextKey, rootHash1, rootHash2, 
@@ -430,7 +432,8 @@ async function setUpFixtures() {
         mockProposalVerifier: null,
         mockProposalClaimVerifier: null,
         mockVoteVerifier: null,
-        mockMembershipVerifier: null
+        mockMembershipVerifier: null,
+        mockERC721: null
     }
 }
 
@@ -450,6 +453,9 @@ async function deployFixtures() {
     fixtures.mockMembershipVerifier = await fixtures.MockMembershipVerifier.deploy();
     await fixtures.mockMembershipVerifier.waitForDeployment();
 
+    fixtures.mockERC721 = await fixtures.MockERC721.deploy();
+    await fixtures.mockERC721.waitForDeployment();
+
     // Deploy the MembershipManager UUPS Proxy (ERC‑1967) contract
     fixtures.membershipManager = await upgrades.deployProxy(
         fixtures.MembershipManager, 
@@ -464,6 +470,21 @@ async function deployFixtures() {
         }
     );
     await fixtures.membershipManager.waitForDeployment();
+
+    // Deploy a second instance of the MembershipManager with the mock ERC721 contract that reverts when safeMint is called
+    fixtures.membershipManagerWithMockNft = await upgrades.deployProxy(
+        fixtures.MembershipManager, 
+        [
+            await fixtures.governor.getAddress(),
+            fixtures.mockERC721.target,
+            fixtures.membershipVerifier.target
+        ],
+        {
+            initializer: "initialize",
+            kind: "uups"
+        }
+    );
+    await fixtures.membershipManagerWithMockNft.waitForDeployment();
 
     // Deploy ProposalVerifier contract
     fixtures.proposalVerifier = await fixtures.ProposalVerifier.deploy();

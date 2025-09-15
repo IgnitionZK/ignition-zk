@@ -35,7 +35,7 @@ describe("Membership Manager Unit Tests:", function () {
         const deployedFixtures = await deployFixtures();
 
         ({
-            membershipManager, membershipVerifier, nftImplementation, mockMembershipVerifier
+            membershipManager, membershipVerifier, nftImplementation, mockMembershipVerifier, membershipManagerWithMockNft
         } = deployedFixtures);
         
     });
@@ -661,6 +661,20 @@ describe("Membership Manager Unit Tests:", function () {
             "OwnableUnauthorizedAccount"
         );
     });
+
+    it(`FUNCTION: mintNftToMember
+        TESTING: custom error: MintingFailed
+        EXPECTED: should revert with a custom error when safeMint fails`, async function () {
+        const user1Address = await user1.getAddress();
+        await membershipManagerWithMockNft.connect(governor).deployGroupNft(groupKey, nftName, nftSymbol);
+        await expect(
+            membershipManagerWithMockNft.connect(governor).mintNftToMember(user1Address, groupKey)
+        ).to.be.revertedWithCustomError(
+            membershipManagerWithMockNft,
+            "MintingFailed"
+        ).withArgs("mock minting failed");
+    });
+
     /*
     it(`FUNCTION: mintNftToMember
         TESTING: Access Control MINTER_ROLE, custom error: AccessControlUnauthorizedAccount
