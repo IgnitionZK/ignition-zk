@@ -709,8 +709,9 @@ contract TreasuryManager is Initializable, AccessControlUpgradeable, ReentrancyG
     /**
      * @dev Executes a funding request.
      * @param contextKey The unique identifier for the funding request.
-     * @dev Audit note: Even though block.timestamp could be manipulated by miners, the manipulation window is just a few seconds.
-     * Such a manipulation does not critically affect the treasury lock functionality.
+     * Audit note: Even though block.timestamp could be manipulated by miners, the manipulation window is just a few seconds.
+     * Such a manipulation does not critically affect the treasury lock functionality. 
+     * Recipient address: must be capable of receiving ETH (EOA or contract with payable fallback/receive).
      */
     function _execute(bytes32 contextKey) private {
         TreasuryTypes.FundingRequest storage request = fundingRequests[contextKey];

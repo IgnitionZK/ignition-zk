@@ -88,6 +88,9 @@ contract GovernanceManager is Initializable, UUPSUpgradeable, OwnableUpgradeable
     /// @notice Thrown if the function does not exist or is not implemented in the contract.
     error UnknownFunctionCall();
 
+    /// @notice Thrown if an ETH transfer to the owner's wallet fails.
+    error ETHWithdrawalFailed();    
+
 // ====================================================================================================================
 //                                                  EVENTS
 // ====================================================================================================================
@@ -151,6 +154,13 @@ contract GovernanceManager is Initializable, UUPSUpgradeable, OwnableUpgradeable
      * @param amount The amount of the grant.
      */
     event GrantDistributionDelegated(address indexed groupTreasury, bytes32 indexed contextKey, address indexed to, uint256 amount);
+
+    /**
+     * @notice Emitted when ETH is withdrawn from the contract to the owner's wallet.
+     * @param to The address of the owner's wallet.
+     * @param amount The amount of ETH withdrawn.
+     */
+    event ETHWithdrawn(address indexed to, uint256 amount);
 
 // ====================================================================================================================
 //                                              STATE VARIABLES
@@ -763,15 +773,40 @@ contract GovernanceManager is Initializable, UUPSUpgradeable, OwnableUpgradeable
     }
 
 // ====================================================================================================================
-//                                       FALLBACK FUNCTION
+//                                       RECEIVE & FALLBACK FUNCTION
 // ====================================================================================================================
+    
+    /**
+     * @notice Withdraws any ETH sent to the contract by mistake to the owner's address (multi-signature wallet).
+     * @dev Only callable by the owner.
+     * @custom:error ETHWithdrawalFailed If the ETH transfer fails.
+     */
+    function withdrawETH() external onlyOwner {
+        uint256 balance = address(this).balance;
+        if(balance > 0) {
+            (bool success, ) = owner().call{value: balance}("");
+            if(!success) {
+                revert ETHWithdrawalFailed();
+            }
+            emit ETHWithdrawn(owner(), balance);
+        }
+    }
+    
+    /**
+     * @notice Receive function to handle plain ETH transfers.
+     * @dev Only used as a safety measure to allow withdrawal of any ETH sent to the contract by mistake (withdrawETH function).
+     */
+    receive() external payable {}
 
     /**
      * @notice Fallback function to handle unknown function calls.
      * @dev Reverts with an error indicating that the function does not exist or is not implemented.
-     */  
-    fallback() external {
-        revert UnknownFunctionCall();
+     * Marked as payable to allow withdrawal of any ETH sent by mistake (withdrawETH function).
+     */
+    fallback() external payable {
+        if (msg.data.length > 0) {
+            revert UnknownFunctionCall();
+        }
     }
     
 

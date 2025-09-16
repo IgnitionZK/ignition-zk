@@ -21,11 +21,25 @@ import { FundingTypes } from "../libraries/FundingTypes.sol";
  */
 contract GrantModule is Initializable, UUPSUpgradeable, OwnableUpgradeable, IGrantModule, IVersioned {
 
-    /// @dev Thrown if the provided address is zero.
+// ====================================================================================================================
+//                                                  CUSTOM ERRORS
+// ====================================================================================================================
+
+    /// @notice Thrown if the provided address is zero.
     error AddressCannotBeZero();
 
-    /// @dev Thrown if the provided key is zero.
+    /// @notice Thrown if the provided key is zero.
     error KeyCannotBeZero();
+
+    /// @notice Thrown if ETH is sent to this contract.
+    error ETHTransfersNotAccepted();
+
+    /// @notice Thrown when a function not defined in this contract is called.
+    error UnknownFunctionCall();
+
+// ====================================================================================================================
+//                                                  EVENTS
+// ====================================================================================================================
 
     /**
      * @dev Emitted when a grant is requested.
@@ -118,6 +132,29 @@ contract GrantModule is Initializable, UUPSUpgradeable, OwnableUpgradeable, IGra
             FundingTypes.GRANT_TYPE
         );
         emit GrantRequested(groupTreasury, contextKey, to, amount);
+    }
+
+// ====================================================================================================================
+//                                       RECEIVE & FALLBACK FUNCTIONS
+// ====================================================================================================================
+
+    /**
+    * @notice Prevents ETH from being sent to this contract
+    */
+    receive() external payable {
+        revert ETHTransfersNotAccepted();
+    }
+
+    /**
+    * @notice Prevents ETH from being sent with calldata to this contract
+    * @dev Handles unknown function calls and ETH transfers with data
+    */
+    fallback() external payable {
+        if (msg.value > 0) {
+            revert ETHTransfersNotAccepted();
+        } else {
+            revert UnknownFunctionCall();
+        }
     }
 
 // ====================================================================================================================

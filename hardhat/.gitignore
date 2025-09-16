@@ -13,6 +13,9 @@ node_modules
 #/coverage
 /coverage.json
 
+# Aderyn report
+repord.md
+
 # Hardhat Ignition default folder for deployments against a local node
 ignition/deployments/*/build-info/
 
