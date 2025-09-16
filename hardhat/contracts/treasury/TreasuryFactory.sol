@@ -34,6 +34,12 @@ contract TreasuryFactory is Ownable, ERC165, ITreasuryFactory {
     /// The DAO has to first be initiated via NFT deployment.
     error GroupNftNotSet();
 
+    /// @notice Thrown if ETH is sent to this contract.
+    error ETHTransfersNotAccepted();
+
+    /// @notice Thrown when a function not defined in this contract is called.
+    error UnknownFunctionCall();
+
 // ====================================================================================================================
 //                                                  EVENTS
 // ====================================================================================================================
@@ -151,6 +157,29 @@ contract TreasuryFactory is Ownable, ERC165, ITreasuryFactory {
         address treasury = address(treasuryProxy);
         groupTreasuryAddresses[groupKey] = treasury;
         emit TreasuryDeployed(groupKey, treasury);
+    }
+
+// ====================================================================================================================
+//                                       RECEIVE & FALLBACK FUNCTIONS
+// ====================================================================================================================
+
+    /**
+    * @notice Prevents ETH from being sent to this contract
+    */
+    receive() external payable {
+        revert ETHTransfersNotAccepted();
+    }
+
+    /**
+    * @notice Prevents ETH from being sent with calldata to this contract
+    * @dev Handles unknown function calls and ETH transfers with data
+    */
+    fallback() external payable {
+        if (msg.value > 0) {
+            revert ETHTransfersNotAccepted();
+        } else {
+            revert UnknownFunctionCall();
+        }
     }
 
 // ====================================================================================================================

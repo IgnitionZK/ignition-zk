@@ -16,6 +16,7 @@
     "ethers": "^6.14.1"
   },
   "devDependencies": {
+    "@cyfrin/aderyn": "^0.5.13",
     "@nomicfoundation/hardhat-ignition": "^0.15.11",
     "@nomicfoundation/hardhat-toolbox": "^5.0.0",
     "@nomicfoundation/hardhat-verify": "^2.0.14",

@@ -6,6 +6,7 @@ import { UUPSUpgradeable } from "@openzeppelin/contracts-upgradeable/proxy/utils
 import { Initializable } from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import { OwnableUpgradeable } from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import { ERC165Upgradeable } from "@openzeppelin/contracts-upgradeable/utils/introspection/ERC165Upgradeable.sol";
+import { ReentrancyGuardUpgradeable } from "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol";
 
 // Interfaces:
 import { IVoteVerifier } from "../interfaces/verifiers/IVoteVerifier.sol";
@@ -22,7 +23,7 @@ import { VoteTypes } from "../libraries/VoteTypes.sol";
  * @notice This contract manages the voting process for proposals.
  * It ensures that votes are cast, verified, and tallied in a secure and efficient manner using zk-SNARKs.
  */
-contract VoteManager is Initializable, OwnableUpgradeable, UUPSUpgradeable, IVoteManager, ERC165Upgradeable, IVersioned {
+contract VoteManager is Initializable, OwnableUpgradeable, UUPSUpgradeable, ReentrancyGuardUpgradeable, IVoteManager, ERC165Upgradeable, IVersioned {
 // ====================================================================================================================
 //                                                  CUSTOM ERRORS
 // ====================================================================================================================
@@ -104,6 +105,12 @@ contract VoteManager is Initializable, OwnableUpgradeable, UUPSUpgradeable, IVot
 
     /// @notice Thrown if the provided key is zero.
     error KeyCannotBeZero();
+
+    /// @notice Thrown if ETH is sent to this contract.
+    error ETHTransfersNotAccepted();
+
+    /// @notice Thrown when a function not defined in this contract is called.
+    error UnknownFunctionCall();
 
 // ====================================================================================================================
 //                                                  EVENTS
@@ -350,6 +357,7 @@ contract VoteManager is Initializable, OwnableUpgradeable, UUPSUpgradeable, IVot
     ) 
         external 
         onlyOwner
+        nonReentrant
         nonZeroKey(contextKey) 
         nonZeroKey(groupKey)
     {
@@ -360,6 +368,7 @@ contract VoteManager is Initializable, OwnableUpgradeable, UUPSUpgradeable, IVot
         bytes32 proofRoot = bytes32(publicSignals[3]);
         bytes32 proofSubmissionNullifier = bytes32(publicSignals[4]);
 
+        // Checks:
         // check root
         bytes32 currentRoot = membershipManager.groupRoots(groupKey);
         if (currentRoot == bytes32(0)) revert RootNotYetInitialized();
@@ -375,15 +384,16 @@ contract VoteManager is Initializable, OwnableUpgradeable, UUPSUpgradeable, IVot
         // check that context is correct
         if (contextKey != proofContextHash) revert InvalidContextHash();
 
+        // Effects:
+        // Mark the vote nullifier as used immediately to prevent re-entrancy attacks
+        voteNullifiers[proofVoteNullifier] = true;
+        // Emit event for verified vote
+        emit VoteVerified(contextKey, proofVoteNullifier);
+
+        // Interactions:
         // verify that the proof is valid
         bool isValidVote = voteVerifier.verifyProof(proof, publicSignals);
         if (!isValidVote) revert InvalidVoteProof(contextKey, proofVoteNullifier);
-
-        // mark the vote nullifier as used
-        voteNullifiers[proofVoteNullifier] = true;
-
-        // Emit event for verified vote
-        emit VoteVerified(contextKey, proofVoteNullifier);
 
         // Infer the vote choice from the public outputs
         // Audit note: Uninitialized variable but no risk since every possible execution path is covered below.
@@ -490,6 +500,29 @@ contract VoteManager is Initializable, OwnableUpgradeable, UUPSUpgradeable, IVot
             quorumParams.minGroupSizeForMaxQuorum
         );
 
+    }
+
+// ====================================================================================================================
+//                                       RECEIVE & FALLBACK FUNCTIONS
+// ====================================================================================================================
+
+    /**
+    * @notice Prevents ETH from being sent to this contract
+    */
+    receive() external payable {
+        revert ETHTransfersNotAccepted();
+    }
+
+   /**
+    * @notice Prevents ETH from being sent with calldata to this contract
+    * @dev Handles unknown function calls and ETH transfers with data
+    */
+    fallback() external payable {
+        if (msg.value > 0) {
+            revert ETHTransfersNotAccepted();
+        } else {
+            revert UnknownFunctionCall();
+        }
     }
 
 // ====================================================================================================================

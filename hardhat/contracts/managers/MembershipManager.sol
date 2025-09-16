@@ -111,9 +111,11 @@ contract MembershipManager is Initializable, UUPSUpgradeable, OwnableUpgradeable
     /// @notice Thrown if the provided address is not a contract.
     error AddressIsNotAContract();
 
-    /// @notice Thrown if the provided address does not support the required interface.
-    /// @dev This is used to check if the address supports the `verifyProof` function
-    //error AddressDoesNotSupportInterface();
+    /// @notice Thrown if ETH is sent to this contract.
+    error ETHTransfersNotAccepted();
+
+    /// @notice Thrown when a function not defined in this contract is called.
+    error UnknownFunctionCall();
     
 // ====================================================================================================================
 //                                                  EVENTS
@@ -307,8 +309,7 @@ contract MembershipManager is Initializable, UUPSUpgradeable, OwnableUpgradeable
      */
     function setMembershipVerifier(address _membershipVerifier) external onlyOwner nonZeroAddress(_membershipVerifier) {
         if(_membershipVerifier.code.length == 0) revert AddressIsNotAContract();
-        //if(!_supportsIMembershipInterface(_membershipVerifier)) revert AddressDoesNotSupportInterface();
-
+        
         membershipVerifier = IMembershipVerifier(_membershipVerifier);
         emit MembershipVerifierSet(_membershipVerifier);
     }
@@ -504,6 +505,29 @@ contract MembershipManager is Initializable, UUPSUpgradeable, OwnableUpgradeable
         uint256 tokenIdToBurn = nft.tokenOfOwnerByIndex(memberAddress, 0);
         nft.revokeMembershipToken(tokenIdToBurn);
         emit MemberNftBurned(groupKey, memberAddress, tokenIdToBurn);
+    }
+
+// ====================================================================================================================
+//                                       RECEIVE & FALLBACK FUNCTIONS
+// ====================================================================================================================
+
+    /**
+    * @notice Prevents ETH from being sent to this contract
+    */
+    receive() external payable {
+        revert ETHTransfersNotAccepted();
+    }
+
+    /**
+    * @notice Prevents ETH from being sent with calldata to this contract
+    * @dev Handles unknown function calls and ETH transfers with data
+    */
+    fallback() external payable {
+        if (msg.value > 0) {
+            revert ETHTransfersNotAccepted();
+        } else {
+            revert UnknownFunctionCall();
+        }
     }
 
 // ====================================================================================================================

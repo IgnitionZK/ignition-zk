@@ -6,6 +6,7 @@ import { UUPSUpgradeable } from "@openzeppelin/contracts-upgradeable/proxy/utils
 import { Initializable } from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import { OwnableUpgradeable } from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import { ERC165Upgradeable } from "@openzeppelin/contracts-upgradeable/utils/introspection/ERC165Upgradeable.sol";
+import { ReentrancyGuardUpgradeable } from "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol";
 
 // Interfaces
 import { IProposalManager } from "../interfaces/managers/IProposalManager.sol";
@@ -20,7 +21,7 @@ import { IVersioned } from "../interfaces/IVersioned.sol";
  * @notice This contract manages the proposal submission and verification process.
  * It ensures that proposals are submitted, verified, and claimed in a secure and efficient manner.
  */
-contract ProposalManager is Initializable, OwnableUpgradeable, UUPSUpgradeable, IProposalManager, ERC165Upgradeable, IVersioned {
+contract ProposalManager is Initializable, OwnableUpgradeable, UUPSUpgradeable, ReentrancyGuardUpgradeable, IProposalManager, ERC165Upgradeable, IVersioned {
 // ====================================================================================================================
 //                                                  CUSTOM ERRORS
 // ====================================================================================================================
@@ -84,6 +85,12 @@ contract ProposalManager is Initializable, OwnableUpgradeable, UUPSUpgradeable, 
 
     /// @notice Thrown if the provided key (groupKey or contextKey) is zero.
     error KeyCannotBeZero();
+
+    /// @notice Thrown if ETH is sent to this contract.
+    error ETHTransfersNotAccepted();
+
+    /// @notice Thrown when a function not defined in this contract is called.
+    error UnknownFunctionCall();
 
 // ====================================================================================================================
 //                                                  EVENTS
@@ -260,7 +267,13 @@ contract ProposalManager is Initializable, OwnableUpgradeable, UUPSUpgradeable, 
         uint256[5] calldata publicSignals,
         bytes32 contextKey,
         bytes32 groupKey
-    ) external onlyOwner nonZeroKey(contextKey) {
+    ) 
+        external 
+        onlyOwner 
+        nonReentrant
+        nonZeroKey(contextKey) 
+        nonZeroKey(groupKey)
+    {
 
         bytes32 proofContextHash = bytes32(publicSignals[0]);
         bytes32 proofSubmissionNullifier = bytes32(publicSignals[1]);
@@ -268,6 +281,7 @@ contract ProposalManager is Initializable, OwnableUpgradeable, UUPSUpgradeable, 
         bytes32 proofRoot = bytes32(publicSignals[3]);
         bytes32 proofContentHash = bytes32(publicSignals[4]);
 
+        // Checks:
         // check proofRoot matches currentRoot from MembershipManager
         bytes32 currentRoot = membershipManager.groupRoots(groupKey);
         if (currentRoot == bytes32(0)) revert RootNotYetInitialized();
@@ -278,28 +292,36 @@ contract ProposalManager is Initializable, OwnableUpgradeable, UUPSUpgradeable, 
 
         // check proposalContextHash matches the one in the public signals
         if (proofContextHash != contextKey) revert InvalidContextHash();
+
+        // Effects:
+        // Mark the nullifier as used before verification to prevent re-entrancy attacks
+        submissionNullifiers[proofSubmissionNullifier] = true;
+        emit SubmissionVerified(contextKey, proofSubmissionNullifier, proofClaimNullifier, proofContentHash);
         
+        // Interactions:
         // Verify the proof using the verifier contract
         bool isValidSubmission = submissionVerifier.verifyProof(proof, publicSignals);
         if (!isValidSubmission) {
             revert InvalidSubmissionProof(contextKey, proofSubmissionNullifier);
         }
-        // If all checks pass, mark the nullifier as used:
-        submissionNullifiers[proofSubmissionNullifier] = true;
-
-        emit SubmissionVerified(contextKey, proofSubmissionNullifier, proofClaimNullifier, proofContentHash);
     }
 
     function verifyProposalClaim(
         uint256[24] calldata proof,
         uint256[3] calldata publicSignals,
         bytes32 contextKey
-    ) external onlyOwner nonZeroKey(contextKey) {
+    ) 
+        external 
+        onlyOwner 
+        nonReentrant
+        nonZeroKey(contextKey) 
+    {
 
         bytes32 ProofClaimNullifier = bytes32(publicSignals[0]);
         bytes32 ProofSubmissionNullifier = bytes32(publicSignals[1]);
         bytes32 ProofProposalContextHash = bytes32(publicSignals[2]);
 
+        // Checks:
         // Check if the proposal has been submitted
         if(!submissionNullifiers[ProofSubmissionNullifier]) revert ProposalHasNotBeenSubmitted();
 
@@ -309,13 +331,40 @@ contract ProposalManager is Initializable, OwnableUpgradeable, UUPSUpgradeable, 
         // Check if the context hash matches the one in the public signals
         if(ProofProposalContextHash != contextKey) revert InvalidContextHash();
 
+        // Effects:
+        // Mark the claim nullifier as used before verification to prevent re-entrancy attacks
+        claimNullifiers[ProofClaimNullifier] = true;
+        emit ClaimVerified(contextKey, ProofClaimNullifier, ProofSubmissionNullifier);
+
+        // Interactions:
+        // Verify the proof using the claim verifier contract
         bool isValidClaim = claimVerifier.verifyProof(proof, publicSignals);
         if(!isValidClaim) {
             revert InvalidClaimProof(contextKey, ProofClaimNullifier, ProofSubmissionNullifier);
         }
+    }
 
-        claimNullifiers[ProofClaimNullifier] = true;
-        emit ClaimVerified(contextKey, ProofClaimNullifier, ProofSubmissionNullifier);
+// ====================================================================================================================
+//                                       RECEIVE & FALLBACK FUNCTIONS
+// ====================================================================================================================
+
+    /**
+    * @notice Prevents ETH from being sent to this contract
+    */
+    receive() external payable {
+        revert ETHTransfersNotAccepted();
+    }
+
+    /**
+    * @notice Prevents ETH from being sent with calldata to this contract
+    * @dev Handles unknown function calls and ETH transfers with data
+    */
+    fallback() external payable {
+        if (msg.value > 0) {
+            revert ETHTransfersNotAccepted();
+        } else {
+            revert UnknownFunctionCall();
+        }
     }
 
 // ====================================================================================================================
