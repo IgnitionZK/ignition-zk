@@ -2,14 +2,6 @@ import { supabase } from "./supabase";
 
 /**
  * Creates a new transaction record in the database
- * @param {Object} params - The parameters object
- * @param {string} params.txFunction - The transaction function name
- * @param {string} params.txEventIdentifier - The transaction event identifier
- * @param {string} params.txHash - The transaction hash
- * @param {string} params.status - The transaction status
- * @param {string} params.childId - The child ID (UUID)
- * @returns {Promise<Object>} The newly created transaction object
- * @throws {Error} If required parameters are missing or if there's a database error
  */
 export async function createTransaction({
   txFunction,
@@ -67,10 +59,6 @@ export async function createTransaction({
 
 /**
  * Retrieves the status of a transaction by its child_id
- * @param {Object} params - The parameters object
- * @param {string} params.childId - The child ID (UUID) to search for
- * @returns {Promise<Object|null>} The transaction object with status information, or null if not found
- * @throws {Error} If childId is not provided or if there's a database error
  */
 export async function getStatus({ childId }) {
   if (!childId) {
