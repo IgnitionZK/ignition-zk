@@ -737,7 +737,7 @@ contract TreasuryManager is Initializable, AccessControlUpgradeable, ReentrancyG
         request.executed = true;
 
         // Interactions
-        (bool success, ) = request.to.call{ value: request.amount }("");
+        (bool success, ) = payable(request.to).call{ value: request.amount }("");
 
         if (!success) {
             revert TransferFailed();

@@ -5,7 +5,6 @@ pragma solidity ^0.8.28;
 import { UUPSUpgradeable } from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import { Initializable } from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import { OwnableUpgradeable } from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
-import { ERC165Upgradeable } from "@openzeppelin/contracts-upgradeable/utils/introspection/ERC165Upgradeable.sol";
 import { ReentrancyGuardUpgradeable } from "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol";
 
 // Interfaces:
@@ -23,7 +22,7 @@ import { VoteTypes } from "../libraries/VoteTypes.sol";
  * @notice This contract manages the voting process for proposals.
  * It ensures that votes are cast, verified, and tallied in a secure and efficient manner using zk-SNARKs.
  */
-contract VoteManager is Initializable, OwnableUpgradeable, UUPSUpgradeable, ReentrancyGuardUpgradeable, IVoteManager, ERC165Upgradeable, IVersioned {
+contract VoteManager is Initializable, OwnableUpgradeable, UUPSUpgradeable, ReentrancyGuardUpgradeable, IVoteManager, IVersioned {
 // ====================================================================================================================
 //                                                  CUSTOM ERRORS
 // ====================================================================================================================
@@ -303,7 +302,7 @@ contract VoteManager is Initializable, OwnableUpgradeable, UUPSUpgradeable, Reen
     {
         __Ownable_init(_initialOwner);
         __UUPSUpgradeable_init();
-        __ERC165_init();
+        __ReentrancyGuard_init();
 
         voteVerifier = IVoteVerifier(_voteVerifier);
         membershipManager = IMembershipManager(_membershipManager);

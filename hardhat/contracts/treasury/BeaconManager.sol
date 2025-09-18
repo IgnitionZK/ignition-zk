@@ -6,7 +6,6 @@ import { UpgradeableBeacon } from "@openzeppelin/contracts/proxy/beacon/Upgradea
 import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
 
 // Interfaces:
-import { ITreasuryManager } from "../interfaces/treasury/ITreasuryManager.sol";
 import { IBeacon } from "@openzeppelin/contracts/proxy/beacon/IBeacon.sol";
 
 /**

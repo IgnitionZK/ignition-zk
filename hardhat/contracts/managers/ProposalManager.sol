@@ -5,7 +5,6 @@ pragma solidity ^0.8.28;
 import { UUPSUpgradeable } from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import { Initializable } from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import { OwnableUpgradeable } from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
-import { ERC165Upgradeable } from "@openzeppelin/contracts-upgradeable/utils/introspection/ERC165Upgradeable.sol";
 import { ReentrancyGuardUpgradeable } from "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol";
 
 // Interfaces
@@ -13,7 +12,6 @@ import { IProposalManager } from "../interfaces/managers/IProposalManager.sol";
 import { IProposalVerifier } from "../interfaces/verifiers/IProposalVerifier.sol";
 import { IProposalClaimVerifier } from "../interfaces/verifiers/IProposalClaimVerifier.sol";
 import { IMembershipManager } from "../interfaces/managers/IMembershipManager.sol";
-import { IERC165 } from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 import { IVersioned } from "../interfaces/IVersioned.sol";
 
 /**
@@ -21,7 +19,7 @@ import { IVersioned } from "../interfaces/IVersioned.sol";
  * @notice This contract manages the proposal submission and verification process.
  * It ensures that proposals are submitted, verified, and claimed in a secure and efficient manner.
  */
-contract ProposalManager is Initializable, OwnableUpgradeable, UUPSUpgradeable, ReentrancyGuardUpgradeable, IProposalManager, ERC165Upgradeable, IVersioned {
+contract ProposalManager is Initializable, OwnableUpgradeable, UUPSUpgradeable, ReentrancyGuardUpgradeable, IProposalManager, IVersioned {
 // ====================================================================================================================
 //                                                  CUSTOM ERRORS
 // ====================================================================================================================
@@ -213,7 +211,7 @@ contract ProposalManager is Initializable, OwnableUpgradeable, UUPSUpgradeable, 
     {
         __Ownable_init(_governor);
         __UUPSUpgradeable_init();
-        __ERC165_init();
+        __ReentrancyGuard_init();
 
         submissionVerifier = IProposalVerifier(_submissionVerifier);
         claimVerifier = IProposalClaimVerifier(_claimVerifier);
@@ -370,18 +368,6 @@ contract ProposalManager is Initializable, OwnableUpgradeable, UUPSUpgradeable, 
 // ====================================================================================================================
 //                                       EXTERNAL VIEW FUNCTIONS
 // ====================================================================================================================
-
-    /**
-     * @dev Checks if the contract supports a specific interface.
-     * @param interfaceId The interface identifier to check.
-     * @return bool True if the interface is supported, false otherwise.
-     */
-    /*
-    function supportsInterface(bytes4 interfaceId) public view virtual override returns (bool) 
-    {
-        return interfaceId == type(IProposalManager).interfaceId || super.supportsInterface(interfaceId);
-    }
-    */
 
     /**
      * @dev Returns the version of the contract.

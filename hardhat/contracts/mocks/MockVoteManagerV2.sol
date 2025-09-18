@@ -1,11 +1,11 @@
-// SPDX-License-Identifier: MIT
+// SPDX-License-Identifier: GPL-3.0
 pragma solidity ^0.8.28;
 
 // OZ imports:
 import { UUPSUpgradeable } from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import { Initializable } from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import { OwnableUpgradeable } from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
-import { ERC165Upgradeable } from "@openzeppelin/contracts-upgradeable/utils/introspection/ERC165Upgradeable.sol";
+import { ReentrancyGuardUpgradeable } from "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol";
 
 // Interfaces:
 import { IVoteVerifier } from "../interfaces/verifiers/IVoteVerifier.sol";
@@ -22,7 +22,7 @@ import { VoteTypes } from "../libraries/VoteTypes.sol";
  * @notice This contract manages the voting process for proposals.
  * It ensures that votes are cast, verified, and tallied in a secure and efficient manner using zk-SNARKs.
  */
-contract MockVoteManagerV2 is Initializable, OwnableUpgradeable, UUPSUpgradeable, IVoteManager, ERC165Upgradeable, IVersioned {
+contract MockVoteManagerV2 is Initializable, OwnableUpgradeable, UUPSUpgradeable, ReentrancyGuardUpgradeable, IVoteManager, IVersioned {
 // ====================================================================================================================
 //                                                  CUSTOM ERRORS
 // ====================================================================================================================
@@ -104,6 +104,12 @@ contract MockVoteManagerV2 is Initializable, OwnableUpgradeable, UUPSUpgradeable
 
     /// @notice Thrown if the provided key is zero.
     error KeyCannotBeZero();
+
+    /// @notice Thrown if ETH is sent to this contract.
+    error ETHTransfersNotAccepted();
+
+    /// @notice Thrown when a function not defined in this contract is called.
+    error UnknownFunctionCall();
 
 // ====================================================================================================================
 //                                                  EVENTS
@@ -296,7 +302,7 @@ contract MockVoteManagerV2 is Initializable, OwnableUpgradeable, UUPSUpgradeable
     {
         __Ownable_init(_initialOwner);
         __UUPSUpgradeable_init();
-        __ERC165_init();
+        __ReentrancyGuard_init();
 
         voteVerifier = IVoteVerifier(_voteVerifier);
         membershipManager = IMembershipManager(_membershipManager);
@@ -350,6 +356,7 @@ contract MockVoteManagerV2 is Initializable, OwnableUpgradeable, UUPSUpgradeable
     ) 
         external 
         onlyOwner
+        nonReentrant
         nonZeroKey(contextKey) 
         nonZeroKey(groupKey)
     {
@@ -360,6 +367,7 @@ contract MockVoteManagerV2 is Initializable, OwnableUpgradeable, UUPSUpgradeable
         bytes32 proofRoot = bytes32(publicSignals[3]);
         bytes32 proofSubmissionNullifier = bytes32(publicSignals[4]);
 
+        // Checks:
         // check root
         bytes32 currentRoot = membershipManager.groupRoots(groupKey);
         if (currentRoot == bytes32(0)) revert RootNotYetInitialized();
@@ -375,17 +383,19 @@ contract MockVoteManagerV2 is Initializable, OwnableUpgradeable, UUPSUpgradeable
         // check that context is correct
         if (contextKey != proofContextHash) revert InvalidContextHash();
 
+        // Effects:
+        // Mark the vote nullifier as used immediately to prevent re-entrancy attacks
+        voteNullifiers[proofVoteNullifier] = true;
+        // Emit event for verified vote
+        emit VoteVerified(contextKey, proofVoteNullifier);
+
+        // Interactions:
         // verify that the proof is valid
         bool isValidVote = voteVerifier.verifyProof(proof, publicSignals);
         if (!isValidVote) revert InvalidVoteProof(contextKey, proofVoteNullifier);
 
-        // mark the vote nullifier as used
-        voteNullifiers[proofVoteNullifier] = true;
-
-        // Emit event for verified vote
-        emit VoteVerified(contextKey, proofVoteNullifier);
-
         // Infer the vote choice from the public outputs
+        // Audit note: Uninitialized variable but no risk since every possible execution path is covered below.
         VoteTypes.VoteChoice inferredChoice;
 
         if (proofVoteChoiceHash == POSEIDON_HASH_ABSTAIN){
@@ -489,6 +499,29 @@ contract MockVoteManagerV2 is Initializable, OwnableUpgradeable, UUPSUpgradeable
             quorumParams.minGroupSizeForMaxQuorum
         );
 
+    }
+
+// ====================================================================================================================
+//                                       RECEIVE & FALLBACK FUNCTIONS
+// ====================================================================================================================
+
+    /**
+    * @notice Prevents ETH from being sent to this contract
+    */
+    receive() external payable {
+        revert ETHTransfersNotAccepted();
+    }
+
+   /**
+    * @notice Prevents ETH from being sent with calldata to this contract
+    * @dev Handles unknown function calls and ETH transfers with data
+    */
+    fallback() external payable {
+        if (msg.value > 0) {
+            revert ETHTransfersNotAccepted();
+        } else {
+            revert UnknownFunctionCall();
+        }
     }
 
 // ====================================================================================================================
@@ -609,6 +642,7 @@ contract MockVoteManagerV2 is Initializable, OwnableUpgradeable, UUPSUpgradeable
         uint256 scalingFactor = 1e4;
         uint256 slopeNumeratorPositive = y1Scaled - y2Scaled;
         uint256 slopeDenominator =  x2 - x1;
+        // multiplication before division to avoid precision loss
         uint256 slopePositiveScaled = slopeNumeratorPositive * scalingFactor / slopeDenominator;
 
         uint256 quorumScaled = y1Scaled - (slopePositiveScaled * (x - x1)) / scalingFactor;
