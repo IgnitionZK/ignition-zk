@@ -65,15 +65,16 @@ export async function getStatus({ childId }) {
     .select("*")
     .eq("child_id", childId)
     .order("created_at", { ascending: false })
-    .limit(1)
-    .single();
+    .limit(1);
 
   if (error) {
-    if (error.code === "PGRST116") {
-      return null;
-    }
     throw new Error(error.message);
   }
 
-  return data;
+  // Return the first item if data exists, otherwise null
+  if (data && Array.isArray(data) && data.length > 0) {
+    return data[0];
+  }
+
+  return null;
 }
