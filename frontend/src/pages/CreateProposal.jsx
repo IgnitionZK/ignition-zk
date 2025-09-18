@@ -885,7 +885,7 @@ export default function CreateProposal({ onSuccess, onCancel }) {
       await new Promise((resolve, reject) => {
         createTransactionRecord(
           {
-            txFunction: null,
+            txFunction: "delegateVerifyProposal",
             txEventIdentifier: null,
             txHash: edgeFunctionResult.transactionHash,
             status: "pending",
