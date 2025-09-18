@@ -129,7 +129,7 @@ contract VoteManagerTest is StdInvariant, Test {
         );
 
         // cast the proxy to MembershipManager interface
-        membershipManager = MembershipManager(address(proxyMembershipManager));
+        membershipManager = MembershipManager(payable(address(proxyMembershipManager)));
 
         // prepare the calldata for ProposalManager initializer
         bytes memory initDataProposalManager = abi.encodeWithSelector(
@@ -147,7 +147,7 @@ contract VoteManagerTest is StdInvariant, Test {
         );
 
         // cast the proxy to ProposalManager interface
-        proposalManager = ProposalManager(address(proxyProposalManager));
+        proposalManager = ProposalManager(payable(address(proxyProposalManager)));
 
         // prepare the calldata for VoteManagerHelper initializer
         bytes memory initDataVoteManagerHelper = abi.encodeWithSelector(
@@ -165,7 +165,7 @@ contract VoteManagerTest is StdInvariant, Test {
         );
 
         // cast the proxy to VoteManagerHelper interface
-        voteManagerHelper = MockVoteManagerHelper(address(proxyVoteManagerHelper));
+        voteManagerHelper = MockVoteManagerHelper(payable(address(proxyVoteManagerHelper)));
 
         lastMemberCount = 0;
         targetContract(address(this));

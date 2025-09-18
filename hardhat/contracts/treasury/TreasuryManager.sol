@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.28;
+pragma solidity >=0.8.28 <0.9.0;
 
 // OZ Imports:
 import { AccessControlUpgradeable } from "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
@@ -737,7 +737,7 @@ contract TreasuryManager is Initializable, AccessControlUpgradeable, ReentrancyG
         request.executed = true;
 
         // Interactions
-        (bool success, ) = request.to.call{ value: request.amount }("");
+        (bool success, ) = payable(request.to).call{ value: request.amount }("");
 
         if (!success) {
             revert TransferFailed();

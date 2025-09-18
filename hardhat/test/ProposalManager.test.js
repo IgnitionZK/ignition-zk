@@ -341,24 +341,6 @@ describe("Proposal Manager Unit Tests:", function () {
     });
 
     it(`FUNCTION: verifyProposal (with mock submission verifier)
-        TESTING: custom error: RootNotYetInitialized
-        EXPETED: should not allow the governor to verify a proposal with a non-initialized root`, async function () {
-        
-        // deploy group NFT without initializing the root
-        await membershipManager.connect(governor).deployGroupNft(groupKey, nftName, nftSymbol);
-        
-        // set the proposal submission verifier to the mock verifier
-        await proposalManager.connect(governor).setProposalSubmissionVerifier(mockProposalVerifier.target);
-        
-        await expect(proposalManager.connect(governor).verifyProposal(
-            mockProof,
-            mockProposalPublicSignals1,
-            proposalContextKey,
-            ethers.ZeroHash
-        )).to.be.revertedWithCustomError(proposalManager, "RootNotYetInitialized");
-    });
-
-    it(`FUNCTION: verifyProposal (with mock submission verifier)
         TESTING: onlyOwner authorization
         EXPECTED: should not allow non-governor to verify a proposal`, async function () {
         

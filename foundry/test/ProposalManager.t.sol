@@ -106,7 +106,7 @@ contract ProposalManagerTest is Test {
         );
 
         // cast the proxy to MembershipManager interface
-        membershipManager = MembershipManager(address(proxyMembershipManager));
+        membershipManager = MembershipManager(payable(address(proxyMembershipManager)));
 
         // prepare the calldata for ProposalManager initializer
         bytes memory initDataProposalManager = abi.encodeWithSelector(
@@ -124,7 +124,7 @@ contract ProposalManagerTest is Test {
         );
 
         // cast the proxy to ProposalManager interface
-        proposalManager = ProposalManager(address(proxyProposalManager));
+        proposalManager = ProposalManager(payable(address(proxyProposalManager)));
     }
     
     // =====================================================================================================================

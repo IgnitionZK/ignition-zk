@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.28;
+pragma solidity >=0.8.28 <0.9.0;
 
 import "../managers/VoteManager.sol";
 
@@ -17,22 +17,22 @@ contract MockVoteManagerHelper is VoteManager {
     function exposed_linearInterpolation(uint256 x) public view returns (uint256) {
         // y = y1 + slope * (x  - x1)
         // slope = (y2 - y1) / (x2 - x1)
-        uint256 yScalingFactor = 1e4; 
+        // y = y1 + slope * (x  - x1)
+        // slope = (y2 - y1) / (x2 - x1) 
         uint256 x1 = quorumParams.minGroupSizeForMaxQuorum;
-        uint256 y1Scaled = quorumParams.maxQuorumPercent * yScalingFactor;
+        uint256 y1Scaled = quorumParams.maxQuorumPercent * SCALING_FACTOR;
         uint256 x2 = quorumParams.maxGroupSizeForMinQuorum;
-        uint256 y2Scaled = quorumParams.minQuorumPercent * yScalingFactor;
+        uint256 y2Scaled = quorumParams.minQuorumPercent * SCALING_FACTOR;
 
         // x should be between x1 and x2
         if (x <= x1 || x >= x2) revert InvalidXInput();
-
-        uint256 scalingFactor = 1e4;
         uint256 slopeNumeratorPositive = y1Scaled - y2Scaled;
         uint256 slopeDenominator =  x2 - x1;
-        uint256 slopePositiveScaled = slopeNumeratorPositive * scalingFactor / slopeDenominator;
+        // multiplication before division to avoid precision loss
+        uint256 slopePositiveScaled = slopeNumeratorPositive * SCALING_FACTOR / slopeDenominator;
 
-        uint256 quorumScaled = y1Scaled - (slopePositiveScaled * (x - x1)) / scalingFactor;
-        return quorumScaled / scalingFactor;
+        uint256 quorumScaled = y1Scaled - (slopePositiveScaled * (x - x1)) / SCALING_FACTOR;
+        return quorumScaled / SCALING_FACTOR;
     }
     
     /**
@@ -66,7 +66,7 @@ contract MockVoteManagerHelper is VoteManager {
         
         bool hasReachedQuorum = totalVotes >= requiredVotes;
         bool hasYesMajority = proposal.tally.yes > proposal.tally.no;
-        bool hasMinimumMembers = params.memberCount >= 2;
+        bool hasMinimumMembers = params.memberCount >= MIN_MEMBERS_FOR_PASSED_STATUS;
 
         return hasReachedQuorum && hasYesMajority && hasMinimumMembers;
     }

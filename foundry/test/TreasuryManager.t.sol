@@ -151,7 +151,7 @@ contract TreasuryManagerTest is Test {
         );
 
         // cast the proxy to MembershipManager interface
-        membershipManager = MembershipManager(address(proxyMembershipManager));
+        membershipManager = MembershipManager(payable(address(proxyMembershipManager)));
 
         // prepare the calldata for ProposalManager initializer
         bytes memory initDataProposalManager = abi.encodeWithSelector(
@@ -169,7 +169,7 @@ contract TreasuryManagerTest is Test {
         );
 
         // cast the proxy to ProposalManager interface
-        proposalManager = ProposalManager(address(proxyProposalManager));
+        proposalManager = ProposalManager(payable(address(proxyProposalManager)));
 
         // prepare the calldata for VoteManager initializer
         bytes memory initDataVoteManager = abi.encodeWithSelector(
@@ -187,7 +187,7 @@ contract TreasuryManagerTest is Test {
         );
 
         // cast the proxy to VoteManager interface
-        voteManager = VoteManager(address(proxyVoteManager));
+        voteManager = VoteManager(payable(address(proxyVoteManager)));
 
         // Deploy GovernanceManager
         GovernanceManager governanceManagerImpl = new GovernanceManager();
@@ -209,7 +209,7 @@ contract TreasuryManagerTest is Test {
         );
 
         // cast the proxy to GovernanceManager interface
-        governanceManager = GovernanceManager(address(proxyGovernanceManager));
+        governanceManager = GovernanceManager(payable(address(proxyGovernanceManager)));
 
         // Transfer Ownership of MM, PM, VM to GM
         vm.startPrank(governor);

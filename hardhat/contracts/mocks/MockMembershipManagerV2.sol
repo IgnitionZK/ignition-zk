@@ -1,5 +1,5 @@
-// SPDX-License-Identifier: MIT
-pragma solidity ^0.8.28;
+// SPDX-License-Identifier: GPL-3.0
+pragma solidity >=0.8.28 <0.9.0;
 
 // OZ imports:
 import { UUPSUpgradeable } from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
@@ -111,9 +111,11 @@ contract MockMembershipManagerV2 is Initializable, UUPSUpgradeable, OwnableUpgra
     /// @notice Thrown if the provided address is not a contract.
     error AddressIsNotAContract();
 
-    /// @notice Thrown if the provided address does not support the required interface.
-    /// @dev This is used to check if the address supports the `verifyProof` function
-    //error AddressDoesNotSupportInterface();
+    /// @notice Thrown if ETH is sent to this contract.
+    error ETHTransfersNotAccepted();
+
+    /// @notice Thrown when a function not defined in this contract is called.
+    error UnknownFunctionCall();
     
 // ====================================================================================================================
 //                                                  EVENTS
@@ -307,8 +309,7 @@ contract MockMembershipManagerV2 is Initializable, UUPSUpgradeable, OwnableUpgra
      */
     function setMembershipVerifier(address _membershipVerifier) external onlyOwner nonZeroAddress(_membershipVerifier) {
         if(_membershipVerifier.code.length == 0) revert AddressIsNotAContract();
-        //if(!_supportsIMembershipInterface(_membershipVerifier)) revert AddressDoesNotSupportInterface();
-
+        
         membershipVerifier = IMembershipVerifier(_membershipVerifier);
         emit MembershipVerifierSet(_membershipVerifier);
     }
@@ -374,6 +375,10 @@ contract MockMembershipManagerV2 is Initializable, UUPSUpgradeable, OwnableUpgra
             salt // Use groupKey as the salt for deterministic deployment
         );
 
+        // Update state first to mitigate re-entrancy risk
+        groupNftAddresses[groupKey] = clone;
+        emit GroupNftDeployed(groupKey, clone, name, symbol);
+        
         IERC721IgnitionZK(clone).initialize(
             address(this), // DEFAULT_ADMIN_ROLE will be this contract
             address(this), // MINTER_ROLE will be this contract
@@ -381,8 +386,7 @@ contract MockMembershipManagerV2 is Initializable, UUPSUpgradeable, OwnableUpgra
             name, 
             symbol
         );
-        groupNftAddresses[groupKey] = clone;
-        emit GroupNftDeployed(groupKey, clone, name, symbol);
+        
         return clone;
     }
 
@@ -456,6 +460,7 @@ contract MockMembershipManagerV2 is Initializable, UUPSUpgradeable, OwnableUpgra
     /**
      * @dev Only the governor can call this function.
      * Iterates and calls `mintNftToMember` for each address.
+     * Audit note: Consider a pull over push method for large batches to avoid gas limit issues.
      * @custom:error NoMembersProvided If the `memberAddresses` array is empty.
      * @custom:error MemberBatchTooLarge If the number of members exceeds `MAX_MEMBERS_BATCH`.
      * @custom:error (Propagates errors from `mintNftToMember`)
@@ -500,6 +505,29 @@ contract MockMembershipManagerV2 is Initializable, UUPSUpgradeable, OwnableUpgra
         uint256 tokenIdToBurn = nft.tokenOfOwnerByIndex(memberAddress, 0);
         nft.revokeMembershipToken(tokenIdToBurn);
         emit MemberNftBurned(groupKey, memberAddress, tokenIdToBurn);
+    }
+
+// ====================================================================================================================
+//                                       RECEIVE & FALLBACK FUNCTIONS
+// ====================================================================================================================
+
+    /**
+    * @notice Prevents ETH from being sent to this contract
+    */
+    receive() external payable {
+        revert ETHTransfersNotAccepted();
+    }
+
+    /**
+    * @notice Prevents ETH from being sent with calldata to this contract
+    * @dev Handles unknown function calls and ETH transfers with data
+    */
+    fallback() external payable {
+        if (msg.value > 0) {
+            revert ETHTransfersNotAccepted();
+        } else {
+            revert UnknownFunctionCall();
+        }
     }
 
 // ====================================================================================================================
