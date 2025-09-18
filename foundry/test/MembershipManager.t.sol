@@ -67,7 +67,7 @@ contract MembershipManagerTest is Test {
         );
 
         // cast the proxy to MembershipManager interface
-        membershipManager = MembershipManager(address(membershipManagerProxy));
+        membershipManager = MembershipManager(payable(address(membershipManagerProxy)));
     }
 
 

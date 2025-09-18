@@ -50,7 +50,10 @@ module.exports = {
       "MockMembershipVerifier",
       "MockProposalVerifier",
       "MockProposalClaimVerifier",
-      "MockProposalVerifierV2"],
+      "MockProposalVerifierV2",
+      "MockVoteManagerHelper",
+      "MockGrantModuleWithReceive"
+    ],
   },
   networks: {
     sepolia: {

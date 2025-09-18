@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0
-pragma solidity ^0.8.28;
+pragma solidity >=0.8.28 <0.9.0;
 
 // OZ imports:
 import { UUPSUpgradeable } from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
@@ -239,6 +239,26 @@ contract VoteManager is Initializable, OwnableUpgradeable, UUPSUpgradeable, Reen
     uint256 public constant POSEIDON_HASH_YES = 18586133768512220936620570745912940619677854269274689475585506675881198879027;
     uint256 public constant POSEIDON_HASH_ABSTAIN = 8645981980787649023086883978738420856660271013038108762834452721572614684349;
 
+    /// @dev A scaling factor used for fixed-point arithmetic in quorum calculations.
+    uint256 public constant SCALING_FACTOR = 1e4;
+
+    /// @dev The minimum and maximum quorum percentages.
+    uint256 public constant MIN_QUORUM = 25;
+    uint256 public constant MAX_QUORUM = 50;
+
+    /// @dev The group size parameters corresponding to the minimum and maximum quorum percentages.
+    uint256 public constant MAX_GROUP_SIZE_FOR_MIN_QUORUM = 200;
+    uint256 public constant MIN_GROUP_SIZE_FOR_MAX_QUORUM = 30;
+
+    /// @dev The maximum group size allowed.
+    uint256 public constant GROUP_MEMBERS_MAX_THRESHOLD = 1024;
+
+    /// @dev The minimum group size required to set the maximum quorum and above which the quorum can be decreased via linear interpolation.
+    uint256 public constant MIN_GROUP_SIZE_FOR_MAX_QUORUM_THRESHOLD = 5;
+
+    /// @dev The minimum number of members required for a proposal to have a passed status.
+    uint256 public constant MIN_MEMBERS_FOR_PASSED_STATUS = 2;
+
     // ====================================================================================================================
     //                                                  MODIFIERS
     // ====================================================================================================================
@@ -312,10 +332,10 @@ contract VoteManager is Initializable, OwnableUpgradeable, UUPSUpgradeable, Reen
         emit ProposalManagerAddressSet(_proposalManager);
 
         quorumParams = VoteTypes.QuorumParams({
-            minQuorumPercent: 25,
-            maxQuorumPercent: 50,
-            maxGroupSizeForMinQuorum: 200,
-            minGroupSizeForMaxQuorum: 30
+            minQuorumPercent: MIN_QUORUM,
+            maxQuorumPercent: MAX_QUORUM,
+            maxGroupSizeForMinQuorum: MAX_GROUP_SIZE_FOR_MIN_QUORUM,
+            minGroupSizeForMaxQuorum: MIN_GROUP_SIZE_FOR_MAX_QUORUM
         });
 
     }
@@ -468,13 +488,13 @@ contract VoteManager is Initializable, OwnableUpgradeable, UUPSUpgradeable, Reen
         uint256 _maxGroupSizeForMinQuorum,
         uint256 _minGroupSizeForMaxQuorum
     ) external onlyOwner {
-        if (_minQuorumPercent < 25 ||
+        if (_minQuorumPercent < MIN_QUORUM ||
             _minQuorumPercent > _maxQuorumPercent ||
-            _maxQuorumPercent > 50 ) revert InvalidQuorumParams();
+            _maxQuorumPercent > MAX_QUORUM ) revert InvalidQuorumParams();
 
         if (_maxGroupSizeForMinQuorum < _minGroupSizeForMaxQuorum ||
-            _maxGroupSizeForMinQuorum > 1024 ||
-            _minGroupSizeForMaxQuorum < 5) revert InvalidGroupSizeParams();
+            _maxGroupSizeForMinQuorum > GROUP_MEMBERS_MAX_THRESHOLD ||
+            _minGroupSizeForMaxQuorum < MIN_GROUP_SIZE_FOR_MAX_QUORUM_THRESHOLD) revert InvalidGroupSizeParams();
 
         if (quorumParams.minQuorumPercent != _minQuorumPercent) {
             quorumParams.minQuorumPercent = _minQuorumPercent;
@@ -592,7 +612,7 @@ contract VoteManager is Initializable, OwnableUpgradeable, UUPSUpgradeable, Reen
      * @custom:error KeyCannotBeZero If the group key is zero.
      */
     function _setQuorum(bytes32 groupKey, uint256 _quorum) private nonZeroKey(groupKey) {
-        if (_quorum < 25 ) revert QuorumCannotBeLowerThan25();
+        if (_quorum < MIN_QUORUM ) revert QuorumCannotBeLowerThan25();
         groupParams[groupKey].quorum = _quorum;
         emit QuorumSet(groupKey, _quorum);
     }
@@ -614,7 +634,7 @@ contract VoteManager is Initializable, OwnableUpgradeable, UUPSUpgradeable, Reen
         
         bool hasReachedQuorum = totalVotes >= requiredVotes;
         bool hasYesMajority = proposal.tally.yes > proposal.tally.no;
-        bool hasMinimumMembers = params.memberCount >= 2;
+        bool hasMinimumMembers = params.memberCount >= MIN_MEMBERS_FOR_PASSED_STATUS;
 
         return hasReachedQuorum && hasYesMajority && hasMinimumMembers;
     }
@@ -629,24 +649,21 @@ contract VoteManager is Initializable, OwnableUpgradeable, UUPSUpgradeable, Reen
      */
     function _linearInterpolation(uint256 x) private view returns (uint256) {
         // y = y1 + slope * (x  - x1)
-        // slope = (y2 - y1) / (x2 - x1)
-        uint256 yScalingFactor = 1e4; 
+        // slope = (y2 - y1) / (x2 - x1) 
         uint256 x1 = quorumParams.minGroupSizeForMaxQuorum;
-        uint256 y1Scaled = quorumParams.maxQuorumPercent * yScalingFactor;
+        uint256 y1Scaled = quorumParams.maxQuorumPercent * SCALING_FACTOR;
         uint256 x2 = quorumParams.maxGroupSizeForMinQuorum;
-        uint256 y2Scaled = quorumParams.minQuorumPercent * yScalingFactor;
+        uint256 y2Scaled = quorumParams.minQuorumPercent * SCALING_FACTOR;
 
         // x should be between x1 and x2
         if (x <= x1 || x >= x2) revert InvalidXInput();
-
-        uint256 scalingFactor = 1e4;
         uint256 slopeNumeratorPositive = y1Scaled - y2Scaled;
         uint256 slopeDenominator =  x2 - x1;
         // multiplication before division to avoid precision loss
-        uint256 slopePositiveScaled = slopeNumeratorPositive * scalingFactor / slopeDenominator;
+        uint256 slopePositiveScaled = slopeNumeratorPositive * SCALING_FACTOR / slopeDenominator;
 
-        uint256 quorumScaled = y1Scaled - (slopePositiveScaled * (x - x1)) / scalingFactor;
-        return quorumScaled / scalingFactor;
+        uint256 quorumScaled = y1Scaled - (slopePositiveScaled * (x - x1)) / SCALING_FACTOR;
+        return quorumScaled / SCALING_FACTOR;
     }
 
     /**
