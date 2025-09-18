@@ -4,18 +4,12 @@ import { supabase } from "./supabase";
  * Creates a new transaction record in the database
  */
 export async function createTransaction({
-  txFunction,
-  txEventIdentifier,
+  txFunction = null,
+  txEventIdentifier = null,
   txHash,
   status,
   childId,
 }) {
-  if (!txFunction) {
-    throw new Error("txFunction is required");
-  }
-  if (!txEventIdentifier) {
-    throw new Error("txEventIdentifier is required");
-  }
   if (!txHash) {
     throw new Error("txHash is required");
   }
@@ -27,7 +21,7 @@ export async function createTransaction({
   }
 
   const insertData = {
-    tx_funcion: txFunction,
+    tx_function: txFunction,
     tx_event_identifier: txEventIdentifier,
     tx_hash: txHash,
     status: status,
