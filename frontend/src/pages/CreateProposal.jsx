@@ -467,8 +467,8 @@ export default function CreateProposal({ onSuccess, onCancel }) {
   const { insertProposal, isLoading: isInsertingProposal } =
     useInsertProposal();
 
-  // Get proof insertion hook (keeping for potential future use)
-  const { isLoading: isInsertingProof } = useInsertProof();
+  // Get proof insertion hook
+  const { insertProof, isLoading: isInsertingProof } = useInsertProof();
 
   // Get transaction creation hook
   const { createTransactionRecord, isLoading: isCreatingTransaction } =
@@ -904,8 +904,45 @@ export default function CreateProposal({ onSuccess, onCancel }) {
         );
       });
 
-      // TODO: Implement proof database storage in next step
-      setUploadProgress("Proof storage placeholder - to be implemented...");
+      // Insert the proof into the database with is_verified: false
+      setUploadProgress("Storing proof in database...");
+
+      // publicSignals[1] is the proposalSubmissionNullifier (nullifier hash)
+      const nullifierHash = publicSignals[1]?.toString();
+
+      if (!nullifierHash) {
+        throw new Error("Nullifier hash not available from proof verification");
+      }
+
+      console.log(
+        "[FRONTEND/CreateProposal] Inserting proof with contextKey:",
+        {
+          contextKey: contextKey,
+        }
+      );
+
+      await new Promise((resolve, reject) => {
+        insertProof(
+          {
+            proposalId: insertedProposal.proposal_id,
+            groupId: selectedGroupObject.group_id,
+            groupMemberId: groupMemberId,
+            nullifierHash: nullifierHash,
+            circuitType: "proposal",
+            contextKey: contextKey,
+          },
+          {
+            onSuccess: (proofData) => {
+              console.log("Proof stored in database:", proofData);
+              resolve(proofData);
+            },
+            onError: (error) => {
+              console.error("Failed to store proof:", error);
+              reject(error);
+            },
+          }
+        );
+      });
 
       setUploadProgress("Proposal created successfully!");
 

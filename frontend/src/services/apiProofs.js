@@ -72,7 +72,7 @@ export async function insertProof({
     group_id: groupId,
     group_member_id: groupMemberId,
     nullifier_hash: nullifierHash,
-    is_verified: true,
+    is_verified: false,
   };
 
   // Add contextKey if provided
