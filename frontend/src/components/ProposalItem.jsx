@@ -16,6 +16,7 @@ import { useGetCommitmentArray } from "../hooks/queries/merkleTreeLeaves/useGetC
 import { useGetProposalSubmissionNullifier } from "../hooks/queries/proofs/useGetProposalSubmissionNullifier";
 import { useUpdateProposalStatus } from "../hooks/queries/proposals/useUpdateProposalStatus";
 import { useGetGroupById } from "../hooks/queries/groups/useGetGroupById";
+import { useGetTransactionStatus } from "../hooks/queries/transactions/useGetTransactionStatus";
 
 // Utilities
 import { calculateEpochPhases } from "../scripts/utils/epochPhaseCalculator";
@@ -142,6 +143,8 @@ const StatusDot = styled.span`
         return "#6b7280"; // gray
       case "pending_approval":
         return "#000000"; // black
+      case "transaction_pending":
+        return "#f59e0b"; // orange/amber for pending transactions
       default:
         return "#6b7280"; // default gray
     }
@@ -236,6 +239,12 @@ function ProposalItem({ proposal = {} }) {
 
   const { distributeFunding, isDistributing } = useRelayerDistributeFunding();
 
+  // Get transaction status for this proposal
+  const { data: transactionData, isLoading: isLoadingTransaction } =
+    useGetTransactionStatus(proposal.proposal_id, {
+      enabled: !!proposal.proposal_id,
+    });
+
   if (!proposal || typeof proposal !== "object") {
     return (
       <ProposalItemContainer>
@@ -279,6 +288,32 @@ function ProposalItem({ proposal = {} }) {
       .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
       .join(" ");
   };
+
+  // Get the effective status based on transaction status
+  const getEffectiveStatus = () => {
+    // If we have transaction data, use transaction status logic
+    if (transactionData) {
+      if (transactionData.status === "pending") {
+        return {
+          statusType: "transaction_pending",
+          displayText: "Transaction Pending",
+        };
+      } else if (transactionData.status === "success") {
+        return {
+          statusType: "active",
+          displayText: "Active",
+        };
+      }
+    }
+
+    // Fallback to original proposal status
+    return {
+      statusType: proposal.status_type || "unknown",
+      displayText: formatStatus(proposal.status_type),
+    };
+  };
+
+  const effectiveStatus = getEffectiveStatus();
 
   const handleReviewDetails = () => {
     try {
@@ -567,8 +602,8 @@ function ProposalItem({ proposal = {} }) {
             <GroupName>{proposal.group_name || "Unknown Group"}</GroupName>
             <StatusIndicator>
               <StatusRow>
-                <StatusDot $status={proposal.status_type || "unknown"} />
-                {formatStatus(proposal.status_type)}
+                <StatusDot $status={effectiveStatus.statusType} />
+                {effectiveStatus.displayText}
               </StatusRow>
               {proposal.vote_tally && (
                 <VoteTally>

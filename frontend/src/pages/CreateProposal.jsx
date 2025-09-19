@@ -18,11 +18,14 @@ import Spinner from "../components/Spinner";
 import { useGetUserGroups } from "../hooks/queries/groupMembers/useGetUserGroups";
 import { useGetEpochsByGroupId } from "../hooks/queries/epochs/useGetEpochsByGroupId";
 import { useVerifyProposal } from "../hooks/queries/proofs/useVerifyProposal";
+import { useGenerateProof } from "../hooks/queries/proofs/useCreateNewProof";
+import { useRelayerVerifyProposal } from "../hooks/relayers/useRelayerVerifyProposal";
 import { useGetCommitmentArray } from "../hooks/queries/merkleTreeLeaves/useGetCommitmentArray";
 import { useGetGroupMemberId } from "../hooks/queries/groupMembers/useGetGroupMemberId";
 import { useInsertProposal } from "../hooks/queries/proposals/useInsertProposal";
 import { useInsertProof } from "../hooks/queries/proofs/useInsertProof";
 import { useValidateGroupCredentials } from "../hooks/queries/groups/useValidateGroupCredentials";
+import { useCreateTransaction } from "../hooks/queries/transactions/useCreateTransaction";
 
 // Utilities
 import { getCurrentPhase } from "../scripts/utils/epochPhaseCalculator";
@@ -444,8 +447,15 @@ export default function CreateProposal({ onSuccess, onCancel }) {
       groupId: selectedGroupObject?.group_id,
     });
 
-  // Get proposal verification hook
-  const { verifyProposal, isVerifying } = useVerifyProposal();
+  // Get proposal verification hook (keeping for potential future use)
+  const { isVerifying } = useVerifyProposal();
+
+  // Get proof generation hook
+  const { generateProofFromInput, isLoading: isGeneratingProof } =
+    useGenerateProof();
+
+  // Get relayer verification hook
+  const { verifyProposal: relayerVerifyProposal } = useRelayerVerifyProposal();
 
   // Get group member ID for the selected group
   const { groupMemberId, isLoading: isLoadingGroupMemberId } =
@@ -460,12 +470,14 @@ export default function CreateProposal({ onSuccess, onCancel }) {
   // Get proof insertion hook
   const { insertProof, isLoading: isInsertingProof } = useInsertProof();
 
+  // Get transaction creation hook
+  const { createTransactionRecord, isLoading: isCreatingTransaction } =
+    useCreateTransaction();
+
   // Get group credentials validation
   const {
     isLoading: isValidatingCredentials,
     isValid: areCredentialsValid,
-    totalMembers,
-    commitmentsCount,
     message: credentialsMessage,
     error: credentialsError,
   } = useValidateGroupCredentials(
@@ -786,12 +798,8 @@ export default function CreateProposal({ onSuccess, onCancel }) {
 
       setUploadProgress("Generating zero-knowledge proof...");
 
-      // Verify the proposal using the ZK proof system
-      const {
-        isValid,
-        publicSignals,
-        contextKey: returnedContextKey,
-      } = await verifyProposal(
+      // Generate ZK proof (without calling edge function yet)
+      const { proof, publicSignals } = await generateProofFromInput(
         commitmentArray,
         mnemonic,
         selectedGroupObject.group_id,
@@ -800,91 +808,154 @@ export default function CreateProposal({ onSuccess, onCancel }) {
         proposalData.description,
         proposalData.payload,
         proposalData.funding,
-        proposalData.metadata
+        proposalData.metadata,
+        "proposal"
       );
 
-      if (isValid) {
-        setUploadProgress("Proposal verified successfully!");
-        console.log("Proposal verified successfully!");
-        console.log("Public signals:", publicSignals);
+      console.log("ZK proof generated successfully!");
+      console.log("Public signals:", publicSignals);
 
-        // Insert the proposal into the database
-        setUploadProgress("Storing proposal in database...");
+      // Insert the proposal into the database FIRST
+      setUploadProgress("Storing proposal in database...");
 
-        if (!groupMemberId) {
-          throw new Error("Group member ID not available");
-        }
+      if (!groupMemberId) {
+        throw new Error("Group member ID not available");
+      }
 
-        const insertedProposal = await insertProposal({
-          epochId: selectedCampaignObject.epoch_id,
-          groupId: selectedGroupObject.group_id,
-          groupMemberId: groupMemberId,
-          title: proposalData.title,
-          description: proposalData.description,
-          metadata: proposalData.metadata,
-          payload: proposalData.payload,
-          funding: proposalData.funding,
-          claimHash: publicSignals[2]?.toString() || null,
-          contextKey: returnedContextKey,
-        });
+      // Compute context key for the proposal
+      const contextKey = await ZKProofGenerator.computeContextKey(
+        selectedGroupObject.group_id.toString(),
+        selectedCampaignObject.epoch_id.toString()
+      );
 
-        console.log("Proposal stored in database:", insertedProposal);
+      const insertedProposal = await insertProposal({
+        epochId: selectedCampaignObject.epoch_id,
+        groupId: selectedGroupObject.group_id,
+        groupMemberId: groupMemberId,
+        title: proposalData.title,
+        description: proposalData.description,
+        metadata: proposalData.metadata,
+        payload: proposalData.payload,
+        funding: proposalData.funding,
+        claimHash: publicSignals[2]?.toString() || null,
+        contextKey: contextKey,
+      });
 
-        if (!insertedProposal) {
-          throw new Error("Failed to insert proposal into database");
-        }
+      console.log("Proposal stored in database:", insertedProposal);
 
-        setUploadProgress("Storing proof in database...");
+      if (!insertedProposal) {
+        throw new Error("Failed to insert proposal into database");
+      }
 
-        // Insert the proof into the database
-        // publicSignals[1] is the proposalSubmissionNullifier (nullifier hash)
-        const nullifierHash = publicSignals[1]?.toString();
+      // Now call the edge function with the generated proof
+      setUploadProgress("Verifying proposal on blockchain...");
 
-        if (!nullifierHash) {
-          throw new Error(
-            "Nullifier hash not available from proof verification"
-          );
-        }
+      const { proofSolidity, publicSignalsSolidity } =
+        await ZKProofGenerator.generateSolidityCalldata(proof, publicSignals);
 
-        // Use the contextKey returned from the verification process
-        if (!returnedContextKey) {
-          throw new Error(
-            "contextKey not returned from verification process. This indicates an issue with the relayer or verification chain."
-          );
-        }
-
-        console.log(
-          "[FRONTEND/CreateProposal] Using contextKey from verification:",
+      // Call the edge function
+      const edgeFunctionResult = await new Promise((resolve, reject) => {
+        relayerVerifyProposal(
           {
-            contextKey: returnedContextKey,
+            proof: proofSolidity,
+            publicSignals: publicSignalsSolidity,
+            groupKey: selectedGroupObject.group_id.toString(),
+            epochKey: selectedCampaignObject.epoch_id.toString(),
+          },
+          {
+            onSuccess: (data) => {
+              console.log("Edge function verification successful:", data);
+              resolve(data);
+            },
+            onError: (error) => {
+              console.error("Edge function verification failed:", error);
+              reject(new Error("Edge function verification failed"));
+            },
           }
         );
+      });
 
-        const insertedProof = await insertProof({
-          proposalId: insertedProposal.proposal_id,
-          groupId: selectedGroupObject.group_id,
-          groupMemberId: groupMemberId,
-          nullifierHash: nullifierHash,
-          circuitType: "proposal",
-          contextKey: returnedContextKey,
-        });
+      // Create transaction record with the returned txHash
+      setUploadProgress("Creating transaction record...");
 
-        console.log("Proof stored in database:", insertedProof);
-        setUploadProgress("Proposal created successfully!");
-
-        // Show success message
-        toast.success("Proposal created successfully!");
-
-        // Small delay to ensure the success message is visible and database transaction is committed
-        await new Promise((resolve) => setTimeout(resolve, 2000));
-
-        // Call the success callback with the proposal title
-        successCallback(proposalName);
-
-        console.log("Proposal and proof created and verified successfully!");
-      } else {
-        throw new Error("Proposal verification failed");
+      if (!edgeFunctionResult.transactionHash) {
+        throw new Error("No transaction hash returned from edge function");
       }
+
+      await new Promise((resolve, reject) => {
+        createTransactionRecord(
+          {
+            txFunction: "delegateVerifyProposal",
+            txEventIdentifier: null,
+            txHash: edgeFunctionResult.transactionHash,
+            status: "pending",
+            childId: insertedProposal.proposal_id,
+          },
+          {
+            onSuccess: (transactionData) => {
+              console.log("Transaction record created:", transactionData);
+              resolve(transactionData);
+            },
+            onError: (error) => {
+              console.error("Failed to create transaction record:", error);
+              reject(error);
+            },
+          }
+        );
+      });
+
+      // Insert the proof into the database with is_verified: false
+      setUploadProgress("Storing proof in database...");
+
+      // publicSignals[1] is the proposalSubmissionNullifier (nullifier hash)
+      const nullifierHash = publicSignals[1]?.toString();
+
+      if (!nullifierHash) {
+        throw new Error("Nullifier hash not available from proof verification");
+      }
+
+      console.log(
+        "[FRONTEND/CreateProposal] Inserting proof with contextKey:",
+        {
+          contextKey: contextKey,
+        }
+      );
+
+      await new Promise((resolve, reject) => {
+        insertProof(
+          {
+            proposalId: insertedProposal.proposal_id,
+            groupId: selectedGroupObject.group_id,
+            groupMemberId: groupMemberId,
+            nullifierHash: nullifierHash,
+            circuitType: "proposal",
+            contextKey: contextKey,
+          },
+          {
+            onSuccess: (proofData) => {
+              console.log("Proof stored in database:", proofData);
+              resolve(proofData);
+            },
+            onError: (error) => {
+              console.error("Failed to store proof:", error);
+              reject(error);
+            },
+          }
+        );
+      });
+
+      setUploadProgress("Proposal created successfully!");
+
+      // Show success message
+      toast.success("Proposal created successfully!");
+
+      // Small delay to ensure the success message is visible and database transaction is committed
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+
+      // Call the success callback with the proposal title
+      successCallback(proposalName);
+
+      console.log("Proposal and proof created and verified successfully!");
     } catch (error) {
       console.error("Error creating proposal:", error);
       toast.error(`Error creating proposal: ${error.message}`);
@@ -1375,10 +1446,12 @@ export default function CreateProposal({ onSuccess, onCancel }) {
           disabled={
             isSubmitting ||
             isVerifying ||
+            isGeneratingProof ||
             isLoadingCommitments ||
             isLoadingGroupMemberId ||
             isInsertingProposal ||
             isInsertingProof ||
+            isCreatingTransaction ||
             isValidatingCredentials ||
             (selectedGroupObject && !areCredentialsValid)
           }
@@ -1393,9 +1466,11 @@ export default function CreateProposal({ onSuccess, onCancel }) {
           disabled={
             isSubmitting ||
             isVerifying ||
+            isGeneratingProof ||
             isLoadingGroupMemberId ||
             isInsertingProposal ||
-            isInsertingProof
+            isInsertingProof ||
+            isCreatingTransaction
           }
         >
           Cancel
