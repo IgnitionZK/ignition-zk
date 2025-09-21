@@ -5,8 +5,13 @@
 
 <p align="center">
   <img src="frontend/src/assets/logo-transparent-bg.png" alt="IgnitionZK Logo" width="100" />
+
   <h1 align="center" style="margin-top: 0.3rem;">IgnitionZK</h1>
   <h3 align="center" style="margin: 0;">ZK-Governed · Modular · Upgradeable Governance & Treasury</h3>
+</p>
+
+<p align="center">
+  <a href="./docs/quick-start.md"><b>Quick Start Guide</b></a>
 </p>
 
 > 🚧 **Project Status**: Alpha - In active development and testing. Not yet ready for production use.
